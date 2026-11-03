@@ -68,6 +68,8 @@ export type CustomModuleViewDefinition = {
 
 export type CustomModuleDefinition = {
   readonly moduleKey: string;
+  /** STANDARD | ORGANIZATION_OWNED | IMMUTABLE | CONFIGURATION. Absent on older API responses = STANDARD. */
+  readonly moduleKind?: string;
   readonly displayName: string;
   readonly pluralDisplayName?: string | null;
   readonly primaryNameField: string;
@@ -79,8 +81,19 @@ export type CustomModuleDefinition = {
     readonly create?: boolean;
     readonly update?: boolean;
     readonly delete?: boolean;
+    /** Whether records may be set Active/Inactive; the API refuses it for immutable modules. */
+    readonly deactivate?: boolean;
   };
 };
+
+/**
+ * View filter values the API stores as tokens. `@me` is the signed-in user:
+ * "My Records" is provisioned once for every user, so the filter cannot carry a
+ * user id. With no known user it resolves to a value no record has, so the view
+ * shows nothing rather than everything.
+ */
+export const CURRENT_USER_TOKEN = "@me";
+const NO_USER_SENTINEL = "__no-signed-in-user__";
 
 /* Derived keys the API enforces on `/data` (see custom-records.metadata.ts). */
 const CUSTOM_RECORD_PERMISSIONS = {
@@ -90,8 +103,26 @@ const CUSTOM_RECORD_PERMISSIONS = {
   delete: "custom-records.delete",
 } as const;
 
-/* Record timestamps the API returns on every custom record. */
+/*
+ * Record-level fields the API returns on every custom record (status, owner and
+ * the timestamps). They are not columns, so views reference them by these
+ * names: "Active Records" filters on isActive, "My Records" on ownerUserId.
+ */
 const SYSTEM_FIELDS: readonly StandardModuleFieldSpec[] = [
+  {
+    logicalName: "isActive",
+    displayName: "Status",
+    dataType: "boolean",
+    isReadOnly: true,
+  },
+  {
+    logicalName: "ownerUserId",
+    displayName: "Owner",
+    dataType: "string",
+    // The column holds a user id, so ordering by it would be ordering by an opaque value.
+    isSortable: false,
+    isReadOnly: true,
+  },
   {
     logicalName: "createdAt",
     displayName: "Created On",
@@ -110,6 +141,7 @@ const FALLBACK_VIEW_COLUMN_COUNT = 8;
 
 export function buildCustomModuleRuntimeSpec(
   definition: CustomModuleDefinition,
+  currentUserId?: string | null,
 ): StandardModuleRuntimeSpec {
   const routeBase = customModuleHref(definition.moduleKey);
   const fields = buildFieldSpecs(definition);
@@ -134,7 +166,7 @@ export function buildCustomModuleRuntimeSpec(
     primaryIdField: "id",
     primaryNameField: definition.primaryNameField || "id",
     fields,
-    views: buildCustomModuleViews(definition),
+    views: buildCustomModuleViews(definition, currentUserId),
     formFields: definition.fields.map((field) => field.logicalName),
     adapterCapabilities: {
       softDelete: true,
@@ -142,6 +174,7 @@ export function buildCustomModuleRuntimeSpec(
       disableCreate: definition.capabilities.create !== true,
       disableEdit: definition.capabilities.update !== true,
       disableDelete: definition.capabilities.delete !== true,
+      disableDeactivate: definition.capabilities.deactivate !== true,
       import: false,
       export: false,
       exportTemplate: false,
@@ -150,8 +183,26 @@ export function buildCustomModuleRuntimeSpec(
   };
 }
 
+/**
+ * The key to send the API for the active view, or undefined when the view is not
+ * one the tenant published (the synthetic "all" list of a module published with
+ * no views). Sending a key the API cannot find would be a 404, and the
+ * alternative — sending nothing — is exactly right for a list that has no filter.
+ */
+export function serverViewKey(
+  definition: Pick<CustomModuleDefinition, "views">,
+  activeView: { readonly logicalName?: string } | null | undefined,
+): string | undefined {
+  const key = activeView?.logicalName;
+  if (!key) return undefined;
+  return definition.views.some((view) => view.viewKey === key)
+    ? key
+    : undefined;
+}
+
 export function buildCustomModuleViews(
   definition: CustomModuleDefinition,
+  currentUserId?: string | null,
 ): StandardModuleViewSpec[] {
   const fieldNames = [
     ...definition.fields.map((field) => field.logicalName),
@@ -166,12 +217,13 @@ export function buildCustomModuleViews(
     const columns = readColumnKeys(view.columnsJson).filter((key) =>
       known.has(key),
     );
-    const filters = readFilters(view.filtersJson, known);
+    const filters = readFilters(view.filtersJson, known, currentUserId);
     const defaultSort = readSort(view.sortingJson, known);
     return {
       logicalName: view.viewKey,
       viewId: view.id,
       displayName: view.name,
+      description: "",
       isDefault: view.isDefault === true,
       columns: columns.length > 0 ? columns : fallbackColumns,
       ...(filters.length > 0 ? { filters } : {}),
@@ -190,6 +242,7 @@ export function buildCustomModuleViews(
         viewId: `${definition.moduleKey}:all`,
         displayName:
           definition.pluralDisplayName?.trim() || definition.displayName,
+        description: "",
         isDefault: true,
         columns: fallbackColumns,
       },
@@ -269,7 +322,7 @@ export function buildCustomModuleRuntime({
   readonly recordId?: string;
   readonly sessionUser: SessionUser | null;
 }): { spec: StandardModuleRuntimeSpec; runtime: ModuleRuntimeContext } {
-  const spec = buildCustomModuleRuntimeSpec(definition);
+  const spec = buildCustomModuleRuntimeSpec(definition, sessionUser?.userId);
   const runtime = buildStandardRouteRuntime({
     pageKind,
     recordId,
@@ -377,6 +430,7 @@ function readColumnKeys(value: unknown): string[] {
 function readFilters(
   value: unknown,
   known: ReadonlySet<string>,
+  currentUserId?: string | null,
 ): ViewFilterMetadata[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
@@ -385,7 +439,11 @@ function readFilters(
     const record = entry as Record<string, unknown>;
     const operator = normalizeOperator(record.operator ?? record.op);
     if (!operator) return [];
-    return [{ fieldLogicalName, operator, value: record.value }];
+    const resolved =
+      record.value === CURRENT_USER_TOKEN
+        ? (currentUserId ?? NO_USER_SENTINEL)
+        : record.value;
+    return [{ fieldLogicalName, operator, value: resolved }];
   });
 }
 

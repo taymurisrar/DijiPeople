@@ -848,6 +848,58 @@ export class OrganizationService {
     );
   }
 
+  /**
+   * The hierarchy tree for ONE caller. Every level is cut by the same visibility
+   * rules as the list endpoints (organizations, business units, departments), so
+   * a caller scoped to a business-unit subtree cannot read the names of sibling
+   * units, other organizations or their teams through the tree. A unit whose
+   * parent is outside the caller's scope becomes a root of its own branch: the
+   * hidden ancestor is not named. A caller with no hierarchy read privilege gets
+   * an empty tree, the same answer the list endpoints give.
+   */
+  async getHierarchyTreeForUser(currentUser: AuthenticatedUser) {
+    const tenantId = currentUser.tenantId;
+    const [allOrganizations, allBusinessUnits, departments, allTeams] =
+      await Promise.all([
+        this.organizationRepository.findOrganizations(tenantId),
+        this.organizationRepository.findBusinessUnits(tenantId),
+        this.findDepartmentsForUser(currentUser, {}),
+        this.prisma.team.findMany({
+          where: { tenantId },
+          select: {
+            id: true,
+            tenantId: true,
+            name: true,
+            departmentId: true,
+            isActive: true,
+          },
+          orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+        }),
+      ]);
+    const organizations = this.filterOrganizationsForUser(
+      currentUser,
+      allOrganizations,
+      SecurityPrivilege.READ,
+    );
+    const businessUnits = this.filterBusinessUnitsForUser(
+      currentUser,
+      allBusinessUnits,
+      SecurityPrivilege.READ,
+    );
+    const visibleDepartmentIds = new Set(departments.map((d) => d.id));
+    const teams = allTeams.filter(
+      (team) =>
+        team.departmentId && visibleDepartmentIds.has(team.departmentId),
+    );
+    return this.assembleHierarchyTree(
+      organizations,
+      businessUnits,
+      departments,
+      teams,
+    );
+  }
+
+  /** @deprecated Tenant-wide and unscoped: only for callers that have already authorised the whole tenant. */
   async getHierarchyTree(tenantId: string) {
     const [organizations, businessUnits, departments, teams] =
       await Promise.all([
@@ -866,7 +918,24 @@ export class OrganizationService {
           orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
         }),
       ]);
+    return this.assembleHierarchyTree(
+      organizations,
+      businessUnits,
+      departments,
+      teams,
+    );
+  }
 
+  private assembleHierarchyTree(
+    organizations: Awaited<
+      ReturnType<OrganizationRepository['findOrganizations']>
+    >,
+    businessUnits: Awaited<
+      ReturnType<OrganizationRepository['findBusinessUnits']>
+    >,
+    departments: Awaited<ReturnType<OrganizationRepository['findDepartments']>>,
+    teams: TeamNode[],
+  ) {
     const organizationTree = this.buildOrganizationTree(organizations);
     const businessUnitTreeByOrganization = organizations.reduce<
       Record<string, BusinessUnitNode[]>

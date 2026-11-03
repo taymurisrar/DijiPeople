@@ -1,0 +1,43 @@
+name: CI failure report
+
+# Read-only. When `CI` fails, classify the failing jobs by cause and write the
+# diagnosis to the run summary. It does not rerun, cancel, comment, open issues
+# or touch any gate (CI-001/CI-002/CI-004). Posting to the PR or opening a
+# remediation issue needs a token with write scope; that is a deliberate owner
+# decision documented in docs/engineering/ci-reliability.md, not defaulted on.
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  diagnose:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Trusted code only: the default branch's copy of the classifier, never code from the failing (possibly fork) branch.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: ./.github/actions/setup-npm
+        with:
+          install: 'false'
+      - name: Diagnose
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          mkdir -p evidence
+          node scripts/ci-doctor.mjs --run "$RUN_ID" --branch "$BRANCH" --summary --out evidence >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: first-failure-evidence-${{ github.event.workflow_run.id }}
+          path: evidence
+          retention-days: 30

@@ -978,8 +978,15 @@ export class PackageAlmService {
       !verified.artifact ||
       verified.artifact.contentChecksum !== stored.checksum
     ) {
+      // Say WHY: "failed verification" with no reason cost a debugging session.
+      const why = verified.artifact
+        ? 'content checksum does not match the stored checksum'
+        : verified.problems
+            .slice(0, 5)
+            .map((problem) => `${problem.path || '(root)'}: ${problem.message}`)
+            .join('; ');
       this.logger.error(
-        `Stored artifact ${record.solutionKey}@${stored.version} failed verification.`,
+        `Stored artifact ${record.solutionKey}@${stored.version} failed verification: ${why}`,
       );
       throw new AppError('SYSTEM_UNEXPECTED_ERROR', {
         message:
@@ -1963,6 +1970,29 @@ export class PackageAlmService {
         action: 'value-set',
       });
     }
+
+    /*
+     * Defaults for the modules this import CREATED. Create-only: whatever the
+     * package carried (its own forms, views, action bar) is left exactly as
+     * imported; only planned components the package did not define are added.
+     * A module that already existed in this workspace is not touched here —
+     * that is what the explicit reconciliation workflow is for.
+     */
+    const createdModules = applicable
+      .filter(
+        (component) =>
+          component.type === 'table' &&
+          component.layerAction === 'create' &&
+          !component.baseIsSystem &&
+          statusByKey.get(component.key)?.apply === 'create',
+      )
+      .map((component) => component.objectKey);
+    await this.customization.provisionImportedModules(
+      currentUser,
+      tx,
+      createdModules,
+      packageRecord.id,
+    );
 
     return { packageId: packageRecord.id, componentIds };
   }

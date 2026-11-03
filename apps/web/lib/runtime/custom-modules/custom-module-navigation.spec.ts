@@ -8,6 +8,7 @@ import {
   buildCustomModuleNavItems,
   composeDashboardNavItems,
   customModuleHref,
+  resolveCustomModuleRouteTitle,
   CUSTOM_RECORDS_READ_PERMISSION,
   type CustomModuleSummary,
 } from "./custom-module-navigation";
@@ -96,7 +97,9 @@ describe("composeDashboardNavItems", () => {
       dashboardNavItems,
       buildCustomModuleNavItems([QA_ASSET]),
     );
-    const settingsIndex = catalog.findIndex((item) => item.href === "/settings");
+    const settingsIndex = catalog.findIndex(
+      (item) => item.href === "/settings",
+    );
     expect(catalog[settingsIndex - 1]?.href).toBe("/custom-modules/qaAsset");
     expect(catalog).toHaveLength(dashboardNavItems.length + 1);
   });
@@ -146,9 +149,9 @@ describe("resolveVisibleDashboardNavItems with custom modules", () => {
       customModules: [],
       permissionKeys: [CUSTOM_RECORDS_READ_PERMISSION],
     });
-    expect(hrefs(items).some((href) => href.startsWith("/custom-modules"))).toBe(
-      false,
-    );
+    expect(
+      hrefs(items).some((href) => href.startsWith("/custom-modules")),
+    ).toBe(false);
   });
 
   it("applies a Sidebar Designer hide to the custom entry", () => {
@@ -183,10 +186,41 @@ describe("resolveVisibleDashboardNavItems with custom modules", () => {
       overrides: [
         {
           itemKey: "/custom-modules/qaAsset",
-          visibilityRules: [{ operator: "has-role", roleKeys: ["payroll-admin"] }],
+          visibilityRules: [
+            { operator: "has-role", roleKeys: ["payroll-admin"] },
+          ],
         },
       ],
     });
     expect(hrefs(items)).not.toContain("/custom-modules/qaAsset");
+  });
+});
+
+describe("resolveCustomModuleRouteTitle", () => {
+  const modules = [
+    { moduleKey: "kviewsabc", displayName: "Deal", pluralDisplayName: "Deals" },
+    { moduleKey: "solo", displayName: "Solo" },
+  ];
+
+  it("titles a module's routes by its name, not by the key in the URL", () => {
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/kviewsabc", modules),
+    ).toBe("Deals");
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/kviewsabc/new", modules),
+    ).toBe("Deals");
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/solo/1234", modules),
+    ).toBe("Solo");
+  });
+
+  it("leaves other routes and unknown modules to the generic resolver", () => {
+    expect(resolveCustomModuleRouteTitle("/employees", modules)).toBeNull();
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/ghost", modules),
+    ).toBeNull();
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/kviewsabc", null),
+    ).toBeNull();
   });
 });

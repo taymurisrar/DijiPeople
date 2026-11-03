@@ -431,6 +431,21 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
   }
 }
 
+const PER_REQUEST_FIELDS = [
+  'tenantId',
+  'userId',
+  'organizationId',
+  'businessUnitId',
+  'ipAddress',
+  'userAgent',
+  'params',
+  'query',
+  'requestBody',
+  'stack',
+  'cause',
+  'details',
+] as const;
+
 function hydrateOccurrence(
   occurrence: Prisma.ErrorLogOccurrenceGetPayload<{
     include: { incident: true };
@@ -443,9 +458,27 @@ function hydrateOccurrence(
       ? (occurrence.diagnosticJson as Record<string, unknown>)
       : {};
 
+  /*
+   * The incident row belongs to whoever hit this error FIRST: the fingerprint is
+   * source, code, method, path and message, with no tenant in it. A later occurrence
+   * stores only the fields it had (undefined is dropped from the JSON), so spreading
+   * the incident under it handed that occurrence the first caller's tenantId and
+   * userId — a tenant-less (platform) occurrence, or another tenant's, then read as
+   * the first tenant's log. Every field that describes ONE request therefore comes
+   * from the occurrence, and is null when the occurrence did not record it.
+   * Legacy occurrences with no diagnostic keep the incident's values.
+   */
+  const perRequest =
+    diagnostic && Object.keys(diagnostic).length
+      ? Object.fromEntries(
+          PER_REQUEST_FIELDS.map((key) => [key, diagnostic[key] ?? null]),
+        )
+      : {};
+
   return {
     ...occurrence.incident,
     ...diagnostic,
+    ...perRequest,
     traceId: occurrence.traceId,
     createdAt: occurrence.occurredAt,
     updatedAt: occurrence.occurredAt,

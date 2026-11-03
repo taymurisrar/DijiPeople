@@ -42,6 +42,18 @@ type Session = {
   tokens: { accessToken: string; refreshToken: string; sessionId: string };
 };
 
+/*
+ * Enrolment here is a means to a login scenario, not the thing under test, and
+ * `startSetup` renders a real PNG QR (~1 s of CPU). Under the full suite's parallel
+ * workers that pushed these tests past the 5 s timeout, while they pass alone — the
+ * same "no headroom" failure as mfa.service.spec.ts, which carries the one test
+ * that asserts on the real image.
+ */
+jest.mock('qrcode', () => ({
+  ...jest.requireActual<typeof import('qrcode')>('qrcode'),
+  toDataURL: () => Promise.resolve('data:image/png;base64,c3R1Yg=='),
+}));
+
 describe('MFA at sign-in (ADR-0019)', () => {
   let prisma: MfaTestPrisma & {
     tenant: { findUnique: jest.Mock };
