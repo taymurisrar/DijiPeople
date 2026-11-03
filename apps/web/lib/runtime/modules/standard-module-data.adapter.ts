@@ -528,8 +528,7 @@ export function createStandardModuleDataAdapter(
     async createRelatedRecord(
       input: RelatedRecordMutationInput<RuntimeRecord>,
     ) {
-      const { create: path, createConsumedParentId } =
-        relatedRecordPaths(input);
+      const { create: path, createConsumedParentId } = relatedRecordPaths(input);
       if (!path)
         throw new Error(
           `Related list ${input.subgrid.relationshipName} has no create API metadata.`,
@@ -1008,21 +1007,6 @@ function sanitizeStandardMutationValues(
         values[fieldName],
       );
     }
-  }
-
-  /*
-   * Record status of a custom module. `isActive` is a read-only system field (it is
-   * not a value the form edits), so the loop above dropped it and Activate / Deactivate
-   * sent an empty PATCH that the API answered with 200 and applied nothing. Only the
-   * custom-module API takes it, as a top-level boolean; other modules are unchanged.
-   */
-  if (
-    mode === "update" &&
-    typeof values.isActive === "boolean" &&
-    spec.routeBase.startsWith("/custom-modules/") &&
-    spec.fields.some((field) => field.logicalName === "isActive")
-  ) {
-    payload.isActive = values.isActive;
   }
 
   if (spec.entityLogicalName === "settings_designations") {

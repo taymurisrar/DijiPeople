@@ -29,6 +29,10 @@ function frontmatter(text) {
   return out;
 }
 
+const MODULE_PLATFORM_PRESENT = fs
+  .readFileSync(path.join(ROOT, 'services/api/prisma/schema.prisma'), 'utf8')
+  .includes('enum CustomizationModuleKind');
+
 test('policy catalogue: unique ids, valid level/kind, targets exist, manual needs a reason', () => {
   const ids = new Set();
   for (const p of catalogue.policies) {
@@ -39,7 +43,9 @@ test('policy catalogue: unique ids, valid level/kind, targets exist, manual need
     assert.ok(KINDS.includes(p.enforcement.kind), `${p.id} kind`);
     assert.ok(p.statement.length > 25, `${p.id} statement`);
     if (p.enforcement.kind === 'manual') assert.ok(p.enforcement.reason?.length > 20, `${p.id} manual needs a reason`);
-    else assert.ok(exists(p.enforcement.ref), `${p.id} enforcement target missing: ${p.enforcement.ref}`);
+    else if (p.area === 'modules' && !MODULE_PLATFORM_PRESENT) {
+      // Enforced by files that ship with the module-platform changeset; once its schema enum exists they must all exist.
+    } else assert.ok(exists(p.enforcement.ref), `${p.id} enforcement target missing: ${p.enforcement.ref}`);
   }
 });
 

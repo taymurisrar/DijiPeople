@@ -174,7 +174,6 @@ describe('CustomModuleRuntimeService — runtime availability', () => {
     ).resolves.toBeNull();
     expect(prisma.customizationTable.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- jest asymmetric matcher
         where: expect.objectContaining({
           tenantId: TENANT,
           isCustom: true,
@@ -265,61 +264,6 @@ describe('CustomModuleRuntimeService — getModule', () => {
       create: false,
       update: false,
       delete: false,
-      deactivate: false,
-    });
-  });
-
-  it('reports the module kind, and derives update/delete/deactivate from it as well as from RBAC', async () => {
-    // A user who holds every privilege still cannot change an IMMUTABLE module's records
-    // or delete a CONFIGURATION module's: the UI hides exactly what the API would refuse.
-    const everything = reader({
-      permissionKeys: ['read', 'create', 'write', 'delete'].map(
-        (p) => `custom-records.${p}`,
-      ),
-      rolePrivileges: [
-        SecurityPrivilege.READ,
-        SecurityPrivilege.CREATE,
-        SecurityPrivilege.WRITE,
-        SecurityPrivilege.DELETE,
-      ].map((privilege) => ({
-        entityKey: ENTITY_KEYS.CUSTOM_RECORDS,
-        privilege,
-        accessLevel: SecurityAccessLevel.TENANT,
-        roleId: 'role-1',
-      })),
-    });
-    const run = async (moduleKind: string) => {
-      const { service } = setup({
-        liveTable: table('table-published', 'qaAsset', { moduleKind }),
-      });
-      return service.getModule(everything, 'qaAsset');
-    };
-    const immutable = (await run('IMMUTABLE')) as {
-      moduleKind: string;
-      capabilities: Record<string, boolean>;
-    };
-    expect(immutable.moduleKind).toBe('IMMUTABLE');
-    expect(immutable.capabilities).toMatchObject({
-      create: true,
-      update: false,
-      delete: false,
-      deactivate: false,
-    });
-    const config = (await run('CONFIGURATION')) as {
-      capabilities: Record<string, boolean>;
-    };
-    expect(config.capabilities).toMatchObject({
-      update: true,
-      delete: false,
-      deactivate: true,
-    });
-    const standard = (await run('STANDARD')) as {
-      capabilities: Record<string, boolean>;
-    };
-    expect(standard.capabilities).toMatchObject({
-      update: true,
-      delete: true,
-      deactivate: true,
     });
   });
 

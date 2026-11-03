@@ -11,7 +11,6 @@ import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
   CheckboxField,
-  SelectField,
   TextAreaField,
   TextField,
 } from "@/app/components/ui/form-control";
@@ -33,20 +32,7 @@ type EditState = {
   icon: string;
   description: string;
   isActive: boolean;
-  /*
-   * Chosen once, at creation: it decides which views, forms and commands the
-   * module is provisioned with, and what its records may do (edit, deactivate,
-   * delete). The update API does not accept it.
-   */
-  moduleKind: string;
 };
-
-const MODULE_KIND_OPTIONS = [
-  { value: "STANDARD", label: "Standard" },
-  { value: "ORGANIZATION_OWNED", label: "Organization-owned" },
-  { value: "CONFIGURATION", label: "Configuration" },
-  { value: "IMMUTABLE", label: "Immutable" },
-] as const;
 
 export function TablesList({ tables }: TablesListProps) {
   const router = useRouter();
@@ -125,8 +111,7 @@ export function TablesList({ tables }: TablesListProps) {
         searchable: true,
         searchAccessor: (row) => row.packageName ?? "",
         render: (row) =>
-          row.packageName ??
-          (row.isCustomTable ? "Not set" : "DijiPeople Core"),
+          row.packageName ?? (row.isCustomTable ? "Not set" : "DijiPeople Core"),
       },
       {
         key: "lifecycle",
@@ -176,7 +161,6 @@ export function TablesList({ tables }: TablesListProps) {
                     icon: row.icon ?? "",
                     description: row.description ?? "",
                     isActive: row.isActive,
-                    moduleKind: row.moduleKind ?? "STANDARD",
                   })
                 }
                 size="icon-sm"
@@ -197,7 +181,6 @@ export function TablesList({ tables }: TablesListProps) {
                       icon: row.icon ?? "",
                       description: row.description ?? "",
                       isActive: !row.isActive,
-                      moduleKind: row.moduleKind ?? "STANDARD",
                     })
                   }
                   size="icon-sm"
@@ -250,9 +233,7 @@ export function TablesList({ tables }: TablesListProps) {
         method: editing.mode === "create" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(editing.mode === "create"
-            ? { tableKey: editing.tableKey, moduleKind: editing.moduleKind }
-            : {}),
+          ...(editing.mode === "create" ? { tableKey: editing.tableKey } : {}),
           displayName: editing.displayName,
           pluralDisplayName: editing.pluralDisplayName,
           icon: editing.icon,
@@ -336,7 +317,6 @@ export function TablesList({ tables }: TablesListProps) {
                 icon: "",
                 description: "",
                 isActive: true,
-                moduleKind: "STANDARD",
               });
             }}
             type="button"
@@ -424,18 +404,6 @@ export function TablesList({ tables }: TablesListProps) {
                 required
                 value={editing.pluralDisplayName}
               />
-              {editing.mode === "create" ? (
-                <SelectField
-                  label="Module type"
-                  onChange={(moduleKind) =>
-                    setEditing((current) =>
-                      current ? { ...current, moduleKind } : current,
-                    )
-                  }
-                  options={MODULE_KIND_OPTIONS}
-                  value={editing.moduleKind}
-                />
-              ) : null}
               <TextField
                 disabled
                 label="Logical name"

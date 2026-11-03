@@ -14,6 +14,19 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const reg = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/engineering/module-creation-entrypoints.json'), 'utf8'));
 const failures = [];
+
+// The module platform (provisioner, record lifecycle, `CustomizationModuleKind`) lands as its own
+// changeset after the governance tooling. Until its schema is present there is nothing to gate, and
+// saying so is honest; once the enum exists, a missing provisioner is a FAILURE, never a skip, so
+// deleting the platform later cannot turn this check silently green.
+const platformPresent = fs.existsSync(path.join(ROOT, reg.provisioner.file));
+const schemaHasPlatform = fs
+  .readFileSync(path.join(ROOT, 'services/api/prisma/schema.prisma'), 'utf8')
+  .includes('enum CustomizationModuleKind');
+if (!platformPresent && !schemaHasPlatform) {
+  console.log('check-module-completeness: module platform not present in this tree — MOD-001..007 not applicable (they are enforced as soon as CustomizationModuleKind exists)');
+  process.exit(0);
+}
 const WRITE_RE = /customizationTable\.(create|createMany|upsert)\(/g;
 
 function walk(dir, out = []) {

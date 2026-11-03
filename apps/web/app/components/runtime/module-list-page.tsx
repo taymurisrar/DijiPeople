@@ -143,11 +143,6 @@ export function ModuleListPage({
     const viewId = view.viewId ?? view.id;
 
     params.delete("view");
-    /*
-     * A different view is a different result set. Page 3 of "All" does not exist
-     * in a view of 12 records, and a stale page number there is an empty screen.
-     */
-    params.delete("page");
 
     if (viewId) {
       params.set("viewId", viewId);

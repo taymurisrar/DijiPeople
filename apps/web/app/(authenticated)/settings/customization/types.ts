@@ -265,8 +265,6 @@ export type CustomizationTable = {
   description: string | null;
   icon: string | null;
   ownershipType?: string | null;
-  /** STANDARD | ORGANIZATION_OWNED | IMMUTABLE | CONFIGURATION. Absent on older responses = STANDARD. */
-  moduleKind?: string;
   displayOrder?: number;
   isCustomizable: boolean;
   isVisibleInCustomization?: boolean;
