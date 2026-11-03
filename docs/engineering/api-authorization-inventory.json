@@ -2,10 +2,11 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/auth/login",
   "module": "agent",
-  "line": 52,
+  "line": 64,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
+   "EntitlementGuard",
    "PublicRateLimitGuard"
   ],
   "cls": "PUBLIC_DECLARED",
@@ -15,10 +16,11 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/auth/refresh",
   "module": "agent",
-  "line": 59,
+  "line": 71,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
+   "EntitlementGuard",
    "PublicRateLimitGuard"
   ],
   "cls": "PUBLIC_DECLARED",
@@ -28,10 +30,11 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/auth/logout",
   "module": "agent",
-  "line": 66,
+  "line": 78,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
+   "EntitlementGuard",
    "PublicRateLimitGuard"
   ],
   "cls": "PUBLIC_DECLARED",
@@ -41,178 +44,193 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/me",
   "module": "agent",
-  "line": 71,
+  "line": 83,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/me/productivity",
   "module": "agent",
-  "line": 78,
+  "line": 90,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/employees/:employeeId/summary",
   "module": "agent",
-  "line": 85,
+  "line": 97,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/employees/:employeeId/location-requests",
   "module": "agent",
-  "line": 96,
+  "line": 108,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/location-requests/pending",
   "module": "agent",
-  "line": 111,
+  "line": 123,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#PATCH agent/location-requests/:requestId/result",
   "module": "agent",
-  "line": 121,
+  "line": 133,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/config",
   "module": "agent",
-  "line": 132,
+  "line": 144,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/devices/register",
   "module": "agent",
-  "line": 142,
+  "line": 154,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#PATCH agent/devices/permissions",
   "module": "agent",
-  "line": 152,
+  "line": 164,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/sessions/start",
   "module": "agent",
-  "line": 162,
+  "line": 174,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/sessions/heartbeat",
   "module": "agent",
-  "line": 172,
+  "line": 184,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/sessions/end",
   "module": "agent",
-  "line": 179,
+  "line": 191,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/settings",
   "module": "agent",
-  "line": 189,
+  "line": 201,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#PATCH agent/settings",
   "module": "agent",
-  "line": 196,
+  "line": 208,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
-  "cls": "PERMISSION_DECLARED",
+  "cls": "PUBLIC_DECLARED",
   "declared": true,
-  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+  "why": "@Public()"
  },
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#POST agent/dlp/clipboard-events",
   "module": "agent",
-  "line": 59,
+  "line": 63,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -221,10 +239,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#POST agent/dlp/screenshot-events",
   "module": "agent",
-  "line": 69,
+  "line": 73,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -233,10 +252,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#GET agent/dlp/rules",
   "module": "agent",
-  "line": 81,
+  "line": 85,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -245,10 +265,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#POST agent/dlp/rules",
   "module": "agent",
-  "line": 88,
+  "line": 92,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -257,10 +278,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#DELETE agent/dlp/rules/:id",
   "module": "agent",
-  "line": 98,
+  "line": 102,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -269,10 +291,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#GET agent/dlp/alerts",
   "module": "agent",
-  "line": 110,
+  "line": 114,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -281,10 +304,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#GET agent/dlp/clipboard-events",
   "module": "agent",
-  "line": 120,
+  "line": 124,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -293,10 +317,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#GET agent/dlp/clipboard-events/:id/content",
   "module": "agent",
-  "line": 130,
+  "line": 134,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -305,10 +330,11 @@
  {
   "route": "services/api/src/modules/agent/dlp/dlp.controller.ts#GET agent/dlp/screenshots/:id",
   "module": "agent",
-  "line": 140,
+  "line": 144,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -745,10 +771,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/connectors/connectors.controller.ts#GET integrations/attendance/connectors",
   "module": "attendance-integrations",
-  "line": 74,
+  "line": 78,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -757,10 +784,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/connectors/connectors.controller.ts#GET integrations/attendance/connectors/:connectorType",
   "module": "attendance-integrations",
-  "line": 85,
+  "line": 89,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -769,10 +797,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#GET integrations/attendance/devices",
   "module": "attendance-integrations",
-  "line": 152,
+  "line": 156,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -781,10 +810,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#GET integrations/attendance/devices/:id",
   "module": "attendance-integrations",
-  "line": 162,
+  "line": 166,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -793,10 +823,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/devices",
   "module": "attendance-integrations",
-  "line": 172,
+  "line": 176,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -805,10 +836,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#PATCH integrations/attendance/devices/:id",
   "module": "attendance-integrations",
-  "line": 182,
+  "line": 186,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -817,10 +849,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/devices/:id/enable",
   "module": "attendance-integrations",
-  "line": 193,
+  "line": 197,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -829,10 +862,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/devices/:id/disable",
   "module": "attendance-integrations",
-  "line": 204,
+  "line": 208,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -841,10 +875,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/devices/:id/sync-now",
   "module": "attendance-integrations",
-  "line": 222,
+  "line": 226,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -853,10 +888,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/devices/:id/verify",
   "module": "attendance-integrations",
-  "line": 241,
+  "line": 245,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -865,10 +901,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#GET integrations/attendance/devices/:id/scopes",
   "module": "attendance-integrations",
-  "line": 253,
+  "line": 257,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -877,10 +914,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/devices/:id/scopes",
   "module": "attendance-integrations",
-  "line": 263,
+  "line": 267,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -889,10 +927,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#DELETE integrations/attendance/devices/:id/scopes/:scopeId",
   "module": "attendance-integrations",
-  "line": 274,
+  "line": 278,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -901,10 +940,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#GET integrations/attendance/sync-policies",
   "module": "attendance-integrations",
-  "line": 287,
+  "line": 291,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -913,10 +953,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#GET integrations/attendance/sync-policies/:id",
   "module": "attendance-integrations",
-  "line": 294,
+  "line": 298,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -925,10 +966,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#POST integrations/attendance/sync-policies",
   "module": "attendance-integrations",
-  "line": 304,
+  "line": 308,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -937,10 +979,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts#PATCH integrations/attendance/sync-policies/:id",
   "module": "attendance-integrations",
-  "line": 314,
+  "line": 318,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -949,10 +992,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#GET integrations/gateways",
   "module": "attendance-integrations",
-  "line": 80,
+  "line": 84,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -961,10 +1005,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#GET integrations/gateways/:id",
   "module": "attendance-integrations",
-  "line": 117,
+  "line": 121,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -973,10 +1018,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#POST integrations/gateways",
   "module": "attendance-integrations",
-  "line": 151,
+  "line": 155,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -985,10 +1031,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#PATCH integrations/gateways/:id",
   "module": "attendance-integrations",
-  "line": 186,
+  "line": 190,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -997,10 +1044,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#POST integrations/gateways/:id/pairing-code",
   "module": "attendance-integrations",
-  "line": 233,
+  "line": 237,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1009,10 +1057,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#POST integrations/gateways/:id/rotate-credential",
   "module": "attendance-integrations",
-  "line": 269,
+  "line": 273,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1021,10 +1070,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts#POST integrations/gateways/:id/revoke",
   "module": "attendance-integrations",
-  "line": 303,
+  "line": 307,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1132,10 +1182,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#GET integrations/attendance/integrations",
   "module": "attendance-integrations",
-  "line": 88,
+  "line": 92,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1144,10 +1195,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#GET integrations/attendance/integrations/:id",
   "module": "attendance-integrations",
-  "line": 98,
+  "line": 102,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1156,10 +1208,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#POST integrations/attendance/integrations",
   "module": "attendance-integrations",
-  "line": 108,
+  "line": 112,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1168,10 +1221,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#PATCH integrations/attendance/integrations/:id",
   "module": "attendance-integrations",
-  "line": 118,
+  "line": 122,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1180,10 +1234,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#POST integrations/attendance/integrations/:id/validate-configuration",
   "module": "attendance-integrations",
-  "line": 130,
+  "line": 134,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1192,10 +1247,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#GET integrations/attendance/integrations/:id/readiness",
   "module": "attendance-integrations",
-  "line": 140,
+  "line": 144,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1204,10 +1260,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#POST integrations/attendance/integrations/:id/activate",
   "module": "attendance-integrations",
-  "line": 150,
+  "line": 154,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1216,10 +1273,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts#POST integrations/attendance/integrations/:id/disable",
   "module": "attendance-integrations",
-  "line": 160,
+  "line": 164,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1228,10 +1286,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/employees/:employeeId/work-sites",
   "module": "attendance-integrations",
-  "line": 99,
+  "line": 103,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1240,10 +1299,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/employees/:employeeId/work-sites",
   "module": "attendance-integrations",
-  "line": 109,
+  "line": 113,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1252,10 +1312,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/employees/:employeeId/work-sites/primary",
   "module": "attendance-integrations",
-  "line": 120,
+  "line": 124,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1264,10 +1325,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#DELETE integrations/attendance/employees/:employeeId/work-sites/:locationId",
   "module": "attendance-integrations",
-  "line": 131,
+  "line": 135,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1276,10 +1338,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/external-users",
   "module": "attendance-integrations",
-  "line": 144,
+  "line": 148,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1288,10 +1351,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/external-users/:id",
   "module": "attendance-integrations",
-  "line": 154,
+  "line": 158,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1300,10 +1364,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/external-users/:id/history",
   "module": "attendance-integrations",
-  "line": 165,
+  "line": 169,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1312,10 +1377,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/external-users/:id/suggestions",
   "module": "attendance-integrations",
-  "line": 176,
+  "line": 180,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1324,10 +1390,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/external-users/:id/map",
   "module": "attendance-integrations",
-  "line": 187,
+  "line": 191,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1336,10 +1403,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/external-users/:id/ignore",
   "module": "attendance-integrations",
-  "line": 198,
+  "line": 202,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1348,10 +1416,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/external-users/:id/unignore",
   "module": "attendance-integrations",
-  "line": 208,
+  "line": 212,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1360,10 +1429,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/runs",
   "module": "attendance-integrations",
-  "line": 220,
+  "line": 224,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1372,10 +1442,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/runs/:id",
   "module": "attendance-integrations",
-  "line": 230,
+  "line": 234,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1384,10 +1455,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/provisioning-jobs",
   "module": "attendance-integrations",
-  "line": 242,
+  "line": 246,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1396,10 +1468,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#GET integrations/attendance/provisioning-jobs/:id",
   "module": "attendance-integrations",
-  "line": 252,
+  "line": 256,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1408,10 +1481,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/provisioning-jobs/:id/retry",
   "module": "attendance-integrations",
-  "line": 263,
+  "line": 267,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1420,10 +1494,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts#POST integrations/attendance/provisioning-jobs/:id/cancel",
   "module": "attendance-integrations",
-  "line": 273,
+  "line": 277,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1432,10 +1507,11 @@
  {
   "route": "services/api/src/modules/attendance-integrations/work-sites/work-site-readiness.controller.ts#GET integrations/attendance/work-sites/:id/readiness",
   "module": "attendance-integrations",
-  "line": 33,
+  "line": 37,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1873,10 +1949,11 @@
  {
   "route": "services/api/src/modules/audit/audit.controller.ts#GET audit-logs",
   "module": "audit",
-  "line": 26,
+  "line": 30,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -1885,10 +1962,11 @@
  {
   "route": "services/api/src/modules/audit/audit.controller.ts#GET audit-logs/:id",
   "module": "audit",
-  "line": 37,
+  "line": 41,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5542,10 +5620,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/modules",
   "module": "data-management",
-  "line": 76,
+  "line": 112,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5554,10 +5633,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/modules/:moduleKey/fields",
   "module": "data-management",
-  "line": 93,
+  "line": 140,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5566,10 +5646,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/modules/:moduleKey/template",
   "module": "data-management",
-  "line": 100,
+  "line": 151,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5578,10 +5659,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#POST data-management/modules/:moduleKey/imports/analyse",
   "module": "data-management",
-  "line": 131,
+  "line": 183,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5590,10 +5672,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#POST data-management/exports",
   "module": "data-management",
-  "line": 149,
+  "line": 202,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5602,10 +5685,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/exports/:jobId/status",
   "module": "data-management",
-  "line": 164,
+  "line": 218,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5614,10 +5698,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/exports/:jobId/download",
   "module": "data-management",
-  "line": 174,
+  "line": 228,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5626,10 +5711,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/imports",
   "module": "data-management",
-  "line": 194,
+  "line": 248,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5638,10 +5724,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#POST data-management/imports/:jobId/execute",
   "module": "data-management",
-  "line": 205,
+  "line": 259,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5650,10 +5737,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/imports/:jobId/status",
   "module": "data-management",
-  "line": 216,
+  "line": 270,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5662,10 +5750,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#POST data-management/imports/:jobId/cancel",
   "module": "data-management",
-  "line": 226,
+  "line": 280,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5674,10 +5763,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/imports/:jobId/errors",
   "module": "data-management",
-  "line": 237,
+  "line": 291,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -5686,10 +5776,11 @@
  {
   "route": "services/api/src/modules/data-management/data-management.controller.ts#GET data-management/imports/:jobId",
   "module": "data-management",
-  "line": 260,
+  "line": 314,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "EntitlementGuard"
   ],
   "cls": "PERMISSION_DECLARED",
   "declared": true,
@@ -6146,7 +6237,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/duplicate-check",
   "module": "employees",
-  "line": 69,
+  "line": 70,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6158,7 +6249,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees",
   "module": "employees",
-  "line": 79,
+  "line": 80,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6170,7 +6261,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/bulk-delete",
   "module": "employees",
-  "line": 95,
+  "line": 96,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6182,7 +6273,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/assign-owner",
   "module": "employees",
-  "line": 105,
+  "line": 106,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6194,7 +6285,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/owner-options",
   "module": "employees",
-  "line": 119,
+  "line": 120,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6206,7 +6297,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/export",
   "module": "employees",
-  "line": 136,
+  "line": 137,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6218,7 +6309,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/import",
   "module": "employees",
-  "line": 153,
+  "line": 154,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6230,7 +6321,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/export-template",
   "module": "employees",
-  "line": 164,
+  "line": 165,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6242,7 +6333,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/linking-search",
   "module": "employees",
-  "line": 177,
+  "line": 178,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6254,7 +6345,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/me/context",
   "module": "employees",
-  "line": 187,
+  "line": 188,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6266,7 +6357,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/me/direct-reports",
   "module": "employees",
-  "line": 208,
+  "line": 209,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6278,7 +6369,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/custom-fields",
   "module": "employees",
-  "line": 220,
+  "line": 221,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6290,7 +6381,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId",
   "module": "employees",
-  "line": 227,
+  "line": 228,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6302,7 +6393,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/export",
   "module": "employees",
-  "line": 237,
+  "line": 238,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6314,7 +6405,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/assign-owner",
   "module": "employees",
-  "line": 257,
+  "line": 258,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6326,7 +6417,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId",
   "module": "employees",
-  "line": 272,
+  "line": 273,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6338,7 +6429,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/hierarchy",
   "module": "employees",
-  "line": 282,
+  "line": 301,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6350,7 +6441,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/reporting-structure",
   "module": "employees",
-  "line": 292,
+  "line": 311,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6362,7 +6453,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/direct-reports",
   "module": "employees",
-  "line": 305,
+  "line": 324,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6374,7 +6465,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees",
   "module": "employees",
-  "line": 315,
+  "line": 334,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6386,7 +6477,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId",
   "module": "employees",
-  "line": 325,
+  "line": 344,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6398,7 +6489,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/provision-access",
   "module": "employees",
-  "line": 336,
+  "line": 355,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6410,7 +6501,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/resend-invite",
   "module": "employees",
-  "line": 347,
+  "line": 366,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6422,7 +6513,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/reporting-manager",
   "module": "employees",
-  "line": 357,
+  "line": 376,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6434,7 +6525,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/manager",
   "module": "employees",
-  "line": 376,
+  "line": 395,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6446,7 +6537,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/personal-info",
   "module": "employees",
-  "line": 395,
+  "line": 414,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6458,7 +6549,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/address",
   "module": "employees",
-  "line": 410,
+  "line": 429,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6470,7 +6561,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/emergency-contact",
   "module": "employees",
-  "line": 421,
+  "line": 440,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6482,7 +6573,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/history",
   "module": "employees",
-  "line": 436,
+  "line": 455,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6494,7 +6585,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/history",
   "module": "employees",
-  "line": 446,
+  "line": 465,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6506,7 +6597,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/education",
   "module": "employees",
-  "line": 457,
+  "line": 476,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6518,7 +6609,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/compensation",
   "module": "employees",
-  "line": 468,
+  "line": 487,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6530,7 +6621,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PUT employees/:employeeId/compensation",
   "module": "employees",
-  "line": 482,
+  "line": 501,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6542,7 +6633,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/previous-employments",
   "module": "employees",
-  "line": 498,
+  "line": 517,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6554,7 +6645,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/previous-employments",
   "module": "employees",
-  "line": 512,
+  "line": 531,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6566,7 +6657,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/previous-employments/:previousEmploymentId",
   "module": "employees",
-  "line": 527,
+  "line": 546,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6578,7 +6669,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId/previous-employments/:previousEmploymentId",
   "module": "employees",
-  "line": 546,
+  "line": 565,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6590,7 +6681,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/education",
   "module": "employees",
-  "line": 562,
+  "line": 581,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6602,7 +6693,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/education/:educationId",
   "module": "employees",
-  "line": 573,
+  "line": 592,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6614,7 +6705,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId/education/:educationId",
   "module": "employees",
-  "line": 591,
+  "line": 610,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6626,7 +6717,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/documents",
   "module": "employees",
-  "line": 606,
+  "line": 625,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6638,7 +6729,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/documents/upload",
   "module": "employees",
-  "line": 616,
+  "line": 635,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6650,7 +6741,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/documents/:documentId",
   "module": "employees",
-  "line": 634,
+  "line": 653,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6662,7 +6753,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/documents/:documentId/download",
   "module": "employees",
-  "line": 654,
+  "line": 673,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6674,7 +6765,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/documents/:documentId/view",
   "module": "employees",
-  "line": 680,
+  "line": 699,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6686,7 +6777,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId/documents/:documentId",
   "module": "employees",
-  "line": 706,
+  "line": 725,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6698,7 +6789,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/profile-image/upload",
   "module": "employees",
-  "line": 721,
+  "line": 740,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6710,7 +6801,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/profile-image",
   "module": "employees",
-  "line": 737,
+  "line": 756,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6722,7 +6813,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/leave-history",
   "module": "employees",
-  "line": 753,
+  "line": 772,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6734,7 +6825,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/attendance-history",
   "module": "employees",
-  "line": 766,
+  "line": 785,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6746,7 +6837,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/timesheet-history",
   "module": "employees",
-  "line": 779,
+  "line": 798,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6758,7 +6849,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/project-allocations",
   "module": "employees",
-  "line": 792,
+  "line": 811,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6770,7 +6861,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/send-reset-password-link",
   "module": "employees",
-  "line": 802,
+  "line": 821,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6782,7 +6873,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/terminate",
   "module": "employees",
-  "line": 812,
+  "line": 831,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7242,7 +7333,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/available-types",
   "module": "leave",
-  "line": 44,
+  "line": 45,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7255,7 +7346,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#POST leave-requests",
   "module": "leave",
-  "line": 51,
+  "line": 52,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7268,7 +7359,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/export",
   "module": "leave",
-  "line": 63,
+  "line": 64,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7281,7 +7372,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/export-template",
   "module": "leave",
-  "line": 76,
+  "line": 77,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7294,7 +7385,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/mine",
   "module": "leave",
-  "line": 85,
+  "line": 86,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7307,7 +7398,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/team",
   "module": "leave",
-  "line": 96,
+  "line": 97,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7320,7 +7411,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/:id",
   "module": "leave",
-  "line": 107,
+  "line": 108,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7333,7 +7424,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#GET leave-requests/:id/timeline",
   "module": "leave",
-  "line": 118,
+  "line": 119,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7346,7 +7437,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#POST leave-requests/:id/approve",
   "module": "leave",
-  "line": 147,
+  "line": 148,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7359,7 +7450,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#POST leave-requests/:id/reject",
   "module": "leave",
-  "line": 159,
+  "line": 160,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -7372,7 +7463,7 @@
  {
   "route": "services/api/src/modules/leave/leave-requests.controller.ts#POST leave-requests/:id/cancel",
   "module": "leave",
-  "line": 170,
+  "line": 171,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -14504,9 +14595,33 @@
   "why": "PlatformPermissionsGuard + @RequireRoles"
  },
  {
+  "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/plans/:planId/prices/:priceId/publish",
+  "module": "super-admin",
+  "line": 662,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PLATFORM_ROLE_GUARD",
+  "declared": true,
+  "why": "PlatformPermissionsGuard + @RequireRoles"
+ },
+ {
+  "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/plans/:planId/prices/:priceId/unpublish",
+  "module": "super-admin",
+  "line": 676,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PLATFORM_ROLE_GUARD",
+  "declared": true,
+  "why": "PlatformPermissionsGuard + @RequireRoles"
+ },
+ {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/plans/:planId/prices/:priceId",
   "module": "super-admin",
-  "line": 661,
+  "line": 690,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14518,7 +14633,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#DELETE super-admin/plans/:planId/prices/:priceId",
   "module": "super-admin",
-  "line": 680,
+  "line": 709,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14530,7 +14645,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/promotions",
   "module": "super-admin",
-  "line": 692,
+  "line": 721,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14542,7 +14657,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/promotions/targets",
   "module": "super-admin",
-  "line": 697,
+  "line": 726,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14554,7 +14669,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/promotions",
   "module": "super-admin",
-  "line": 702,
+  "line": 731,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14566,7 +14681,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/promotions/:promotionId",
   "module": "super-admin",
-  "line": 710,
+  "line": 739,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14578,7 +14693,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#DELETE super-admin/promotions/:promotionId",
   "module": "super-admin",
-  "line": 728,
+  "line": 757,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14590,7 +14705,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/promotions/:promotionId/deactivate",
   "module": "super-admin",
-  "line": 737,
+  "line": 766,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14602,7 +14717,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/customers/:customerAccountId/stripe-customer",
   "module": "super-admin",
-  "line": 745,
+  "line": 774,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14614,7 +14729,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/customers/:customerAccountId/payment-state",
   "module": "super-admin",
-  "line": 768,
+  "line": 797,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14626,7 +14741,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/customers/:customerAccountId/recheck-payment",
   "module": "super-admin",
-  "line": 775,
+  "line": 804,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14638,7 +14753,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/subscriptions/:subscriptionId/stripe-subscription",
   "module": "super-admin",
-  "line": 783,
+  "line": 812,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14650,7 +14765,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/billing/stripe/webhook",
   "module": "super-admin",
-  "line": 790,
+  "line": 819,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14662,7 +14777,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/billing/diagnostics",
   "module": "super-admin",
-  "line": 795,
+  "line": 824,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14674,7 +14789,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/billing/test-stripe-connection",
   "module": "super-admin",
-  "line": 800,
+  "line": 829,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14686,7 +14801,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/billing/stripe-webhook-events",
   "module": "super-admin",
-  "line": 805,
+  "line": 834,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14698,7 +14813,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/billing/stripe-webhook-events/:id/retry",
   "module": "super-admin",
-  "line": 820,
+  "line": 849,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14710,7 +14825,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/billing/payment-providers",
   "module": "super-admin",
-  "line": 826,
+  "line": 855,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14722,7 +14837,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/billing/provider-events",
   "module": "super-admin",
-  "line": 831,
+  "line": 860,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14734,7 +14849,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/payments/:paymentId/verify",
   "module": "super-admin",
-  "line": 849,
+  "line": 878,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14746,7 +14861,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/payments/:paymentId/refund",
   "module": "super-admin",
-  "line": 863,
+  "line": 892,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14758,7 +14873,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings",
   "module": "super-admin",
-  "line": 878,
+  "line": 907,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14770,7 +14885,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-settings",
   "module": "super-admin",
-  "line": 883,
+  "line": 912,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14782,7 +14897,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/currencies",
   "module": "super-admin",
-  "line": 902,
+  "line": 931,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14794,7 +14909,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/numbering",
   "module": "super-admin",
-  "line": 917,
+  "line": 946,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14806,7 +14921,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/numbering/:key",
   "module": "super-admin",
-  "line": 922,
+  "line": 951,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14818,7 +14933,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-settings/numbering/:key",
   "module": "super-admin",
-  "line": 927,
+  "line": 956,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14830,7 +14945,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/exchange-rates",
   "module": "super-admin",
-  "line": 945,
+  "line": 974,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14842,7 +14957,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/platform-settings/exchange-rates/refresh",
   "module": "super-admin",
-  "line": 952,
+  "line": 981,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14854,7 +14969,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PUT super-admin/platform-settings/exchange-rates/:quoteCurrency",
   "module": "super-admin",
-  "line": 959,
+  "line": 988,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14866,7 +14981,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#DELETE super-admin/platform-settings/exchange-rates/:quoteCurrency",
   "module": "super-admin",
-  "line": 975,
+  "line": 1004,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14878,7 +14993,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-email",
   "module": "super-admin",
-  "line": 984,
+  "line": 1013,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14890,7 +15005,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-email",
   "module": "super-admin",
-  "line": 989,
+  "line": 1018,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14902,7 +15017,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/platform-email/test-connection",
   "module": "super-admin",
-  "line": 997,
+  "line": 1026,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14914,7 +15029,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/platform-email/test-email",
   "module": "super-admin",
-  "line": 1002,
+  "line": 1031,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14926,7 +15041,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-email/deliveries",
   "module": "super-admin",
-  "line": 1036,
+  "line": 1065,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14938,7 +15053,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-email/templates",
   "module": "super-admin",
-  "line": 1047,
+  "line": 1076,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14950,7 +15065,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-email/templates/:templateId",
   "module": "super-admin",
-  "line": 1052,
+  "line": 1081,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -17314,7 +17429,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#POST tenant-settings/branding-assets",
   "module": "tenant-settings",
-  "line": 56,
+  "line": 60,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17326,7 +17441,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings",
   "module": "tenant-settings",
-  "line": 72,
+  "line": 76,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17338,7 +17453,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/resolved",
   "module": "tenant-settings",
-  "line": 79,
+  "line": 83,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17350,7 +17465,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/public-branding",
   "module": "tenant-settings",
-  "line": 90,
+  "line": 94,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17362,7 +17477,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings",
   "module": "tenant-settings",
-  "line": 95,
+  "line": 99,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17374,7 +17489,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/organizations",
   "module": "tenant-settings",
-  "line": 109,
+  "line": 113,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17386,7 +17501,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/organizations/:organizationId/settings",
   "module": "tenant-settings",
-  "line": 116,
+  "line": 120,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17398,7 +17513,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings/organizations/:organizationId/settings",
   "module": "tenant-settings",
-  "line": 129,
+  "line": 133,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17410,7 +17525,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/features",
   "module": "tenant-settings",
-  "line": 144,
+  "line": 148,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17422,7 +17537,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/features/availability",
   "module": "tenant-settings",
-  "line": 176,
+  "line": 184,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17434,7 +17549,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings/features",
   "module": "tenant-settings",
-  "line": 187,
+  "line": 195,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17446,7 +17561,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/:category",
   "module": "tenant-settings",
-  "line": 197,
+  "line": 205,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17458,7 +17573,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings/:category",
   "module": "tenant-settings",
-  "line": 209,
+  "line": 217,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
