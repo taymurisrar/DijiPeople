@@ -1,0 +1,1087 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "controller": "services/api/src/modules/agent/agent.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/agent/dlp/dlp.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/app-releases/app-release.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/app-releases/release-publisher.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/app-releases/update-feed.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/approvals/approval-matrices.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/approvals/approvals.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-engine/attendance-engine.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/connectors/connectors.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/devices/attendance-device.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/gateways/gateway-runtime.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/gateways/gateway-service.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/operations/attendance-operations.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance-integrations/work-sites/work-site-readiness.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/attendance/attendance.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/audit/audit.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/audit/platform-audit.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/auth/admin-auth.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/auth/auth.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/benefits/benefits.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/billing/controllers/billing.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/billing/controllers/public-billing.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/billing/controllers/safepay-webhook.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/billing/controllers/stripe-webhook.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/business-trips/business-trips.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/claims/claims.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/compensation/compensation.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/compensation/salary-package-rules.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/contracts/contracts.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/customization/custom-fields.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/customization/customization-runtime.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/customization/customization.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/customization/package-alm.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/dashboard/dashboard.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/data-management/data-management.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/data/custom-module-runtime.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/data/data.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/data/metadata.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/demo-data/demo-data.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/documents/documents.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/employee-levels/employee-levels.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/employees/employees.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/employment-types/employment-types.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/error-logs/error-logs.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/inbox/inbox.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/leads/admin-leads.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/leads/public-leads.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/leave/leave-policies.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/leave/leave-requests.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/leave/leave-types.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/legal/admin-legal.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/legal/public-legal.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/loans/loans.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/lookups/configuration.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/lookups/lookups.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/lookups/public-geography.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/navigation/navigation.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/notifications/notifications.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/onboarding/onboarding.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/business-units.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/departments.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/designations.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/locations.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/organization-access.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/organization-hierarchy.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/organization/organizations.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/partner-experience/partner-experience.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/partners/partners.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/pay-components/pay-components.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/payroll/employer-bank-accounts.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/payroll/payroll-gl.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/payroll/payroll-operations.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/payroll/payroll-run.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/payroll/payroll.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/payslips/payslips.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/permissions/permissions.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/platform-events/platform-events.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/platform-monitoring/platform-health.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/platform-monitoring/storage-readiness.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/platform-users/platform-teams.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": [
+        "DELETE platform-teams/:id"
+      ]
+    },
+    {
+      "controller": "services/api/src/modules/platform-users/platform-users.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": [
+        "DELETE platform-users/:userId"
+      ]
+    },
+    {
+      "controller": "services/api/src/modules/policies/policies.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/projects/customers.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/projects/projects.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/recruitment/applications.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/recruitment/candidates.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/recruitment/job-openings.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/recruitment/recruitment-pipelines.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/reporting/reporting.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/reports/reports.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/roles/roles.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": [
+        "DELETE roles/:roleId"
+      ]
+    },
+    {
+      "controller": "services/api/src/modules/settings-runtime/settings-runtime.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/sla/sla.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/super-admin/assignment-rules.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/super-admin/super-admin.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/support-cases/support-cases.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tax-rules/tax-rules.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/teams/teams.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-domains/workspace.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-settings/enterprise-configuration.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-settings/field-security.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-settings/settings-context.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-settings/tenant-branding.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenants/public-tenants.controller.ts",
+      "type": "read-only",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/tenants/tenants.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/time-payroll/time-payroll.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/timesheets/timesheet-exports.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/timesheets/timesheet-jobs.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/timesheets/timesheet-policies.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/timesheets/timesheets.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/users/users.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/views/module-views.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/workflows/workflows.controller.ts",
+      "type": "standard-mutable",
+      "requires": [
+        "create",
+        "get",
+        "list",
+        "update",
+        "delete"
+      ],
+      "notApplicable": {},
+      "classifiedBy": "init-heuristic (review me)"
+    }
+  ],
+  "baseline": {
+    "note": "Ratchet: gaps that existed when the gate was introduced. Entries may only be REMOVED; a new gap fails the gate.",
+    "missingRequiredOps": {
+      "services/api/src/modules/attendance-integrations/gateways/gateway-admin.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/attendance-integrations/integrations/attendance-integration.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/leads/admin-leads.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/partners/partners.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/recruitment/job-openings.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/recruitment/recruitment-pipelines.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/support-cases/support-cases.controller.ts": [
+        "delete"
+      ],
+      "services/api/src/modules/views/module-views.controller.ts": [
+        "get"
+      ]
+    },
+    "forbiddenVerbExceptions": []
+  }
+}

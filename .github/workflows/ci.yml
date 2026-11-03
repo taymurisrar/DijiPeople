@@ -117,9 +117,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
+          # DEVELOP_CONTAINS_MAIN is an ancestry check between origin/main and
+          # origin/develop; a depth-1 checkout cannot see either, so it used to
+          # be skipped with a warning in every run. Full history, this job only.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-npm
+        with:
+          install: 'false'
       # No dependencies needed — these are pure repository-structure checks and
       # the fastest signal that something is structurally wrong.
       - name: Validate agent framework
@@ -233,11 +238,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - name: Generate Prisma client
         run: npm run prisma:generate
       - name: Validate Prisma schema
@@ -252,11 +253,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - name: Generate Prisma client
         # ESLint's type-aware rules resolve @prisma/client types.
         run: npm run prisma:generate
@@ -362,11 +359,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: npm run prisma:generate
       - name: API unit tests
         # Runs the whole suite, dual-permission wiring invariant included.
@@ -390,11 +383,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: npm --workspace web run test
 
   test-admin:
@@ -405,11 +394,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: npm --workspace admin run test
 
   test-landing:
@@ -424,11 +409,7 @@ jobs:
     # a customer is quoted and where a buy button leads, so it gates.
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: npm --workspace landing run test
 
   test-agent-desktop:
@@ -445,11 +426,7 @@ jobs:
     # the server while the queue kept no statement of what it re-sends.
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: npm --workspace agent-desktop run test
 
   gateway:
@@ -502,11 +479,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - name: Platform runtime schema is derived from the current schema
         # The manifest that decides which Prisma columns Platform Admin can see
         # is generated from schema.prisma, and nothing checked it stayed that
@@ -709,11 +682,7 @@ jobs:
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - name: Refuse to run against a non-disposable database
         # Runs before anything destructive. Allowlist-shaped, so an unrecognised
         # host fails closed rather than open.
@@ -838,11 +807,7 @@ jobs:
       PLATFORM_SUPER_ADMIN_PASSWORD: ci-test-only-password-000000
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: node scripts/assert-test-database.mjs
       - name: Prepare the database
         run: node scripts/verify-database.mjs
@@ -983,11 +948,7 @@ jobs:
     # for ~4 minutes. That is cheaper than adding ~4 minutes to every green run.
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: npm run prisma:generate
       - name: Restore the Turborepo cache
         # Safe by construction: Turbo's cache is content-addressed. It only
@@ -1124,11 +1085,7 @@ jobs:
       API_ORIGIN: http://localhost:4000
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-npm
       - run: node scripts/assert-test-database.mjs
       - name: Prepare the database
         run: node scripts/verify-database.mjs

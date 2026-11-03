@@ -25,6 +25,30 @@ import { TOTP_PERIOD_SECONDS, totpAt } from './totp';
 const PASSWORD = 'Correct-Horse-9!';
 const STEP_MS = TOTP_PERIOD_SECONDS * 1000;
 
+/*
+ * Why the QR renderer is stubbed here.
+ *
+ * `startSetup` renders a real PNG QR code, which costs about a second of CPU
+ * (measured: ~970 ms per call on a developer machine). A test that sets up twice
+ * therefore sat at ~2.4 s of a 5 s timeout when run alone, and went over it
+ * whenever the full suite ran its workers in parallel — it failed in every full
+ * run and passed in every isolated one, which reads as "flaky" and is really "no
+ * headroom". Only ONE test asserts on the rendered image; every other test is about
+ * enrolment state, so they get a stub, and that one test renders for real with a
+ * timeout that states its cost.
+ */
+const mockQr = { real: false };
+jest.mock('qrcode', () => {
+  const actual = jest.requireActual<typeof import('qrcode')>('qrcode');
+  return {
+    ...actual,
+    toDataURL: (...args: Parameters<typeof actual.toDataURL>) =>
+      mockQr.real
+        ? (actual.toDataURL as (...a: unknown[]) => Promise<string>)(...args)
+        : Promise.resolve('data:image/png;base64,c3R1Yg=='),
+  };
+});
+
 describe('MfaService', () => {
   let prisma: MfaTestPrisma;
   let encryption: SecretEncryptionService;
@@ -88,7 +112,42 @@ describe('MfaService', () => {
     );
   }
 
-  beforeEach(() => build());
+  /*
+   * Only the clock is frozen, in the MIDDLE of a 30 s TOTP step. These tests
+   * generate a code from Date.now() and the service verifies it a few
+   * milliseconds later; on a real clock a run that straddled a step boundary
+   * (about 1 run in 1,000 at ~30 ms of work) saw the code expire between the two
+   * calls. Timers, microtasks and bcrypt are untouched, and the requirement
+   * under test — a code is valid only inside its window, a replay is refused —
+   * is asserted exactly as before, now with explicit +STEP_MS offsets.
+   */
+  const FROZEN_NOW =
+    Math.floor(Date.UTC(2026, 0, 1) / STEP_MS) * STEP_MS + STEP_MS / 2;
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: FROZEN_NOW,
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+    });
+    build();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   /**
    * Enrols user-a and returns the seed, the one-time recovery codes and the
@@ -112,7 +171,13 @@ describe('MfaService', () => {
 
   describe('setup', () => {
     it('stores an encrypted pending seed and does not turn MFA on', async () => {
-      const setup = await service.startSetup(subject);
+      mockQr.real = true; // the one test that checks the real image
+      let setup: Awaited<ReturnType<typeof service.startSetup>>;
+      try {
+        setup = await service.startSetup(subject);
+      } finally {
+        mockQr.real = false;
+      }
 
       expect(userRow().mfaEnabled).toBe(false);
       expect(userRow().mfaSecretEncrypted).toBeNull();
@@ -123,10 +188,13 @@ describe('MfaService', () => {
       expect(setup.manualEntryKey.replace(/ /g, '')).toBe(
         encryption.decrypt(userRow().mfaPendingSecretEncrypted as string),
       );
-      await expect(service.getStatus(subject)).resolves.toMatchObject({
-        enabled: false,
-        pendingSetup: true,
-      });
+      await expect(service.getStatus(subject)).resolves.toMatchObject(
+        {
+          enabled: false,
+          pendingSetup: true,
+        },
+        30_000,
+      ); // a real QR render is ~1 s, several times that under a loaded CI worker
     });
 
     it('replaces the pending seed when setup is started again', async () => {

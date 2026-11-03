@@ -16,6 +16,8 @@
  * No dependencies.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { HEARTBEAT_STALE_MS, isStale, readJson, withLock, writeJson } from './agent-state.mjs';
 
 const SESSIONS = 'sessions.json';
@@ -186,6 +188,43 @@ export function heartbeat(root, sessionId) {
  * session that ends while holding the schema lease blocks every future database
  * task until somebody works out what happened.
  */
+/**
+ * The durable record (docs/sessions/SESSION-nnnn-*.md) is what the generated
+ * indexes and validators read; sessions.json is only the live registry. When
+ * only the registry was updated by `finish`, the record kept STATUS: ACTIVE
+ * forever, the next session saw a phantom live session, and someone had to edit
+ * it by hand. Finishing a session now closes both, or reports which it could not.
+ *
+ * Only the STATUS and LAST_HEARTBEAT lines are rewritten; the rest of the
+ * record (intent, decisions) is the author's and is never touched.
+ */
+export function finalizeSessionRecord(root, sessionId, status, now = new Date().toISOString()) {
+  const dir = path.join(root, 'docs', 'sessions');
+  if (!fs.existsSync(dir)) return { updated: false, reason: 'no docs/sessions directory' };
+  const file = fs.readdirSync(dir).find((name) => name.startsWith(`${sessionId}-`) && name.endsWith('.md'));
+  if (!file) return { updated: false, reason: `no record file for ${sessionId}` };
+  const full = path.join(dir, file);
+  const original = fs.readFileSync(full, 'utf8');
+  const eol = original.includes('\r\n') ? '\r\n' : '\n';
+  const lines = original.split(/\r?\n/);
+  // Only inside the leading frontmatter-style block (up to the first blank line).
+  const end = lines.findIndex((line) => line.trim() === '');
+  const limit = end === -1 ? lines.length : end;
+  let touched = 0;
+  for (let i = 0; i < limit; i++) {
+    if (/^STATUS:/.test(lines[i])) {
+      lines[i] = `STATUS: ${status}`;
+      touched++;
+    } else if (/^LAST_HEARTBEAT:/.test(lines[i])) {
+      lines[i] = `LAST_HEARTBEAT: ${now}`;
+    }
+  }
+  if (!touched) return { updated: false, reason: `${file} has no STATUS line`, file };
+  const next = lines.join(eol);
+  if (next !== original) fs.writeFileSync(full, next);
+  return { updated: next !== original, file };
+}
+
 export function finishSession(root, sessionId, { status = 'COMPLETE' } = {}) {
   const released = releaseAllLeases(root, sessionId);
   const session = withLock(root, 'sessions', () => {
@@ -202,7 +241,8 @@ export function finishSession(root, sessionId, { status = 'COMPLETE' } = {}) {
     return sessions[index];
   });
   dequeue(root, { sessionId });
-  return { session, releasedLeases: released };
+  const record = finalizeSessionRecord(root, sessionId, status);
+  return { session, releasedLeases: released, record };
 }
 
 // -------------------------------------------------------------------- leases

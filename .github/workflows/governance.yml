@@ -1,0 +1,78 @@
+name: Engineering governance
+
+# Fast, dependency-free gates (Node stdlib only — no `npm ci`, no database) so the
+# cheapest failures surface in seconds instead of behind the 15-minute CI.
+# Deliberately a SEPARATE workflow: changing the shared `CI required gate` is a
+# reviewed CI-policy change (CI-004). The owner can add "Governance gates" to
+# branch protection once they have watched it for a while.
+#
+# Nightly: read-only CI trend classification, written to the job summary.
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gates:
+    name: Governance gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-npm
+        with:
+          install: 'false'
+      - name: API completeness gate
+        run: node scripts/check-api-completeness.mjs
+      - name: Module completeness gate
+        run: node scripts/check-module-completeness.mjs
+      - name: Policy catalogue, agents, skills, rules
+        run: node --test scripts/governance.test.mjs
+      - name: Guard hook, CI doctor and hotfix tooling tests
+        run: node --test scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs scripts/api-completeness.test.mjs scripts/authz-classify.test.mjs scripts/session-finish.test.mjs
+      - name: Authorization inventory is current
+        run: node scripts/api-authorization-inventory.mjs --check
+      - name: Derived documentation facts are current
+        run: node scripts/derive-doc-facts.mjs --check
+      - name: Lessons valid
+        run: node scripts/lessons.mjs check
+      - name: Generated inventory is current
+        run: |
+          node scripts/check-api-completeness.mjs --inventory
+          git diff --exit-code -- docs/engineering/api-completeness-inventory.md
+
+  trend:
+    name: Nightly CI trend (read-only)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-npm
+        with:
+          install: 'false'
+      - name: Classify the last 50 CI runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '## CI failure trend (last 50 runs of ci.yml)'
+            echo '```json'
+            node scripts/ci-doctor.mjs --limit 50
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

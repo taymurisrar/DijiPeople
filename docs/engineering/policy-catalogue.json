@@ -1,0 +1,516 @@
+{
+  "version": 1,
+  "doc": "Machine-readable engineering policy catalogue. level: MANDATORY (a violation blocks), RECOMMENDED (pattern; deviate with a note), EXCEPTION_ADR (allowed only with an ADR). enforcement.kind: executable (a script/test fails on violation), hook (blocked at tool time), review (human/agent review step) or manual (no automation yet, reason required). Tested by scripts/governance.test.mjs.",
+  "policies": [
+    {
+      "id": "API-001",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "Every controller is classified (standard-mutable | read-only | action | sensitive) in api-resource-contracts.json.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-api-completeness.mjs"
+      }
+    },
+    {
+      "id": "API-002",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "A standard-mutable resource declares create/get/list/update/delete, or records why one is not applicable.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-api-completeness.mjs"
+      }
+    },
+    {
+      "id": "API-003",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "Read-only and sensitive resources expose no destructive verb without an explicit, justified allow entry.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-api-completeness.mjs"
+      }
+    },
+    {
+      "id": "API-004",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "Every non-@Public route is behind @UseGuards.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-api-completeness.mjs"
+      }
+    },
+    {
+      "id": "API-005",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "Every route has a supported authorization contract (permission decorators, platform permission/role guard, machine-token guard, @AuthenticationOnly, @Public, rate-limited public); a legacy gap must sit in the authorization register with a priority, an owner role and a due date, and the gate fails when the date passes.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-api-completeness.mjs"
+      }
+    },
+    {
+      "id": "API-006",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "Unknown request fields are a 400 (whitelist + forbidNonWhitelisted); DTO and frontend payload change together.",
+      "enforcement": {
+        "kind": "review",
+        "ref": "services/api/AGENTS.md"
+      }
+    },
+    {
+      "id": "API-007",
+      "level": "EXCEPTION_ADR",
+      "area": "api",
+      "statement": "A breaking change to a public API response, permission key, enum value or settings key needs an approved transition.",
+      "enforcement": {
+        "kind": "manual",
+        "reason": "no OpenAPI baseline is committed yet; see roadmap item R-1 in docs/engineering/automation-matrix.md"
+      }
+    },
+    {
+      "id": "SEC-001",
+      "level": "MANDATORY",
+      "area": "security",
+      "statement": "Tenant-owned queries filter on tenantId from request.user, never from client input.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "services/api/src/common/constants/wiring-invariants.spec.ts"
+      }
+    },
+    {
+      "id": "SEC-002",
+      "level": "MANDATORY",
+      "area": "security",
+      "statement": "Responses and import/export templates never expose password hashes, tokens, encrypted secrets or internal columns.",
+      "enforcement": {
+        "kind": "review",
+        "ref": ".claude/agents/dp-security-reviewer.md"
+      }
+    },
+    {
+      "id": "SEC-003",
+      "level": "MANDATORY",
+      "area": "security",
+      "statement": "No secret is committed; new env vars are registered in config validation, render.yaml and docs.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-env-registered.mjs"
+      }
+    },
+    {
+      "id": "SEC-004",
+      "level": "MANDATORY",
+      "area": "security",
+      "statement": "Production advisories are resolved or argued in a record; the allowlist is never widened to go green.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-production-advisories.mjs"
+      }
+    },
+    {
+      "id": "MOD-001",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "Every code path that writes a CustomizationTable is registered with a reason.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-module-completeness.mjs"
+      }
+    },
+    {
+      "id": "MOD-002",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "Custom-module creation provisions the full component plan inside one transaction and is reconcilable.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-module-completeness.mjs"
+      }
+    },
+    {
+      "id": "MOD-003",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "The component plan has unique keys, one default form and one default view, and no view whose filter the runtime would drop.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "services/api/src/modules/customization/module-provisioning.spec.ts"
+      }
+    },
+    {
+      "id": "MOD-004",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "Provisioning is idempotent and never rewrites or renames an existing customisation.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "services/api/src/modules/customization/module-provisioning.behaviour.spec.ts"
+      }
+    },
+    {
+      "id": "DB-001",
+      "level": "MANDATORY",
+      "area": "database",
+      "statement": "Never run migrate reset or db push against a shared database; never hand-edit an applied migration.",
+      "enforcement": {
+        "kind": "hook",
+        "ref": "scripts/hooks/guard-bash.mjs"
+      }
+    },
+    {
+      "id": "DB-002",
+      "level": "MANDATORY",
+      "area": "database",
+      "statement": "A destructive schema change needs an ExecPlan with backfill and rollback; use expand/backfill/contract.",
+      "enforcement": {
+        "kind": "review",
+        "ref": "PLANS.md"
+      }
+    },
+    {
+      "id": "DB-003",
+      "level": "MANDATORY",
+      "area": "database",
+      "statement": "Required configuration rows are added to seed-config and verified by verify-seed-config.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/validate-framework.mjs"
+      }
+    },
+    {
+      "id": "GIT-001",
+      "level": "MANDATORY",
+      "area": "git",
+      "statement": "No agent pushes or merges to main; ordinary work integrates into develop.",
+      "enforcement": {
+        "kind": "hook",
+        "ref": "scripts/hooks/guard-bash.mjs"
+      }
+    },
+    {
+      "id": "GIT-002",
+      "level": "MANDATORY",
+      "area": "git",
+      "statement": "Never force-push; never discard an unverified commit.",
+      "enforcement": {
+        "kind": "hook",
+        "ref": "scripts/hooks/guard-bash.mjs"
+      }
+    },
+    {
+      "id": "GIT-003",
+      "level": "MANDATORY",
+      "area": "git",
+      "statement": "Never undo work with checkout --, restore, reset --hard or clean in a shared tree.",
+      "enforcement": {
+        "kind": "hook",
+        "ref": "scripts/hooks/guard-bash.mjs"
+      }
+    },
+    {
+      "id": "GIT-004",
+      "level": "MANDATORY",
+      "area": "git",
+      "statement": "Remove worktrees only through the guarded script (junction-safe).",
+      "enforcement": {
+        "kind": "hook",
+        "ref": "scripts/hooks/guard-bash.mjs"
+      }
+    },
+    {
+      "id": "CI-001",
+      "level": "MANDATORY",
+      "area": "ci",
+      "statement": "A CI failure is classified by cause before it is acted on; the first failure's evidence is preserved.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/ci-doctor.test.mjs"
+      }
+    },
+    {
+      "id": "CI-002",
+      "level": "MANDATORY",
+      "area": "ci",
+      "statement": "Only verified-transient infrastructure causes are retryable; a failing test is never retried into green.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/ci-doctor.test.mjs"
+      }
+    },
+    {
+      "id": "CI-003",
+      "level": "MANDATORY",
+      "area": "ci",
+      "statement": "Hooks and signing are never bypassed to obtain a green build.",
+      "enforcement": {
+        "kind": "hook",
+        "ref": "scripts/hooks/guard-bash.mjs"
+      }
+    },
+    {
+      "id": "CI-004",
+      "level": "MANDATORY",
+      "area": "ci",
+      "statement": "Required checks and warning budgets are never loosened to go green; CI policy changes need review.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/validate-framework.mjs"
+      }
+    },
+    {
+      "id": "CI-005",
+      "level": "RECOMMENDED",
+      "area": "ci",
+      "statement": "Run the fast preflight (npm run preflight) before every push.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/preflight.mjs"
+      }
+    },
+    {
+      "id": "HOT-001",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "Only P0/P1 incidents use the emergency path; P2/P3 follow the normal flow unless the owner escalates.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/hotfix.test.mjs"
+      }
+    },
+    {
+      "id": "HOT-002",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "A hotfix baseline is the verified deployed SHA, never an assumption that it equals origin/main.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/hotfix.test.mjs"
+      }
+    },
+    {
+      "id": "HOT-003",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "A hotfix may narrow scope but never drops lint, build or the authorization regression.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/hotfix.test.mjs"
+      }
+    },
+    {
+      "id": "HOT-004",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "A migration in a hotfix must be expand-only; destructive changes are refused.",
+      "enforcement": {
+        "kind": "review",
+        "ref": ".claude/skills/dp-hotfix/SKILL.md"
+      }
+    },
+    {
+      "id": "HOT-005",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "Production deployment of a hotfix requires explicit owner approval; tooling cannot grant it.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/hotfix.test.mjs"
+      }
+    },
+    {
+      "id": "HOT-006",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "A deployed hotfix is backported to develop and its incident record closed.",
+      "enforcement": {
+        "kind": "manual",
+        "reason": "backport is a post-deploy human/agent step; a reminder is in the runbook but no gate can observe it"
+      }
+    },
+    {
+      "id": "AGT-001",
+      "level": "MANDATORY",
+      "area": "agents",
+      "statement": "The owner decides pricing/entitlements, material business rules, destructive data changes, security weakening, breaking public API changes, production deployment and new recurring cost; agents never invent a business requirement to avoid asking.",
+      "enforcement": {
+        "kind": "review",
+        "ref": "docs/engineering/standards/agent-autonomy.md"
+      }
+    },
+    {
+      "id": "AGT-002",
+      "level": "MANDATORY",
+      "area": "agents",
+      "statement": "An implementation agent never declares its own change independently QA-approved.",
+      "enforcement": {
+        "kind": "review",
+        "ref": ".claude/agents/dp-qa-engineer.md"
+      }
+    },
+    {
+      "id": "AGT-003",
+      "level": "MANDATORY",
+      "area": "agents",
+      "statement": "Skills and agents are valid, versioned in Git and registered; rules are not duplicated across files.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/governance.test.mjs"
+      }
+    },
+    {
+      "id": "LRN-001",
+      "level": "MANDATORY",
+      "area": "learning",
+      "statement": "A lesson becomes a rule only through a reviewed commit; no agent edits its own policy silently.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/lessons.mjs"
+      }
+    },
+    {
+      "id": "UI-001",
+      "level": "MANDATORY",
+      "area": "frontend",
+      "statement": "Use the shared table/form/empty-state components; every data surface has loading, error and empty states.",
+      "enforcement": {
+        "kind": "review",
+        "ref": ".claude/agents/dp-ui-ux-engineer.md"
+      }
+    },
+    {
+      "id": "UI-002",
+      "level": "RECOMMENDED",
+      "area": "frontend",
+      "statement": "Do not add explanatory helper copy to controls without asking the owner.",
+      "enforcement": {
+        "kind": "review",
+        "ref": ".claude/agents/dp-ui-ux-engineer.md"
+      }
+    },
+    {
+      "id": "PERF-001",
+      "level": "RECOMMENDED",
+      "area": "performance",
+      "statement": "Index every foreign key and (tenantId, filter column) pair a list screen sorts or filters by; avoid N+1 queries and duplicate frontend requests.",
+      "enforcement": {
+        "kind": "review",
+        "ref": ".claude/agents/dp-performance-engineer.md"
+      }
+    },
+    {
+      "id": "DOC-001",
+      "level": "MANDATORY",
+      "area": "docs",
+      "statement": "A material decision is an ADR; a recurring operation is a runbook; every control states whether it is automated.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/governance.test.mjs"
+      }
+    },
+    {
+      "id": "API-008",
+      "level": "MANDATORY",
+      "area": "api",
+      "statement": "Authorization classification is evidence-based: the route-level inventory traces handler to service and names what it found; a classification can be disproved from the inventory.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/authz-classify.test.mjs"
+      }
+    },
+    {
+      "id": "MOD-005",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "Package import gives the modules it creates their missing defaults, create-only, never overwriting imported definitions.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-module-completeness.mjs"
+      }
+    },
+    {
+      "id": "MOD-006",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "What a module is provisioned with depends on its kind: My Records only where users own records, Active/Inactive only where records can be deactivated, no edit/delete/deactivate commands where the lifecycle forbids them.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "services/api/src/modules/customization/module-provisioning.spec.ts"
+      }
+    },
+    {
+      "id": "MOD-007",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "Reconciliation of existing modules is explicit and tenant-scoped: dry run by default, apply needs the retyped workspace slug plus an owner authorization reference on production, and it is never wired to startup, seeding or a schedule.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/check-module-completeness.mjs"
+      }
+    },
+    {
+      "id": "MOD-008",
+      "level": "MANDATORY",
+      "area": "modules",
+      "statement": "The record lifecycle is enforced by the API by module kind (immutable records are never changed; configuration records are never deleted) and the UI capabilities are derived from the same rules.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "services/api/test/module-provisioning.e2e-spec.ts"
+      }
+    },
+    {
+      "id": "CI-006",
+      "level": "MANDATORY",
+      "area": "ci",
+      "statement": "Every CI job installs through the shared setup action, which pins the npm declared in package.json and verifies node and npm before any dependency install.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/governance.test.mjs"
+      }
+    },
+    {
+      "id": "CI-007",
+      "level": "MANDATORY",
+      "area": "ci",
+      "statement": "Dependabot targets develop (never production), has a single npm entry at the repository root so one bump opens one pull request, and groups routine updates.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/governance.test.mjs"
+      }
+    },
+    {
+      "id": "HOT-007",
+      "level": "MANDATORY",
+      "area": "hotfix",
+      "statement": "The emergency path is rehearsed end to end against a throwaway repository and a fake production target, stopping at the approval checkpoint unless explicitly simulated, and the rehearsal can never touch the real repository.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/hotfix-rehearsal.test.mjs"
+      }
+    },
+    {
+      "id": "AGT-004",
+      "level": "MANDATORY",
+      "area": "agents",
+      "statement": "Finishing a session closes its durable record and regenerates the indexes in one step; a session cannot be left ACTIVE by a finished task.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/session-finish.test.mjs"
+      }
+    },
+    {
+      "id": "DOC-002",
+      "level": "MANDATORY",
+      "area": "docs",
+      "statement": "Counts a script can compute (models, enums, migrations, public handlers, modules) are derived into the instruction files, not typed, and checked on every push.",
+      "enforcement": {
+        "kind": "executable",
+        "ref": "scripts/derive-doc-facts.mjs"
+      }
+    }
+  ]
+}

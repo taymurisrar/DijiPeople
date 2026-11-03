@@ -1,0 +1,1438 @@
+{
+  "doc": "Legacy routes without a declared authorization contract. NOT a permanent baseline: each has a priority, owner role and due date; the gate (API-005) fails when a date passes, when a route is missing from here, or when an entry no longer matches a route. Remove an entry by declaring a contract on the route.",
+  "generated": "2026-11-03",
+  "entries": [
+    {
+      "route": "services/api/src/modules/customization/customization-runtime.controller.ts#GET runtime-metadata/published",
+      "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
+      "priority": "P2",
+      "ownerRole": "module-owner:customization",
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed: authenticated, tenant-keyed (findFirst on user.tenantId), metadata only. No action permission by design (every signed-in user needs it to render). Owner decision: declare @AuthenticationOnly() or gate. See api-route-review-2026-11-03.md."
+    },
+    {
+      "route": "services/api/src/modules/error-logs/error-logs.controller.ts#GET error-logs/:traceId",
+      "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
+      "priority": "P2",
+      "ownerRole": "module-owner:error-logs",
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed and FIXED: owner-or-support, tenant-checked, foreign == missing. Defect found and fixed: a later occurrence inherited the first incident tenantId/userId (hydrateOccurrence). Proven by tenant-scoped-reads.e2e-spec.ts. Owner decision: declare @AuthenticationOnly()."
+    },
+    {
+      "route": "services/api/src/modules/error-logs/error-logs.controller.ts#GET error-logs/:traceId/download",
+      "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
+      "priority": "P2",
+      "ownerRole": "module-owner:error-logs",
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed and FIXED: same service gate as :traceId; filename sanitised; stack gated. Same fix and tests. Owner decision: declare @AuthenticationOnly()."
+    },
+    {
+      "route": "services/api/src/modules/organization/organization-hierarchy.controller.ts#GET organization-hierarchy/tree",
+      "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
+      "priority": "P2",
+      "ownerRole": "module-owner:organization",
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed: authenticated, tenant-keyed in every query. Returns the whole org/BU/department/team tree with no row scope, so a business-unit-scoped user sees other units. Owner decision needed: accept (structure names only) or apply BU scope. See api-route-review-2026-11-03.md."
+    },
+    {
+      "route": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts#GET auth/mfa/status",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts#POST auth/mfa/disable",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts#POST auth/mfa/recovery-codes",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts#POST auth/mfa/setup",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts#POST auth/mfa/setup/confirm",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#DELETE contracts/:id/parties/:partyId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contract-templates",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contract-templates/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/:id/document-fields",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/:id/versions/compare",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/documents/:documentId/download",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/placeholder-definitions",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/template-eligibility",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET contracts/template-options",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#GET signature-requests/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#PATCH contract-templates/:id/state",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#PATCH contract-templates/:id/versions/:versionId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#PATCH contracts/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#PATCH contracts/:id/document-fields",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#PATCH contracts/:id/parties/:partyId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contract-templates",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contract-templates/:id/clone",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contract-templates/:id/versions",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contract-templates/:id/versions/:versionId/publish",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contract-templates/:id/versions/:versionId/unpublish",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/amend",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/field-placements",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/generate/:format",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/parties",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/renew",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/signature-requests",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/submit-approval",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/terminate",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/transition",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/versions",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/:id/void",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/copy",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/from-source",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/import-document",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST contracts/upload",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST platform-approvals/:requestId/:decision",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST signature-requests/:id/cancel",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/contracts/contracts.controller.ts#POST signature-requests/:id/resend",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/data/data.controller.ts#GET data/:entityLogicalName",
+      "class": "SERVICE_ENFORCED_PERMISSION",
+      "priority": "P3",
+      "ownerRole": "module-owner:data",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/data/metadata.controller.ts#GET metadata/entities",
+      "class": "SERVICE_ENFORCED_PERMISSION",
+      "priority": "P3",
+      "ownerRole": "module-owner:data",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/data/metadata.controller.ts#GET metadata/entities/:entityLogicalName",
+      "class": "SERVICE_ENFORCED_PERMISSION",
+      "priority": "P3",
+      "ownerRole": "module-owner:data",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/error-logs/error-logs.controller.ts#POST error-logs/client",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "module-owner:error-logs",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/organization/organization-access.controller.ts#GET organization-access/me",
+      "class": "SERVICE_ENFORCED_PERMISSION",
+      "priority": "P3",
+      "ownerRole": "module-owner:organization",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#GET partner-experience/inquiries",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#GET partner-experience/onboarding",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#POST partner-experience/inquiries/:id/qualify",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#POST partner-experience/inquiries/:id/reject",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#POST partner-experience/lead-reviews/:id/:decision",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#POST partner-experience/onboarding/:id/:decision",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partner-experience/partner-experience.controller.ts#POST partner-experience/partners/:id/activate",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#DELETE partners/:partnerId/contacts/:contactId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#GET partners",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#GET partners/:partnerId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#GET partners/:partnerId/referral-links",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#PATCH partners/:partnerId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#PATCH partners/:partnerId/commissions/:commissionId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#POST partners",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#POST partners/:partnerId/commissions",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#POST partners/:partnerId/contacts",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#POST partners/:partnerId/lifecycle",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#POST partners/:partnerId/referral-links",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/partners/partners.controller.ts#POST partners/:partnerId/referral-links/:linkId/action",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-events/platform-events.controller.ts#GET platform/events",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-events",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-events/platform-events.controller.ts#GET platform/events/notifications",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-events",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-events/platform-events.controller.ts#GET platform/events/overview",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-events",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-events/platform-events.controller.ts#POST platform/events/notifications/read",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-events",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-health.controller.ts#GET platform/monitoring/health",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#GET platform/logs",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#GET platform/logs/:fileName/download",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#GET platform/logs/events",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#GET platform/logs/events/:traceId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#GET platform/logs/events/facets",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#GET platform/logs/latest-error/download",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/platform-monitoring.controller.ts#PATCH platform/logs/events/:traceId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-monitoring/storage-readiness.controller.ts#GET platform/storage/readiness",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-monitoring",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#DELETE platform-runtime/:moduleKey/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey/:id/dependencies",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey/:id/process",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey/:id/related/:relationshipKey",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey/:id/timeline",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#GET platform-runtime/:moduleKey/export",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#PATCH platform-runtime/:moduleKey/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#PATCH platform-runtime/:moduleKey/:id/process",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#POST platform-runtime/:moduleKey",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#POST platform-runtime/:moduleKey/:id/actions/:action",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#POST platform-runtime/:moduleKey/:id/timeline",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#POST platform-runtime/:moduleKey/actions/:action",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-runtime/platform-runtime.controller.ts#POST platform-runtime/:moduleKey/validate",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:platform-runtime",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#DELETE platform-users/:userId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#GET platform-users",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#GET platform-users/me/mfa",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#GET platform-users/me/module-preferences",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#GET platform-users/me/preferences",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#GET platform-users/me/security",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#GET platform-users/owner-candidates",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#PATCH platform-users/:userId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#PATCH platform-users/me/module-preferences",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#PATCH platform-users/me/preferences",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users/:userId/mfa/reset",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users/me/mfa/disable",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users/me/mfa/recovery-codes",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users/me/mfa/setup",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users/me/mfa/setup/confirm",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/platform-users/platform-users.controller.ts#POST platform-users/me/password",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#DELETE support-cases/:id/incidents/:linkId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#DELETE support-cases/:id/relations/:relationId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#GET support-cases",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#GET support-cases/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#GET support-cases/:id/relations",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#GET support-cases/attachments/:attachmentId/download",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#GET support-cases/metrics",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#PATCH support-cases/:id",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/assign",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/attachments",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/customer-updates",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/escalate",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/incidents",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/merge",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/relations",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/reopen",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/request-info",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/resolve",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/timeline",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/:id/transition",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/support-cases/support-cases.controller.ts#POST support-cases/from-incident/:errorLogId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "module-owner:support-cases",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#DELETE platform/tenants/:tenantId/access/:userId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/access",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/apps",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/apps/:appKey/installations",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/apps/:appKey/releases",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/commercial",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/configuration",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/domains",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/erasure-preflight",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/modules",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/operations",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/overview",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/readiness",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/system",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/:tenantId/timeline",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/erasure-receipts",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#GET platform/tenants/provisioning-queue",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#PATCH platform/tenants/:tenantId/access/:userId",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#PATCH platform/tenants/:tenantId/apps/:appKey",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#PATCH platform/tenants/:tenantId/modules",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/access",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/access/:userId/password-reset",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/access/:userId/resend-invitation",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/access/:userId/rotate-credential",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/access/transfer-ownership",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/domains",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/domains/:domainId/disable",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/domains/:domainId/primary",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/domains/:domainId/verify",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/erase",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/erasure-dry-run",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/operations/repair-workspace",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/operations/retry-provisioning",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/status",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-control-plane/tenant-control-plane.controller.ts#POST platform/tenants/:tenantId/subscription/cancel",
+      "class": "SERVICE_ENFORCED_PLATFORM",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-domains/workspace.controller.ts#GET workspaces/access-check",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    },
+    {
+      "route": "services/api/src/modules/tenant-domains/workspace.controller.ts#GET workspaces/mine",
+      "class": "SELF_SCOPED",
+      "priority": "P3",
+      "ownerRole": "dp-security-reviewer",
+      "status": "OPEN",
+      "due": "2027-03-02"
+    }
+  ]
+}

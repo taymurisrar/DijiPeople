@@ -1,0 +1,57 @@
+name: Set up Node and npm (pinned)
+description: >-
+  Installs the Node major and the exact npm declared in package.json, proves
+  both BEFORE any dependency install, then runs a clean `npm ci`. One place to
+  change the toolchain instead of twelve.
+
+# Why this exists (docs/engineering/ci-reliability.md): `actions/setup-node`
+# `22.x` ships npm 10.9 while the repo requires npm 11.x. A lockfile written by
+# npm 11 then fails `npm ci` with EBADENGINE/EUSAGE on runs that pick up a
+# different npm. The single sources of truth are package.json `engines.node`
+# and `packageManager`; nothing is hard-coded here.
+
+inputs:
+  install:
+    description: Run `npm ci` after the toolchain check ("false" for jobs that need no dependencies).
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Read the declared toolchain
+      id: want
+      shell: bash
+      run: |
+        node_major=$(node -p "require('./package.json').engines.node.match(/\d+/)[0]")
+        npm_exact=$(node -p "const pm=require('./package.json').packageManager||''; if(!/^npm@\d+\.\d+\.\d+$/.test(pm)) {console.error('package.json packageManager must be npm@x.y.z, got: '+pm); process.exit(1)} pm.split('@')[1]")
+        echo "node_major=$node_major" >> "$GITHUB_OUTPUT"
+        echo "npm_exact=$npm_exact" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ steps.want.outputs.node_major }}.x
+        cache: ${{ inputs.install == 'true' && 'npm' || '' }}
+
+    - name: Pin npm
+      shell: bash
+      run: |
+        want="${{ steps.want.outputs.npm_exact }}"
+        if [ "$(npm --version)" != "$want" ]; then
+          npm install -g "npm@$want"
+        fi
+
+    - name: Verify toolchain before installing dependencies
+      shell: bash
+      run: |
+        echo "node $(node --version)"
+        echo "npm  $(npm --version)"
+        test "$(node -p 'process.versions.node.split(".")[0]')" = "${{ steps.want.outputs.node_major }}" \
+          || { echo "::error::node major is not ${{ steps.want.outputs.node_major }} (package.json engines.node)"; exit 1; }
+        test "$(npm --version)" = "${{ steps.want.outputs.npm_exact }}" \
+          || { echo "::error::npm is not ${{ steps.want.outputs.npm_exact }} (package.json packageManager)"; exit 1; }
+
+    - name: Clean install
+      if: inputs.install == 'true'
+      shell: bash
+      run: npm ci

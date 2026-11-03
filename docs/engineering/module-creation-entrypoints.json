@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "policy": "MOD-001",
+  "doc": "Every code path that writes a CustomizationTable row is listed here with how it satisfies the module-provisioning standard. A new write site that is not listed fails scripts/check-module-completeness.mjs.",
+  "provisioner": {
+    "file": "services/api/src/modules/customization/module-provisioning.ts",
+    "consumer": "services/api/src/modules/customization/customization.service.ts",
+    "requiredConsumerPatterns": [
+      "provisionModuleComponents(",
+      "this.prisma.$transaction(",
+      "reconcileModuleComponents("
+    ]
+  },
+  "entrypoints": [
+    {
+      "file": "services/api/src/modules/customization/customization.service.ts",
+      "writes": 4,
+      "kind": "mixed",
+      "reasons": {
+        "createTable (tx.customizationTable.create)": "USER_CREATE — the only custom-module creation path; runs provisionModuleComponents inside one transaction.",
+        "updateTable upsert": "SYSTEM_TABLE_OVERRIDE — upserts an existing SYSTEM table's overrides; not a new module.",
+        "syncDefaultSolution upsert": "SYSTEM_SYNC — system modules, provisioned by seed-config/publishTenantDefaults, not by the custom plan.",
+        "ensureCustomizationTable upsert": "SYSTEM_SYNC — lazily materialises a system table row."
+      }
+    },
+    {
+      "file": "services/api/src/modules/customization/package-alm.service.ts",
+      "writes": 1,
+      "kind": "PACKAGE_IMPORT",
+      "reasons": {
+        "applyBaseObjects createMany": "PACKAGE_IMPORT — carries its own forms/views/columns from the source tenant. Default injection would overwrite the author's design; run reconcileModuleComponents afterwards if a package omits components. Known limitation, see docs/engineering/standards/module-provisioning.md."
+      }
+    },
+    {
+      "file": "services/api/prisma/seed-config.ts",
+      "writes": 1,
+      "kind": "SYSTEM_SEED",
+      "reasons": {
+        "seed upsert": "SYSTEM_SEED — system modules declared in SYSTEM_CUSTOMIZATION_TABLES, verified by verify-seed-config."
+      }
+    }
+  ]
+}

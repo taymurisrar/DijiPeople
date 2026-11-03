@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/check-api-completeness.mjs:*)",
+      "Bash(node scripts/check-module-completeness.mjs:*)",
+      "Bash(node scripts/ci-doctor.mjs:*)",
+      "Bash(node scripts/hotfix.mjs plan:*)",
+      "Bash(node scripts/hotfix.mjs dry-run:*)",
+      "Bash(node scripts/lessons.mjs:*)",
+      "Bash(node scripts/preflight.mjs:*)",
+      "Bash(npm run preflight:*)",
+      "Bash(node --test scripts/:*)",
+      "Bash(node scripts/retrieve-knowledge.mjs:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git worktree remove:*)",
+      "Bash(npx prisma migrate reset:*)",
+      "Bash(npx prisma db push:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./services/api/.env)",
+      "Read(./**/*.pem)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/guard-bash.mjs\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/session-start.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
