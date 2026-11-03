@@ -12,6 +12,7 @@ Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is
 | [[PRODUCTION-RELEASE-GATES]] | checklist the **owner** runs on production (QA never touches production) |
 | [[DECISIONS-AND-OBSERVATIONS]] | decisions, discrepancies, open questions |
 | [[TRACEABILITY]] | generated defect -> test map (DP-QA-001..034) |
+| [[PRODUCTION-VERIFICATION-2026-11-03]] | **production check after release `2a473785`**: DEPLOYED WITH GAPS — enforcement ON in the database, the RUN-008 remediation is not deployed (DP-QA-051), no authenticated smoke possible (no test identity), tenant mail on CONSOLE |
 | [[RUN-008-2026-11-03]] | **latest run**: READY (Starter, on production gate A) / CONDITIONALLY READY (Custom plans) on `4dd29d3a`; 602 result rows, 573 passed, 2 failed (owner decision DP-QA-045, application DP-QA-048), 27 skipped with reasons; DP-QA-043/044/047 verified |
 | [[RUN-008-RETEST-MATRIX]] | RUN-008 evidence by defect |
 | [[OWNER-DECISIONS-045-046]] | what the expired-subscription and mandatory-feature rules would mean for security, billing and sales; nothing decided |

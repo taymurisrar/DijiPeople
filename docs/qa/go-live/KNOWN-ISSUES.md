@@ -43,6 +43,10 @@ Severity/priority: P0 release-stopping - P1 major workflow broken - P2 moderate/
 | [[DP-QA-033]] | Dead /documents prefetch answers 404 | P3 | **Resolved** | RUN-006: NAV-001: pass. _RUN-005:_ NAV-001 pass |
 | [[DP-QA-034]] | Employee My Profile lookups answer 403 | P2 | **Resolved** | RUN-006: TRC-034: pass. _RUN-005:_ TRC-034 pass; MCP network log of My Profile shows only 2xx |
 
+## Post-deploy verification 2026-11-03 (production `2a473785`) — read first
+
+The RUN-008 verdicts apply to application `4dd29d3a`, **which is not in production**. New records: [[DP-QA-051]] (P1 release blocker: the 60-commit remediation is not deployed), [[DP-QA-052]] (P2: the Render `ENTITLEMENT_ENFORCEMENT_MODE` variable is inert on the deployed code; enforcement rests on the database row, which has no audit trail), [[DP-QA-053]] (P2: every production tenant mail provider row is `CONSOLE`). Production enforcement itself is **ON** (database row `ENFORCE`). [[DP-QA-048]] has a validated fix on branch `agent/smoke-tenant-login`. Details, evidence and next actions: [[PRODUCTION-VERIFICATION-2026-11-03]].
+
 ## RUN-008 status (application `4dd29d3a`, QA suite `c5867698`) — supersedes the RUN-007 section below
 
 **50 records.** Independently verified in RUN-008: [[DP-QA-043]], [[DP-QA-044]], [[DP-QA-047]] (Resolved); the DP-QA-005 release mechanism (verified; production cutover still the owner's). **Open:** DP-QA-005 (owner gate), [[DP-QA-045]] and [[DP-QA-046]] (owner decisions, brief in [[OWNER-DECISIONS-045-046]]), and three records new in RUN-008, all P3: [[DP-QA-048]] (smoke login sends no tenant), [[DP-QA-049]] (price edit needs Stripe, raw 500), [[DP-QA-050]] (create-tenant `alreadyExists` while PROVISIONING_FAILED). Open P0: 0. Open P1: 0.

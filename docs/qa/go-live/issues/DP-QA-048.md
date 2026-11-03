@@ -4,7 +4,7 @@
 |---|---|
 | Category | Deployment safeguard / release tooling |
 | Severity / Priority | Low / **P3** (the health-based enforcement check, which is the DP-QA-005 gate, works; the optional behavioural proof does not) |
-| Status | Open |
+| Status | **Fix available on a branch, not merged** (`agent/smoke-tenant-login`, `f6c1bfbd`; validated against a compiled API) |
 | Found | RUN-008 (`4dd29d3a`), tests DPQA-GATE-008 (fails, assertion unchanged) and GATE-006 (passes); `tools/login-variants.mjs` |
 | Evidence | `evidence/RUN008-gate-enforced.md`, `evidence/RUN008-measurements.md` (GATE-006/008), `login-variants.mjs` output below |
 
@@ -28,3 +28,4 @@
 | Run | Result |
 |---|---|
 | RUN-008 (`4dd29d3a`) | **OPEN** — GATE-008 fails with the assertion unchanged; the health-based enforcement check passes (GATE-006) |
+| Post-deploy verification 2026-11-03 | **FIX VALIDATED ON A BRANCH** — `scripts/smoke-login.mjs` sends `tenantSlug` (`SMOKE_TENANT_SLUG`, `SMOKE_STARTER_TENANT_SLUG`); against a compiled (`nest build`) API the probe passes on a Starter tenant, fails on a Growth tenant, and a missing slug fails with a message naming the variable; 3 unit tests pass. Not merged; production unchanged |
