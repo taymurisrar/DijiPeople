@@ -391,6 +391,7 @@ export class CustomDataService {
       'create',
       relation?.lookupField,
     );
+    await this.assertLookupTargets(table, values, user.tenantId);
     if (relation) values[relation.lookupField] = relation.parentId;
     const scope = await this.resolveCreateScope(table, relation, values, user);
     const record = await this.prisma.$transaction(async (tx) => {
@@ -463,6 +464,7 @@ export class CustomDataService {
       throw new AppError('CUSTOM_RECORD_IMMUTABLE');
     }
     const patch = this.validateValues(table, valueBody, user, 'update');
+    await this.assertLookupTargets(table, patch, user.tenantId);
     if (relation) delete patch[relation.lookupField];
     const values = { ...readJson(existing.values), ...patch };
     const statusOnly = Object.keys(valueBody).length === 0;
@@ -711,6 +713,50 @@ export class CustomDataService {
       ),
       ownerTeamId: stringOrNull(inherited.ownerTeamId ?? values.ownerTeamId),
     };
+  }
+
+  /**
+   * A lookup to another CUSTOM module must name a live record of THAT module in
+   * this tenant. Without the check a made-up id, or an id copied from another
+   * tenant, was stored as if it were a relationship. Lookups to built-in modules
+   * are resolved by their own services and are not checked here.
+   */
+  private async assertLookupTargets(
+    table: CustomTable,
+    values: Record<string, unknown>,
+    tenantId: string,
+  ) {
+    const errors: Record<string, string[]> = {};
+    for (const column of table.columns) {
+      const value = values[column.columnKey];
+      if (
+        column.dataType !== 'lookup' ||
+        !column.lookupTargetTableKey ||
+        value === undefined ||
+        value === null ||
+        value === ''
+      )
+        continue;
+      const target = await this.prisma.customizationTable.findFirst({
+        where: {
+          tenantId,
+          tableKey: column.lookupTargetTableKey,
+          isCustom: true,
+        },
+        select: { id: true },
+      });
+      if (!target) continue;
+      const exists =
+        typeof value === 'string' &&
+        (await this.prisma.customDataRecord.count({
+          where: { id: value, tenantId, tableId: target.id, isDeleted: false },
+        })) > 0;
+      if (!exists)
+        errors[column.columnKey] = ['The selected record does not exist.'];
+    }
+    if (Object.keys(errors).length) {
+      throw new BadRequestException({ message: 'Validation failed.', errors });
+    }
   }
 
   private validateValues(

@@ -693,7 +693,7 @@ test.describe("Flow L — module acceptance", () => {
       `/custom-modules/${KEYS.ledger}/${child.json.id}`,
     );
     await settle();
-    await expect(page.getByText("Parent deal").first()).toBeVisible();
+    await expect(page.getByLabel("Deal", { exact: true })).toHaveValue("Parent deal");
 
     // A reference to nothing is refused, not stored.
     const dangling = await api("POST", `/data/${KEYS.ledger}`, {

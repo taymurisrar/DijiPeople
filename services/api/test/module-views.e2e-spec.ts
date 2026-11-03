@@ -264,6 +264,18 @@ describeWithDatabase()(
       await column(a.id, deal.id, 'name');
       await column(a.id, deal.id, 'stage');
       await column(a.id, deal.id, 'salary', { readPermission: 'payroll.read' });
+      await prisma.customizationColumn.create({
+        data: {
+          tenantId: a.id,
+          tableId: deal.id,
+          columnKey: 'parentDeal',
+          systemName: 'parentDeal',
+          displayName: 'Parent deal',
+          dataType: 'lookup',
+          fieldType: 'lookup',
+          lookupTargetTableKey: 'deal',
+        },
+      });
       await customView(a.id, deal.id, 'openAcme', [
         { columnKey: 'stage', operator: 'eq', value: 'Open' },
         { columnKey: 'name', operator: 'contains', value: 'Acme' },
@@ -757,6 +769,34 @@ describeWithDatabase()(
       )) as any;
       expect(res.meta.pageSize).toBe(200);
       expect(res.items.length).toBeLessThanOrEqual(200);
+    });
+
+    it('a lookup to a custom module must name a live record of THIS tenant: made-up and cross-tenant ids are refused', async () => {
+      const own = seeds[0].id;
+      const made = (await records.create(
+        'deal',
+        {},
+        { name: 'Child', parentDeal: own },
+        u1,
+      )) as any;
+      expect(made.parentDeal).toBe(own);
+      const foreign = (await prisma.customDataRecord.findFirstOrThrow({
+        where: { tenantId: b.id },
+      })) as { id: string };
+      for (const bad of [
+        randomUUID(),
+        foreign.id, // exists, but in another tenant
+        { not: 'an id' },
+      ]) {
+        await expect(
+          records.create('deal', {}, { name: 'Bad', parentDeal: bad }, u1),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      }
+      await expect(
+        records.update('deal', made.id, {}, { parentDeal: foreign.id }, u1),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      // Leave the fixture exactly as the other tests count it.
+      await prisma.customDataRecord.delete({ where: { id: made.id } });
     });
 
     it("is tenant-isolated: the same view key in two tenants returns each tenant's own records", async () => {
