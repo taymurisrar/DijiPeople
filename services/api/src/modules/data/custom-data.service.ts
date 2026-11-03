@@ -839,7 +839,13 @@ export class CustomDataService {
         continue;
       const value: unknown = values[column.columnKey];
       secured[column.columnKey] =
-        rules.mask === true && value ? maskValue(String(value)) : value;
+        rules.mask === true && value
+          ? maskValue(
+              typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value as string | number | boolean),
+            )
+          : value;
     }
     return {
       id: record.id,

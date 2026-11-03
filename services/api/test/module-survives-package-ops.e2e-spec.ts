@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access --
- * Reads untyped snapshot JSON and fixture rows; scoped to this file so the API lint warning budget is untouched. */
 /**
  * A module published through the plain publish flow must still be published after
  * a package release or an import into the same workspace.

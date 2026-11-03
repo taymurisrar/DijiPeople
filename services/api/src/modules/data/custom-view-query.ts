@@ -259,6 +259,13 @@ export function planView(
 }
 
 /** In-memory ordering for the capped custom-column path. Missing values sort last; ties break on id. */
+/** Sortable text of a JSON value; objects are compared by their JSON form rather than "[object Object]". */
+function asText(value: unknown): string {
+  return typeof value === 'object'
+    ? JSON.stringify(value)
+    : String(value as string | number | boolean);
+}
+
 export function sortRowsByColumns<
   T extends {
     id: string;
@@ -289,7 +296,7 @@ export function sortRowsByColumns<
     if (missingA || missingB)
       return missingA === missingB ? 0 : missingA ? 1 : -1;
     if (typeof a === 'number' && typeof b === 'number') return a - b;
-    return String(a).localeCompare(String(b), 'en', {
+    return asText(a).localeCompare(asText(b), 'en', {
       numeric: true,
       sensitivity: 'base',
     });

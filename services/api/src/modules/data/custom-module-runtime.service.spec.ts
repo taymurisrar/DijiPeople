@@ -174,6 +174,7 @@ describe('CustomModuleRuntimeService — runtime availability', () => {
     ).resolves.toBeNull();
     expect(prisma.customizationTable.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- jest asymmetric matcher
         where: expect.objectContaining({
           tenantId: TENANT,
           isCustom: true,
