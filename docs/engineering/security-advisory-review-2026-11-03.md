@@ -40,7 +40,11 @@ Not done, deliberately: `npm audit fix` (it re-resolved the whole lockfile — 7
 
 **Residual risk.** Between a Nest minor bump and the next release that adopts multer ≥ 2.5, the override must stay; `check-overrides-applied` fails if it stops taking effect. Upgrading to NestJS ≥ 12.3 would remove the override entirely and is listed below as an owner decision.
 
-## Needs an owner decision — 10 moderate advisories, no safe fix
+## Owner decision recorded 2026-11-03
+
+The owner reviewed the evidence below and **approved time-boxed dispositions for all ten** (the exceljs chain and the active-win@8 chain), through the release session. They are in `scripts/check-production-advisories.mjs` with their removal triggers and a review date of 2027-02-03; the advisory gate now reports 0 critical and every remaining advisory dispositioned. The five High advisories in that list are the pre-existing BUG-0052 dispositions (prisma CLI chain, xlsx), unchanged. This PR also carries the one-hunk `backlog-review` stdout-drain fix from the governance PR so its own Framework validation job can run on Linux; the hunk is identical there, so the two merge cleanly in either order.
+
+## (original analysis) Needs an owner decision — 10 moderate advisories, no safe fix
 
 All are build/packaging tooling reachable only through two dependencies. **None is exploitable through this product's own code paths** (evidence below), and none has an upstream fix that is not a major downgrade or an unverified major migration. The gate stays red for these until you approve one of the options; I have not added dispositions.
 

@@ -72,6 +72,46 @@ const DISPOSITIONED = new Map([
     'uuid',
     'Moderate, transitive through exceljs. Same disposition. BUG-0052.',
   ],
+  [
+    "archiver",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "archiver-utils",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "zip-stream",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "readdir-glob",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "glob",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (also pulled by the active-win chain)",
+  ],
+  [
+    "minimatch",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (also pulled by the active-win chain)",
+  ],
+  [
+    "rimraf",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (rimraf 2.7.1 via unzipper -> fstream)",
+  ],
+  [
+    "node-gyp",
+    "Owner-approved 2026-11-03 (same session and evidence). Moderate, install/build-time only: active-win@8 declares node-gyp ^9.3.0 as a runtime dependency but only uses it as a native-build fallback; nothing in apps/agent-desktop/src imports node-gyp, cacache or make-fetch-happen. Removal trigger: migrate to active-win@9 (no dependencies; ESM-only, named export) with a Windows/macOS device check. Review by 2027-02-03.",
+  ],
+  [
+    "make-fetch-happen",
+    "Owner-approved 2026-11-03 (same session and evidence). Moderate, install/build-time only: active-win@8 declares node-gyp ^9.3.0 as a runtime dependency but only uses it as a native-build fallback; nothing in apps/agent-desktop/src imports node-gyp, cacache or make-fetch-happen. Removal trigger: migrate to active-win@9 (no dependencies; ESM-only, named export) with a Windows/macOS device check. Review by 2027-02-03.",
+  ],
+  [
+    "cacache",
+    "Owner-approved 2026-11-03 (same session and evidence). Moderate, install/build-time only: active-win@8 declares node-gyp ^9.3.0 as a runtime dependency but only uses it as a native-build fallback; nothing in apps/agent-desktop/src imports node-gyp, cacache or make-fetch-happen. Removal trigger: migrate to active-win@9 (no dependencies; ESM-only, named export) with a Windows/macOS device check. Review by 2027-02-03.",
+  ],
   /*
    * Removed 2026-11-03, because the gate reported them as matching no advisory any
    * more (a risk acceptance for a package that is no longer vulnerable reads as a
