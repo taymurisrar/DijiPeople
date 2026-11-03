@@ -12,6 +12,9 @@
  * against production data: every row is created under fixture tenants and
  * removed in afterAll.
  */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call --
+ * Reads untyped runtime results (records and module metadata come back as plain objects) and fixture rows. Scoped to this test file so the API lint warning budget (CI --max-warnings) is not spent on it
+ * and is not raised for it; production code gets no such exemption. */
 import { ExecutionContext } from '@nestjs/common';
 import {
   BadRequestException,

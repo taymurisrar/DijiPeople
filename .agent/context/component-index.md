@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-10-13
-> **Verified against commit:** 0df17da0
+> **Last verified:** 2026-11-03
+> **Verified against commit:** d3bfe6f1
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 925 of
-1304 exports across these kits carry no
+1305 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -211,7 +211,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-222 documented export(s); 621 undocumented export(s) omitted.
+223 documented export(s); 621 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -256,7 +256,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
 | `analyticsFilterHref` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:207 | Build an href, omitting the `?` when there is nothing to put after it — `/reports/attendance?` is an ugly URL that also breaks naive link equality checks in navigation highlighting. |
 | `applyAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:149 | Apply changes to a query string, returning a new one. |
-| `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:261 | The runtime context a custom-module route renders with. |
+| `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:292 | The runtime context a custom-module route renders with. |
 | `defaultPrimaryNameFieldForEntity` | function | 4 | `apps/web/lib/runtime/modules/entity-primary-name-field.ts`:18 | The primary display field for an entity a lookup can point at. |
 | `linearScale` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:67 | A linear mapping from a data domain onto a pixel range. |
 | `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:212 | The accessible name for an interactive point. |
@@ -335,7 +335,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
 | `buildClaimCreateBody` | function | 0 | `apps/web/lib/runtime/modules/claims-data.adapter.ts`:88 | The create body: `CreateClaimRequestDto`'s fields, and nothing else. |
 | `buildClaimUpdateBody` | function | 0 | `apps/web/lib/runtime/modules/claims-data.adapter.ts`:101 | The update body: only the `UpdateClaimRequestDto` fields that differ from the claim as loaded. |
-| `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:213 | The module's published forms as FormMetadata, through the same mapping system modules use. |
+| `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:244 | The module's published forms as FormMetadata, through the same mapping system modules use. |
 | `closeListboxOnEscape` | function | 0 | `apps/web/app/components/ui/form-control.tsx`:194 | BUG-3495 — Escape inside an open listbox closes the listbox, not the dialog around it. |
 | `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:185 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
 | `entryAttendanceDate` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:384 | The day the record belongs to, as YYYY-MM-DD. |
@@ -390,6 +390,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `CHART_SERIES_COLORS` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:44 | The one palette every chart in the Reports & Analytics workspace draws from. |
 | `CLAIM_CANCEL_BLOCKED_STATUSES` | constant | 0 | `apps/web/lib/runtime/modules/claims-runtime-specs.ts`:65 | Statuses past which a claim can no longer be cancelled or rejected. |
 | `CLAIM_STATUSES` | constant | 0 | `apps/web/lib/runtime/modules/claims-runtime-specs.ts`:37 | Claims as runtime modules — EXECPLAN-0044 wave 2. |
+| `CURRENT_USER_TOKEN` | constant | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:95 | View filter values the API stores as tokens. |
 | `CUSTOM_MODULE_ROUTE_BASE` | constant | 0 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:19 | Sidebar entries for published custom modules (BUG-3494 / ADR-0016). |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/charts/chart-geometry.ts`:345 | `weekStartsOn` is a parameter and not a constant on purpose. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/filters/period.ts`:130 | Sunday. This product's default weekend is **Friday/Saturday**, so the working week begins on Sunday and not on Monday. |

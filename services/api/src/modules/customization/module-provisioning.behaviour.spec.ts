@@ -4,6 +4,9 @@
  * The double implements real rollback in `$transaction`, which is the property
  * under test: a failure part-way through must leave NO module behind.
  */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return --
+ * An in-memory Prisma double: its rows and where-clauses are deliberately loose. Scoped to this test file so the API lint warning budget (CI --max-warnings) is not spent on it
+ * and is not raised for it; production code gets no such exemption. */
 import { CustomizationService } from './customization.service';
 import {
   PLANNED_FORMS,
