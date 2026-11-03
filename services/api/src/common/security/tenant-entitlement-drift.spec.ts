@@ -17,13 +17,23 @@ function build(storedValue: unknown, opts: { reject?: boolean } = {}) {
     platformSetting: {
       findUnique: opts.reject
         ? jest.fn().mockRejectedValue(new Error('database down'))
-        : jest.fn().mockResolvedValue(storedValue === undefined ? null : { value: storedValue }),
+        : jest
+            .fn()
+            .mockResolvedValue(
+              storedValue === undefined ? null : { value: storedValue },
+            ),
     },
   };
   const service = new TenantEntitlementService(prisma as never);
-  const logger = (service as unknown as { logger: { warn: jest.Mock; error: jest.Mock } }).logger;
-  const warn = jest.spyOn(logger as never, 'warn').mockImplementation(() => undefined);
-  const error = jest.spyOn(logger as never, 'error').mockImplementation(() => undefined);
+  const logger = (
+    service as unknown as { logger: { warn: jest.Mock; error: jest.Mock } }
+  ).logger;
+  const warn = jest
+    .spyOn(logger as never, 'warn')
+    .mockImplementation(() => undefined);
+  const error = jest
+    .spyOn(logger as never, 'error')
+    .mockImplementation(() => undefined);
   return { service, prisma, warn, error };
 }
 
@@ -89,7 +99,9 @@ describe('fail closed', () => {
     service.invalidateAll();
     // invalidateAll clears the last-known value too; re-prime it, then fault
     await service.mode();
-    prisma.platformSetting.findUnique.mockRejectedValue(new Error('database down'));
+    prisma.platformSetting.findUnique.mockRejectedValue(
+      new Error('database down'),
+    );
     (service as unknown as { modeCache: null }).modeCache = null;
 
     await expect(service.mode()).resolves.toBe('ENFORCE');
@@ -107,7 +119,9 @@ describe('fail closed', () => {
     const { service, error } = build({ entitlementEnforcement: 'REPORT_ONLY' });
 
     await expect(service.mode()).resolves.toBe('ENFORCE');
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('failing closed to ENFORCE'));
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('failing closed to ENFORCE'),
+    );
   });
 });
 
@@ -118,17 +132,23 @@ describe('boot-time monitoring in production', () => {
 
   it('warns ENTITLEMENT_SETTING_DRIFT when the floor alone holds ENFORCE up', async () => {
     process.env[ENTITLEMENT_ENV_VAR] = 'ENFORCE';
-    const { service, warn, error } = build({ entitlementEnforcement: 'REPORT_ONLY' });
+    const { service, warn, error } = build({
+      entitlementEnforcement: 'REPORT_ONLY',
+    });
 
     await service.onApplicationBootstrap();
 
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('ENTITLEMENT_SETTING_DRIFT'));
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('ENTITLEMENT_SETTING_DRIFT'),
+    );
     expect(error).not.toHaveBeenCalled();
   });
 
   it('is quiet when the stored setting and the floor agree', async () => {
     process.env[ENTITLEMENT_ENV_VAR] = 'ENFORCE';
-    const { service, warn, error } = build({ entitlementEnforcement: 'ENFORCE' });
+    const { service, warn, error } = build({
+      entitlementEnforcement: 'ENFORCE',
+    });
 
     await service.onApplicationBootstrap();
 
@@ -142,6 +162,8 @@ describe('boot-time monitoring in production', () => {
 
     await service.onApplicationBootstrap();
 
-    expect(error).toHaveBeenCalledWith(expect.stringContaining('ENTITLEMENT_NOT_ENFORCED'));
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('ENTITLEMENT_NOT_ENFORCED'),
+    );
   });
 });

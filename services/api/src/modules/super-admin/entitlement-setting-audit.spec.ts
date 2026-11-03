@@ -17,7 +17,9 @@ describe('SuperAdminService.updatePlatformSettings audits the entitlement enforc
       upsert: jest.fn(async () => ({})),
     },
   };
-  const prisma = { $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)) };
+  const prisma = {
+    $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
+  };
   const auditService = { log: jest.fn() };
 
   const service = new SuperAdminService(
@@ -53,16 +55,17 @@ describe('SuperAdminService.updatePlatformSettings audits the entitlement enforc
   beforeEach(() => {
     jest.clearAllMocks();
     stored.value = null;
-    jest
-      .spyOn(service, 'getPlatformSettings')
-      .mockResolvedValue({} as never);
+    jest.spyOn(service, 'getPlatformSettings').mockResolvedValue({} as never);
   });
 
   const update = (moduleSettings: Record<string, unknown>) =>
     service.updatePlatformSettings(actor, { moduleSettings } as never);
 
   it('records actor, previous and new value when the mode changes', async () => {
-    stored.value = { exportEnabled: true, entitlementEnforcement: 'REPORT_ONLY' };
+    stored.value = {
+      exportEnabled: true,
+      entitlementEnforcement: 'REPORT_ONLY',
+    };
 
     await update({ entitlementEnforcement: 'ENFORCE' });
 
@@ -115,12 +118,12 @@ describe('SuperAdminService.updatePlatformSettings audits the entitlement enforc
 
     await update({ exportEnabled: false });
 
-    expect(tx.platformSetting.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        update: expect.objectContaining({
-          value: { entitlementEnforcement: 'ENFORCE', exportEnabled: false },
-        }),
-      }),
-    );
+    const written = tx.platformSetting.upsert.mock.calls[0] as unknown as [
+      { update: { value: Record<string, unknown> } },
+    ];
+    expect(written[0].update.value).toEqual({
+      entitlementEnforcement: 'ENFORCE',
+      exportEnabled: false,
+    });
   });
 });
