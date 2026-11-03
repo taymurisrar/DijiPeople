@@ -21,7 +21,8 @@ import { buildInventory, isGap } from './api-authorization-inventory.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MANIFEST = path.join(ROOT, 'docs/engineering/api-resource-contracts.json');
 const INVENTORY = path.join(ROOT, 'docs/engineering/api-completeness-inventory.md');
-const TYPES = ['standard-mutable', 'read-only', 'action', 'sensitive'];
+// 'immutable' = records that are only ever created and read (ledgers, evidence): no update, delete, restore or bulk verb.
+const TYPES = ['standard-mutable', 'read-only', 'action', 'sensitive', 'immutable'];
 const LIFECYCLE = ['create', 'get', 'list', 'update', 'delete'];
 const MUTATING = ['create', 'update', 'delete', 'restore', 'bulk', 'import'];
 
@@ -113,12 +114,12 @@ for (const r of manifest.resources) {
     if (!why || String(why).trim().length < 10) failures.push(`API-002 ${r.controller}: notApplicable.${o} needs a real justification`);
   }
   // API-003: read-only / sensitive resources must not grow mutating verbs.
-  if (r.type === 'read-only' || r.type === 'sensitive') {
+  if (r.type === 'read-only' || r.type === 'sensitive' || r.type === 'immutable') {
     const allow = new Set([...(r.allow ?? []), ...(base.forbiddenVerbExceptions ?? []).filter((e) => e.startsWith(r.controller + '#')).map((e) => e.split('#')[1])]);
     for (const route of c.routes) {
       const destructive = ['delete', 'update', 'restore', 'bulk'].includes(route.op);
-      if (destructive && !allow.has(`${route.method} ${route.path}`) && r.type === 'read-only')
-        failures.push(`API-003 ${key(route)}: ${route.op} on a read-only resource (add to "allow" with an ADR-backed reason)`);
+      if (destructive && !allow.has(`${route.method} ${route.path}`) && (r.type === 'read-only' || r.type === 'immutable'))
+        failures.push(`API-003 ${key(route)}: ${route.op} on a ${r.type} resource (add to "allow" with an ADR-backed reason)`);
       if (r.type === 'sensitive' && route.op === 'delete' && !allow.has(`${route.method} ${route.path}`))
         failures.push(`API-003 ${key(route)}: DELETE on a sensitive resource requires an explicit "allow" entry`);
     }

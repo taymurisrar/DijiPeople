@@ -74,7 +74,7 @@
     "preflight": "node scripts/preflight.mjs",
     "check:api-completeness": "node scripts/check-api-completeness.mjs",
     "check:module-completeness": "node scripts/check-module-completeness.mjs",
-    "test:governance": "node --test scripts/governance.test.mjs scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs scripts/authz-classify.test.mjs scripts/session-finish.test.mjs scripts/hotfix-rehearsal.test.mjs",
+    "test:governance": "node --test scripts/governance.test.mjs scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs scripts/api-completeness.test.mjs scripts/authz-classify.test.mjs scripts/session-finish.test.mjs scripts/hotfix-rehearsal.test.mjs",
     "ci:doctor": "node scripts/ci-doctor.mjs",
     "hotfix": "node scripts/hotfix.mjs",
     "lessons": "node scripts/lessons.mjs",

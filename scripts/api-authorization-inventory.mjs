@@ -92,7 +92,7 @@ function main() {
     const entries = rows.filter(isGap).map((r) => {
       const was = old.get(r.key);
       const due = new Date(t.getTime() + DUE_DAYS[r.priority] * 86400000).toISOString().slice(0, 10);
-      return { route: r.key, class: r.cls, priority: r.priority, ownerRole: r.sensitive || r.priority === 'P0' || r.priority === 'P1' ? 'dp-security-reviewer' : `module-owner:${r.module}`, status: was?.status ?? 'OPEN', due: was?.due ?? due };
+      return { route: r.key, class: r.cls, priority: r.priority, ownerRole: r.sensitive || r.priority === 'P0' || r.priority === 'P1' ? 'dp-security-reviewer' : `module-owner:${r.module}`, status: was?.status ?? 'OPEN', due: was?.due ?? due, ...(was?.reviewedOn ? { reviewedOn: was.reviewedOn, reviewNote: was.reviewNote } : {}) };
     }).sort((a, b) => a.priority.localeCompare(b.priority) || a.route.localeCompare(b.route));
     fs.writeFileSync(REGISTER, JSON.stringify({ doc: 'Legacy routes without a declared authorization contract. NOT a permanent baseline: each has a priority, owner role and due date; the gate (API-005) fails when a date passes, when a route is missing from here, or when an entry no longer matches a route. Remove an entry by declaring a contract on the route.', generated: today(), entries }, null, 2) + '\n');
     console.log(`register: ${entries.length} entries`);

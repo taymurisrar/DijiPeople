@@ -1,38 +1,46 @@
 {
   "doc": "Legacy routes without a declared authorization contract. NOT a permanent baseline: each has a priority, owner role and due date; the gate (API-005) fails when a date passes, when a route is missing from here, or when an entry no longer matches a route. Remove an entry by declaring a contract on the route.",
-  "generated": "2026-11-02",
+  "generated": "2026-11-03",
   "entries": [
     {
       "route": "services/api/src/modules/customization/customization-runtime.controller.ts#GET runtime-metadata/published",
       "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
       "priority": "P2",
       "ownerRole": "module-owner:customization",
-      "status": "OPEN",
-      "due": "2027-01-01"
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed: authenticated, tenant-keyed (findFirst on user.tenantId), metadata only. No action permission by design (every signed-in user needs it to render). Owner decision: declare @AuthenticationOnly() or gate. See api-route-review-2026-11-03.md."
     },
     {
       "route": "services/api/src/modules/error-logs/error-logs.controller.ts#GET error-logs/:traceId",
       "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
       "priority": "P2",
       "ownerRole": "module-owner:error-logs",
-      "status": "OPEN",
-      "due": "2027-01-01"
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed and FIXED: owner-or-support, tenant-checked, foreign == missing. Defect found and fixed: a later occurrence inherited the first incident tenantId/userId (hydrateOccurrence). Proven by tenant-scoped-reads.e2e-spec.ts. Owner decision: declare @AuthenticationOnly()."
     },
     {
       "route": "services/api/src/modules/error-logs/error-logs.controller.ts#GET error-logs/:traceId/download",
       "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
       "priority": "P2",
       "ownerRole": "module-owner:error-logs",
-      "status": "OPEN",
-      "due": "2027-01-01"
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed and FIXED: same service gate as :traceId; filename sanitised; stack gated. Same fix and tests. Owner decision: declare @AuthenticationOnly()."
     },
     {
       "route": "services/api/src/modules/organization/organization-hierarchy.controller.ts#GET organization-hierarchy/tree",
       "class": "TENANT_SCOPED_NO_ACTION_AUTHZ",
       "priority": "P2",
       "ownerRole": "module-owner:organization",
-      "status": "OPEN",
-      "due": "2027-01-01"
+      "status": "REVIEWED",
+      "due": "2027-01-01",
+      "reviewedOn": "2026-11-03",
+      "reviewNote": "Reviewed: authenticated, tenant-keyed in every query. Returns the whole org/BU/department/team tree with no row scope, so a business-unit-scoped user sees other units. Owner decision needed: accept (structure names only) or apply BU scope. See api-route-review-2026-11-03.md."
     },
     {
       "route": "services/api/src/modules/auth/mfa/auth-mfa.controller.ts#GET auth/mfa/status",

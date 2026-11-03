@@ -44,7 +44,7 @@ jobs:
       - name: Policy catalogue, agents, skills, rules
         run: node --test scripts/governance.test.mjs
       - name: Guard hook, CI doctor and hotfix tooling tests
-        run: node --test scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs scripts/authz-classify.test.mjs scripts/session-finish.test.mjs
+        run: node --test scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs scripts/api-completeness.test.mjs scripts/authz-classify.test.mjs scripts/session-finish.test.mjs
       - name: Authorization inventory is current
         run: node scripts/api-authorization-inventory.mjs --check
       - name: Derived documentation facts are current

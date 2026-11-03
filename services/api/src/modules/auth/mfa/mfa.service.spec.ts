@@ -112,7 +112,42 @@ describe('MfaService', () => {
     );
   }
 
-  beforeEach(() => build());
+  /*
+   * Only the clock is frozen, in the MIDDLE of a 30 s TOTP step. These tests
+   * generate a code from Date.now() and the service verifies it a few
+   * milliseconds later; on a real clock a run that straddled a step boundary
+   * (about 1 run in 1,000 at ~30 ms of work) saw the code expire between the two
+   * calls. Timers, microtasks and bcrypt are untouched, and the requirement
+   * under test — a code is valid only inside its window, a replay is refused —
+   * is asserted exactly as before, now with explicit +STEP_MS offsets.
+   */
+  const FROZEN_NOW =
+    Math.floor(Date.UTC(2026, 0, 1) / STEP_MS) * STEP_MS + STEP_MS / 2;
+  beforeEach(() => {
+    jest.useFakeTimers({
+      now: FROZEN_NOW,
+      doNotFake: [
+        'hrtime',
+        'nextTick',
+        'performance',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+      ],
+    });
+    build();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   /**
    * Enrols user-a and returns the seed, the one-time recovery codes and the
