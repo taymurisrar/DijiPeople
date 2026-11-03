@@ -8,11 +8,19 @@ import {
   CustomizationFieldDataType,
   Prisma,
   SecurityPrivilege,
+  type CustomDataRecord,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AppError } from '../../common/errors/app-error';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { lifecycleOf, parseStatusFilter } from './custom-record-lifecycle';
+import {
+  CUSTOM_SORT_ROW_CAP,
+  ViewDefinitionError,
+  planView,
+  sortRowsByColumns,
+  type ViewSortKey,
+} from './custom-view-query';
 import { AuditService } from '../audit/audit.service';
 import {
   CustomModuleRuntimeService,
@@ -29,6 +37,8 @@ import {
 
 type CustomTable = PublishedCustomTable;
 type RelatedQuery = {
+  /** Key of a published view: its filters, sort and the page total are applied server-side. */
+  view?: string;
   /** "active" | "inactive" | "all" (default). Server-side, so paging stays correct. */
   status?: string;
   /** "me" = only records owned by the caller. */
@@ -197,12 +207,14 @@ export class CustomDataService {
     if (query.owner !== undefined && query.owner !== 'me') {
       throw new BadRequestException('owner may only be "me".');
     }
+    const viewPlan = await this.planRequestedView(table, query.view, user);
     const where: Prisma.CustomDataRecordWhereInput = {
       AND: [
         scope,
         { tenantId: user.tenantId, tableId: table.id, isDeleted: false },
         ...(status === 'all' ? [] : [{ isActive: status === 'active' }]),
         ...(query.owner === 'me' ? [{ ownerUserId: user.userId }] : []),
+        ...(viewPlan?.where ?? []),
         ...(relation
           ? [
               {
@@ -215,15 +227,25 @@ export class CustomDataService {
           : []),
       ],
     };
-    const [rows, total] = await Promise.all([
-      this.prisma.customDataRecord.findMany({
-        where,
-        orderBy: [{ createdAt: 'desc' }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.customDataRecord.count({ where }),
-    ]);
+    const [rows, total] = viewPlan?.customSort
+      ? await this.pageOrderedInMemory(
+          where,
+          viewPlan.customSort,
+          page,
+          pageSize,
+        )
+      : await Promise.all([
+          this.prisma.customDataRecord.findMany({
+            where,
+            orderBy: viewPlan?.orderBy ?? [
+              { createdAt: 'desc' },
+              { id: 'asc' },
+            ],
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+          }),
+          this.prisma.customDataRecord.count({ where }),
+        ]);
     return {
       items: rows.map((row) => this.toPublicRecord(row, table, user)),
       meta: {
@@ -234,6 +256,75 @@ export class CustomDataService {
         totalPages: Math.max(1, Math.ceil(total / pageSize)),
       },
     };
+  }
+
+  /**
+   * The query plan of a published view, or null when none was asked for. A view
+   * that does not exist is Not Found rather than "all records": showing everything
+   * under the name of a filtered view is the wrong answer this exists to remove.
+   */
+  private async planRequestedView(
+    table: CustomTable,
+    viewKey: string | undefined,
+    user: AuthenticatedUser,
+  ) {
+    if (viewKey === undefined || viewKey === '') return null;
+    if (!/^[a-z][a-zA-Z0-9]*$/.test(viewKey)) {
+      throw new BadRequestException('view must be a view key.');
+    }
+    const view = await this.runtimeService.resolvePublishedView(
+      user.tenantId,
+      table.id,
+      viewKey,
+    );
+    if (!view) throw new NotFoundException('View was not found.');
+    const columns = new Map(
+      table.columns.map((column) => [
+        column.columnKey,
+        {
+          readPermission: stringOrNull(
+            readJson(column.validationJson).readPermission,
+          ),
+        },
+      ]),
+    );
+    try {
+      return planView(view, {
+        userId: user.userId,
+        permissionKeys: user.permissionKeys,
+        columns,
+      });
+    } catch (error) {
+      if (error instanceof ViewDefinitionError) {
+        if (error.code === 'VIEW_FIELD_FORBIDDEN')
+          throw new ForbiddenException(error.message);
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Ordering by a tenant column cannot be expressed in the query (the values live
+   * in one JSON column), so the FILTERED set is read, ordered here and sliced.
+   * Bounded: past the cap the caller is asked to narrow the view, never silently
+   * given a partial or mis-ordered page.
+   */
+  private async pageOrderedInMemory(
+    where: Prisma.CustomDataRecordWhereInput,
+    sortKeys: ViewSortKey[],
+    page: number,
+    pageSize: number,
+  ): Promise<[CustomDataRecord[], number]> {
+    const total = await this.prisma.customDataRecord.count({ where });
+    if (total > CUSTOM_SORT_ROW_CAP) {
+      throw new BadRequestException(
+        `This view sorts by a custom field and matches ${total} records; narrow it with a filter (limit ${CUSTOM_SORT_ROW_CAP}) or sort by a date.`,
+      );
+    }
+    const all = await this.prisma.customDataRecord.findMany({ where });
+    const ordered = sortRowsByColumns(all, sortKeys);
+    return [ordered.slice((page - 1) * pageSize, page * pageSize), total];
   }
 
   async create(

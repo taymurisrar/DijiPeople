@@ -180,6 +180,23 @@ export function buildCustomModuleRuntimeSpec(
   };
 }
 
+/**
+ * The key to send the API for the active view, or undefined when the view is not
+ * one the tenant published (the synthetic "all" list of a module published with
+ * no views). Sending a key the API cannot find would be a 404, and the
+ * alternative — sending nothing — is exactly right for a list that has no filter.
+ */
+export function serverViewKey(
+  definition: Pick<CustomModuleDefinition, "views">,
+  activeView: { readonly logicalName?: string } | null | undefined,
+): string | undefined {
+  const key = activeView?.logicalName;
+  if (!key) return undefined;
+  return definition.views.some((view) => view.viewKey === key)
+    ? key
+    : undefined;
+}
+
 export function buildCustomModuleViews(
   definition: CustomModuleDefinition,
   currentUserId?: string | null,
@@ -203,6 +220,7 @@ export function buildCustomModuleViews(
       logicalName: view.viewKey,
       viewId: view.id,
       displayName: view.name,
+      description: "",
       isDefault: view.isDefault === true,
       columns: columns.length > 0 ? columns : fallbackColumns,
       ...(filters.length > 0 ? { filters } : {}),
@@ -221,6 +239,7 @@ export function buildCustomModuleViews(
         viewId: `${definition.moduleKey}:all`,
         displayName:
           definition.pluralDisplayName?.trim() || definition.displayName,
+        description: "",
         isDefault: true,
         columns: fallbackColumns,
       },

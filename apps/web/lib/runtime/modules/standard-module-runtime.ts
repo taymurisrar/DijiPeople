@@ -90,6 +90,8 @@ export type StandardModuleViewSpec = {
   readonly displayName: string;
   readonly columns: readonly string[];
   readonly isDefault?: boolean;
+  /** Empty string shows no line under the name in the view menu; omitted keeps the historic "<name> view." text. */
+  readonly description?: string;
   readonly filters?: ViewMetadata["filters"];
   readonly defaultSort?: ViewMetadata["defaultSort"];
 };
@@ -752,7 +754,7 @@ function buildStandardView(
     logicalName: view.logicalName,
     viewId: view.viewId,
     displayName: view.displayName,
-    description: `${view.displayName} view.`,
+    description: view.description ?? `${view.displayName} view.`,
     version: "0.1.0",
     lifecycleState: "published",
     layer: "system",

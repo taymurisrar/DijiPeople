@@ -687,6 +687,89 @@ describeWithDatabase()('Module provisioning (real PostgreSQL)', () => {
     }
   });
 
+  /* ------------------------------------------------------ real publish path */
+
+  it('a freshly provisioned module of EVERY kind passes the real publish validation and publishes', async () => {
+    // Found by driving the app in a browser: the publish validator rejected the plan's own
+    // views ("View filters reference unavailable columns: isActive") so no new module could be
+    // published, while every test that wrote the snapshot directly passed. A fresh tenant, so
+    // earlier tests' deliberate mutations (deleted views, conflicting form types) cannot interfere.
+    const pub = await fixtures.createTenant('pub', {
+      environmentType: 'DEVELOPMENT',
+    });
+    const userPub = actor(pub.id, 'user-pub-1');
+    for (const kind of [
+      'STANDARD',
+      'ORGANIZATION_OWNED',
+      'IMMUTABLE',
+      'CONFIGURATION',
+    ] as const) {
+      await customization.createTable(
+        userPub,
+        dto(`pub${kind.slice(0, 3)}${kind.length}`, { moduleKind: kind }),
+      );
+    }
+    await expect(customization.publish(userPub)).resolves.toBeDefined();
+
+    // …and what users get from the runtime afterwards is the kind-specific set.
+    const keysOf = async (key: string) =>
+      (
+        ((await runtime.getModule(userPub, key)) as any).views as Array<{
+          viewKey: string;
+        }>
+      ).map((v) => v.viewKey);
+    const standard = await keysOf('pubSTA8');
+    expect(standard).toEqual(
+      expect.arrayContaining([
+        'all',
+        'activeRecords',
+        'inactiveRecords',
+        'myRecords',
+        'recent',
+      ]),
+    );
+    expect(await keysOf('pubIMM9')).not.toContain('myRecords');
+    expect(await keysOf('pubIMM9')).not.toContain('activeRecords');
+    expect(await keysOf('pubCON13')).toContain('activeRecords');
+    expect(await keysOf('pubCON13')).not.toContain('myRecords');
+  });
+
+  it('a view that references a field which is neither a column nor a record-level field still fails publish', async () => {
+    const pub2 = await fixtures.createTenant('pub2', {
+      environmentType: 'DEVELOPMENT',
+    });
+    const userPub2 = actor(pub2.id, 'user-pub2-1');
+    const t = await customization.createTable(userPub2, dto('pubBad'));
+    await prisma.customizationView.create({
+      data: {
+        tenantId: pub2.id,
+        tableId: t.id,
+        viewKey: 'ghostFilter',
+        name: 'Ghost',
+        type: 'custom',
+        isDefault: false,
+        isHidden: false,
+        isSystem: false,
+        isCustom: true,
+        columnsJson: [],
+        filtersJson: [{ columnKey: 'noSuchField', operator: 'eq', value: 1 }],
+        sortingJson: [],
+      },
+    });
+    let detail = '';
+    try {
+      await customization.publish(userPub2);
+    } catch (error) {
+      detail = JSON.stringify(
+        (error as { getResponse?: () => unknown }).getResponse?.() ??
+          String(error),
+      );
+    }
+    expect(detail).toMatch(/unavailable columns: noSuchField/);
+    // the plan's own record-level fields are accepted
+    expect(detail).not.toMatch(/isActive|ownerUserId|updatedAt/);
+  });
+
   /* ------------------------------------------- relationships and metadata */
 
   it('relationship lookups, field metadata and the published form/view/command metadata come through the runtime', async () => {

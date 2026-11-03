@@ -16,6 +16,7 @@ import { EntityPermissionResolver } from './entity-permission.resolver';
 import {
   readPublishedCustomizationIndex,
   type PublishedCustomizationIndex,
+  type PublishedViewRow,
 } from './published-custom-modules';
 import { readOptions } from '../customization/custom-field-values';
 
@@ -194,6 +195,24 @@ export class CustomModuleRuntimeService {
           lifecycleOf(table.moduleKind).deactivate,
       },
     };
+  }
+
+  /**
+   * A PUBLISHED, non-hidden view of a module, by key. The data service builds its
+   * query from this stored definition, so a caller can ask for a view by name but
+   * never supply a filter of their own.
+   */
+  async resolvePublishedView(
+    tenantId: string,
+    tableId: string,
+    viewKey: string,
+  ): Promise<PublishedViewRow | null> {
+    const index = await this.loadPublishedIndex(tenantId);
+    return (
+      index?.views.find(
+        (view) => view.tableId === tableId && view.viewKey === viewKey,
+      ) ?? null
+    );
   }
 
   private async loadPublishedIndex(

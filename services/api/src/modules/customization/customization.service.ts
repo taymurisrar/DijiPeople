@@ -27,6 +27,7 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { CUSTOM_RECORD_VIEW_FIELDS } from '../data/custom-view-query';
 import {
   MODULE_PROVISIONING_VERSION,
   commandsFor,
@@ -548,7 +549,7 @@ export class CustomizationService {
           tableId: table.id,
           viewKey: planned.viewKey,
           name,
-          description: `${name} view.`,
+          // No description: the view menu prints it under every name, and "${name} view." only repeats the name.
           type: 'custom',
           // Never a second default: an older module keeps its own.
           isDefault: planned.isDefault && !alreadyHasDefaultView,
@@ -778,7 +779,7 @@ export class CustomizationService {
           tableId: table.id,
           viewKey: planned.viewKey,
           name,
-          description: `${name} view.`,
+          // No description: the view menu prints it under every name, and "${name} view." only repeats the name.
           type: 'custom',
           isDefault: planned.isDefault && !hasDefault,
           isHidden: false,
@@ -4439,6 +4440,18 @@ export class CustomizationService {
             message: 'Default views cannot be hidden.',
           });
         }
+        /*
+         * A custom module's records carry status, owner, actors and timestamps
+         * that are not columns. The views the module plan provisions (Active,
+         * Inactive, My Records, Recent) filter and sort on them, and the runtime
+         * and the API both understand those names, so a view may reference them.
+         * Without this every new module failed to publish ("View filters
+         * reference unavailable columns: isActive"). System modules keep the strict
+         * rule: their own fields are their columns.
+         */
+        const viewReferenceKeys = table.isCustom
+          ? new Set([...visibleColumnKeys, ...CUSTOM_RECORD_VIEW_FIELDS])
+          : visibleColumnKeys;
         pushInvalidColumnReferenceErrors(
           errors,
           'view',
@@ -4446,7 +4459,7 @@ export class CustomizationService {
           view.viewKey,
           'View columns',
           extractColumnRefs(view.columnsJson, true),
-          visibleColumnKeys,
+          viewReferenceKeys,
         );
         pushInvalidColumnReferenceErrors(
           errors,
@@ -4455,7 +4468,7 @@ export class CustomizationService {
           view.viewKey,
           'View filters',
           extractColumnRefs(view.filtersJson),
-          visibleColumnKeys,
+          viewReferenceKeys,
         );
         pushInvalidColumnReferenceErrors(
           errors,
@@ -4464,7 +4477,7 @@ export class CustomizationService {
           view.viewKey,
           'View sorting',
           extractColumnRefs(view.sortingJson),
-          visibleColumnKeys,
+          viewReferenceKeys,
         );
       }
 
