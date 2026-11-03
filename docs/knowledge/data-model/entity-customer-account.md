@@ -150,6 +150,7 @@ never be derived from anything the client sends.
 
 **Owns** — the foreign key lives on the other side
 
+- `Plan` via `eligiblePlans`[]
 - [[entity-tenant|Tenant]] via `tenants`[]
 - `CustomerContact` via `contacts`[]
 - `CustomerNote` via `notes`[]

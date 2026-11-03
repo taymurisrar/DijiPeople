@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Power,
+  Upload,
   Save,
   Trash2,
   X,
@@ -44,6 +45,8 @@ export type PlanPriceRecord = {
   stripeVerifiedAt: string | null;
   checkoutReadinessReasons?: string[];
   isActive: boolean;
+  /** DRAFT until an operator publishes a custom plan's price (DP-QA-044). */
+  publicationStatus?: "DRAFT" | "PUBLISHED" | "ARCHIVED" | null;
   subscriptionCount: number;
   isCheckoutReady: boolean;
   canDelete: boolean;
@@ -53,6 +56,8 @@ type PlanPriceManagerProps = {
   planId: string;
   initialPrices: PlanPriceRecord[];
   defaultCurrency: string;
+  /** Only a CUSTOM plan's prices are published from here; the catalogue owns the rest. */
+  planKind?: string | null;
 };
 
 type DraftPrice = {
@@ -95,6 +100,7 @@ export function PlanPriceManager({
   planId,
   initialPrices,
   defaultCurrency,
+  planKind,
 }: PlanPriceManagerProps) {
   const [prices, setPrices] = useState(initialPrices);
   const [error, setError] = useState<string | null>(null);
@@ -265,6 +271,34 @@ export function PlanPriceManager({
         setNotice(outcome.message ?? "Price deleted.");
       } catch (requestError) {
         setError(getErrorMessage(requestError, "Unable to delete price."));
+      } finally {
+        setActionId(null);
+      }
+    });
+  }
+
+  function setPublication(
+    price: PlanPriceRecord,
+    action: "publish" | "unpublish",
+  ) {
+    clearMessages();
+    setActionId(price.id);
+    startTransition(async () => {
+      try {
+        const updated = await requestJson<PlanPriceRecord>(
+          `/api/super-admin/plans/${planId}/prices/${price.id}/publication`,
+          { method: "POST", body: JSON.stringify({ action }) },
+        );
+        setPrices((current) =>
+          current.map((item) => (item.id === price.id ? updated : item)),
+        );
+        setNotice(
+          action === "publish" ? "Price published." : "Price withdrawn.",
+        );
+      } catch (requestError) {
+        setError(
+          getErrorMessage(requestError, "Unable to change publication."),
+        );
       } finally {
         setActionId(null);
       }
@@ -551,6 +585,17 @@ export function PlanPriceManager({
                             ? deactivatePrice(price)
                             : setPriceActive(price, true)
                         }
+                        onTogglePublication={
+                          planKind === "CUSTOM"
+                            ? () =>
+                                setPublication(
+                                  price,
+                                  price.publicationStatus === "PUBLISHED"
+                                    ? "unpublish"
+                                    : "publish",
+                                )
+                            : undefined
+                        }
                         onRequestDelete={() => {
                           clearMessages();
                           setConfirmDeleteId(price.id);
@@ -584,6 +629,7 @@ function PriceRow({
   onCommitAmount,
   onEdit,
   onToggleActive,
+  onTogglePublication,
   onRequestDelete,
   onCancelDelete,
   onConfirmDelete,
@@ -601,6 +647,7 @@ function PriceRow({
   onCommitAmount: () => void;
   onEdit: () => void;
   onToggleActive: () => void;
+  onTogglePublication?: () => void;
   onRequestDelete: () => void;
   onCancelDelete: () => void;
   onConfirmDelete: () => void;
@@ -732,6 +779,24 @@ function PriceRow({
               >
                 <Power className="h-3.5 w-3.5" aria-hidden />
               </IconAction>
+              {onTogglePublication ? (
+                <IconAction
+                  label={
+                    price.publicationStatus === "PUBLISHED"
+                      ? "Withdraw price from use"
+                      : "Publish price"
+                  }
+                  onClick={onTogglePublication}
+                  disabled={busy || !price.isActive}
+                  tone={
+                    price.publicationStatus === "PUBLISHED"
+                      ? "amber"
+                      : "emerald"
+                  }
+                >
+                  <Upload className="h-3.5 w-3.5" aria-hidden />
+                </IconAction>
+              ) : null}
               {/*
                 Delete is offered only where the API would allow it, and the
                 disabled button explains itself rather than disappearing — so

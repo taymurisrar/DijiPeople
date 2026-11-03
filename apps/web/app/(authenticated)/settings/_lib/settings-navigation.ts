@@ -121,7 +121,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "tenant",
-        href: "/settings/tenant",
+        href: "/settings/general-setup/tenant/tenant-profile",
         label: "Tenant Profile",
         shortLabel: "Tenant",
         description:
@@ -182,7 +182,7 @@ export const settingsNavGroups = [
       },
       {
         key: "designations",
-        href: "/settings/designations",
+        href: "/settings/people/workforce/designations",
         label: "Designations",
         description:
           "Maintain job titles, positions, and designation master records.",
@@ -195,7 +195,7 @@ export const settingsNavGroups = [
       },
       {
         key: "locations",
-        href: "/settings/locations",
+        href: "/settings/people/work-management/work-sites",
         label: "Work Sites",
         description:
           "Maintain offices, branches, working locations, and address-level setup.",
@@ -240,7 +240,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "access-center",
-        href: "/settings/access",
+        href: "/settings/security-access",
         label: "Access Center",
         shortLabel: "Access",
         description:
@@ -361,7 +361,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "employee-settings",
-        href: "/settings/employees",
+        href: "/settings/people/workforce/employee-settings",
         label: "Employee Settings",
         shortLabel: "Employees",
         description:
@@ -443,7 +443,7 @@ export const settingsNavGroups = [
       },
       {
         key: "shifts",
-        href: "/settings/shifts",
+        href: "/settings/people/work-management/shifts",
         label: "Shifts",
         description:
           "Manage shift hours, breaks, expected hours, grace periods, timezones, and night shifts.",
@@ -656,7 +656,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "subscription",
-        href: "/settings/subscription",
+        href: "/settings/subscription/overview",
         label: "Subscription",
         description:
           "Review subscription status, plan features, Stripe billing actions, and invoices.",
@@ -1087,7 +1087,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "recruitment",
-        href: "/settings/recruitment",
+        href: "/settings/general-setup/modules/recruitment",
         label: "Recruitment & Onboarding",
         shortLabel: "Recruitment",
         description:
@@ -1157,7 +1157,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "audit-logs",
-        href: "/settings/audit",
+        href: "/settings/audit-compliance/history/audit-events",
         label: "Audit Logs",
         shortLabel: "Audit",
         description:

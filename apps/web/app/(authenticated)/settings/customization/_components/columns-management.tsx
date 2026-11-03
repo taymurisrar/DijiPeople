@@ -156,7 +156,7 @@ export function ColumnsManagement({
         <p className="flex items-center gap-1.5 font-semibold text-foreground">
           {row.displayName}
           {row.isPrimaryName ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent-strong">
               <KeyRound aria-hidden className="h-3 w-3" />
               Primary name
             </span>

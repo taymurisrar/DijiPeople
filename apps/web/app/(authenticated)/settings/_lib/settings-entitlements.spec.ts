@@ -31,6 +31,8 @@ const STARTER = [
   FEATURE_KEYS.DOCUMENTS,
   FEATURE_KEYS.NOTIFICATIONS,
   FEATURE_KEYS.BRANDING,
+  /* Basic import/export is on every plan (final product decision). */
+  FEATURE_KEYS.DATA_IMPORT_EXPORT,
 ];
 
 const EVERY_CAPABILITY = Object.values(FEATURE_KEYS);
@@ -307,12 +309,13 @@ const GROWTH = [
   FEATURE_KEYS.PROJECTS,
   FEATURE_KEYS.RECRUITMENT,
   FEATURE_KEYS.ONBOARDING,
-  FEATURE_KEYS.DESKTOP_AGENT,
+  /* The desktop agent is Enterprise/Custom only; Growth does not sell it. */
   FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
-  FEATURE_KEYS.DATA_MANAGEMENT,
+  FEATURE_KEYS.ADVANCED_DATA_MANAGEMENT,
+  FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION,
 ];
 
-/* Enterprise and Enterprise+ both take every key in the catalog. */
+/* Enterprise takes every key in the catalog. */
 const ENTERPRISE = EVERY_CAPABILITY;
 
 function shapeOf(keys: readonly string[]) {
@@ -343,8 +346,10 @@ describe("every shipped plan resolves to the right shape", () => {
 
     expect(none.items).toBe(35);
     /* +1 each from TASK-0036's Document Types page (Documents entitlement). */
-    expect(starter.items).toBe(55);
-    expect(growth.items).toBe(67);
+    /* +1: Import & Export (data-import-export) is now on Starter. */
+    expect(starter.items).toBe(56);
+    /* Growth no longer sells the desktop agent: -2 (agent, app downloads). */
+    expect(growth.items).toBe(65);
     expect(enterprise.items).toBe(88);
 
     expect(none.categories).toBe(7);
@@ -375,7 +380,6 @@ describe("every shipped plan resolves to the right shape", () => {
      * either, this fails and somebody attributes it on purpose.
      */
     expect(added.sort()).toEqual([
-      "apps-downloads",
       "attendance-devices",
       "attendance-employee-mapping",
       "attendance-gateways",
@@ -383,8 +387,6 @@ describe("every shipped plan resolves to the right shape", () => {
       "attendance-integrations-overview",
       "attendance-provisioning",
       "attendance-sync-history",
-      "data-management",
-      "desktop-agent",
       "recruitment",
       "timesheets",
     ]);
@@ -395,7 +397,8 @@ describe("every shipped plan resolves to the right shape", () => {
     const enterprise = shapeOf(ENTERPRISE);
     const added = [...enterprise.itemKeys].filter((k) => !growth.itemKeys.has(k));
 
-    expect(added).toHaveLength(21);
+    /* 23: the desktop agent's two pages now arrive at Enterprise, not Growth. */
+    expect(added).toHaveLength(23);
     expect(added).toContain("payroll-regions");
     expect(added).toContain("compliance-exports");
     expect(added).toContain("audit-logs");

@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   title: "Plans",
 };
 
-
 type PlanRecord = {
+  kind?: "CATALOGUE" | "CUSTOM";
   id: string;
   key: string;
   name: string;
@@ -305,6 +305,7 @@ export default async function PlanDetailPage({
             planId={plan.id}
             initialPrices={plan.prices}
             defaultCurrency={plan.currency}
+            planKind={plan.kind}
           />
         </div>
       </section>

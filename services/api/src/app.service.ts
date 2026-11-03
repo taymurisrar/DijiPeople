@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { getRuntimeHealthPayload } from './config/env.validation';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
+import { TenantEntitlementService } from './common/security/tenant-entitlement.service';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly outboxWorker: OutboxWorkerService) {}
+  constructor(
+    private readonly outboxWorker: OutboxWorkerService,
+    private readonly entitlements: TenantEntitlementService,
+  ) {}
 
-  getHealth() {
+  async getHealth() {
     return {
       ...getRuntimeHealthPayload(process.env),
       /*
@@ -25,6 +29,8 @@ export class AppService {
        * the service and not in this repository.
        */
       outboxWorker: { enabled: this.outboxWorker.isEnabled() },
+      // Whether plan entitlements are refused or only logged (DP-QA-005).
+      entitlementEnforcement: await this.entitlements.describeEnforcement(),
     };
   }
 }

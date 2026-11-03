@@ -4,7 +4,7 @@ import { TenantFeatureSource } from '@prisma/client';
 import { createPrismaClient } from './create-prisma-client';
 import { isSubscriptionLive } from '../src/common/security/tenant-entitlement.rule';
 import {
-  ENTITLEMENT_GATED_MODULES,
+  ENTITLEMENT_GATED_FEATURE_KEYS,
   type TenantFeatureKey,
 } from '../src/common/constants/tenant-features';
 
@@ -80,12 +80,23 @@ const USAGE_PROBES: Partial<Record<TenantFeatureKey, UsageProbe>> = {
     prisma.leaveRequest.count({ where: { tenantId } }),
   attendance: (prisma, tenantId) =>
     prisma.attendanceEntry.count({ where: { tenantId } }),
+  // DP-QA-010: the four features that gained route guards. A tenant that already
+  // has rows below keeps working when enforcement is switched on.
+  // 'data-import-export' has no probe: every plan sells it, so there is nothing
+  // to grandfather. 'advanced-data-management' has no routes yet, so no usage.
+  'attendance-integrations': async (prisma, tenantId) =>
+    (await prisma.integrationGateway.count({ where: { tenantId } })) +
+    (await prisma.attendanceIntegration.count({ where: { tenantId } })),
+  'desktop-agent': (prisma, tenantId) =>
+    prisma.agentRefreshToken.count({ where: { tenantId } }),
+  // 'compliance' has no probe on purpose: audit rows exist for every tenant
+  // because the product writes them, so "has rows" proves nothing about use. An
+  // Enterprise-only audit history therefore needs an explicit grant, not an
+  // inferred one.
 };
 
 /** The gated feature keys this script knows how to measure, deduplicated. */
-const GATED_FEATURE_KEYS = Array.from(
-  new Set(Object.values(ENTITLEMENT_GATED_MODULES)),
-);
+const GATED_FEATURE_KEYS = [...ENTITLEMENT_GATED_FEATURE_KEYS];
 
 /**
  * The host and database name only — never the credentials — so whoever runs

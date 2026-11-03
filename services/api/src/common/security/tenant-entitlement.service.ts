@@ -1,11 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { TenantFeatureSource } from '@prisma/client';
+import { AppError } from '../errors/app-error';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   isSubscriptionLive,
   resolveTenantFeatureState,
 } from './tenant-entitlement.rule';
 import {
+  BASELINE_FEATURE_KEYS,
   TENANT_FEATURE_KEY_LIST,
   type TenantFeatureKey,
 } from '../constants/tenant-features';
@@ -26,6 +28,57 @@ export const ENTITLEMENT_ENFORCEMENT_MODES: readonly EntitlementEnforcementMode[
 export const DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE: EntitlementEnforcementMode =
   'REPORT_ONLY';
 
+/**
+ * Release-configuration floor for the mode (DP-QA-005).
+ *
+ * The stored platform setting alone is a weak place for a security posture to
+ * live: a fresh, restored or re-seeded database has no row and silently comes up
+ * REPORT_ONLY, so a Starter tenant can use every paid module until somebody
+ * remembers to flip it. Setting this variable on a deployment makes the posture
+ * part of the release: the effective mode is never weaker than it. The database
+ * setting can still make it stricter, never looser.
+ *
+ * It is deliberately unset by default and is never changed by `seed:config`, so
+ * shipping this code alters nothing until an owner sets it — after
+ * `npm run entitlement:grandfather` has been run (ADR-0009).
+ */
+export const ENTITLEMENT_ENV_VAR = 'ENTITLEMENT_ENFORCEMENT_MODE';
+
+const MODE_STRICTNESS: Record<EntitlementEnforcementMode, number> = {
+  OFF: 0,
+  REPORT_ONLY: 1,
+  ENFORCE: 2,
+};
+
+export type EntitlementModeSource = 'ENV' | 'PLATFORM_SETTING' | 'DEFAULT';
+
+/** The stricter of two modes. */
+export function stricterMode(
+  a: EntitlementEnforcementMode,
+  b: EntitlementEnforcementMode,
+): EntitlementEnforcementMode {
+  return MODE_STRICTNESS[a] >= MODE_STRICTNESS[b] ? a : b;
+}
+
+/**
+ * Reads the release floor. An absent or blank variable means "no floor".
+ * A value that is set but is not a mode is a typo in a security setting; it
+ * fails CLOSED to ENFORCE, with `invalid` set so the caller can say so, rather
+ * than silently leaving the deployment unenforced.
+ */
+export function readEnvEnforcementFloor(
+  env: Record<string, string | undefined> = process.env,
+): { floor: EntitlementEnforcementMode | null; invalid: string | null } {
+  const raw = env[ENTITLEMENT_ENV_VAR]?.trim();
+  if (!raw) return { floor: null, invalid: null };
+
+  const normalized = raw.toUpperCase();
+  const mode = ENTITLEMENT_ENFORCEMENT_MODES.find((m) => m === normalized);
+  return mode
+    ? { floor: mode, invalid: null }
+    : { floor: 'ENFORCE', invalid: raw };
+}
+
 /** The `PlatformSetting` row and field the mode lives in. */
 export const ENTITLEMENT_SETTING_KEY = 'module-settings';
 export const ENTITLEMENT_SETTING_FIELD = 'entitlementEnforcement';
@@ -33,13 +86,16 @@ export const ENTITLEMENT_SETTING_FIELD = 'entitlementEnforcement';
 /**
  * How long a resolved snapshot is trusted.
  *
- * A plan change or a subscription lapse therefore takes up to this long to bite.
- * That is an accepted bound and not an oversight: billing state is not a
- * security boundary, and the alternative is a database round trip on every
- * request to every gated module. A tenant module override does not wait — the
- * control plane invalidates the entry as it writes.
+ * This is the upper bound on staleness in ANY process. The control plane
+ * invalidates the entry in the process that handled the change (a module override,
+ * a plan edit, an operator subscription change, a plan change), so there nothing
+ * waits; other API instances hold their own cache and converge within this TTL.
+ * It is deliberately half of the approved 60 s withdrawal SLA (DP-QA-047): a TTL
+ * equal to the SLA measured 60.0 s once request latency was added, so the margin
+ * is the point. Billing state is not a security boundary, and the alternative is a
+ * database round trip on every request to every gated module.
  */
-export const ENTITLEMENT_CACHE_TTL_MS = 60_000;
+export const ENTITLEMENT_CACHE_TTL_MS = 30_000;
 
 export type TenantEntitlementSnapshot = {
   enabledKeys: ReadonlySet<string>;
@@ -81,15 +137,50 @@ type CacheEntry = {
  * rule; what differs is how much of it is dressed up.
  */
 @Injectable()
-export class TenantEntitlementService {
+export class TenantEntitlementService implements OnApplicationBootstrap {
   private readonly logger = new Logger(TenantEntitlementService.name);
   private readonly cache = new Map<string, CacheEntry>();
+  /**
+   * Bumped by every invalidation. A load that started before an invalidation must
+   * not write its (possibly pre-change) result into the cache afterwards, or a
+   * concurrent request would re-seed the very staleness the invalidation removed
+   * (DP-QA-047). Per tenant, plus one epoch for invalidateAll().
+   */
+  private readonly generations = new Map<string, number>();
+  private epoch = 0;
   private modeCache: {
     mode: EntitlementEnforcementMode;
+    source: EntitlementModeSource;
     expiresAt: number;
   } | null = null;
 
+  /** The last stored mode that was read successfully; survives a later fault. */
+  private lastKnownStoredMode: EntitlementEnforcementMode | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Makes an unenforced production loud at boot. A deployment that is not in
+   * ENFORCE is a commercial decision, but it should never be an invisible one
+   * (DP-QA-005). Never throws: the database may not be reachable yet, and a
+   * boot that refuses to start over a log line would be worse than the gap.
+   */
+  async onApplicationBootstrap() {
+    if (process.env.NODE_ENV !== 'production') return;
+
+    try {
+      const { mode, source } = await this.effectiveMode();
+      if (mode !== 'ENFORCE') {
+        this.logger.error(
+          `ENTITLEMENT_NOT_ENFORCED mode=${mode} source=${source}: plan entitlements are not being refused in this environment. Set ${ENTITLEMENT_ENV_VAR}=ENFORCE after running the grandfather script (ADR-0009).`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Entitlement mode could not be checked at startup. ${describeError(error)}`,
+      );
+    }
+  }
 
   /**
    * Drops a tenant's snapshot so the next request re-reads it.
@@ -100,42 +191,95 @@ export class TenantEntitlementService {
    */
   invalidate(tenantId: string) {
     this.cache.delete(tenantId);
+    this.generations.set(tenantId, (this.generations.get(tenantId) ?? 0) + 1);
   }
 
   /** Test and operational seam; not called on any request path. */
   invalidateAll() {
     this.cache.clear();
+    this.epoch += 1;
     this.modeCache = null;
+    this.lastKnownStoredMode = null;
   }
 
   async mode(): Promise<EntitlementEnforcementMode> {
+    return (await this.effectiveMode()).mode;
+  }
+
+  /** The mode in force, and which input decided it. */
+  async effectiveMode(): Promise<{
+    mode: EntitlementEnforcementMode;
+    source: EntitlementModeSource;
+  }> {
     const now = Date.now();
     if (this.modeCache && this.modeCache.expiresAt > now) {
-      return this.modeCache.mode;
+      return { mode: this.modeCache.mode, source: this.modeCache.source };
     }
 
-    let mode = DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE;
+    let stored: EntitlementEnforcementMode;
+    let source: EntitlementModeSource = 'DEFAULT';
     try {
       const row = await this.prisma.platformSetting.findUnique({
         where: { key: ENTITLEMENT_SETTING_KEY },
         select: { value: true },
       });
-      mode = parseEnforcementMode(row?.value);
+      stored = parseEnforcementMode(row?.value);
+      if (row?.value) source = 'PLATFORM_SETTING';
+      this.lastKnownStoredMode = stored;
     } catch (error) {
       /*
-       * A mode that cannot be read falls back to the default rather than to the
-       * last value or to ENFORCE. REPORT_ONLY is the safe answer in both
-       * directions: it never refuses a request, and it never silently disables
-       * the logging the platform owner is relying on to measure the cutover.
+       * A mode that cannot be read keeps the last one that could. A transient
+       * database fault must not drop a deployment from ENFORCE to REPORT_ONLY,
+       * which is the fail-open direction (DP-QA-005). With nothing known yet it
+       * falls back to the default, which never refuses a request and never
+       * silently disables the logging the owner relies on to measure the cutover.
        */
+      stored = this.lastKnownStoredMode ?? DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE;
       this.logger.warn(
-        `Entitlement enforcement mode could not be read; defaulting to ${DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE}. ${describeError(error)}`,
+        `Entitlement enforcement mode could not be read; using ${stored}${this.lastKnownStoredMode ? ' (last known)' : ' (default)'}. ${describeError(error)}`,
       );
-      mode = DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE;
     }
 
-    this.modeCache = { mode, expiresAt: now + ENTITLEMENT_CACHE_TTL_MS };
-    return mode;
+    const { floor, invalid } = readEnvEnforcementFloor();
+    if (invalid !== null) {
+      this.logger.error(
+        `${ENTITLEMENT_ENV_VAR}="${invalid}" is not one of ${ENTITLEMENT_ENFORCEMENT_MODES.join(', ')}; failing closed to ENFORCE.`,
+      );
+    }
+
+    let mode = stored;
+    if (floor && MODE_STRICTNESS[floor] > MODE_STRICTNESS[stored]) {
+      mode = floor;
+      source = 'ENV';
+    }
+
+    this.modeCache = {
+      mode,
+      source,
+      expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
+    };
+    return { mode, source };
+  }
+
+  /**
+   * What `/api/health` reports about enforcement (DP-QA-005).
+   *
+   * The deploy gate reads this from the RUNNING process, because the variable
+   * lives on the service and not in this repository: a unit test cannot see what
+   * production is configured with, a smoke check can. `enforced` is true only
+   * when requests are actually refused, never merely logged. A fault reading the
+   * mode reports UNKNOWN / not enforced, so the gate fails rather than assumes.
+   */
+  async describeEnforcement(): Promise<{
+    mode: EntitlementEnforcementMode | 'UNKNOWN';
+    enforced: boolean;
+  }> {
+    try {
+      const { mode } = await this.effectiveMode();
+      return { mode, enforced: mode === 'ENFORCE' };
+    } catch {
+      return { mode: 'UNKNOWN', enforced: false };
+    }
   }
 
   /**
@@ -192,6 +336,61 @@ export class TenantEntitlementService {
   }
 
   /**
+   * Whether a feature should be OFFERED to a tenant right now: true when
+   * enforcement is not ENFORCE (nothing is refused yet, so nothing is hidden),
+   * otherwise the entitlement answer. For filtering lists and menus, where
+   * throwing would be wrong; use `assertEntitled` for a request that must fail.
+   */
+  async isOffered(
+    tenantId: string,
+    featureKeys: readonly TenantFeatureKey[],
+  ): Promise<boolean> {
+    if ((await this.mode()) !== 'ENFORCE') return true;
+    return (await this.decide(tenantId, featureKeys)).allowed;
+  }
+
+  /**
+   * Entitlement check for code that is NOT behind `EntitlementGuard` — the
+   * `@Public()` agent login/refresh routes, which mint credentials for a tenant
+   * before any guard can see one. Same semantics as the guard: OFF and
+   * REPORT_ONLY let the call through (REPORT_ONLY logs), ENFORCE refuses a
+   * tenant the plan does not sell the feature to, and a tenant whose entitlement
+   * could not be read gets the retryable 503, never a silent pass.
+   *
+   * Call it only AFTER credentials have been verified, so the refusal cannot
+   * become an account-enumeration oracle.
+   */
+  async assertEntitled(
+    tenantId: string,
+    featureKeys: readonly TenantFeatureKey[],
+    route: string,
+  ): Promise<void> {
+    const mode = await this.mode();
+    if (mode === 'OFF') return;
+
+    const decision = await this.decide(tenantId, featureKeys);
+    if (decision.allowed) return;
+
+    const summary =
+      `tenant=${tenantId} features=${featureKeys.join(',')} ` +
+      `route=${route} outcome=${decision.outcome}`;
+    if (mode === 'REPORT_ONLY') {
+      this.logger.warn(`ENTITLEMENT_WOULD_REFUSE ${summary}`);
+      return;
+    }
+
+    this.logger.warn(`ENTITLEMENT_REFUSED ${summary}`);
+    if (decision.outcome === 'UNRESOLVABLE') {
+      throw new AppError('TENANT_ENTITLEMENT_UNAVAILABLE', {
+        details: { featureKeys: [...featureKeys] },
+      });
+    }
+    throw new AppError('TENANT_FEATURE_NOT_ENTITLED', {
+      details: { featureKeys: [...featureKeys] },
+    });
+  }
+
+  /**
    * A tenant's entitlement snapshot, from cache where possible.
    *
    * Returns `null` only when there is nothing at all to answer with: the lookup
@@ -210,12 +409,21 @@ export class TenantEntitlementService {
       return { snapshot: cached.snapshot, stale: false };
     }
 
+    const generation = this.generations.get(tenantId) ?? 0;
+    const epoch = this.epoch;
     try {
       const snapshot = await this.load(tenantId);
-      this.cache.set(tenantId, {
-        snapshot,
-        expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
-      });
+      // Only cache what is still current: an invalidation that landed while this
+      // load was in flight means the snapshot may predate the change.
+      if (
+        (this.generations.get(tenantId) ?? 0) === generation &&
+        this.epoch === epoch
+      ) {
+        this.cache.set(tenantId, {
+          snapshot,
+          expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
+        });
+      }
       return { snapshot, stale: false };
     } catch (error) {
       /*
@@ -281,7 +489,11 @@ export class TenantEntitlementService {
        * `isEnabled: false` one.
        */
       for (const key of TENANT_FEATURE_KEY_LIST) {
-        const isIncludedInPlan = planFeatureByKey.get(key) ?? false;
+        // Baseline features (basic import/export) belong to every plan, custom
+        // plans that do not list them included.
+        const isIncludedInPlan =
+          (planFeatureByKey.get(key) ?? false) ||
+          BASELINE_FEATURE_KEYS.has(key);
         const override = overrideByKey.get(key);
         const isEnabled = resolveTenantFeatureState({
           isIncludedInPlan,

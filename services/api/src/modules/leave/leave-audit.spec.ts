@@ -274,7 +274,10 @@ describe('leave request auditing', () => {
     const prisma = (service as unknown as { prisma: Record<string, unknown> })
       .prisma;
     (prisma.$transaction as jest.Mock).mockImplementation(
-      async (callback: (tx: unknown) => Promise<unknown>) => callback({}),
+      async (callback: (tx: unknown) => Promise<unknown>) =>
+        // `$executeRaw` is the per-employee advisory lock taken before the
+        // overlap re-check (DP-QA-020).
+        callback({ $executeRaw: jest.fn().mockResolvedValue(1) }),
     );
     Object.assign(leaveRepository, {
       createLeaveRequest: jest.fn().mockResolvedValue(leaveRequestRow()),

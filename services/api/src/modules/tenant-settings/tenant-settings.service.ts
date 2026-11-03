@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { isValidTimeZone } from '../../common/utils/time-zone';
 import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import {
   ENTITY_KEYS,
@@ -1011,6 +1012,8 @@ function normalizeNumberValue(
   return numeric;
 }
 
+const TIME_ZONE_SETTING_KEYS = new Set(['timezone', 'defaultTimezone']);
+
 function normalizeStringValue(
   category: string,
   key: string,
@@ -1028,6 +1031,16 @@ function normalizeStringValue(
   }
 
   const normalizedValue = value.trim();
+
+  // A time zone is consumed by Intl.DateTimeFormat on every page; one the
+  // runtime rejects breaks the whole tenant UI (DP-QA-012). Empty still clears.
+  if (TIME_ZONE_SETTING_KEYS.has(key) && normalizedValue.length > 0) {
+    if (!isValidTimeZone(normalizedValue)) {
+      throw new BadRequestException(
+        `Setting ${category}.${key} must be a valid IANA time zone, for example Asia/Karachi or UTC.`,
+      );
+    }
+  }
 
   if (category === 'branding' && BRANDING_COLOR_KEYS.has(key)) {
     if (normalizedValue.length === 0) {

@@ -14,6 +14,9 @@ import {
 } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { WorkSiteReadinessService } from './work-site-readiness.service';
 
@@ -26,7 +29,8 @@ import { WorkSiteReadinessService } from './work-site-readiness.service';
  * and health states an administrator configuring the site must be able to see.
  */
 @Controller('integrations/attendance/work-sites')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS)
 export class WorkSiteReadinessController {
   constructor(private readonly service: WorkSiteReadinessService) {}
 

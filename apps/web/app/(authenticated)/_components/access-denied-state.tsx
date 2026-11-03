@@ -17,7 +17,11 @@ type AccessDeniedStateProps = {
 export function AccessDeniedState({
   title = "You do not have access to this area.",
   description = "Your session is valid, but your current role does not include permission for this page or feature.",
-  actionHref = "",
+  /*
+   * Never "": Button renders a native <button href=""> for a falsy href, i.e. a
+   * dead "Back to dashboard" plus React's empty-href warning (DP-QA-006).
+   */
+  actionHref = "/",
   actionLabel = "Back to dashboard",
   traceId,
   statusCode = 403,

@@ -222,7 +222,8 @@ function catalogPlan(key: string) {
     isActive: true,
     isPublic: true,
     publicationStatus: 'PUBLISHED',
-    salesModel: key === 'enterprise-plus' ? 'CUSTOM_ONLY' : 'SELF_SERVICE',
+    kind: 'CATALOGUE',
+    salesModel: 'SELF_SERVICE',
     monthlyBasePrice: new Prisma.Decimal(definition.monthlyBasePrice),
     annualBasePrice: new Prisma.Decimal(definition.annualBasePrice),
     currency: definition.currency,
@@ -468,6 +469,46 @@ describe('commercial bootstrap converges on the catalogue', () => {
 
     // A price the catalogue *does* list is untouched by the same pass.
     expect(retired).not.toContain('price-0');
+  });
+
+  it('never retires, rewrites or prices a CUSTOM plan, whatever its key (DP plan architecture)', async () => {
+    const custom = {
+      ...catalogPlan('starter'),
+      id: 'plan-custom',
+      key: 'acme-pilot',
+      kind: 'CUSTOM',
+      salesModel: 'SALES_ASSISTED',
+      _count: { subscriptions: 0 },
+    };
+    // A custom plan that happens to hold a catalogue key is also left alone.
+    const squatter = {
+      ...catalogPlan('growth'),
+      id: 'plan-squatter',
+      key: 'growth',
+      kind: 'CUSTOM',
+      name: 'Operator edited',
+    };
+
+    const fake = fakePrisma({
+      plans: [
+        catalogPlan('starter'),
+        squatter,
+        catalogPlan('enterprise'),
+        custom,
+      ],
+      markets: allMarkets(),
+      prices: catalogPrices(),
+    });
+
+    const result = await bootstrapCommercialDefaults(fake.client);
+
+    expect(result.plansRetired).toBe(0);
+    expect(result.plansWithdrawn).toBe(0);
+    const touched = fake.planUpdates.map(
+      (item) => (item as { where: Row }).where.id,
+    );
+    expect(touched).not.toContain('plan-custom');
+    expect(touched).not.toContain('plan-squatter');
   });
 
   it('retires a plan the catalogue dropped, along with its prices', async () => {

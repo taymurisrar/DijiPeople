@@ -63,6 +63,7 @@ describe('DocumentsService object authorization', () => {
       archiveDocument: jest.fn(),
     };
     const prisma = {
+      tenantSetting: { findFirst: jest.fn(async () => null) },
       employee: {
         findFirst: jest.fn(async () =>
           employeeVisible ? { id: 'employee-2' } : null,
@@ -191,5 +192,72 @@ describe('DocumentsService object authorization', () => {
       'Document was not found for this tenant.',
     );
     expect(repository.archiveDocument).not.toHaveBeenCalled();
+  });
+
+  /*
+   * DP-QA-016. The tenant logo is an ordinary document the owner uploads, and a
+   * SELF-scoped employee or HR user got 404 on it: a broken image on every page.
+   */
+  describe('published branding assets', () => {
+    it('serve their bytes to a self-scoped caller who could not read the document', async () => {
+      const { service, prisma, storage } = buildService(false);
+      prisma.tenantSetting.findFirst.mockResolvedValueOnce({ id: 'setting-1' });
+
+      await expect(
+        service.openForView(buildUser(SecurityAccessLevel.SELF), 'document-2'),
+      ).resolves.toMatchObject({ document: { id: 'document-2' } });
+      expect(storage.openFile).toHaveBeenCalled();
+    });
+
+    it('are matched only by the tenant current branding settings', async () => {
+      const { service, prisma } = buildService(false);
+      prisma.tenantSetting.findFirst.mockResolvedValueOnce({ id: 'setting-1' });
+
+      await service.openForView(
+        buildUser(SecurityAccessLevel.SELF),
+        'document-2',
+      );
+
+      expect(prisma.tenantSetting.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: 'tenant-a',
+            category: 'branding',
+            value: { equals: 'document-2' },
+          }) as unknown,
+        }),
+      );
+    });
+
+    it('do not open the door to any other document', async () => {
+      const { service, storage } = buildService(false);
+      await expect(
+        service.openForView(buildUser(SecurityAccessLevel.SELF), 'document-2'),
+      ).rejects.toThrow('Document was not found for this tenant.');
+      expect(storage.openFile).not.toHaveBeenCalled();
+    });
+  });
+});
+
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
+import { roleCanReach } from '../../common/testing/provisioned-role-user';
+import { DocumentsController } from './documents.controller';
+
+/**
+ * DP-QA-016 follow-up. The logo is served through the documents view route,
+ * which needs `documents.read` at the route. payroll-manager held none, so it
+ * got 403 on the logo; every provisioned sign-in role must now reach the route
+ * (the service then limits what each can open).
+ */
+describe('every provisioned sign-in role reaches the documents view route', () => {
+  it.each([
+    ROLE_KEYS.EMPLOYEE,
+    ROLE_KEYS.MANAGER,
+    ROLE_KEYS.HR,
+    ROLE_KEYS.PAYROLL_MANAGER,
+    ROLE_KEYS.RECRUITER,
+    ROLE_KEYS.CEO,
+  ])('%s', (role) => {
+    expect(roleCanReach(role, DocumentsController, 'view')).toBe(true);
   });
 });

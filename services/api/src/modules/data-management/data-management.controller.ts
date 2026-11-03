@@ -24,12 +24,31 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import {
+  TENANT_FEATURE_KEYS,
+  type TenantFeatureKey,
+} from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ImportAnalysisService } from './import-analysis.service';
 import { ExportExecutionService } from './export-execution.service';
 import { ImportExecutionService } from './import-execution.service';
 import { DataModuleRegistryService } from './module-registry.service';
 import { DataTemplateService } from './template.service';
+import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
+
+/*
+ * Basic import/export is open to every plan, but WHICH modules it reaches
+ * follows the tenant's actual plan: a custom plan without Leave must not be able
+ * to bulk-load or bulk-export leave data through the side door. Every key a
+ * module is registered under must be listed here (spec enforces it).
+ */
+export const DATA_MODULE_FEATURE: Readonly<Record<string, TenantFeatureKey>> = {
+  employees: TENANT_FEATURE_KEYS.EMPLOYEES,
+  leaves: TENANT_FEATURE_KEYS.LEAVE,
+  attendance: TENANT_FEATURE_KEYS.ATTENDANCE,
+};
 
 const VIEW_PERMISSION = 'data-management.view';
 const TEMPLATE_PERMISSION = 'data-management.template.download';
@@ -62,7 +81,8 @@ type MulterFile = {
 };
 
 @Controller('data-management')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.DATA_IMPORT_EXPORT)
 export class DataManagementController {
   constructor(
     private readonly registry: DataModuleRegistryService,
@@ -70,14 +90,41 @@ export class DataManagementController {
     private readonly imports: ImportAnalysisService,
     private readonly execution: ImportExecutionService,
     private readonly exports: ExportExecutionService,
+    private readonly entitlements: TenantEntitlementService,
   ) {}
+
+  /** Refuses a module the tenant's plan does not include. */
+  private async assertModuleEntitled(
+    user: AuthenticatedUser,
+    moduleKey: string,
+  ) {
+    const feature = DATA_MODULE_FEATURE[moduleKey];
+    // Unknown keys fall through to the registry's own not-found handling.
+    if (!feature) return;
+    await this.entitlements.assertEntitled(
+      user.tenantId,
+      [feature],
+      `data-management/${moduleKey}`,
+    );
+  }
 
   /** Modules available for import and export, used to populate the wizard. */
   @Get('modules')
   @Permissions(VIEW_PERMISSION)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
-  listModules() {
-    return this.registry.listModules().map((module) => ({
+  async listModules(@CurrentUser() user: AuthenticatedUser) {
+    const all = this.registry.listModules();
+    const offered: typeof all = [];
+    for (const module of all) {
+      const feature = DATA_MODULE_FEATURE[module.moduleKey];
+      if (
+        !feature ||
+        (await this.entitlements.isOffered(user.tenantId, [feature]))
+      ) {
+        offered.push(module);
+      }
+    }
+    return offered.map((module) => ({
       moduleKey: module.moduleKey,
       label: module.label,
       supportsImport: module.supportsImport,
@@ -93,7 +140,11 @@ export class DataManagementController {
   @Get('modules/:moduleKey/fields')
   @Permissions(VIEW_PERMISSION)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
-  getModuleFields(@Param('moduleKey') moduleKey: string) {
+  async getModuleFields(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('moduleKey') moduleKey: string,
+  ) {
+    await this.assertModuleEntitled(user, moduleKey);
     return this.registry.getModule(moduleKey);
   }
 
@@ -105,6 +156,7 @@ export class DataManagementController {
     @Param('moduleKey') moduleKey: string,
     @Res({ passthrough: true }) response: Response,
   ) {
+    await this.assertModuleEntitled(user, moduleKey);
     const file = await this.templates.buildImportTemplate(
       user.tenantId,
       moduleKey,
@@ -132,13 +184,14 @@ export class DataManagementController {
   @Permissions(VALIDATE_PERMISSION)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'import')
   @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
-  analyseImport(
+  async analyseImport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('moduleKey') moduleKey: string,
     @UploadedFile() file: MulterFile | undefined,
     @Body('sheetName') sheetName?: string,
     @Body('importMode') importMode?: string,
   ) {
+    await this.assertModuleEntitled(user, moduleKey);
     return this.imports.analyseUpload(user, moduleKey, file, {
       sheetName,
       importMode: parseImportMode(importMode),
@@ -149,7 +202,7 @@ export class DataManagementController {
   @Post('exports')
   @Permissions(EXPORT_PERMISSION)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'export')
-  queueExport(
+  async queueExport(
     @CurrentUser() user: AuthenticatedUser,
     @Body('moduleKey') moduleKey: string,
     @Body('filters') filters?: Record<string, unknown>,
@@ -158,6 +211,7 @@ export class DataManagementController {
       throw new BadRequestException('A module is required to export.');
     }
 
+    await this.assertModuleEntitled(user, moduleKey.trim());
     return this.exports.queueExport(user, moduleKey.trim(), filters ?? {});
   }
 

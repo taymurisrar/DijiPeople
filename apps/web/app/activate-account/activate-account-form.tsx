@@ -238,11 +238,17 @@ export function ActivateAccountForm() {
         value={confirmPassword}
       />
 
-      {confirmTouched && confirmPassword && liveComparison.ok ? (
-        <p className="text-sm text-emerald-700" role="status">
-          Passwords match.
-        </p>
-      ) : null}
+      {/*
+        * Always rendered, with its height reserved. Leaving the confirmation
+        * field (mousedown on the button) sets confirmTouched; if this line only
+        * appeared then, it pushed the button down before mouseup and the click
+        * was never dispatched (DP-QA-032). Enter worked, which hid it.
+        */}
+      <p className="min-h-5 text-sm text-emerald-700" role="status">
+        {confirmTouched && confirmPassword && liveComparison.ok
+          ? "Passwords match."
+          : ""}
+      </p>
 
       {error ? (
         <p

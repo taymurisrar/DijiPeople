@@ -18,6 +18,11 @@ type PlanFormProps = {
     currency: string;
     sortOrder: number;
     features: string[];
+    /** CATALOGUE = Starter/Growth/Enterprise (managed by the catalogue); CUSTOM = created here. */
+    kind?: "CATALOGUE" | "CUSTOM";
+    eligibleCustomerAccountId?: string | null;
+    effectiveFrom?: string | null;
+    effectiveUntil?: string | null;
   };
   featureCatalog: Array<{
     key: string;
@@ -50,6 +55,16 @@ export function PlanForm({
     initialPlan?.currency ?? defaults.currency,
   );
   const [sortOrder, setSortOrder] = useState(String(initialPlan?.sortOrder ?? 0));
+  const isCatalogue = initialPlan?.kind === "CATALOGUE";
+  const [eligibleCustomerAccountId, setEligibleCustomerAccountId] = useState(
+    initialPlan?.eligibleCustomerAccountId ?? "",
+  );
+  const [effectiveFrom, setEffectiveFrom] = useState(
+    initialPlan?.effectiveFrom?.slice(0, 10) ?? "",
+  );
+  const [effectiveUntil, setEffectiveUntil] = useState(
+    initialPlan?.effectiveUntil?.slice(0, 10) ?? "",
+  );
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>(
     initialPlan?.features ?? [],
   );
@@ -81,7 +96,16 @@ export function PlanForm({
           annualBasePrice: Number(annualBasePrice),
           currency,
           sortOrder: Number(sortOrder),
-          featureKeys: selectedFeatures,
+          // A predefined plan's key and features belong to the catalogue; only
+          // custom plans send them (the API refuses them for the three catalogue plans).
+          ...(isCatalogue ? {} : { featureKeys: selectedFeatures }),
+          ...(isCatalogue
+            ? {}
+            : {
+                eligibleCustomerAccountId: eligibleCustomerAccountId.trim() || null,
+                effectiveFrom: effectiveFrom ? new Date(effectiveFrom).toISOString() : null,
+                effectiveUntil: effectiveUntil ? new Date(effectiveUntil).toISOString() : null,
+              }),
         }),
       });
 
@@ -187,6 +211,42 @@ export function PlanForm({
           Active plan
         </label>
       </div>
+
+      {isCatalogue ? (
+        <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          This is a predefined plan. Its key and features are set by the catalogue; create a
+          custom plan for different entitlements.
+        </p>
+      ) : (
+        <section className="grid gap-4 md:grid-cols-3">
+          <label className="block text-sm font-medium text-slate-700 md:col-span-3">
+            Reserved for customer (customer account id, optional)
+            <input
+              value={eligibleCustomerAccountId}
+              onChange={(event) => setEligibleCustomerAccountId(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            Effective from (optional)
+            <input
+              type="date"
+              value={effectiveFrom}
+              onChange={(event) => setEffectiveFrom(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            Valid until (optional)
+            <input
+              type="date"
+              value={effectiveUntil}
+              onChange={(event) => setEffectiveUntil(event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+            />
+          </label>
+        </section>
+      )}
 
       <section className="space-y-4">
         <div>

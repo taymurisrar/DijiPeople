@@ -29,7 +29,14 @@ export function validateEntityQuery(
     }
   }
 
-  for (const orderBy of query.orderBy) {
+  const expandedOrderBy = query.orderBy.flatMap((item) =>
+    (metadata.sortAliases?.[item.field] ?? [item.field]).map((field) => ({
+      ...item,
+      field,
+    })),
+  );
+
+  for (const orderBy of expandedOrderBy) {
     const definition = metadata.fields[orderBy.field];
     if (!definition) {
       throw new BadRequestException(`Unknown sort field: ${orderBy.field}`);
@@ -66,7 +73,7 @@ export function validateEntityQuery(
   return {
     ...query,
     select,
-    orderBy: query.orderBy.length ? query.orderBy : metadata.defaultOrderBy,
+    orderBy: expandedOrderBy.length ? expandedOrderBy : metadata.defaultOrderBy,
     expand: query.expand.map((expand) => ({
       ...expand,
       select: expand.select.length

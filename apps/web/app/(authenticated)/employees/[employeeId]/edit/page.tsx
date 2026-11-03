@@ -1,3 +1,5 @@
+import { filterEmployeeFormTabsByPlan } from "@/lib/runtime/modules/employee-plan-tabs";
+import { loadEnabledFeatureKeys } from "../../../_lib/enabled-feature-keys";
 import { unstable_noStore as noStore } from "next/cache";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
 import { getSessionUser } from "@/lib/auth";
@@ -136,9 +138,12 @@ export default async function EditEmployeePage({
     employeeSettings: resolvedSettings?.employee,
     fieldSecurityRules,
   });
-  const activeRuntimeForm = resolveEmployeeRuntimeForm(
-    employeeRuntimeContext.metadata.forms,
-    selectedFormId,
+  const activeRuntimeForm = filterEmployeeFormTabsByPlan(
+    resolveEmployeeRuntimeForm(
+      employeeRuntimeContext.metadata.forms,
+      selectedFormId,
+    ),
+    await loadEnabledFeatureKeys(),
   );
   const { EmployeeRuntimeFormWrapper } =
     await import("../../_components/employee-runtime-form-wrapper");

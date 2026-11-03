@@ -841,6 +841,7 @@ function RuntimeRecordEditor({
               planId={record.id}
               initialPrices={planPrices}
               defaultCurrency={String(form.values.currency ?? "USD")}
+              planKind={String(record.kind ?? form.values.kind ?? "")}
             />
           </div>
         </section>

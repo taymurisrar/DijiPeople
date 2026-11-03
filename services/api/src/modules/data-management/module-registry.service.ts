@@ -77,6 +77,13 @@ const PROTECTED_FIELD_KEYS = new Set([
   'user',
 ]);
 
+/**
+ * Storage internals by name: ciphertext, lookup hashes, salts, secrets, tokens.
+ * Defence in depth beside the allowlist - these are refused even if somebody
+ * lists one by mistake.
+ */
+const STORAGE_INTERNAL_FIELD = /(Enc|Hmac|Hash|Salt|Secret|Token|Ciphertext)$/;
+
 /** Suffixes that indicate a relation object rather than a writable scalar. */
 const RELATION_OBJECT_SUFFIXES = ['Lookup'];
 
@@ -99,6 +106,20 @@ const MODULE_DEFINITIONS: Array<{
    */
   unsupportedFields?: Readonly<Record<string, string>>;
   /**
+   * EXPLICIT allowlist of the business fields this module may import or export
+   * (DP-QA-038). A model column that is not listed is never offered, however the
+   * schema flags it, so a column added to the model later (a new hash, token or
+   * ciphertext) stays out of templates and files until someone chooses to list it.
+   */
+  allowedFields: readonly string[];
+  /**
+   * Allowlisted fields that may be IMPORTED but are left out of the standard
+   * export (DP-QA-037): national and tax identifiers are not re-published in bulk
+   * files by default. A separately authorised, audited identifier export would be
+   * a new decision; it is deliberately not built here.
+   */
+  exportOmittedFields?: Readonly<Record<string, string>>;
+  /**
    * Corrects a descriptor when the module's contract expects a different shape
    * than the model column. Without this an aliased field keeps the column's
    * type and validation rejects values the module would accept.
@@ -114,6 +135,66 @@ const MODULE_DEFINITIONS: Array<{
     matchingKeys: ['id', 'employeeCode', 'workEmail'],
     supportsImport: true,
     supportsExport: true,
+    allowedFields: [
+      'employeeCode',
+      'firstName',
+      'hireDate',
+      'lastName',
+      'phone',
+      'addressLine1',
+      'addressLine2',
+      'alternatePhone',
+      'bloodGroup',
+      'businessUnitId',
+      'city',
+      'cityId',
+      'cnic',
+      'confirmationDate',
+      'contractType',
+      'country',
+      'countryId',
+      'dateOfBirth',
+      'defaultWorkScheduleId',
+      'departmentId',
+      'designationId',
+      'email',
+      'emergencyContactAlternatePhone',
+      'emergencyContactName',
+      'emergencyContactPhone',
+      'emergencyContactRelation',
+      'emergencyContactRelationTypeId',
+      'employeeLevelId',
+      'employeeType',
+      'employmentStatus',
+      'gender',
+      'holidayCalendarId',
+      'locationId',
+      'managerEmployeeId',
+      'maritalStatus',
+      'middleName',
+      'nationality',
+      'nationalityCountryId',
+      'noticePeriodDays',
+      'officialJoiningLocationId',
+      'organizationId',
+      'personalEmail',
+      'postalCode',
+      'preferredName',
+      'probationEndDate',
+      'recordType',
+      'stateProvince',
+      'stateProvinceId',
+      'status',
+      'subStatus',
+      'taxIdentifier',
+      'teamId',
+      'terminationDate',
+      'workMode',
+    ],
+    exportOmittedFields: {
+      cnic: 'National identifier. Not included in standard exports.',
+      taxIdentifier: 'Tax identifier. Not included in standard exports.',
+    },
     fieldAliases: {
       email: 'workEmail',
       managerEmployeeId: 'reportingManagerEmployeeId',
@@ -135,6 +216,17 @@ const MODULE_DEFINITIONS: Array<{
     matchingKeys: ['id'],
     supportsImport: false,
     supportsExport: true,
+    allowedFields: [
+      'employeeId',
+      'endDate',
+      'leaveTypeId',
+      'startDate',
+      'totalDays',
+      'attachmentReference',
+      'attachmentRequired',
+      'reason',
+      'status',
+    ],
   },
   {
     moduleKey: 'attendance',
@@ -143,6 +235,28 @@ const MODULE_DEFINITIONS: Array<{
     matchingKeys: ['id', 'employeeId'],
     supportsImport: true,
     supportsExport: true,
+    allowedFields: [
+      'date',
+      'employeeId',
+      'attendanceDay',
+      'attendanceMode',
+      'checkInTime',
+      'checkInNote',
+      'checkOutTime',
+      'checkOutNote',
+      'derivedWorkMode',
+      'lastReconciledAt',
+      'officeLocationId',
+      'reconciled',
+      'remoteAddressText',
+      'remoteLatitude',
+      'remoteLongitude',
+      'shiftTemplateId',
+      'source',
+      'status',
+      'workSummary',
+      'workedMinutes',
+    ],
     fieldAliases: {
       checkIn: 'checkInTime',
       checkOut: 'checkOutTime',
@@ -227,6 +341,11 @@ export class DataModuleRegistryService {
       .map(([key]) => key);
   }
 
+  /** Whether the model has a column - used to apply the soft-delete filter only where one exists. */
+  modelHasField(modelName: string, key: string): boolean {
+    return Boolean(loadRuntimeSchema().models[modelName]?.fields[key]);
+  }
+
   getModule(moduleKey: string): DataModuleDescriptor {
     const cached = this.cache.get(moduleKey);
     if (cached) return cached;
@@ -277,7 +396,11 @@ export class DataModuleRegistryService {
         continue;
       }
 
-      const exclusion = this.exclusionReason(key, field, fieldKeys);
+      const exclusion =
+        this.exclusionReason(key, field, fieldKeys) ??
+        (definition.allowedFields.includes(key)
+          ? null
+          : 'Not a supported business field for import or export.');
 
       if (exclusion) {
         excludedFields.push({ key, reason: exclusion });
@@ -310,6 +433,7 @@ export class DataModuleRegistryService {
       matchingKeys: definition.matchingKeys,
       supportsImport: definition.supportsImport,
       supportsExport: definition.supportsExport,
+      exportOmittedFields: Object.keys(definition.exportOmittedFields ?? {}),
     };
 
     this.cache.set(moduleKey, descriptor);
@@ -342,6 +466,10 @@ export class DataModuleRegistryService {
 
     if (field.systemManaged) {
       return 'System managed. Calculated or maintained by the platform.';
+    }
+
+    if (STORAGE_INTERNAL_FIELD.test(key)) {
+      return 'Internal storage field (encrypted or hashed). Never imported or exported.';
     }
 
     if (field.sensitive) {

@@ -187,6 +187,17 @@ enum CommercialPublicationStatus {
 // How a plan or price may be bought. Enterprise is NOT hardcoded to "Contact
 // sales" anywhere — a standard published Enterprise plan stays self-service,
 // and only configuration moves it to sales-assisted.
+// Whether a plan is one of the predefined catalogue plans (Starter, Growth,
+// Enterprise) or a plan created for a customer, agreement, promotion or pilot.
+// An explicit column, never inferred from the key or the name: the catalogue seed
+// reconciles CATALOGUE plans only and must never touch, retire or rewrite a CUSTOM
+// one. New rows default to CUSTOM so a plan created by any other path can never be
+// mistaken for a predefined one.
+enum PlanKind {
+  CATALOGUE
+  CUSTOM
+}
+
 enum CommercialSalesModel {
   SELF_SERVICE
   SALES_ASSISTED
@@ -2626,6 +2637,7 @@ model TenantErasureReceipt {
 
 model CustomerAccount {
   id                         String                      @id @default(uuid())
+  eligiblePlans              Plan[]                      @relation("EligibleCustomerPlan")
   companyName                String
   /// Where this customer came from. See CustomerOriginChannel (ITEM-0008).
   ///
@@ -3995,6 +4007,12 @@ model Plan {
   legacyPricingMigratedAt DateTime?
   publicationStatus     CommercialPublicationStatus @default(DRAFT)
   salesModel            CommercialSalesModel        @default(SELF_SERVICE)
+  kind                  PlanKind                    @default(CUSTOM)
+  /// Customer-specific plan: only this customer may be placed on it. Null = reusable.
+  eligibleCustomerAccountId String?
+  /// Contractual validity window for a custom plan; null = open-ended.
+  effectiveFrom         DateTime?
+  effectiveUntil        DateTime?
   publishedAt           DateTime?
   publishedById         String?
   archivedAt            DateTime?
@@ -4004,6 +4022,7 @@ model Plan {
   createdById           String?
   updatedById           String?
   tenant                Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  eligibleCustomer      CustomerAccount?     @relation("EligibleCustomerPlan", fields: [eligibleCustomerAccountId], references: [id], onDelete: Restrict)
   features              PlanFeature[]
   prices                PlanPrice[]
   subscriptions         Subscription[]
@@ -4013,6 +4032,8 @@ model Plan {
   promotions            Promotion[]
 
   @@index([publicationStatus, isActive, sortOrder])
+  @@index([kind, isActive])
+  @@index([eligibleCustomerAccountId])
   @@index([tenantId])
   subscriptionOrders      SubscriptionOrder[]
   planChangesFrom         PlanChangeRequest[] @relation("PlanChangeFrom")

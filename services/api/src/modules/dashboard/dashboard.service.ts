@@ -130,10 +130,9 @@ const PRIVILEGED_ROLES = new Set<string>([
   ROLE_KEYS.SYSTEM_CUSTOMIZER,
 ]);
 
-const ROUTES = new Set<string>([
+export const DASHBOARD_ROUTES = new Set<string>([
   '/attendance',
   '/attendance/team',
-  '/documents',
   '/employees',
   '/employees/import',
   '/employees/new',
@@ -872,7 +871,7 @@ export class DashboardService {
               'missingDocuments',
               'Employees with no documents',
               missingDocuments,
-              '/documents',
+              '/employees',
               missingDocuments ? 'warning' : 'good',
             ),
             this.row(
@@ -909,7 +908,7 @@ export class DashboardService {
               this.action(
                 'documents',
                 'Review documents',
-                '/documents',
+                '/employees',
                 'documents.read',
               ),
               this.action(
@@ -1234,7 +1233,7 @@ export class DashboardService {
             'Documents uploaded',
             documents,
             'Documents linked to your employee record.',
-            '/documents',
+            '/my-profile',
           ),
           this.profileWidget(employee, profileGaps),
         ]),
@@ -1371,7 +1370,7 @@ export class DashboardService {
               this.action(
                 'documents',
                 'Upload documents',
-                '/documents',
+                '/my-profile',
                 'documents.upload',
               ),
               this.action(
@@ -2599,7 +2598,7 @@ export class DashboardService {
     actions: Array<DashboardAction & { permissionKey?: string }>,
   ): DashboardAction[] {
     return actions
-      .filter((action) => ROUTES.has(action.href))
+      .filter((action) => DASHBOARD_ROUTES.has(action.href))
       .filter((action) =>
         action.permissionKey
           ? this.hasPrivilegedRole(currentUser) ||

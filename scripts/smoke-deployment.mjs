@@ -10,6 +10,28 @@ const apiBaseUrl = (
 const email = process.env.SMOKE_LOGIN_EMAIL || process.env.BOOTSTRAP_ADMIN_EMAIL;
 const password =
   process.env.SMOKE_LOGIN_PASSWORD || process.env.BOOTSTRAP_ADMIN_PASSWORD;
+import { loginBody } from "./smoke-login.mjs";
+
+/*
+ * DP-QA-048 - `POST /auth/login` refuses a request with no tenant context
+ * (`AUTH_UNAUTHORIZED`, "Company or tenant context is required to sign in."): the
+ * API resolves the workspace from `tenantSlug` in the body and does not read the
+ * Origin header for sign-in. The smoke logins used to send only email and
+ * password, so every one of them failed against a tenant user, including the
+ * Starter behavioural proof that was added to catch a guard that misbehaves while
+ * /api/health says "enforced".
+ *
+ *   SMOKE_TENANT_SLUG          workspace of the SMOKE_LOGIN_* user
+ *   SMOKE_STARTER_TENANT_SLUG  workspace of the SMOKE_STARTER_LOGIN_* user
+ *                              (defaults to SMOKE_TENANT_SLUG)
+ */
+const tenantSlug = (process.env.SMOKE_TENANT_SLUG || "").trim().toLowerCase();
+const starterTenantSlug = (
+  process.env.SMOKE_STARTER_TENANT_SLUG || tenantSlug
+)
+  .trim()
+  .toLowerCase();
+
 const origin =
   process.env.SMOKE_ORIGIN ||
   process.env.NEXT_PUBLIC_WEB_URL ||
@@ -127,6 +149,75 @@ await check("outbox worker is draining events", async () => {
   }
 });
 
+/*
+ * DP-QA-005 - production defaulted to REPORT_ONLY, so a Starter tenant could use
+ * every paid module and nothing but a log line said so.
+ *
+ * Read from the RUNNING process (/api/health), because the setting lives on the
+ * service. A hard failure, and a hard failure when the field is absent too: a
+ * deployment that cannot say whether it enforces entitlements is treated as one
+ * that does not. SMOKE_ALLOW_UNENFORCED=1 is the explicit, printed exception for
+ * a release that knowingly precedes the cutover.
+ */
+await check("plan entitlements are enforced, not merely logged", async () => {
+  const response = await request("/health");
+  if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
+  const payload = await response.json().catch(() => null);
+  const state = payload?.entitlementEnforcement;
+
+  if (!state || typeof state.enforced !== "boolean") {
+    throw new Error(
+      "health does not report entitlementEnforcement, so enforcement cannot be " +
+        "confirmed. The deployment predates DP-QA-005 or /api/health is not " +
+        "answered by the current build (see the express handler in main.ts).",
+    );
+  }
+  if (state.enforced !== true) {
+    if (process.env.SMOKE_ALLOW_UNENFORCED === "1") {
+      console.warn(
+        `    ! entitlement enforcement is ${state.mode}; allowed by SMOKE_ALLOW_UNENFORCED=1`,
+      );
+      return;
+    }
+    throw new Error(
+      `entitlement enforcement is ${state.mode}: unauthorised modules are served. ` +
+        "Set ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE on the API service (DP-QA-005, ADR-0009).",
+    );
+  }
+});
+
+/*
+ * Behavioural proof, when a Starter-plan tenant user is supplied: a module the
+ * plan does not sell must actually be REFUSED. The health flag says what the
+ * service believes; this proves what it does.
+ */
+const starterEmail = process.env.SMOKE_STARTER_LOGIN_EMAIL;
+const starterPassword = process.env.SMOKE_STARTER_LOGIN_PASSWORD;
+if (starterEmail && starterPassword) {
+  await check("a Starter tenant is refused a module its plan does not include", async () => {
+    const login = await request("/auth/login", {
+      method: "POST",
+      body: loginBody(
+        { email: starterEmail, password: starterPassword },
+        starterTenantSlug,
+        { rememberMe: false },
+      ),
+    });
+    if (!login.ok) throw new Error(`Starter login: expected 2xx, got ${login.status}`);
+    const cookie = collectCookies(login);
+    const denied = await request("/job-openings", { headers: { Cookie: cookie } });
+    if (denied.status !== 403) {
+      throw new Error(
+        `GET /job-openings as a Starter tenant returned ${denied.status}, expected 403 ENTITLEMENT refusal.`,
+      );
+    }
+  });
+} else {
+  console.warn(
+    "Skipping the unauthorised-module probe. Set SMOKE_STARTER_LOGIN_EMAIL and SMOKE_STARTER_LOGIN_PASSWORD (a Starter-plan tenant user).",
+  );
+}
+
 await check("protected profile rejects unauthenticated request", async () => {
   const response = await request("/auth/me");
   if (![401, 403].includes(response.status)) {
@@ -139,7 +230,7 @@ if (email && password) {
   await check("auth login works", async () => {
     const response = await request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password, rememberMe: true }),
+      body: loginBody({ email, password }, tenantSlug, { rememberMe: true }),
     });
     if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
     cookieHeader = collectCookies(response);

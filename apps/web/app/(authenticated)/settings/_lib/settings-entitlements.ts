@@ -61,7 +61,7 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
    * gated on their own key already, so this sells the bulk path rather than
    * access to anything a tenant could not otherwise see.
    */
-  "data-management": FEATURE_KEYS.DATA_MANAGEMENT,
+  "data-management": FEATURE_KEYS.DATA_IMPORT_EXPORT,
   recruitment: FEATURE_KEYS.RECRUITMENT,
   /*
    * Sold separately from Attendance as of ADR-0005 Decision 2. This gates the settings
@@ -279,7 +279,10 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   [FEATURE_KEYS.DESKTOP_AGENT]: "Desktop Agent",
   [FEATURE_KEYS.ATTENDANCE_INTEGRATIONS]: "Attendance Devices & Gateways",
   [FEATURE_KEYS.COMPLIANCE]: "Compliance & Retention",
-  [FEATURE_KEYS.DATA_MANAGEMENT]: "Import & Export",
+  [FEATURE_KEYS.DATA_IMPORT_EXPORT]: "Import & Export",
+  [FEATURE_KEYS.ADVANCED_DATA_MANAGEMENT]: "Advanced Data Management",
+  [FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION]: "Email Template Customization",
+  [FEATURE_KEYS.EMAIL_WHITE_LABEL]: "Email White-Label",
 };
 
 /**

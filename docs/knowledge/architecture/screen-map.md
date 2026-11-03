@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**368 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**369 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-261 screens, 35 runtime-driven.
+262 screens, 35 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -68,6 +68,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/employees` | `apps/web/app/(authenticated)/employees/page.tsx` | _bespoke_ | — |
 | `/employees/[employeeId]` | `apps/web/app/(authenticated)/employees/[employeeId]/page.tsx` | _bespoke_ | — |
 | `/employees/[employeeId]/edit` | `apps/web/app/(authenticated)/employees/[employeeId]/edit/page.tsx` | _bespoke_ | — |
+| `/employees/import` | `apps/web/app/(authenticated)/employees/import/page.tsx` | _bespoke_ | — |
 | `/employees/new` | `apps/web/app/(authenticated)/employees/new/page.tsx` | _bespoke_ | — |
 | `/executive/dashboard` | `apps/web/app/(authenticated)/executive/dashboard/page.tsx` | _bespoke_ | — |
 | `/hr/dashboard` | `apps/web/app/(authenticated)/hr/dashboard/page.tsx` | _bespoke_ | — |

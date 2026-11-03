@@ -1,3 +1,4 @@
+import { assertPlanAssignable } from './plan-eligibility';
 import {
   Logger,
   BadRequestException,
@@ -28,6 +29,7 @@ import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { generateTenantCode } from '../../common/utils/tenant-code.util';
 import { AuditService } from '../audit/audit.service';
 import { isPlatformAdminTier } from '../platform-auth/platform-permissions';
+import { ensureDefaultLeaveTypes } from '../leave/default-leave-types';
 import { PermissionsService } from '../permissions/permissions.service';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
@@ -787,7 +789,30 @@ export class PlatformLifecycleService {
     return customer.payments ?? [];
   }
 
+  /**
+   * A reserved or out-of-window custom plan cannot even be SELECTED for the wrong
+   * customer, not only provisioned: `customerId` null means the customer does not
+   * exist yet, so any reservation refuses.
+   */
+  private async assertPlanSelectable(
+    planId: string | null | undefined,
+    customerId: string | null,
+  ) {
+    if (!planId) return;
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+      select: {
+        name: true,
+        eligibleCustomerAccountId: true,
+        effectiveFrom: true,
+        effectiveUntil: true,
+      },
+    });
+    if (plan) assertPlanAssignable(plan, customerId ?? '');
+  }
+
   async createCustomer(actor: AuthenticatedUser, dto: CreateCustomerDto) {
+    await this.assertPlanSelectable(dto.selectedPlanId, null);
     this.assertCustomerSubStatus(
       dto.status ?? CustomerAccountStatus.PROSPECT,
       dto.subStatus,
@@ -849,6 +874,9 @@ export class PlatformLifecycleService {
       throw new NotFoundException('Customer not found.');
     }
     this.assertCustomerOwnerAccess(actor, existing);
+    if (dto.selectedPlanId && dto.selectedPlanId !== existing.selectedPlanId) {
+      await this.assertPlanSelectable(dto.selectedPlanId, customerId);
+    }
     if (
       !this.isPlatformSuperAdmin(actor) &&
       (dto.assignedToUserId !== undefined ||
@@ -1051,6 +1079,7 @@ export class PlatformLifecycleService {
     customerId: string,
     dto?: Partial<CreateCustomerOnboardingRecordDto>,
   ) {
+    await this.assertPlanSelectable(dto?.selectedPlanId, customerId);
     const { customer, plannedTenantSlug } =
       await this.assertOnboardingCreatable(actor, customerId, dto);
 
@@ -1329,6 +1358,9 @@ export class PlatformLifecycleService {
       throw new NotFoundException('Onboarding record not found.');
     }
     this.assertOnboardingOwnerAccess(actor, existing);
+    if (dto.selectedPlanId && dto.selectedPlanId !== existing.selectedPlanId) {
+      await this.assertPlanSelectable(dto.selectedPlanId, existing.customerId);
+    }
     if (
       !this.isPlatformSuperAdmin(actor) &&
       dto.onboardingOwnerUserId !== undefined
@@ -1613,12 +1645,18 @@ export class PlatformLifecycleService {
         id: true,
         name: true,
         isActive: true,
+        eligibleCustomerAccountId: true,
+        effectiveFrom: true,
+        effectiveUntil: true,
         _count: { select: { prices: { where: { isActive: true } } } },
       },
     });
     if (!plan) {
       throw new BadRequestException('The selected plan no longer exists.');
     }
+    // A customer-specific or time-boxed custom plan can only be placed on its own
+    // customer, inside its validity window.
+    assertPlanAssignable(plan, onboarding.customer.id);
     if (!plan.isActive || plan._count.prices === 0) {
       throw new BadRequestException(
         `"${plan.name}" cannot be sold: it is ` +
@@ -1859,6 +1897,17 @@ export class PlatformLifecycleService {
     let customizationFailure: string | null = null;
     try {
       const defaults = await this.customizationService.publishTenantDefaults(
+        provisioning.tenant.id,
+        actor.userId,
+      );
+      /*
+       * Leave types ride on this step rather than a step of their own: they are
+       * the same kind of thing (day-one tenant defaults), insert-only and safe
+       * to replay, and a new step would change the registered step sequence.
+       * Without them an employee cannot file a first leave request (DP-QA-011).
+       */
+      await ensureDefaultLeaveTypes(
+        this.prisma,
         provisioning.tenant.id,
         actor.userId,
       );
