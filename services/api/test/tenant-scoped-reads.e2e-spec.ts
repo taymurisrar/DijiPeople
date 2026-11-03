@@ -23,7 +23,13 @@ import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import { NotFoundException } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import {
+  PrismaClient,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
+
+import { ENTITY_KEYS } from '../src/common/constants/rbac-matrix';
 
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-request.interface';
@@ -57,6 +63,20 @@ const user = (
     permissionKeys: [],
     rolePrivileges: [],
     accessContext: { teamIds: [], accessibleBusinessUnitIds: [] },
+  }) as unknown as AuthenticatedUser;
+
+/** A tenant-wide reader of the hierarchy: the tree is scoped to what the caller may see, so a caller with no access sees nothing. */
+const hierarchyReader = (tenantId: string, userId: string): AuthenticatedUser =>
+  ({
+    ...user(tenantId, userId),
+    permissionKeys: ['hierarchy.read'],
+    rolePrivileges: [
+      {
+        entityKey: ENTITY_KEYS.HIERARCHY,
+        privilege: SecurityPrivilege.READ,
+        accessLevel: SecurityAccessLevel.TENANT,
+      },
+    ],
   }) as unknown as AuthenticatedUser;
 
 const SECRET = 'hunter2-never-store-me';
@@ -270,7 +290,7 @@ describeWithDatabase()(
         [b, a],
       ] as const) {
         const tree = (await orgController.findHierarchyTree(
-          user(mine.id, 'u-any'),
+          hierarchyReader(mine.id, 'u-any'),
         )) as any;
         const wire = JSON.stringify(tree);
         expect(wire).toContain(mine.organizationId);
