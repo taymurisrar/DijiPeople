@@ -26,7 +26,7 @@ import {
   assertValidTenantSlug,
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
-import { StripeBillingService } from './stripe-billing.service';
+import { isProductionLike, StripeBillingService } from './stripe-billing.service';
 // The one channel rule, shared with `/public/commercial-config` rather than
 // restated here — see the filter in `getPublicPlans`.
 import {
@@ -91,6 +91,14 @@ export class BillingService {
     }
   }
 
+  /** A sandbox Stripe key is never a live-payment option in production. */
+  private stripePubliclyAvailable(): boolean {
+    return (
+      !isProductionLike(this.configService) ||
+      this.stripeBillingService.getRuntimeMode() === 'live'
+    );
+  }
+
   /**
    * Whether a price can be checked out, judged against the provider that will
    * collect it. A Stripe price needs its synced Stripe Price; a price another
@@ -103,7 +111,14 @@ export class BillingService {
   ) {
     const provider = this.paymentGateways.resolveProvider(price.currency);
     if (!this.paymentGateways.isManaged(provider)) {
-      return deriveCheckoutReadiness(price, expectedStripeEnvironment);
+      const readiness = deriveCheckoutReadiness(price, expectedStripeEnvironment);
+      if (!this.stripePubliclyAvailable()) {
+        return {
+          checkoutReady: false,
+          reasons: [...readiness.reasons, 'LIVE_STRIPE_REQUIRED'],
+        };
+      }
+      return readiness;
     }
     return deriveManagedCheckoutReadiness(
       price,
@@ -125,7 +140,9 @@ export class BillingService {
     ),
   ) {
     return {
-      configured: this.stripeBillingService.isSecretKeyConfigured(),
+      configured:
+        this.stripePubliclyAvailable() &&
+        this.stripeBillingService.isSecretKeyConfigured(),
       priceReady: deriveCheckoutReadiness(
         {
           ...mapSeatPriceContract(price),
@@ -582,6 +599,12 @@ export class BillingService {
       input.provider,
       () => this.stripeFactsFor(planPrice),
     );
+    if (provider === PaymentProvider.STRIPE && !this.stripePubliclyAvailable()) {
+      throw new BadRequestException({
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+        message: 'Online card payments are not yet available for this selection.',
+      });
+    }
     if (this.paymentGateways.isManaged(provider)) {
       // Refuse before an order is opened, not after the buyer verified.
       this.paymentGateways.require(provider);
