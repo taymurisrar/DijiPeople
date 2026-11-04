@@ -842,9 +842,14 @@ export function SubscribeForm({
             a line here is still right: the price above it is the thing that
             cannot be bought.
           */}
-          {block ? (
+          {block && !bankTransferSelected ? (
             <p className="mt-2 text-xs font-medium text-warning">
               Not available to buy online ({block.code}).
+            </p>
+          ) : bankTransferSelected ? (
+            <p className="mt-2 text-xs text-muted">
+              Request an invoice and verified payment instructions.
+              Your subscription will begin after payment is confirmed.
             </p>
           ) : null}
         </div>
