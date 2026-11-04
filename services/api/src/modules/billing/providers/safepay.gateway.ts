@@ -77,6 +77,17 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
    * so a developer machine without Safepay keys still starts.
    */
   onModuleInit(): void {
+    // Explicitly refuse an enabled sandbox on a live deployment. Silently
+    // suppressing its routing would hide a broken merchant configuration.
+    if (
+      isProductionLike(this.configService) &&
+      this.configService.get<string>('SAFEPAY_ENABLED')?.trim() === 'true' &&
+      this.environmentOrNull() !== 'production'
+    ) {
+      throw new Error(
+        'SAFEPAY_ENABLED requires SAFEPAY_ENVIRONMENT=production in a production-like deployment.',
+      );
+    }
     if (!this.isEnabled()) return;
 
     if (!this.isConfigured()) {
