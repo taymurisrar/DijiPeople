@@ -140,6 +140,19 @@ describe('SafepayGateway', () => {
       );
     });
 
+    it('refuses sandbox checkout on production even via a direct invoice call', async () => {
+      await expect(
+        gateway({ APP_ENV: 'production' }).createCheckout({
+          reference: 'order-prod',
+          amount: '100.00',
+          currency: 'PKR',
+          successUrl: 'https://app.test/complete',
+          cancelUrl: 'https://app.test/cancel',
+        }),
+      ).rejects.toMatchObject({ errorCode: 'PAYMENT_PROVIDER_NOT_CONFIGURED' });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it('refuses to run without credentials', async () => {
       await expect(
         gateway({ SAFEPAY_SECRET_KEY: undefined }).createCheckout({
