@@ -105,9 +105,19 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
     }
   }
 
-  /** The routing switch read by `resolvePaymentProvider`. */
+  /**
+   * Sandbox stays usable in development, never as a customer-facing payment
+   * method on a production-like deployment. Merchant approval and live keys
+   * are required before the production route can be enabled.
+   */
   isEnabled(): boolean {
-    return this.configService.get<string>('SAFEPAY_ENABLED')?.trim() === 'true';
+    if (this.configService.get<string>('SAFEPAY_ENABLED')?.trim() !== 'true') {
+      return false;
+    }
+    return (
+      !isProductionLike(this.configService) ||
+      this.environmentOrNull() === 'production'
+    );
   }
 
   isConfigured(): boolean {
