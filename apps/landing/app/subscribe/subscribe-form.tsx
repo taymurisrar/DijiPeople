@@ -24,6 +24,7 @@ import {
   type WizardStep,
 } from "../../lib/onboarding-wizard";
 import { readReferralCode } from "../../lib/referral";
+import { readAttribution } from "../../lib/acquisition-options";
 import {
   resolveSubscribeSelection,
   type SubscribeSelectionParams,
@@ -158,13 +159,23 @@ export function SubscribeForm({
   const [pickedProvider, setPickedProvider] =
     useState<PaymentProviderKey | null>(null);
   const paymentProviders = offeredPaymentProviders(selectedPrice);
+  // Assisted bank transfer is deliberately distinct from a payment gateway.
+  // The sales team verifies the account and issues payment instructions; the
+  // website must never claim an unpaid request is a completed subscription.
+  const bankTransferMarket = currency.toUpperCase() === "PKR";
+  const [paymentFlow, setPaymentFlow] = useState<
+    "ONLINE" | "BANK_TRANSFER_REQUEST"
+  >(bankTransferMarket && paymentProviders.length === 0 ? "BANK_TRANSFER_REQUEST" : "ONLINE");
+  const [bankRequestSubmitted, setBankRequestSubmitted] = useState(false);
   const paymentProvider = chosenPaymentProvider(
     paymentProviders,
     pickedProvider,
   );
   // One decision, three consumers: the notice, the form and Continue.
   const block = checkoutBlock(selectedPrice);
-  const canCheckout = block === null;
+  const bankTransferSelected = bankTransferMarket && paymentFlow === "BANK_TRANSFER_REQUEST";
+  const onlineCheckoutAvailable = block === null && paymentProviders.length > 0;
+  const canCheckout = Boolean(selectedPrice) && (bankTransferSelected || onlineCheckoutAvailable);
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
@@ -370,6 +381,68 @@ export function SubscribeForm({
    */
   const submitInFlightRef = useRef(false);
 
+  async function requestBankTransferInvoice() {
+    if (!selectedPrice || !selectedPlan || !bankTransferMarket || !form.email.trim()) {
+      setStatus("Choose a Pakistani plan and enter a valid contact email.");
+      return;
+    }
+    const firstName = form.ownerFirstName.trim();
+    const lastName = form.ownerLastName.trim();
+    if (!firstName) {
+      setStatus("Enter the administrator's name before requesting an invoice.");
+      return;
+    }
+
+    submitInFlightRef.current = true;
+    setIsSubmitting(true);
+    setStatus(null);
+    try {
+      // Existing public sales endpoint; no payment is attempted, no account
+      // details are exposed, and no tenant/subscription is provisioned.
+      // The sales team independently validates the published price before
+      // generating an invoice; the request contains no trusted payment total.
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName: lastName || undefined,
+          companyName: form.companyName.trim(),
+          workEmail: form.email.trim(),
+          phoneNumber: form.phone.trim() || undefined,
+          country: form.country.trim(),
+          inquiryIntent: "PRICING",
+          interestedPlan: selectedPlan.key,
+          message: [
+            "Bank transfer invoice requested via DijiPeople subscription checkout.",
+            `Plan: ${selectedPlan.name}`,
+            `Plan price ID: ${selectedPrice.id}`,
+            `Seats: ${effectiveSeatQuantity}`,
+            `Billing: ${billingCycle}`,
+            `Currency: ${selectedPrice.currency}`,
+            `Requested workspace: ${form.requestedSlug.trim()}`,
+            onboardingId ? `Onboarding draft: ${onboardingId}` : "",
+            "No payment has been received or verified.",
+          ].filter(Boolean).join("\\n").slice(0, 1500),
+          marketingConsent: false,
+          referralCode: readReferralCode() || undefined,
+          ...readAttribution(),
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setStatus(payload?.message ?? "Could not request bank transfer instructions. Please try again.");
+        return;
+      }
+      setBankRequestSubmitted(true);
+    } catch {
+      setStatus("We could not reach the server. Please try again.");
+    } finally {
+      submitInFlightRef.current = false;
+      setIsSubmitting(false);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -392,6 +465,11 @@ export function SubscribeForm({
     }
     if (decision.action === "advance") {
       goNext();
+      return;
+    }
+
+    if (bankTransferSelected && canCheckout) {
+      await requestBankTransferInvoice();
       return;
     }
 
@@ -565,6 +643,25 @@ export function SubscribeForm({
       response.ok
         ? "If that address needs a new code, one is on its way."
         : "Unable to send a new code right now.",
+    );
+  }
+
+  if (bankRequestSubmitted) {
+    return (
+      <div className="max-w-xl rounded-[24px] border border-border bg-white p-6 shadow-sm" role="status">
+        <h2 className="text-xl font-semibold text-foreground">Bank transfer invoice requested</h2>
+        <p className="mt-3 text-sm leading-6 text-muted">
+          We have received your request for payment instructions. Our team will
+          review the plan and contact you by email. Do not transfer money until
+          you receive verified instructions from DijiPeople.
+        </p>
+        <p className="mt-3 text-sm font-medium text-foreground">
+          No payment was processed and your subscription is not active yet.
+        </p>
+        <a className="mt-5 inline-flex rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground" href="/plans">
+          Back to plans
+        </a>
+      </div>
     );
   }
 
@@ -891,6 +988,33 @@ export function SubscribeForm({
           </p>
         </div>
 
+        {/* The bank-transfer request is available for published PKR prices
+            even before a live gateway is approved. It creates a sales inquiry,
+            never a paid invoice or an activated subscription. */}
+        {bankTransferMarket && selectedPrice ? (
+          <fieldset className="mt-4 grid gap-2 rounded-2xl border border-border p-4">
+            <legend className="px-1 text-sm font-semibold text-foreground">Payment method</legend>
+            {onlineCheckoutAvailable ? (
+              <label className="flex items-center gap-3 text-sm text-foreground">
+                <input type="radio" name="paymentFlow" value="ONLINE" checked={!bankTransferSelected}
+                  onChange={() => setPaymentFlow("ONLINE")} />
+                Pay online {paymentProviders.length === 1 ? `(${paymentProviders[0].label})` : ""}
+              </label>
+            ) : null}
+            <label className="flex items-center gap-3 text-sm text-foreground">
+              <input type="radio" name="paymentFlow" value="BANK_TRANSFER_REQUEST"
+                checked={bankTransferSelected}
+                onChange={() => setPaymentFlow("BANK_TRANSFER_REQUEST")} />
+              Request bank transfer / Raast payment instructions
+            </label>
+            <p className="text-xs leading-5 text-muted">
+              Bank transfers are arranged with our team. We will confirm the
+              amount and bank details before you pay. Activation follows
+              independent payment verification, not a receipt screenshot.
+            </p>
+          </fieldset>
+        ) : null}
+
         {/*
           Unavailable: say so, quote a code, and render no form at all.
 
@@ -913,7 +1037,7 @@ export function SubscribeForm({
           journey asserts a single visible notice and a duplicate id is a
           strict-mode violation rather than twice the clarity.
         */}
-        {block ? (
+        {block && !bankTransferSelected ? (
           <div
             className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-5"
             id="subscribe-unavailable-notice"
@@ -1043,7 +1167,11 @@ export function SubscribeForm({
               disabled={isSubmitting || !canCheckout}
               type="submit"
             >
-              {isSubmitting ? "Submitting…" : "Confirm and verify email"}
+              {isSubmitting
+                ? "Submitting…"
+                : bankTransferSelected
+                  ? "Request bank transfer invoice"
+                  : "Confirm and verify email"}
             </button>
           ) : (
             <button
