@@ -310,6 +310,26 @@ describe('SafepayGateway', () => {
   });
 
   describe('onModuleInit', () => {
+    it('never exposes sandbox as a live checkout option', () => {
+      expect(gateway({ APP_ENV: 'production' }).isEnabled()).toBe(false);
+      expect(gateway({ APP_ENV: 'staging' }).isEnabled()).toBe(false);
+      expect(gateway({ APP_ENV: 'development' }).isEnabled()).toBe(true);
+    });
+
+    it('requires live Safepay credentials before production routing can start', () => {
+      const live = gateway({
+        APP_ENV: 'production',
+        SAFEPAY_ENVIRONMENT: 'production',
+      });
+      expect(live.isEnabled()).toBe(true);
+      expect(live.isConfigured()).toBe(true);
+      expect(() => live.onModuleInit()).not.toThrow();
+    });
+
+    it('fails deployment instead of silently offering sandbox checkout', () => {
+      expect(() => gateway({ APP_ENV: 'production' }).onModuleInit())
+        .toThrow(/SAFEPAY_ENVIRONMENT=production/);
+    });
     it('refuses to boot a production API with Safepay on and unconfigured', () => {
       expect(() =>
         gateway({
