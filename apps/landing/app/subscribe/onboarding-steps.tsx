@@ -647,11 +647,13 @@ export function ReviewStep({
   paymentProviders = [],
   paymentProvider,
   onPaymentProviderChange,
+  bankTransferRequest = false,
 }: StepProps & {
   goTo: (step: WizardStep) => void;
   paymentProviders?: PaymentProviderOption[];
   paymentProvider?: PaymentProviderKey;
   onPaymentProviderChange?: (key: PaymentProviderKey) => void;
+  bankTransferRequest?: boolean;
 }) {
   const rows: Array<{ label: string; value: string; step: WizardStep }> = [
     { label: "Company", value: form.companyName, step: "organization" },
@@ -672,8 +674,9 @@ export function ReviewStep({
   return (
     <div className="grid gap-4">
       <p className="text-sm leading-6 text-muted">
-        Check this over. Nothing has been charged yet — the next step confirms
-        your email, then takes you to secure payment.
+        {bankTransferRequest
+          ? "Check your details before requesting a bank transfer invoice. Our team will email verified instructions. This request does not confirm payment or activate a subscription."
+          : "Check this over. Nothing has been charged yet — the next step confirms your email, then takes you to secure payment."}
       </p>
 
       <dl className="divide-y divide-border rounded-2xl border border-border bg-white">
@@ -707,7 +710,7 @@ export function ReviewStep({
         group in a fieldset: arrow keys move between options and the legend is
         announced with each one.
       */}
-      {paymentProviders.length > 1 && onPaymentProviderChange ? (
+      {!bankTransferRequest && paymentProviders.length > 1 && onPaymentProviderChange ? (
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium text-foreground">
             Payment method
