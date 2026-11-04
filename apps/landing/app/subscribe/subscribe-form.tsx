@@ -1113,6 +1113,7 @@ export function SubscribeForm({
               <ReviewStep
                 {...stepProps}
                 goTo={goTo}
+                bankTransferRequest={bankTransferSelected}
                 onPaymentProviderChange={setPickedProvider}
                 paymentProvider={paymentProvider}
                 paymentProviders={paymentProviders}
