@@ -153,6 +153,17 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
   }
 
   async createCheckout(input: HostedCheckoutRequest): Promise<HostedCheckout> {
+    // Provider routing is not the only entry point: existing invoices can be
+    // re-opened directly. Block a sandbox redirect here too, before creating
+    // any provider tracker for a live customer.
+    if (
+      isProductionLike(this.configService) &&
+      this.environmentOrNull() !== 'production'
+    ) {
+      throw new AppError('PAYMENT_PROVIDER_NOT_CONFIGURED', {
+        message: 'Safepay live merchant credentials are required for this checkout.',
+      });
+    }
     const environment = this.requireEnvironment();
 
     const created = await this.request<{
