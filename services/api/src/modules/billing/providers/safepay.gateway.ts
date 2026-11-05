@@ -161,7 +161,8 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
       this.environmentOrNull() !== 'production'
     ) {
       throw new AppError('PAYMENT_PROVIDER_NOT_CONFIGURED', {
-        message: 'Safepay live merchant credentials are required for this checkout.',
+        message:
+          'Safepay live merchant credentials are required for this checkout.',
       });
     }
     const environment = this.requireEnvironment();

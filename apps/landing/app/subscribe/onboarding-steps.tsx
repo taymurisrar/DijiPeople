@@ -586,7 +586,9 @@ export function AgreementsStep({ form, set, agreements }: StepProps) {
         />
         <span className="leading-6 text-foreground">
           I have read and agree to the{" "}
-          {agreements.length === 1 ? "document" : `${agreements.length} documents`}{" "}
+          {agreements.length === 1
+            ? "document"
+            : `${agreements.length} documents`}{" "}
           listed above.
           <span className="mt-0.5 block text-xs text-muted">
             We record which version of each you accepted, and when.
@@ -710,7 +712,9 @@ export function ReviewStep({
         group in a fieldset: arrow keys move between options and the legend is
         announced with each one.
       */}
-      {!bankTransferRequest && paymentProviders.length > 1 && onPaymentProviderChange ? (
+      {!bankTransferRequest &&
+      paymentProviders.length > 1 &&
+      onPaymentProviderChange ? (
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium text-foreground">
             Payment method

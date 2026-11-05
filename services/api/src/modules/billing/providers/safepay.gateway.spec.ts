@@ -340,8 +340,9 @@ describe('SafepayGateway', () => {
     });
 
     it('fails deployment instead of silently offering sandbox checkout', () => {
-      expect(() => gateway({ APP_ENV: 'production' }).onModuleInit())
-        .toThrow(/SAFEPAY_ENVIRONMENT=production/);
+      expect(() => gateway({ APP_ENV: 'production' }).onModuleInit()).toThrow(
+        /SAFEPAY_ENVIRONMENT=production/,
+      );
     });
     it('refuses to boot a production API with Safepay on and unconfigured', () => {
       expect(() =>

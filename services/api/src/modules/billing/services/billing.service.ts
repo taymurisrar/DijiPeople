@@ -26,7 +26,10 @@ import {
   assertValidTenantSlug,
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
-import { isProductionLike, StripeBillingService } from './stripe-billing.service';
+import {
+  isProductionLike,
+  StripeBillingService,
+} from './stripe-billing.service';
 // The one channel rule, shared with `/public/commercial-config` rather than
 // restated here — see the filter in `getPublicPlans`.
 import {
@@ -111,7 +114,10 @@ export class BillingService {
   ) {
     const provider = this.paymentGateways.resolveProvider(price.currency);
     if (!this.paymentGateways.isManaged(provider)) {
-      const readiness = deriveCheckoutReadiness(price, expectedStripeEnvironment);
+      const readiness = deriveCheckoutReadiness(
+        price,
+        expectedStripeEnvironment,
+      );
       if (!this.stripePubliclyAvailable()) {
         return {
           checkoutReady: false,
@@ -599,10 +605,14 @@ export class BillingService {
       input.provider,
       () => this.stripeFactsFor(planPrice),
     );
-    if (provider === PaymentProvider.STRIPE && !this.stripePubliclyAvailable()) {
+    if (
+      provider === PaymentProvider.STRIPE &&
+      !this.stripePubliclyAvailable()
+    ) {
       throw new BadRequestException({
         code: 'PAYMENT_PROVIDER_UNAVAILABLE',
-        message: 'Online card payments are not yet available for this selection.',
+        message:
+          'Online card payments are not yet available for this selection.',
       });
     }
     if (this.paymentGateways.isManaged(provider)) {

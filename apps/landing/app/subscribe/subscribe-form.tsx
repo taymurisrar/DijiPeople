@@ -165,7 +165,11 @@ export function SubscribeForm({
   const bankTransferMarket = currency.toUpperCase() === "PKR";
   const [paymentFlow, setPaymentFlow] = useState<
     "ONLINE" | "BANK_TRANSFER_REQUEST"
-  >(bankTransferMarket && paymentProviders.length === 0 ? "BANK_TRANSFER_REQUEST" : "ONLINE");
+  >(
+    bankTransferMarket && paymentProviders.length === 0
+      ? "BANK_TRANSFER_REQUEST"
+      : "ONLINE",
+  );
   const [bankRequestSubmitted, setBankRequestSubmitted] = useState(false);
   const paymentProvider = chosenPaymentProvider(
     paymentProviders,
@@ -173,9 +177,11 @@ export function SubscribeForm({
   );
   // One decision, three consumers: the notice, the form and Continue.
   const block = checkoutBlock(selectedPrice);
-  const bankTransferSelected = bankTransferMarket && paymentFlow === "BANK_TRANSFER_REQUEST";
+  const bankTransferSelected =
+    bankTransferMarket && paymentFlow === "BANK_TRANSFER_REQUEST";
   const onlineCheckoutAvailable = block === null && paymentProviders.length > 0;
-  const canCheckout = Boolean(selectedPrice) && (bankTransferSelected || onlineCheckoutAvailable);
+  const canCheckout =
+    Boolean(selectedPrice) && (bankTransferSelected || onlineCheckoutAvailable);
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
@@ -382,7 +388,12 @@ export function SubscribeForm({
   const submitInFlightRef = useRef(false);
 
   async function requestBankTransferInvoice() {
-    if (!selectedPrice || !selectedPlan || !bankTransferMarket || !form.email.trim()) {
+    if (
+      !selectedPrice ||
+      !selectedPlan ||
+      !bankTransferMarket ||
+      !form.email.trim()
+    ) {
       setStatus("Choose a Pakistani plan and enter a valid contact email.");
       return;
     }
@@ -423,7 +434,10 @@ export function SubscribeForm({
             `Requested workspace: ${form.requestedSlug.trim()}`,
             onboardingId ? `Onboarding draft: ${onboardingId}` : "",
             "No payment has been received or verified.",
-          ].filter(Boolean).join("\\n").slice(0, 1500),
+          ]
+            .filter(Boolean)
+            .join("\\n")
+            .slice(0, 1500),
           marketingConsent: false,
           referralCode: readReferralCode() || undefined,
           ...readAttribution(),
@@ -431,7 +445,10 @@ export function SubscribeForm({
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        setStatus(payload?.message ?? "Could not request bank transfer instructions. Please try again.");
+        setStatus(
+          payload?.message ??
+            "Could not request bank transfer instructions. Please try again.",
+        );
         return;
       }
       setBankRequestSubmitted(true);
@@ -496,31 +513,31 @@ export function SubscribeForm({
     let response: Response;
     try {
       response = await fetch("/api/public/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...buildSubmitPayloadWithReferral(form, {
-          planPriceId: selectedPrice.id,
-          seatQuantity: effectiveSeatQuantity,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...buildSubmitPayloadWithReferral(form, {
+            planPriceId: selectedPrice.id,
+            seatQuantity: effectiveSeatQuantity,
+          }),
+          /*
+           * BUG-1516. The draft opened on the workspace step carries a
+           * placeholder address, because the owner's e-mail is not collected
+           * until the step after it. The server identifies a repeat submission by
+           * a hash built from that e-mail, so the real submission hashed
+           * differently, matched nothing, and created a second order and a second
+           * customer for one signup.
+           *
+           * Sending the draft's own id lets the server continue the order it
+           * already holds rather than infer which one this is. The draft cannot
+           * simply be deferred: the workspace-address check is session-bound to a
+           * live order on purpose, so that answering "is maseer taken" costs an
+           * attacker a rate-limited, durably recorded row per question.
+           */
+          onboardingId: onboardingId ?? undefined,
+          // Undefined (so omitted by JSON) unless the buyer had a choice.
+          provider: paymentProvider,
         }),
-        /*
-         * BUG-1516. The draft opened on the workspace step carries a
-         * placeholder address, because the owner's e-mail is not collected
-         * until the step after it. The server identifies a repeat submission by
-         * a hash built from that e-mail, so the real submission hashed
-         * differently, matched nothing, and created a second order and a second
-         * customer for one signup.
-         *
-         * Sending the draft's own id lets the server continue the order it
-         * already holds rather than infer which one this is. The draft cannot
-         * simply be deferred: the workspace-address check is session-bound to a
-         * live order on purpose, so that answering "is maseer taken" costs an
-         * attacker a rate-limited, durably recorded row per question.
-         */
-        onboardingId: onboardingId ?? undefined,
-        // Undefined (so omitted by JSON) unless the buyer had a choice.
-        provider: paymentProvider,
-      }),
       });
     } catch {
       // A network failure must release the latch, or the buyer could never
@@ -648,8 +665,13 @@ export function SubscribeForm({
 
   if (bankRequestSubmitted) {
     return (
-      <div className="max-w-xl rounded-[24px] border border-border bg-white p-6 shadow-sm" role="status">
-        <h2 className="text-xl font-semibold text-foreground">Bank transfer invoice requested</h2>
+      <div
+        className="max-w-xl rounded-[24px] border border-border bg-white p-6 shadow-sm"
+        role="status"
+      >
+        <h2 className="text-xl font-semibold text-foreground">
+          Bank transfer invoice requested
+        </h2>
         <p className="mt-3 text-sm leading-6 text-muted">
           We have received your request for payment instructions. Our team will
           review the plan and contact you by email. Do not transfer money until
@@ -658,7 +680,10 @@ export function SubscribeForm({
         <p className="mt-3 text-sm font-medium text-foreground">
           No payment was processed and your subscription is not active yet.
         </p>
-        <a className="mt-5 inline-flex rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground" href="/plans">
+        <a
+          className="mt-5 inline-flex rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground"
+          href="/plans"
+        >
           Back to plans
         </a>
       </div>
@@ -848,8 +873,8 @@ export function SubscribeForm({
             </p>
           ) : bankTransferSelected ? (
             <p className="mt-2 text-xs text-muted">
-              Request an invoice and verified payment instructions.
-              Your subscription will begin after payment is confirmed.
+              Request an invoice and verified payment instructions. Your
+              subscription will begin after payment is confirmed.
             </p>
           ) : null}
         </div>
@@ -998,18 +1023,32 @@ export function SubscribeForm({
             never a paid invoice or an activated subscription. */}
         {bankTransferMarket && selectedPrice ? (
           <fieldset className="mt-4 grid gap-2 rounded-2xl border border-border p-4">
-            <legend className="px-1 text-sm font-semibold text-foreground">Payment method</legend>
+            <legend className="px-1 text-sm font-semibold text-foreground">
+              Payment method
+            </legend>
             {onlineCheckoutAvailable ? (
               <label className="flex items-center gap-3 text-sm text-foreground">
-                <input type="radio" name="paymentFlow" value="ONLINE" checked={!bankTransferSelected}
-                  onChange={() => setPaymentFlow("ONLINE")} />
-                Pay online {paymentProviders.length === 1 ? `(${paymentProviders[0].label})` : ""}
+                <input
+                  type="radio"
+                  name="paymentFlow"
+                  value="ONLINE"
+                  checked={!bankTransferSelected}
+                  onChange={() => setPaymentFlow("ONLINE")}
+                />
+                Pay online{" "}
+                {paymentProviders.length === 1
+                  ? `(${paymentProviders[0].label})`
+                  : ""}
               </label>
             ) : null}
             <label className="flex items-center gap-3 text-sm text-foreground">
-              <input type="radio" name="paymentFlow" value="BANK_TRANSFER_REQUEST"
+              <input
+                type="radio"
+                name="paymentFlow"
+                value="BANK_TRANSFER_REQUEST"
                 checked={bankTransferSelected}
-                onChange={() => setPaymentFlow("BANK_TRANSFER_REQUEST")} />
+                onChange={() => setPaymentFlow("BANK_TRANSFER_REQUEST")}
+              />
               Request bank transfer / Raast payment instructions
             </label>
             <p className="text-xs leading-5 text-muted">
