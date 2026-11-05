@@ -26,6 +26,11 @@ import {
 import { readReferralCode } from "../../lib/referral";
 import { readAttribution } from "../../lib/acquisition-options";
 import {
+  paymentFlowContextKey,
+  resolvePaymentFlow,
+  type PaymentFlowSelection,
+} from "../../lib/payment-flow-selection";
+import {
   resolveSubscribeSelection,
   type SubscribeSelectionParams,
 } from "../../lib/subscribe-selection";
@@ -163,13 +168,8 @@ export function SubscribeForm({
   // The sales team verifies the account and issues payment instructions; the
   // website must never claim an unpaid request is a completed subscription.
   const bankTransferMarket = currency.toUpperCase() === "PKR";
-  const [paymentFlow, setPaymentFlow] = useState<
-    "ONLINE" | "BANK_TRANSFER_REQUEST"
-  >(
-    bankTransferMarket && paymentProviders.length === 0
-      ? "BANK_TRANSFER_REQUEST"
-      : "ONLINE",
-  );
+  const [paymentFlowSelection, setPaymentFlowSelection] =
+    useState<PaymentFlowSelection | null>(null);
   const [bankRequestSubmitted, setBankRequestSubmitted] = useState(false);
   const paymentProvider = chosenPaymentProvider(
     paymentProviders,
@@ -177,9 +177,20 @@ export function SubscribeForm({
   );
   // One decision, three consumers: the notice, the form and Continue.
   const block = checkoutBlock(selectedPrice);
+  const onlineCheckoutAvailable = block === null && paymentProviders.length > 0;
+  const paymentContextKey = paymentFlowContextKey({
+    currency,
+    priceId: selectedPrice?.id ?? null,
+    providerKeys: paymentProviders.map((provider) => provider.key),
+  });
+  const paymentFlow = resolvePaymentFlow({
+    contextKey: paymentContextKey,
+    selection: paymentFlowSelection,
+    bankTransferMarket,
+    onlineCheckoutAvailable,
+  });
   const bankTransferSelected =
     bankTransferMarket && paymentFlow === "BANK_TRANSFER_REQUEST";
-  const onlineCheckoutAvailable = block === null && paymentProviders.length > 0;
   const canCheckout =
     Boolean(selectedPrice) && (bankTransferSelected || onlineCheckoutAvailable);
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
@@ -1033,7 +1044,12 @@ export function SubscribeForm({
                   name="paymentFlow"
                   value="ONLINE"
                   checked={!bankTransferSelected}
-                  onChange={() => setPaymentFlow("ONLINE")}
+                  onChange={() =>
+                    setPaymentFlowSelection({
+                      contextKey: paymentContextKey,
+                      flow: "ONLINE",
+                    })
+                  }
                 />
                 Pay online{" "}
                 {paymentProviders.length === 1
@@ -1047,7 +1063,12 @@ export function SubscribeForm({
                 name="paymentFlow"
                 value="BANK_TRANSFER_REQUEST"
                 checked={bankTransferSelected}
-                onChange={() => setPaymentFlow("BANK_TRANSFER_REQUEST")}
+                onChange={() =>
+                  setPaymentFlowSelection({
+                    contextKey: paymentContextKey,
+                    flow: "BANK_TRANSFER_REQUEST",
+                  })
+                }
               />
               Request bank transfer / Raast payment instructions
             </label>

@@ -170,7 +170,7 @@ export default async function BillingPage({
       <AdminPageHeader
         eyebrow="Billing"
         title="Billing workspace"
-        description="Operational billing control center for diagnostics, invoices, payments, subscriptions, and Stripe webhooks."
+        description="Operational billing control center for diagnostics, invoices, payments, subscriptions, and payment-provider events."
       />
 
       <nav className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
