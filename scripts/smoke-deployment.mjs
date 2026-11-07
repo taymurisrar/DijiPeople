@@ -207,7 +207,9 @@ await check("plan entitlements are enforced, not merely logged", async () => {
  *
  * Never a customer's account, never the owner's: SMOKE_STARTER_LOGIN_* names a
  * test user created for this purpose in a Starter-plan test workspace
- * (SMOKE_STARTER_TENANT_SLUG), with no MFA requirement of its own. If the account
+ * (SMOKE_STARTER_TENANT_SLUG), with no MFA requirement of its own, linked to an
+ * EMPLOYEE record (attendance and leave self-service answer 400 for a user with
+ * no employee profile, such as a workspace owner who is not also an employee). If the account
  * demands MFA the check fails and says so; it does not try to answer a challenge.
  * SMOKE_REQUIRE_STARTER_PROBE=1 turns a missing account into a failure, which is
  * the setting for a production verification.
@@ -254,7 +256,7 @@ if (starterEmail && starterPassword) {
     for (const [label, path] of [
       ["employee access", "/employees?pageSize=1"],
       ["leave", "/leave-requests/mine"],
-      ["attendance", "/attendance/mine"],
+      ["attendance", "/attendance/mine/today"],
       ["document access", "/documents?pageSize=1"],
     ]) {
       await check(`a Starter tenant reaches what its plan includes: ${label}`, async () => {
