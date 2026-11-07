@@ -30,6 +30,10 @@ import {
   BrandingAssetsService,
   type UploadedBrandingFile,
 } from './branding-assets.service';
+import {
+  canSeeSubscriptionPricing,
+  redactSubscriptionPricing,
+} from './subscription-pricing-visibility';
 import { TenantSettingsService } from './tenant-settings.service';
 
 const SETTINGS_READ_PERMISSION = 'settings.read';
@@ -145,7 +149,11 @@ export class TenantSettingsController {
   @Permissions(SETTINGS_READ_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   async getFeatures(@CurrentUser() user: AuthenticatedUser) {
-    return this.service.getTenantFeatures(user.tenantId);
+    const features = await this.service.getTenantFeatures(user.tenantId);
+
+    return canSeeSubscriptionPricing(user)
+      ? features
+      : redactSubscriptionPricing(features);
   }
 
   /*

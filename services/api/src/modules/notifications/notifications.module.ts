@@ -6,6 +6,7 @@ import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module'
 import { WorkflowsModule } from '../workflows/workflows.module';
 import { EmailDeliveryLogService } from './email/email-delivery-log.service';
 import { EmailExecutionService } from './email/email-execution.service';
+import { EmailBrandingService } from './email/email-branding.service';
 import { EmailProviderFactory } from './email/email-provider-factory.service';
 import { PlatformEmailProviderResolver } from './email/platform-email-provider.resolver';
 import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
@@ -40,6 +41,7 @@ import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
     ConsoleEmailProvider,
     EmailDeliveryLogService,
     EmailExecutionService,
+    EmailBrandingService,
     EmailProviderFactory,
     EmailProviderService,
     EmailService,

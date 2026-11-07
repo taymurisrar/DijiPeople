@@ -18,8 +18,9 @@ export const DEFAULT_BRANDING_VALUES = {
   logoUrl: "",
   logoDarkUrl: "",
   faviconUrl: "/favicon.ico",
-  primaryColor: "#059669",
-  secondaryColor: "#047857",
+  // Darkened from #059669 (3.76:1 on white) to meet WCAG AA (DP-QA-013).
+  primaryColor: "#047857",
+  secondaryColor: "#065f46",
   accentColor: "#34D399",
   backgroundColor: "#f8fafc",
   surfaceColor: "#ffffff",

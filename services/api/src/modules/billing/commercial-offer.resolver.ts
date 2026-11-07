@@ -67,6 +67,10 @@ export type ResolvablePlan = {
   isActive: boolean;
   publicationStatus: CommercialPublicationStatus;
   salesModel: CommercialSalesModel;
+  /** Custom-plan limits (see plan-eligibility.ts); absent on callers that predate them. */
+  eligibleCustomerAccountId?: string | null;
+  effectiveFrom?: Date | null;
+  effectiveUntil?: Date | null;
 };
 
 export type ResolvableMarket = {
@@ -258,6 +262,16 @@ export function resolveCommercialOffer(
   if (plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED)
     return unavailable('PLAN_NOT_PUBLISHED');
   if (!plan.isActive) return unavailable('PLAN_INACTIVE');
+  // Availability expiry stops NEW sales; a running subscription is not re-resolved here.
+  if (
+    (plan.effectiveFrom && plan.effectiveFrom > effectiveAt) ||
+    (plan.effectiveUntil && plan.effectiveUntil <= effectiveAt)
+  )
+    return unavailable('PLAN_NOT_PUBLISHED');
+  // Defence in depth: a plan reserved for one customer is never sold anonymously,
+  // whatever its sales model says.
+  if (channel === 'SELF_SERVICE' && plan.eligibleCustomerAccountId)
+    return unavailable('CUSTOM_CONTRACT_ONLY');
 
   const marketProblem = assertMarketSellable(market);
   if (marketProblem) return marketProblem;

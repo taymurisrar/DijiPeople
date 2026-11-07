@@ -600,7 +600,7 @@ export function VersionsPanel({
           <PermissionGate anyOf={["customization.export"]}>
             <a
               aria-label={`Download version ${row.version}`}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-accent hover:bg-accent-soft"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-accent-strong hover:bg-accent-soft"
               download
               href={`/api/customization/packages/${lifecycle.packageId}/versions/${encodeURIComponent(row.version)}/artifact`}
             >

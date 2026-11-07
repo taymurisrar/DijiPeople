@@ -46,6 +46,12 @@ function buildService(providerType: EmailProviderType) {
       findEmployeePlacement: jest.fn(async () => null),
     },
     renderer: { render: jest.fn(() => RENDERED) },
+    branding: {
+      brand: jest.fn(async (_tenantId: string, r: typeof RENDERED) => ({
+        html: r.renderedHtml,
+        text: r.renderedText,
+      })),
+    },
     tenantSettingsResolver: {
       getNotificationSettings: jest.fn(async () => ({ emailEnabled: true })),
     },

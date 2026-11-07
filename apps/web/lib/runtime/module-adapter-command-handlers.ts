@@ -28,6 +28,8 @@ export interface AdapterCommandHandlerInput {
   readonly lookupDisplayValues?: Readonly<Record<string, string>>;
 }
 
+export const DATA_MANAGEMENT_ROUTE = "/settings/data-management";
+
 export function buildAdapterCommandHandlers({
   dataAdapter,
   downloadFile,
@@ -438,13 +440,17 @@ export function buildAdapterCommandHandlers({
 
       return { ok: true, message: "Record exported." };
     },
-    "system.import": (context) => {
-      navigate?.(`${context.runtime.module.routeBase}/import`);
+    // Bulk import lives in one place, Settings > Data Management. This used to
+    // navigate to `<routeBase>/import`, a page no module has: the dynamic
+    // `[employeeId]` segment swallowed "import" and the API answered "uuid is
+    // expected" (DP-QA-004).
+    "system.import": () => {
+      navigate?.(DATA_MANAGEMENT_ROUTE);
 
       return {
         ok: true,
         message: "Opening import.",
-        redirectTo: `${context.runtime.module.routeBase}/import`,
+        redirectTo: DATA_MANAGEMENT_ROUTE,
       };
     },
   };

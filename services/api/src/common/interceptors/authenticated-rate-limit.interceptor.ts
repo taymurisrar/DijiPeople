@@ -5,7 +5,7 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import type { Observable } from 'rxjs';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 
@@ -75,6 +75,14 @@ export class AuthenticatedRateLimitInterceptor implements NestInterceptor {
         windows.set(key, { count: 1, resetsAt: now + WINDOW_MS });
         cleanup(now);
       } else if (current.count >= limit) {
+        // Tells a well-behaved client how long to back off (DP-QA-024).
+        context
+          .switchToHttp()
+          .getResponse<Response>()
+          .setHeader(
+            'Retry-After',
+            String(Math.max(1, Math.ceil((current.resetsAt - now) / 1000))),
+          );
         throw new HttpException(
           {
             code: 'AUTHENTICATED_RATE_LIMITED',

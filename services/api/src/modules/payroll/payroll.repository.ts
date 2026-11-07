@@ -331,6 +331,8 @@ export class PayrollRepository {
     return db.employee.findMany({
       where: {
         tenantId,
+        // A soft-deleted employee must not be drafted into payroll (DP-QA-030).
+        isDeleted: false,
         OR: [
           { terminationDate: null },
           { terminationDate: { gte: periodStart } },

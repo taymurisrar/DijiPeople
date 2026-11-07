@@ -29,6 +29,9 @@ import {
 } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
@@ -69,7 +72,8 @@ class RevokeGatewayDto {
 const OFFLINE_AFTER_MS = 5 * 60_000;
 
 @Controller('integrations/gateways')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS)
 export class GatewayAdminController {
   constructor(
     private readonly prisma: PrismaService,

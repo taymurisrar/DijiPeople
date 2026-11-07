@@ -73,32 +73,12 @@ const DISPOSITIONED = new Map([
     'Moderate, transitive through exceljs. Same disposition. BUG-0052.',
   ],
   [
-    "archiver",
-    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
-  ],
-  [
-    "archiver-utils",
-    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
-  ],
-  [
-    "zip-stream",
-    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
-  ],
-  [
-    "readdir-glob",
-    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
-  ],
-  [
     "glob",
     "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (also pulled by the active-win chain)",
   ],
   [
     "minimatch",
     "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (also pulled by the active-win chain)",
-  ],
-  [
-    "rimraf",
-    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (rimraf 2.7.1 via unzipper -> fstream)",
   ],
   [
     "node-gyp",

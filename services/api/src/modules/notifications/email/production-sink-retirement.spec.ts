@@ -471,36 +471,85 @@ describe('NotificationsService provider writes in production', () => {
 });
 
 describe('seedTenantConsoleProviders', () => {
-  function buildClient() {
-    const count = jest.fn(async () => 0);
+  function buildClient(existing = 0) {
+    const count = jest.fn(async () => existing);
+    const create = jest.fn(async () => ({}));
     const upsert = jest.fn(async () => ({}));
+    const update = jest.fn(async () => ({}));
+    const updateMany = jest.fn(async () => ({ count: 0 }));
     return {
       client: {
-        emailProviderSetting: { count, upsert },
+        emailProviderSetting: { count, create, upsert, update, updateMany },
       } as unknown as PrismaClient,
       count,
-      upsert,
+      create,
+      writes: { upsert, update, updateMany },
     };
   }
 
   const TENANTS = [{ id: 'tenant-1', name: 'Acme' }] as never;
 
-  it('creates no sink provider in production — pre-deploy runs seed:config on every release', async () => {
-    const { client, count, upsert } = buildClient();
+  it('creates no sink provider in production - pre-deploy runs seed:config on every release', async () => {
+    const { client, count, create } = buildClient();
 
     await expect(
       seedTenantConsoleProviders(client, TENANTS, PRODUCTION),
     ).resolves.toBe(0);
     expect(count).not.toHaveBeenCalled();
-    expect(upsert).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 
-  it('still seeds a Console provider for a local development tenant', async () => {
-    const { client, upsert } = buildClient();
+  it('seeds a default Console provider for a new development tenant with none', async () => {
+    const { client, create } = buildClient(0);
 
     await expect(
       seedTenantConsoleProviders(client, TENANTS, DEVELOPMENT),
     ).resolves.toBe(1);
-    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a tenant with an enabled SMTP provider untouched', async () => {
+    const { client, create, writes } = buildClient(1);
+
+    await expect(
+      seedTenantConsoleProviders(client, TENANTS, DEVELOPMENT),
+    ).resolves.toBe(0);
+    expect(create).not.toHaveBeenCalled();
+    expect(writes.upsert).not.toHaveBeenCalled();
+    expect(writes.update).not.toHaveBeenCalled();
+    expect(writes.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('counts disabled providers too, so a configured-but-disabled SMTP row is not displaced by the sink', async () => {
+    const { client, count } = buildClient(1);
+
+    await seedTenantConsoleProviders(client, TENANTS, DEVELOPMENT);
+
+    // No `enabled` filter: any row is a choice the seed must respect.
+    expect(count).toHaveBeenCalledWith({ where: { tenantId: 'tenant-1' } });
+  });
+
+  it("is idempotent: the second run finds the first run's row and writes nothing", async () => {
+    const rows: string[] = [];
+    const client = {
+      emailProviderSetting: {
+        count: jest.fn(async () => rows.length),
+        create: jest.fn(async () => {
+          rows.push('Console Provider');
+          return {};
+        }),
+      },
+    } as unknown as PrismaClient;
+
+    await expect(
+      seedTenantConsoleProviders(client, TENANTS, DEVELOPMENT),
+    ).resolves.toBe(1);
+    await expect(
+      seedTenantConsoleProviders(client, TENANTS, DEVELOPMENT),
+    ).resolves.toBe(0);
+    await expect(
+      seedTenantConsoleProviders(client, TENANTS, DEVELOPMENT),
+    ).resolves.toBe(0);
+    expect(rows).toHaveLength(1);
   });
 });

@@ -51,6 +51,8 @@ import {
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
 import { AuditService } from '../audit/audit.service';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
+import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
 
 type ExtendedAgentSettings =
   Prisma.AgentTrackingSettingsGetPayload<Prisma.AgentTrackingSettingsDefaultArgs> & {
@@ -146,7 +148,22 @@ export class AgentService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly entitlements: TenantEntitlementService,
   ) {}
+
+  /*
+   * login/refresh are @Public(), so EntitlementGuard never sees them and a
+   * tenant downgraded off the Desktop Agent could keep minting and renewing
+   * agent credentials indefinitely. Checked after the credentials are proven so
+   * the refusal is no enumeration oracle.
+   */
+  private assertAgentEntitled(tenantId: string, route: string) {
+    return this.entitlements.assertEntitled(
+      tenantId,
+      [TENANT_FEATURE_KEYS.DESKTOP_AGENT],
+      route,
+    );
+  }
 
   async login(dto: AgentLoginDto) {
     /*
@@ -220,6 +237,8 @@ export class AgentService {
       );
     }
 
+    await this.assertAgentEntitled(user.tenantId, 'POST /agent/auth/login');
+
     const device = await this.upsertDevice(
       {
         id: user.id,
@@ -265,6 +284,8 @@ export class AgentService {
     if (!user || !user.employee || user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Unable to refresh this agent session.');
     }
+
+    await this.assertAgentEntitled(user.tenantId, 'POST /agent/auth/refresh');
 
     const device = await this.prisma.employeeDevice.findFirst({
       where: {

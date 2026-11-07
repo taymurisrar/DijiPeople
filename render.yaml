@@ -146,6 +146,19 @@ services:
       # Set the value in the Render dashboard; never commit it.
       - key: SECRET_ENCRYPTION_KEY
         sync: false
+      # REQUIRED in production: `npm run release` (preDeployCommand) runs
+      # scripts/verify-entitlement-enforcement.mjs first and FAILS the deploy
+      # unless this is exactly ENFORCE (or ENTITLEMENT_ALLOW_UNENFORCED=true is
+      # set as a deliberate, logged exception). `smoke:deployment` then reads
+      # /api/health entitlementEnforcement.enforced from the running service.
+      # Release floor for plan-entitlement enforcement (DP-QA-005, ADR-0009).
+      # Declared without a value on purpose: the owner sets ENFORCE in the
+      # Render dashboard AFTER `npm run entitlement:grandfather` has been run,
+      # as a deliberate cutover. Unset means "no floor" - the platform setting
+      # alone decides, and a fresh database comes up REPORT_ONLY. When set, the
+      # effective mode is never weaker than it; a malformed value fails closed.
+      - key: ENTITLEMENT_ENFORCEMENT_MODE
+        sync: false
       # Bootstrap credentials for the platform super admin.
       #
       # These were required by `preDeployCommand` and undeclared here, which

@@ -50,13 +50,25 @@ describe('BUG-0904 — the served health payload reports the outbox worker', () 
   it('serves the same payload from every path it answers', () => {
     // All three bypass Nest, so all three have to carry it.
     for (const route of ["'/'", "'/api'", "'/api/health'"]) {
-      expect([route, code.includes(`expressApp.get(${route}`)]).toEqual([
+      expect([
         route,
-        true,
-      ]);
+        code.includes(`expressApp.get(${route}, serveHealth)`),
+      ]).toEqual([route, true]);
     }
-    const calls = code.match(/res\.json\(healthPayload\(\)\)/g) ?? [];
-    expect(calls).toHaveLength(3);
+    // ...and the one shared handler answers with the payload, once.
+    expect(code.match(/res\.json\(payload\)/g) ?? []).toHaveLength(1);
+  });
+
+  /*
+   * DP-QA-005. Production defaulted to REPORT_ONLY and nothing outside the service
+   * could tell. The deploy gate (smoke:deployment) reads this field, so it has to
+   * be on the handler that is actually served - the same lesson as above.
+   */
+  it('reports whether plan entitlements are enforced, from the running process', () => {
+    expect(code).toContain(
+      'entitlementEnforcement: await entitlements.describeEnforcement()',
+    );
+    expect(code).toContain('app.get(TenantEntitlementService');
   });
 
   it('keeps the runtime payload it always carried', () => {

@@ -1739,11 +1739,17 @@ export class EmployeeProfilesService {
       );
     }
 
+    // Pins the credential this link was issued against, so it works once (DP-QA-031).
+    const credential = await this.prisma.user.findFirst({
+      where: { id: employee.user.id, tenantId: currentUser.tenantId },
+      select: { passwordChangedAt: true },
+    });
     const resetToken = this.jwtService.sign(
       {
         sub: employee.user.id,
         tenantId: currentUser.tenantId,
         type: 'password-reset',
+        pwv: credential?.passwordChangedAt?.getTime() ?? 0,
       },
       { secret: getAccessTokenSecret(this.configService), expiresIn: '1d' },
     );

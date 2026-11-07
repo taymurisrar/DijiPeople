@@ -189,14 +189,72 @@ const nextConfig: NextConfig = {
       ],
     ] as const;
 
-    return settingsRedirects.flatMap(([source, destination]) => [
-      { source, destination, permanent: false },
-      {
-        source: `${source}/:path*`,
-        destination: `${destination}/:path*`,
+    /*
+     * DP-QA-023 - routes whose page does nothing but `redirect()`. A page-level
+     * redirect runs AFTER the authenticated shell has started streaming, so
+     * opening the URL directly renders the sidebar, its links start prefetching,
+     * and then the client-side redirect cancels those in-flight requests. Chromium
+     * ignores that; WebKit reports every cancelled prefetch as an uncaught
+     * "access control checks" page error (reproduced locally: 6 of 6 direct loads
+     * of each of the three URLs QA named, 0 of 6 on stable pages).
+     *
+     * An HTTP redirect answers before any page renders, so there is nothing to
+     * cancel. Exact paths only (no `/:path*`): these never captured sub-routes, and
+     * a prefix rule would shadow the more specific entries above. Destinations are
+     * the FINAL route, not another redirect. The pages stay as the fallback.
+     */
+    const exactRedirects = [
+      ["/employees/import", "/settings/data-management"],
+      ["/settings/access", "/settings/security-access"],
+      ["/settings/security", "/settings/security-access"],
+      [
+        "/settings/security-access/roles",
+        "/settings/security-access/authorization/roles",
+      ],
+      ["/settings/subscription", "/settings/subscription/overview"],
+      ["/settings/billing", "/settings/subscription/overview"],
+      ["/settings/features", "/settings/subscription/plans"],
+      ["/settings/company", "/settings/general-setup/tenant/tenant-profile"],
+      [
+        "/settings/organization",
+        "/settings/general-setup/organization/organizations",
+      ],
+      [
+        "/settings/system-audit",
+        "/settings/audit-compliance/history/audit-events",
+      ],
+      [
+        "/settings/claim-types",
+        "/settings/payroll/configuration/claim-types",
+      ],
+      ["/settings/tax-rules", "/settings/payroll/configuration/tax-rules"],
+      [
+        "/settings/travel-allowance-policies",
+        "/settings/payroll/configuration/travel-allowance-policies",
+      ],
+      [
+        "/settings/leave-policies",
+        "/settings/people/leave/leave-policies",
+      ],
+      ["/settings/projects", "/projects"],
+      ["/customization", "/settings/customization"],
+    ] as const;
+
+    return [
+      ...exactRedirects.map(([source, destination]) => ({
+        source,
+        destination,
         permanent: false,
-      },
-    ]);
+      })),
+      ...settingsRedirects.flatMap(([source, destination]) => [
+        { source, destination, permanent: false },
+        {
+          source: `${source}/:path*`,
+          destination: `${destination}/:path*`,
+          permanent: false,
+        },
+      ]),
+    ];
   },
 };
 

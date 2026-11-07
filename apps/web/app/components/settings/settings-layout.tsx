@@ -22,9 +22,15 @@ export function SettingsLayout({
   title,
 }: SettingsLayoutProps) {
   return (
-    <div className="flex w-full min-w-0 max-w-none gap-6">
+    /*
+     * DP-QA-041 - a row at every width gave the 260px sidebar (plus padding) the
+     * whole of a 412px phone and left the content column 0px wide, off-screen.
+     * Below md the sidebar stacks under the content; from md up it is the
+     * familiar left rail.
+     */
+    <div className="flex w-full min-w-0 max-w-none flex-col gap-6 md:flex-row">
       {sidebar ? (
-        <aside className="shrink-0 rounded-[28px] border border-border bg-surface p-5 shadow-lg xl:sticky xl:top-6 xl:h-fit">
+        <aside className="order-last w-full min-w-0 shrink-0 rounded-[28px] border border-border bg-surface p-5 shadow-lg md:order-first md:w-auto xl:sticky xl:top-6 xl:h-fit">
           {sidebar}
         </aside>
       ) : null}
@@ -37,7 +43,8 @@ export function SettingsLayout({
        * help — the constraint has to be on the column track. With this, wide
        * children stay inside the column and scroll within themselves.
        */}
-      <div className="grid w-full min-w-0 max-w-none flex-1 grid-cols-[minmax(0,1fr)] content-start gap-6">
+      {/* A page body that is itself a bare `grid` has an implicit auto column sized by its widest child (a table, a colour row), which pushed holiday calendars and branding 150px past a 412px phone (DP-QA-041). Give such a direct child the same constrained track. */}
+      <div className="grid w-full min-w-0 max-w-none flex-1 grid-cols-[minmax(0,1fr)] content-start gap-6 [&>.grid:not([class*=grid-cols])]:grid-cols-[minmax(0,1fr)]">
         {showHeader ? (
           <header className="rounded-[28px] border border-border bg-surface px-6 py-5 shadow-sm">
             {breadcrumb ? (

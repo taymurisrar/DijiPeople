@@ -1,11 +1,15 @@
 import { config as loadEnv } from 'dotenv';
+import { hostname, userInfo } from 'node:os';
 import { resolve } from 'node:path';
 import { createPrismaClient } from './create-prisma-client';
 import {
   ENTITLEMENT_ENFORCEMENT_MODES,
+  ENTITLEMENT_ENV_VAR,
   ENTITLEMENT_SETTING_FIELD,
   ENTITLEMENT_SETTING_KEY,
   parseEnforcementMode,
+  readEnvEnforcementFloor,
+  stricterMode,
   type EntitlementEnforcementMode,
 } from '../src/common/security/tenant-entitlement.service';
 
@@ -66,7 +70,16 @@ async function setEntitlementEnforcement() {
     const currentMode = parseEnforcementMode(existing?.value);
 
     if (!requested) {
-      console.log(`Current entitlement enforcement mode: ${currentMode}`);
+      console.log(`Stored entitlement enforcement mode: ${currentMode}`);
+      /*
+       * The variable is read from THIS shell's environment, so for a deployed
+       * service it only reports what the operator exported here, not what the
+       * service has. Check the service's own environment for the real floor.
+       */
+      const { floor } = readEnvEnforcementFloor();
+      console.log(
+        `${ENTITLEMENT_ENV_VAR} in this shell: ${floor ?? '(unset)'}  ->  effective here: ${floor ? stricterMode(currentMode, floor) : currentMode}`,
+      );
       console.log(
         `Pass a mode to change it: ${ENTITLEMENT_ENFORCEMENT_MODES.join(' | ')}`,
       );
@@ -81,6 +94,13 @@ async function setEntitlementEnforcement() {
       );
     }
     const targetMode = requested as EntitlementEnforcementMode;
+
+    const { floor } = readEnvEnforcementFloor();
+    if (floor && stricterMode(floor, targetMode) !== targetMode) {
+      console.warn(
+        `NOTE: ${ENTITLEMENT_ENV_VAR}=${floor} is a release floor. Writing ${targetMode} will not weaken enforcement while it is set; change the deployment's environment to relax it.`,
+      );
+    }
 
     if (currentMode === targetMode) {
       console.log(
@@ -107,8 +127,29 @@ async function setEntitlementEnforcement() {
       },
     });
 
+    /*
+     * DP-QA-052: the change is recorded, with who and from where, in the platform
+     * audit log. A script has no signed-in user, so the actor is the operating
+     * system account and host that ran it (or ENTITLEMENT_CHANGED_BY when the
+     * operator names themselves); the row is written by this script and says so.
+     */
+    const operator =
+      process.env.ENTITLEMENT_CHANGED_BY?.trim() ||
+      `${userInfo().username}@${hostname()}`;
+    await prisma.platformAuditLog.create({
+      data: {
+        action: 'ENTITLEMENT_ENFORCEMENT_CHANGED',
+        entityType: 'PlatformSetting',
+        entityId: ENTITLEMENT_SETTING_KEY,
+        sourceModule: 'entitlement:set-mode',
+        scope: { operator, target: describeTargetDatabase() },
+        beforeSnapshot: { [ENTITLEMENT_SETTING_FIELD]: currentMode },
+        afterSnapshot: { [ENTITLEMENT_SETTING_FIELD]: targetMode },
+      },
+    });
+
     console.log(
-      `Entitlement enforcement changed: ${currentMode} -> ${targetMode}.`,
+      `Entitlement enforcement changed: ${currentMode} -> ${targetMode} (audited as ${operator}).`,
     );
     if (targetMode === 'ENFORCE') {
       console.log(

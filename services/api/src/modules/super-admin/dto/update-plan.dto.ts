@@ -1,11 +1,15 @@
+import { CommercialSalesModel } from '@prisma/client';
 import {
   ArrayUnique,
   IsArray,
   IsBoolean,
+  IsEnum,
+  IsISO8601,
   IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   MinLength,
@@ -59,4 +63,22 @@ export class UpdatePlanDto {
   @ArrayUnique()
   @IsString({ each: true })
   featureKeys?: string[];
+
+  /** Reserve the plan for one customer; omit for a reusable custom plan. */
+  @IsOptional()
+  @IsUUID()
+  eligibleCustomerAccountId?: string | null;
+
+  /** Contractual validity window (ISO date-time); omit for open-ended. */
+  @IsOptional()
+  @IsISO8601()
+  effectiveFrom?: string | null;
+
+  @IsOptional()
+  @IsISO8601()
+  effectiveUntil?: string | null;
+
+  @IsOptional()
+  @IsEnum(CommercialSalesModel)
+  salesModel?: CommercialSalesModel;
 }

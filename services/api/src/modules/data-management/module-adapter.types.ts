@@ -61,4 +61,6 @@ export type DataModuleDescriptor = {
   matchingKeys: readonly string[];
   supportsImport: boolean;
   supportsExport: boolean;
+  /** Importable fields the standard export leaves out (national/tax identifiers). */
+  exportOmittedFields: readonly string[];
 };

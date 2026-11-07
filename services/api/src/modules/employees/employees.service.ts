@@ -526,6 +526,9 @@ export class EmployeesService {
       where: {
         AND: [
           accessWhere,
+          // A deleted employee is not someone a user account can be linked to
+          // (DP-QA-030).
+          { isDeleted: false },
           search
             ? {
                 OR: [

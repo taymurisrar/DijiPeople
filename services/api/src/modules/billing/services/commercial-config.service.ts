@@ -1,3 +1,4 @@
+import { publiclyOfferablePlanWhere } from '../../super-admin/plan-eligibility';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   BillingInterval,
@@ -242,6 +243,8 @@ export class CommercialConfigService {
       where: {
         publicationStatus: CommercialPublicationStatus.PUBLISHED,
         isActive: true,
+        // Customer-reserved and out-of-window custom plans are never listed.
+        ...publiclyOfferablePlanWhere(),
       },
       orderBy: { sortOrder: 'asc' },
       include: {
@@ -444,6 +447,9 @@ type PlanRow = {
   isActive: boolean;
   publicationStatus: CommercialPublicationStatus;
   salesModel: CommercialSalesModel;
+  eligibleCustomerAccountId?: string | null;
+  effectiveFrom?: Date | null;
+  effectiveUntil?: Date | null;
 };
 
 function toResolvablePlan(plan: PlanRow): ResolvablePlan {
@@ -454,6 +460,9 @@ function toResolvablePlan(plan: PlanRow): ResolvablePlan {
     isActive: plan.isActive,
     publicationStatus: plan.publicationStatus,
     salesModel: plan.salesModel,
+    eligibleCustomerAccountId: plan.eligibleCustomerAccountId,
+    effectiveFrom: plan.effectiveFrom,
+    effectiveUntil: plan.effectiveUntil,
   };
 }
 

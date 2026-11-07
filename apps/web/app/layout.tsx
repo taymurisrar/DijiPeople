@@ -5,6 +5,7 @@ import { Instrument_Sans, Literata } from "next/font/google";
 import { TenantSettingsProvider } from "./components/settings/tenant-settings-provider";
 import { ThemeApplier } from "./components/theme/theme-applier";
 import { apiRequestJson } from "@/lib/server-api";
+import { sharedLookupRequest } from "@/lib/runtime/shared-lookup-request";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
 import {
   buildInitialBrandingStyle,
@@ -96,6 +97,7 @@ export default async function RootLayout({
       style={buildInitialBrandingStyle(publicSettings)}
       data-theme={resolvedTheme}
       data-tenant-theme={tenantThemeDefault ?? "system"}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
@@ -186,9 +188,20 @@ const getPublicSettings = cache(async (tenantSlug: string) => {
   const query = tenantSlug
     ? `?tenantSlug=${encodeURIComponent(tenantSlug)}`
     : "";
-  return apiRequestJson<PublicTenantSettings>(
-    `/tenant-settings/public-branding${query}`,
-    { includeAuth: false },
+  /*
+   * Unauthenticated and identical for everyone on the tenant, so identical
+   * loads share one call for a few seconds. Every prefetch and navigation
+   * renders this root layout again; opening New Employee made nine of these
+   * (RUN-005 follow-up). Next's own fetch cache cannot do this because the
+   * per-request trace header is part of its key. A failed load is never kept.
+   * The signed-in client refreshes its own copy when branding is saved, so the
+   * window only affects other sessions.
+   */
+  return sharedLookupRequest(`public-branding:${tenantSlug}`, () =>
+    apiRequestJson<PublicTenantSettings>(
+      `/tenant-settings/public-branding${query}`,
+      { includeAuth: false },
+    ),
   ).catch((): PublicTenantSettings => ({}));
 });
 

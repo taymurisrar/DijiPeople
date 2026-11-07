@@ -1,3 +1,4 @@
+import { BASELINE_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import {
   isSubscriptionLive,
@@ -38,7 +39,9 @@ export class FeatureAccessService {
     );
 
     const items = TENANT_FEATURE_DEFINITIONS.map((definition) => {
-      const isIncludedInPlan = planFeatureMap.get(definition.key) ?? false;
+      const isIncludedInPlan =
+        (planFeatureMap.get(definition.key) ?? false) ||
+        BASELINE_FEATURE_KEYS.has(definition.key);
       const override = tenantOverrideMap.get(definition.key);
       const isEnabled = resolveTenantFeatureState({
         isIncludedInPlan,

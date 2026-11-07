@@ -330,3 +330,80 @@ is a naming migration, not a behavioural one.
 BUG-1952 (original entitlement-guard build, REPORT_ONLY default). BUG-3350
 (this cutover). BUG-3332/BUG-3333/BUG-3334 (the same Plans-screen review this
 was found alongside).
+
+## Update 2026-10-31 — the four ungated features now carry route guards (DP-QA-010)
+
+The go-live QA (RUN-002) confirmed the residual finding above as a release risk:
+a Starter owner was served `/data-management/*`, `/integrations/attendance/*`,
+`/integrations/gateways`, `/agent/settings` and `/audit-logs` under `ENFORCE`.
+The product brief requires plan restrictions to hold in the backend, so the four
+are now guarded — **without** the breakage the earlier reasons warned about:
+
+- **`data-management`** — the whole module is gated (`ENTITLEMENT_GATED_MODULES`).
+- **`attendance-integrations`** — the six tenant-admin controllers are gated one
+  by one (`ENTITLEMENT_GATED_CONTROLLERS`). `GatewayRuntimeController` and
+  `GatewayServiceController` stay open (`ENTITLEMENT_OPEN_CONTROLLERS`): a deployed
+  gateway cannot be upgraded past a refusal and carries no tenant user.
+- **`desktop-agent`** — the whole authenticated agent controller is gated (settings, device
+  enrolment, sessions, heartbeats); the three public auth routes carry no tenant and pass. This
+  was first narrowed to `GET/PATCH /agent/settings` to protect fielded agents, which left a plan
+  that never bought the agent able to enrol devices and run sessions. Tenants already running
+  agents are carried by the grandfather `agentRefreshToken` probe, so **run the grandfather script
+  before ENFORCE** or their agents get 403 `TENANT_FEATURE_NOT_ENTITLED`. Owner to confirm.
+- **`compliance`** — `AuditController` (the tenant's two audit reads) is gated;
+  audit *writes* are internal service calls and are unaffected.
+
+`entitlement-wiring.invariants.spec.ts` asserts both halves from real Nest
+metadata. The grandfather script gained usage probes for the first three;
+`compliance` has none because every tenant has audit rows, so an Enterprise-only
+audit history needs an explicit grant.
+
+**Operational consequence.** With `ENFORCE` on, a tenant whose plan lacks one of
+these keys and that has no `CUSTOM` override loses those screens. Run
+`npm run entitlement:grandfather` (dry run) **before** flipping production, as
+for the original seven. Nothing in this change flips the mode.
+
+## Update 2026-10-31 — enforcement is a release floor, and fails closed on a fault (DP-QA-005)
+
+RUN-001/002 observed that the posture lived only in a `PlatformSetting` row, so
+a fresh, restored or re-seeded database came up `REPORT_ONLY` and served every
+paid module to a Starter tenant until someone remembered to flip it — and a
+database fault at read time also dropped a running `ENFORCE` to `REPORT_ONLY`.
+
+What changed (the **default is not changed**; shipping this alters no environment):
+
+1. **`ENTITLEMENT_ENFORCEMENT_MODE` is a release floor.** When set on a
+   deployment, the effective mode is `max(floor, stored)` by strictness
+   (`OFF` < `REPORT_ONLY` < `ENFORCE`). The stored setting can make it
+   stricter, never looser. Unset means no floor.
+2. **A set-but-malformed floor fails closed** to `ENFORCE` and logs an error.
+   (A malformed *stored* value still falls back to the default, as before.)
+3. **A read fault keeps the last successfully read stored mode** instead of
+   dropping to the default. With nothing read yet it still defaults to
+   `REPORT_ONLY`.
+4. **Boot makes an unenforced production loud:** `ENTITLEMENT_NOT_ENFORCED` is
+   logged at error level when `NODE_ENV=production` and the effective mode is
+   not `ENFORCE`. It never blocks startup.
+5. `render.yaml` declares the variable with `sync: false` (no value), and
+   `docs/environment-variables.md` documents it.
+
+**Why the default stays `REPORT_ONLY`.** Flipping it in code would enforce on
+the next deploy, before the owner has run `entitlement:grandfather`, and cut
+off every tenant using a module outside its plan. The cutover remains one
+deliberate act per environment.
+
+**Cutover order (owner, production — not performed by this change):**
+`entitlement:grandfather` dry run → review → `--apply` → set
+`ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE` on the service → deploy → verify gates
+A1–A5 in `docs/qa/go-live/PRODUCTION-RELEASE-GATES.md`. **Rollback** is changing
+the variable (and, if the stored row is also `ENFORCE`, `entitlement:set-mode`);
+the stored setting alone can no longer relax a floor.
+
+
+## Update 2026-11-01 - partly superseded by ADR-0028
+
+The `data-management` key described above was split: `data-import-export` is now
+sold on every plan and `advanced-data-management` is the premium tier. The
+`desktop-agent` key is now Enterprise/Custom only (it was sold from Growth), and
+the agent's public login/refresh routes are entitlement-checked in the service.
+See [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding]].

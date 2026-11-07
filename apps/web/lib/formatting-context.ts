@@ -135,11 +135,28 @@ function resolveLocale(context?: ResolvedFormattingContext | null) {
 }
 
 function resolveTimezone(context?: ResolvedFormattingContext | null) {
-  return (
-    context?.timezone ||
-    runtimeDefaultContext.timezone ||
-    DEFAULT_CONTEXT.timezone
-  );
+  const candidates = [
+    context?.timezone,
+    runtimeDefaultContext.timezone,
+    DEFAULT_CONTEXT.timezone,
+  ];
+
+  // A stored zone Intl rejects ("Not/AZone", saved before the API validated it)
+  // must not take every date on the page down with it (DP-QA-012).
+  for (const candidate of candidates) {
+    if (candidate && isUsableTimezone(candidate)) return candidate;
+  }
+
+  return "UTC";
+}
+
+function isUsableTimezone(timezone: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function resolveHour12(context?: ResolvedFormattingContext | null) {

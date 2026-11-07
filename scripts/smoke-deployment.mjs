@@ -10,6 +10,28 @@ const apiBaseUrl = (
 const email = process.env.SMOKE_LOGIN_EMAIL || process.env.BOOTSTRAP_ADMIN_EMAIL;
 const password =
   process.env.SMOKE_LOGIN_PASSWORD || process.env.BOOTSTRAP_ADMIN_PASSWORD;
+import { loginBody } from "./smoke-login.mjs";
+
+/*
+ * DP-QA-048 - `POST /auth/login` refuses a request with no tenant context
+ * (`AUTH_UNAUTHORIZED`, "Company or tenant context is required to sign in."): the
+ * API resolves the workspace from `tenantSlug` in the body and does not read the
+ * Origin header for sign-in. The smoke logins used to send only email and
+ * password, so every one of them failed against a tenant user, including the
+ * Starter behavioural proof that was added to catch a guard that misbehaves while
+ * /api/health says "enforced".
+ *
+ *   SMOKE_TENANT_SLUG          workspace of the SMOKE_LOGIN_* user
+ *   SMOKE_STARTER_TENANT_SLUG  workspace of the SMOKE_STARTER_LOGIN_* user
+ *                              (defaults to SMOKE_TENANT_SLUG)
+ */
+const tenantSlug = (process.env.SMOKE_TENANT_SLUG || "").trim().toLowerCase();
+const starterTenantSlug = (
+  process.env.SMOKE_STARTER_TENANT_SLUG || tenantSlug
+)
+  .trim()
+  .toLowerCase();
+
 const origin =
   process.env.SMOKE_ORIGIN ||
   process.env.NEXT_PUBLIC_WEB_URL ||
@@ -127,6 +149,184 @@ await check("outbox worker is draining events", async () => {
   }
 });
 
+/*
+ * DP-QA-005 - production defaulted to REPORT_ONLY, so a Starter tenant could use
+ * every paid module and nothing but a log line said so.
+ *
+ * Read from the RUNNING process (/api/health), because the setting lives on the
+ * service. A hard failure, and a hard failure when the field is absent too: a
+ * deployment that cannot say whether it enforces entitlements is treated as one
+ * that does not. SMOKE_ALLOW_UNENFORCED=1 is the explicit, printed exception for
+ * a release that knowingly precedes the cutover.
+ */
+await check("plan entitlements are enforced, not merely logged", async () => {
+  const response = await request("/health");
+  if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
+  const payload = await response.json().catch(() => null);
+  const state = payload?.entitlementEnforcement;
+
+  if (!state || typeof state.enforced !== "boolean") {
+    throw new Error(
+      "health does not report entitlementEnforcement, so enforcement cannot be " +
+        "confirmed. The deployment predates DP-QA-005 or /api/health is not " +
+        "answered by the current build (see the express handler in main.ts).",
+    );
+  }
+  if (state.enforced !== true) {
+    if (process.env.SMOKE_ALLOW_UNENFORCED === "1") {
+      console.warn(
+        `    ! entitlement enforcement is ${state.mode}; allowed by SMOKE_ALLOW_UNENFORCED=1`,
+      );
+      return;
+    }
+    throw new Error(
+      `entitlement enforcement is ${state.mode}: unauthorised modules are served. ` +
+        "Set ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE on the API service (DP-QA-005, ADR-0009).",
+    );
+  }
+  /*
+   * DP-QA-052 - enforcement can be true while the DATABASE setting says something
+   * weaker: the release floor (the environment variable) is then the only thing
+   * holding it up, and removing the variable would silently withdraw enforcement.
+   * Visible here as source ENV; a warning by default, a failure when asked.
+   */
+  if (state.source === "ENV" && state.stored && state.stored !== "ENFORCE") {
+    const message =
+      "enforcement is held up by the " + state.floor + " release floor while the stored " +
+      "setting is " + state.stored + ": set the stored setting too (npm run entitlement:set-mode -- ENFORCE).";
+    if (process.env.SMOKE_FAIL_ON_ENTITLEMENT_DRIFT === "1") throw new Error(message);
+    console.warn("    ! " + message);
+  }
+});
+
+/*
+ * Behavioural proof with a DEDICATED SYNTHETIC Starter-plan tenant account. The
+ * health flag says what the service believes; this proves what it does, as a real
+ * tenant user would meet it: sign in, stay signed in, reach what the plan includes,
+ * be refused what it does not, and be signed out for real.
+ *
+ * Never a customer's account, never the owner's: SMOKE_STARTER_LOGIN_* names a
+ * test user created for this purpose in a Starter-plan test workspace
+ * (SMOKE_STARTER_TENANT_SLUG), with no MFA requirement of its own, linked to an
+ * EMPLOYEE record (attendance and leave self-service answer 400 for a user with
+ * no employee profile, such as a workspace owner who is not also an employee). If the account
+ * demands MFA the check fails and says so; it does not try to answer a challenge.
+ * SMOKE_REQUIRE_STARTER_PROBE=1 turns a missing account into a failure, which is
+ * the setting for a production verification.
+ */
+const starterEmail = process.env.SMOKE_STARTER_LOGIN_EMAIL;
+const starterPassword = process.env.SMOKE_STARTER_LOGIN_PASSWORD;
+
+/** Signs a TENANT user in. Returns the cookie header, or throws a message that never contains a token or a challenge. */
+async function tenantSignIn(credentials, slug) {
+  const login = await request("/auth/login", {
+    method: "POST",
+    body: loginBody(credentials, slug, { rememberMe: false }),
+  });
+  const body = await login.json().catch(() => null);
+  if (body && body.mfaRequired) {
+    throw new Error(
+      "the account requires MFA, which a smoke test must not answer: use a synthetic test account without it.",
+    );
+  }
+  if (!login.ok) throw new Error(`tenant sign-in: expected 2xx, got ${login.status}`);
+  const cookie = collectCookies(login);
+  if (!cookie) throw new Error("tenant sign-in returned no session cookies.");
+  return cookie;
+}
+
+if (starterEmail && starterPassword) {
+  let starterCookie = "";
+  await check("a Starter tenant user signs in with its tenant context", async () => {
+    starterCookie = await tenantSignIn(
+      { email: starterEmail, password: starterPassword },
+      starterTenantSlug,
+    );
+  });
+  if (starterCookie) {
+    await check("the Starter session is live and belongs to the expected workspace", async () => {
+      const me = await request("/auth/me", { headers: { Cookie: starterCookie } });
+      if (!me.ok) throw new Error(`/auth/me: expected 2xx, got ${me.status}`);
+      const body = await me.json().catch(() => null);
+      const slug = String(body?.tenant?.slug ?? body?.user?.tenantSlug ?? "").toLowerCase();
+      if (slug && slug !== starterTenantSlug) {
+        throw new Error(`signed in to workspace "${slug}", expected "${starterTenantSlug}".`);
+      }
+    });
+    for (const [label, path] of [
+      ["employee access", "/employees?pageSize=1"],
+      ["leave", "/leave-requests/mine"],
+      ["attendance", "/attendance/mine/today"],
+      ["document access", "/documents?pageSize=1"],
+    ]) {
+      await check(`a Starter tenant reaches what its plan includes: ${label}`, async () => {
+        const response = await request(path, { headers: { Cookie: starterCookie } });
+        if (!response.ok) throw new Error(`GET ${path}: expected 2xx, got ${response.status}`);
+      });
+    }
+    for (const [label, path] of [
+      ["recruitment", "/job-openings"],
+      ["payroll", "/payroll/runs"],
+      ["timesheets", "/timesheets/entries"],
+      ["projects", "/projects"],
+    ]) {
+      await check(`a Starter tenant is refused a module its plan does not include: ${label}`, async () => {
+        const denied = await request(path, { headers: { Cookie: starterCookie } });
+        if (denied.status !== 403) {
+          throw new Error(
+            `GET ${path} as a Starter tenant returned ${denied.status}, expected 403 ENTITLEMENT refusal.`,
+          );
+        }
+      });
+    }
+    await check("signing out ends the Starter session for real", async () => {
+      const out = await request("/auth/logout", { method: "POST", headers: { Cookie: starterCookie } });
+      if (!out.ok) throw new Error(`logout: expected 2xx, got ${out.status}`);
+      const after = await request("/auth/me", { headers: { Cookie: starterCookie } });
+      if (![401, 403].includes(after.status)) {
+        throw new Error(`/auth/me after logout: expected 401/403, got ${after.status}`);
+      }
+    });
+  }
+} else if (process.env.SMOKE_REQUIRE_STARTER_PROBE === "1") {
+  await check("a dedicated synthetic Starter test account is configured", async () => {
+    throw new Error(
+      "SMOKE_REQUIRE_STARTER_PROBE=1 but SMOKE_STARTER_LOGIN_EMAIL / SMOKE_STARTER_LOGIN_PASSWORD / SMOKE_STARTER_TENANT_SLUG are not all set. " +
+        "A production verification needs a synthetic Starter account; it must not use a customer or owner account.",
+    );
+  });
+} else {
+  console.warn(
+    "Skipping the Starter tenant journey. Set SMOKE_STARTER_LOGIN_EMAIL, SMOKE_STARTER_LOGIN_PASSWORD and SMOKE_STARTER_TENANT_SLUG (a synthetic Starter-plan test user).",
+  );
+}
+
+/*
+ * Platform administration is a SEPARATE identity system (POST /admin/auth/login,
+ * app client "admin"): a platform admin does not open a tenant workspace and a
+ * tenant owner does not open the console. Checked on its own, with its own
+ * variables, so a missing tenant context can never be mistaken for a broken
+ * platform login or the other way round. Optional.
+ */
+const platformEmail = process.env.SMOKE_PLATFORM_EMAIL;
+const platformPassword = process.env.SMOKE_PLATFORM_PASSWORD;
+if (platformEmail && platformPassword) {
+  await check("platform admin signs in through the platform identity system", async () => {
+    const response = await request("/admin/auth/login", {
+      method: "POST",
+      headers: { "X-DijiPeople-App": "admin" },
+      body: JSON.stringify({ email: platformEmail, password: platformPassword }),
+    });
+    const body = await response.json().catch(() => null);
+    if (body && body.mfaRequired) {
+      throw new Error("the platform account requires MFA, which a smoke test must not answer.");
+    }
+    if (!response.ok) throw new Error(`platform sign-in: expected 2xx, got ${response.status}`);
+  });
+} else {
+  console.warn("Skipping the platform sign-in check. Set SMOKE_PLATFORM_EMAIL and SMOKE_PLATFORM_PASSWORD (a platform service account).");
+}
+
 await check("protected profile rejects unauthenticated request", async () => {
   const response = await request("/auth/me");
   if (![401, 403].includes(response.status)) {
@@ -139,7 +339,7 @@ if (email && password) {
   await check("auth login works", async () => {
     const response = await request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password, rememberMe: true }),
+      body: loginBody({ email, password }, tenantSlug, { rememberMe: true }),
     });
     if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
     cookieHeader = collectCookies(response);
