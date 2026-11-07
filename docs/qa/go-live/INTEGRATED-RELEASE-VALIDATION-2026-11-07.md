@@ -82,3 +82,19 @@ Executed on a local isolated stack built from the integrated candidate, includin
 Ready for the release gate sequence: merge #135 → develop; release PR develop → main with exact-SHA CI; fresh
 backup; apply the two migrations via the direct connection; deploy; verify exact SHAs, `ENFORCE`, 239 migrations,
 and the authenticated synthetic-Starter smoke (needs the dedicated account — owner approval).
+
+## Production release outcome (2026-11-07)
+| Item | Result |
+|---|---|
+| Release PR | #138 (develop → main), exact-SHA CI 34 success / 2 skipped, merged as `1f48141e` |
+| Fresh backup | taken immediately before the migration (11 MB custom-format dump, SHA-256 recorded privately, restorable) |
+| Migrations | the two pending migrations applied via the direct connection; 238 of 238 applied; no table lost rows (35 grew from live activity); legacy Custom plan converted in place |
+| Render API | deploy live on `1f48141e` (pre-deploy gate and seed:config passed); `/api/health` reports commit `1f48141` |
+| Vercel | admin, web and landing production deployments READY on `1f48141e` |
+| Entitlement enforcement | `ENFORCE`, source `PLATFORM_SETTING`, stored `ENFORCE`, floor `ENFORCE` |
+| Public plans | starter, growth, enterprise only (no operational Enterprise Plus) |
+| Anonymous production smoke | passed (health, commit, outbox, enforcement, CORS, purchasable plan, legal documents) |
+| Not run | authenticated Starter journey and platform sign-in: **no synthetic Starter account / platform service account is configured** (owner approval required); Stripe-webhook-secret and tenant-routing checks skipped for missing smoke env |
+| Error-level Render logs after deploy | none |
+
+Status: DEPLOYED WITH GAPS — the authenticated production smoke is the outstanding verification.
