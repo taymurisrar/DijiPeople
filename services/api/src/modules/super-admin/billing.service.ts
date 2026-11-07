@@ -16,6 +16,7 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { assertPlanAssignableToTenant } from './plan-eligibility';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
@@ -229,6 +230,13 @@ export class BillingService {
     },
   ) {
     const startDate = input.startDate ?? new Date();
+    // Every route that puts a tenant on a plan lands here, so reservation and the
+    // availability window are enforced here (DP-QA-043), not only per caller.
+    await assertPlanAssignableToTenant(
+      db as unknown as Parameters<typeof assertPlanAssignableToTenant>[0],
+      input.tenantId,
+      input.planId,
+    );
     const pricing = await this.calculateSubscriptionPricing({
       planId: input.planId,
       planPriceId: input.planPriceId,

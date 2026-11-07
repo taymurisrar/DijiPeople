@@ -18,6 +18,12 @@ import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.c
  * They used to read 199 / 399 / 899, invented for testing before any real
  * schedule existed.
  */
+/*
+ * The ONLY predefined plans: Starter, Growth, Enterprise (owner decision,
+ * 2026-11-01). Any other plan - a customer agreement, a promotion, a pilot - is a
+ * CUSTOM plan created through the plan console (`Plan.kind = CUSTOM`), with its own
+ * identity and its own explicit feature list. Do not add a fourth tier here.
+ */
 export const DEFAULT_PLAN_DEFINITIONS = [
   {
     key: 'starter',
@@ -35,6 +41,8 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'documents',
       'notifications',
       'branding',
+      // Basic import/export is on every plan; advanced data management is not.
+      'data-import-export',
     ],
   },
   {
@@ -59,20 +67,20 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'notifications',
       'branding',
       /*
-       * Growth is the lowest tier that sells the desktop agent. Starter buys
-       * Attendance and clocks in through the web; the agent is the upgrade.
-       * Enterprise and Enterprise+ take every key in the catalog, so they pick
-       * this up without being listed here.
-       */
-      'desktop-agent',
-      /*
-       * Attendance hardware and the bulk data path are Growth capabilities.
-       * Compliance is Enterprise: retention policy and compliance exports are
-       * what an enterprise buyer's security review asks for, and no Growth
-       * customer has asked for them.
+       * The desktop agent is Enterprise/Custom only (final product decision):
+       * Enterprise takes every key in the catalog, so they pick
+       * it up without it being listed here. Growth does not sell it.
+       *
+       * Attendance hardware and advanced data management are Growth
+       * capabilities; basic import/export is on every plan. Compliance is
+       * Enterprise: retention policy and compliance exports are what an
+       * enterprise buyer's security review asks for.
        */
       'attendance-integrations',
-      'data-management',
+      'data-import-export',
+      'advanced-data-management',
+      // Wording customization is Growth+; white-label is Enterprise/Custom only.
+      'email-template-customization',
     ],
   },
   {
@@ -83,27 +91,6 @@ export const DEFAULT_PLAN_DEFINITIONS = [
     sortOrder: 30,
     monthlyBasePrice: 385,
     annualBasePrice: 3850,
-    currency: 'USD',
-    enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map(
-      (feature) => feature.key,
-    ),
-  },
-  {
-    key: 'enterprise-plus',
-    name: 'Enterprise+',
-    description:
-      'Above 250 employees. Commercial terms are agreed per customer.',
-    sortOrder: 40,
-    /*
-     * Zero, and zero here means "there is no list price" rather than "free".
-     *
-     * `bootstrapCommercialDefaults` skips any price slot whose amount is <= 0,
-     * so this plan gets no `PlanPrice` row at all — which is what makes the
-     * offer resolver answer `CUSTOM_CONTRACT_ONLY` instead of quoting a figure.
-     * That is the honest response to "what does Enterprise+ cost": ask us.
-     */
-    monthlyBasePrice: 0,
-    annualBasePrice: 0,
     currency: 'USD',
     enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map(
       (feature) => feature.key,

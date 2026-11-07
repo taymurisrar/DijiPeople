@@ -46,6 +46,7 @@ describe('tenant provisioning retry step coverage', () => {
   const context = {
     prisma: {
       tenant: { findUnique: jest.fn().mockResolvedValue({ slug: 'acme' }) },
+      leaveType: { createMany: jest.fn().mockResolvedValue({ count: 0 }) },
     },
     tenantProvisioning: {
       provisionSystemDomain: jest.fn().mockResolvedValue({}),

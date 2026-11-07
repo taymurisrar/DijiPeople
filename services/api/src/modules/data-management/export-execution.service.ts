@@ -1,11 +1,15 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { DataJobStatus } from '@prisma/client';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import type { StorageScope } from '../../common/storage/object-storage.types';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { csvCell, type CsvFile } from '../../common/utils/csv.util';
+import {
+  csvCell,
+  neutraliseFormula,
+  type CsvFile,
+} from '../../common/utils/csv.util';
 import { SecurityPrivilege } from '@prisma/client';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
@@ -56,8 +60,9 @@ function relationLabel(value: unknown): string {
 function cellText(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'object') return relationLabel(value);
-  return toDisplayString(value);
+  // Tenant-typed text must not run as a spreadsheet formula (DP-QA-037).
+  if (typeof value === 'object') return neutraliseFormula(relationLabel(value));
+  return neutraliseFormula(toDisplayString(value));
 }
 
 /**
@@ -131,12 +136,39 @@ export class ExportExecutionService {
 
     // Same module and filters within the same minute resolve to one job, so a
     // double click does not queue the work twice.
-    const idempotencyKey = createHash('sha256')
+    let idempotencyKey = createHash('sha256')
       .update(moduleKey)
       .update(JSON.stringify(filters))
       .update(currentUser.userId)
       .update(String(Math.floor(Date.now() / 60_000)))
       .digest('hex');
+
+    /*
+     * The double-click window only collapses requests onto a job that is still
+     * in flight. A FINISHED job is a snapshot of the data at that moment, so a
+     * repeat request inside the same minute used to hand back the old file: an
+     * employee deleted a few seconds earlier was still in it (DP-QA-037).
+     */
+    const previous = await this.prisma.dataJob.findUnique({
+      where: {
+        tenantId_kind_idempotencyKey: {
+          tenantId: currentUser.tenantId,
+          kind: 'EXPORT',
+          idempotencyKey,
+        },
+      },
+      select: { status: true },
+    });
+    if (
+      previous &&
+      previous.status !== DataJobStatus.QUEUED &&
+      previous.status !== DataJobStatus.PROCESSING
+    ) {
+      idempotencyKey = createHash('sha256')
+        .update(idempotencyKey)
+        .update(randomUUID())
+        .digest('hex');
+    }
 
     const job = await this.prisma.dataJob.upsert({
       where: {
@@ -207,10 +239,19 @@ export class ExportExecutionService {
       include[relation] = true;
     }
 
+    // A soft-deleted record is gone as far as the tenant is concerned (DP-QA-037).
+    const notDeleted = this.registry.modelHasField(
+      module.modelName,
+      'isDeleted',
+    )
+      ? [{ isDeleted: false }]
+      : [];
+
     const rows = await delegate.findMany({
       where: {
         AND: [
           { tenantId: user.tenantId },
+          ...notDeleted,
           buildScopedAccessWhere(user, entityKey, SecurityPrivilege.READ, {
             organizationIdField: null,
             userIdField: 'userId',
@@ -221,7 +262,10 @@ export class ExportExecutionService {
       take: 10_000,
     });
 
-    const columns = module.importFields.map((field) => field.key);
+    const omitted = new Set(module.exportOmittedFields);
+    const columns = module.importFields
+      .map((field) => field.key)
+      .filter((key) => !omitted.has(key));
     const relationColumns = Object.keys(include);
     const header = [
       ...columns,
@@ -233,7 +277,9 @@ export class ExportExecutionService {
     for (const row of rows) {
       const values = [
         ...columns.map((key) => cellText(row[key])),
-        ...relationColumns.map((key) => relationLabel(row[key])),
+        ...relationColumns.map((key) =>
+          neutraliseFormula(relationLabel(row[key])),
+        ),
       ];
 
       lines.push(values.map(csvCell).join(','));

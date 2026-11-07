@@ -108,7 +108,7 @@ export function GatewaySetupWizard({
             <span
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
                 index === step
-                  ? "border-accent/30 bg-accent-soft text-accent"
+                  ? "border-accent/30 bg-accent-soft text-accent-strong"
                   : index < step
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : "border-border bg-white/70 text-muted"

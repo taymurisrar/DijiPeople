@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TENANT_FEATURE_DEFINITIONS } from '../../modules/tenant-settings/tenant-settings.catalog';
 import {
+  ENTITLEMENT_GATED_FEATURE_KEYS,
   ENTITLEMENT_GATED_MODULES,
   ENTITLEMENT_UNGATED_FEATURE_KEYS,
   ENTITLEMENT_UNGATED_MODULES,
@@ -104,7 +105,7 @@ describe('entitlement module map', () => {
  */
 describe('entitlement coverage of the plan catalog', () => {
   it('accounts for every feature key a plan can withhold', () => {
-    const gatedKeys = new Set<string>(Object.values(ENTITLEMENT_GATED_MODULES));
+    const gatedKeys = new Set<string>(ENTITLEMENT_GATED_FEATURE_KEYS);
     const exemptKeys = new Set<string>(
       Object.keys(ENTITLEMENT_UNGATED_FEATURE_KEYS),
     );
@@ -117,7 +118,7 @@ describe('entitlement coverage of the plan catalog', () => {
   });
 
   it('never both gates and exempts the same feature key', () => {
-    const gatedKeys = new Set<string>(Object.values(ENTITLEMENT_GATED_MODULES));
+    const gatedKeys = new Set<string>(ENTITLEMENT_GATED_FEATURE_KEYS);
     const contradictions = Object.keys(ENTITLEMENT_UNGATED_FEATURE_KEYS).filter(
       (key) => gatedKeys.has(key),
     );

@@ -68,7 +68,6 @@ const CATALOG: PlanRow[] = [
   { id: 'p1', key: 'starter', name: 'Starter' },
   { id: 'p2', key: 'growth', name: 'Growth' },
   { id: 'p3', key: 'enterprise', name: 'Enterprise' },
-  { id: 'p4', key: 'enterprise-plus', name: 'Enterprise+' },
 ];
 
 describe('backfillPlanCapabilities', () => {
@@ -87,9 +86,8 @@ describe('backfillPlanCapabilities', () => {
     expect(byPlan('p1')).toEqual([]);
     /* Growth sells the hardware and not compliance. */
     expect(byPlan('p2')).toEqual(['attendance-integrations']);
-    /* Enterprise and Enterprise+ take every key in the catalog. */
+    /* Enterprise takes every key in the catalog. */
     expect(byPlan('p3')).toEqual(['attendance-integrations', 'compliance']);
-    expect(byPlan('p4')).toEqual(['attendance-integrations', 'compliance']);
   });
 
   it('reports what a catalog plan is withheld rather than skipping it silently', async () => {

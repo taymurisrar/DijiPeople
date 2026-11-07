@@ -28,7 +28,7 @@ import { DEFAULT_APPROVAL_MATRICES } from './default-approval-matrices';
  * would make this test pass and leave the defect in place, which is exactly the
  * failure it exists to catch.
  */
-const ROLES_PROVISIONING_GUARANTEES = new Set(['system-admin']);
+const ROLES_PROVISIONING_GUARANTEES = new Set(['system-admin', 'global-admin']);
 
 type Step = (typeof DEFAULT_APPROVAL_MATRICES)[number]['steps'][number];
 
@@ -38,9 +38,10 @@ function isActive(step: Step) {
 
 function bindableOnAFreshTenant(step: Step) {
   if (step.approverType !== 'ROLE') return false;
-  return Boolean(
-    step.roleKey && ROLES_PROVISIONING_GUARANTEES.has(step.roleKey),
-  );
+  // DP-QA-036: bindable when ANY candidate is a role provisioning populates;
+  // the seed binds whichever has an active holder and seeds nothing otherwise.
+  const candidates = step.roleKeys ?? (step.roleKey ? [step.roleKey] : []);
+  return candidates.some((key) => ROLES_PROVISIONING_GUARANTEES.has(key));
 }
 
 describe('ITEM-0113 — the seeded approval chains', () => {

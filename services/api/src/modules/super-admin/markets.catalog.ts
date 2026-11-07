@@ -171,14 +171,4 @@ export const DEFAULT_PLAN_SALES_MODELS: Record<string, CommercialSalesModel> = {
   starter: CommercialSalesModel.SELF_SERVICE,
   growth: CommercialSalesModel.SELF_SERVICE,
   enterprise: CommercialSalesModel.SELF_SERVICE,
-  /*
-   * Enterprise+ is the exception the paragraph above describes, and it is
-   * CUSTOM_ONLY at the PLAN level rather than the price level — deliberately.
-   *
-   * `narrowestSalesModel` lets a plan's model narrow a price's but never widen
-   * it, so no permissive price row can accidentally make Enterprise+
-   * self-service. Above 250 employees the terms are negotiated; there is no
-   * list price to publish.
-   */
-  'enterprise-plus': CommercialSalesModel.CUSTOM_ONLY,
 };

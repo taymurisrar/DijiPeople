@@ -5,6 +5,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CustomizationService } from '../customization/customization.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { ensureDefaultLeaveTypes } from '../leave/default-leave-types';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningService } from '../super-admin/tenant-provisioning.service';
 import { TenantIdentitiesProvisioningService } from '../super-admin/tenant-identities-provisioning.service';
@@ -574,6 +575,8 @@ export class TenantOperationsService {
     }
     if (key === 'customization-defaults') {
       await this.customization.publishTenantDefaults(tenantId, actorUserId);
+      // Same step as provisioning: day-one leave types are insert-only (DP-QA-011).
+      await ensureDefaultLeaveTypes(this.prisma, tenantId, actorUserId);
       return;
     }
     if (key === 'workspace-slug-reserved') {

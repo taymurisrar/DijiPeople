@@ -385,7 +385,7 @@ function ReadOnlyRow({
 function presetButtonClass(active: boolean) {
   return `rounded-full border px-3 py-1.5 text-sm font-medium transition ${
     active
-      ? "border-accent bg-accent-soft text-accent"
+      ? "border-accent bg-accent-soft text-accent-strong"
       : "border-border bg-white text-foreground hover:border-accent"
   }`;
 }

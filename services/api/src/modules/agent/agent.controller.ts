@@ -19,6 +19,9 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AgentService } from './agent.service';
 import {
@@ -42,8 +45,17 @@ import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
+/*
+ * The whole authenticated agent surface is the Desktop Agent entitlement, not
+ * only the settings page (DP-QA-010 follow-up). Gating just the settings left
+ * device enrolment, sessions and heartbeats open to a plan that never bought the
+ * agent. The three `@Public()` auth routes carry no tenant and pass the guard
+ * untouched. A tenant whose agents are already in the field is carried by the
+ * grandfather script's `agentRefreshToken` probe (ADR-0009 update).
+ */
 @Controller('agent')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
 export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 

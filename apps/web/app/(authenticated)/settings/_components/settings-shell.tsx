@@ -63,7 +63,7 @@ export function SettingsShell({
           <div
             className={[
               "space-y-6 transition-all duration-200",
-              isSidebarCollapsed ? "w-[56px]" : "w-[260px]",
+              isSidebarCollapsed ? "w-[56px]" : "w-full md:w-[260px]",
             ].join(" ")}
           >
             {!isSidebarCollapsed ? (

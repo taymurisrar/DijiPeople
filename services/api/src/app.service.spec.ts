@@ -1,5 +1,6 @@
 import { AppService } from './app.service';
 import type { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
+import type { TenantEntitlementService } from './common/security/tenant-entitlement.service';
 
 /**
  * BUG-0904 — production ran with no outbox worker.
@@ -21,25 +22,35 @@ import type { OutboxWorkerService } from './modules/outbox/outbox-worker.service
 describe('BUG-0904 — health reports whether the outbox is being drained', () => {
   function serviceWith(enabled: boolean) {
     const worker = { isEnabled: () => enabled } as OutboxWorkerService;
-    return new AppService(worker);
+    const entitlements = {
+      describeEnforcement: () =>
+        Promise.resolve({ mode: 'ENFORCE', enforced: true }),
+    } as unknown as TenantEntitlementService;
+    return new AppService(worker, entitlements);
   }
 
-  it('reports an enabled worker', () => {
-    expect(serviceWith(true).getHealth()).toMatchObject({
+  it('reports an enabled worker', async () => {
+    await expect(serviceWith(true).getHealth()).resolves.toMatchObject({
       outboxWorker: { enabled: true },
     });
   });
 
-  it('reports a disabled worker rather than omitting it', () => {
+  it('reports a disabled worker rather than omitting it', async () => {
     // Omission and "off" must not look alike: an absent field reads as an old
     // deployment, and this one is answering the question.
-    expect(serviceWith(false).getHealth()).toMatchObject({
+    await expect(serviceWith(false).getHealth()).resolves.toMatchObject({
       outboxWorker: { enabled: false },
     });
   });
 
-  it('still carries the runtime payload it always did', () => {
-    const health = serviceWith(true).getHealth();
+  it('reports entitlement enforcement (DP-QA-005)', async () => {
+    await expect(serviceWith(true).getHealth()).resolves.toMatchObject({
+      entitlementEnforcement: { mode: 'ENFORCE', enforced: true },
+    });
+  });
+
+  it('still carries the runtime payload it always did', async () => {
+    const health = await serviceWith(true).getHealth();
     expect(health).toMatchObject({ status: expect.any(String) });
     expect(health).toHaveProperty('commit');
   });

@@ -36,6 +36,18 @@ export function toCsv(
   return `${lines.join('\n')}\n`;
 }
 
+/**
+ * Spreadsheet formula injection (CWE-1236): Excel, Sheets and LibreOffice run a
+ * cell that begins with = + - @ (or a tab/CR) as a formula. Text like that is
+ * exported behind a leading apostrophe so it opens as text. A plain number such
+ * as -5 or +923001234567 is not a formula and is left alone.
+ */
+export function neutraliseFormula(text: string) {
+  if (!/^[=+\-@\t\r]/.test(text)) return text;
+  if (/^[+-]?\d+(\.\d+)?$/.test(text)) return text;
+  return `'${text}`;
+}
+
 export function csvCell(value: unknown) {
   const text =
     value === null || value === undefined

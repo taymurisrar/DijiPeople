@@ -11,6 +11,8 @@ import {
   TENANT_MODULES,
   type TenantModuleKey,
 } from '../../../common/constants/tenant-modules';
+import { AppError } from '../../../common/errors/app-error';
+import { TENANT_FEATURE_KEYS } from '../../../common/constants/tenant-features';
 import { AuditService } from '../../audit/audit.service';
 import { FeatureAccessService } from '../../tenant-settings/feature-access.service';
 import type {
@@ -176,6 +178,7 @@ export class EmailTemplateAuthoringService {
     dto: CreateEmailTemplateDto,
   ) {
     const features = await this.enabledFeatureKeys(currentUser.tenantId);
+    this.assertCustomizationEntitled(features);
     const copy = systemEmailTemplateCopyForEvent(dto.eventCode.trim());
     if (!copy || !isEmailTemplateAuthorable(copy, features)) {
       throw new BadRequestException({
@@ -225,6 +228,9 @@ export class EmailTemplateAuthoringService {
     templateId: string,
     dto: UpdateEmailTemplateDto,
   ) {
+    this.assertCustomizationEntitled(
+      await this.enabledFeatureKeys(currentUser.tenantId),
+    );
     const existing = await this.assertTenantTemplate(
       currentUser.tenantId,
       templateId,
@@ -350,6 +356,7 @@ export class EmailTemplateAuthoringService {
     dto: CloneEmailTemplateDto = {},
   ) {
     const features = await this.enabledFeatureKeys(currentUser.tenantId);
+    this.assertCustomizationEntitled(features);
     const source = await this.findTemplateForTenant(
       currentUser.tenantId,
       templateId,
@@ -593,6 +600,21 @@ export class EmailTemplateAuthoringService {
     });
   }
 
+  /*
+   * Rewording the tenant's emails is a Growth+ capability. Essential branding
+   * (name, logo, accent, footer) is applied to every plan's mail at send time
+   * and does not go through here. Reading, previewing and test-sending stay open.
+   */
+  private assertCustomizationEntitled(features: ReadonlySet<string>) {
+    if (!features.has(TENANT_FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION)) {
+      throw new AppError('TENANT_FEATURE_NOT_ENTITLED', {
+        details: {
+          featureKeys: [TENANT_FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION],
+        },
+      });
+    }
+  }
+
   private async enabledFeatureKeys(tenantId: string) {
     const { enabledKeys } =
       await this.featureAccess.getResolvedTenantFeatures(tenantId);
@@ -778,7 +800,11 @@ export function mapEmailTemplate(
     status: template.status,
     version: template.version,
     isSystem: template.isSystem,
-    customizable: Boolean(copy && isEmailTemplateAuthorable(copy, features)),
+    customizable: Boolean(
+      copy &&
+      isEmailTemplateAuthorable(copy, features) &&
+      features.has(TENANT_FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION),
+    ),
     createdBy: template.createdBy,
     updatedBy: template.updatedBy,
     createdAt: template.createdAt,

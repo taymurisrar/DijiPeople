@@ -46,7 +46,8 @@ const CARVED_OUT_KEYS = [
   'desktop-agent',
   'attendance-integrations',
   'compliance',
-  'data-management',
+  'data-import-export',
+  'advanced-data-management',
 ] as const;
 
 async function runRepairPlanCapabilities() {

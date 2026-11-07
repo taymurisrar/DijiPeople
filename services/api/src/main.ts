@@ -18,6 +18,7 @@ import {
 import { AppModule } from './app.module';
 import { resolveLogLevels } from './log-level';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
+import { TenantEntitlementService } from './common/security/tenant-entitlement.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthenticatedRateLimitInterceptor } from './common/interceptors/authenticated-rate-limit.interceptor';
 import { assertAuthEnvironment } from './common/config/auth.config';
@@ -81,13 +82,26 @@ async function bootstrap() {
    * the same variable.
    */
   const outboxWorker = app.get(OutboxWorkerService, { strict: false });
-  const healthPayload = () => ({
+  /*
+   * Plan-entitlement enforcement is reported the same way, for the same reason
+   * (DP-QA-005): production defaults to REPORT_ONLY, the setting lives on the
+   * service, and the only durable guard is a deployment check that reads it from
+   * the running process. Added here, not only in `AppService` — see above.
+   */
+  const entitlements = app.get(TenantEntitlementService, { strict: false });
+  const healthPayload = async () => ({
     ...getRuntimeHealthPayload(process.env),
     outboxWorker: { enabled: outboxWorker.isEnabled() },
+    entitlementEnforcement: await entitlements.describeEnforcement(),
   });
-  expressApp.get('/', (_req, res) => res.json(healthPayload()));
-  expressApp.get('/api', (_req, res) => res.json(healthPayload()));
-  expressApp.get('/api/health', (_req, res) => res.json(healthPayload()));
+  const serveHealth = (_req: Request, res: Response, next: NextFunction) => {
+    healthPayload()
+      .then((payload) => res.json(payload))
+      .catch(next);
+  };
+  expressApp.get('/', serveHealth);
+  expressApp.get('/api', serveHealth);
+  expressApp.get('/api/health', serveHealth);
 
   // ✅ Enable cookie parsing (CRITICAL for auth to work)
   app.use(cookieParser());

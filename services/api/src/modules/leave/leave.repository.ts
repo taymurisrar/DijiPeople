@@ -44,6 +44,7 @@ const leaveRequestInclude = {
       code: true,
       category: true,
       requiresApproval: true,
+      consumesBalance: true,
       isPaid: true,
     },
   },

@@ -1318,6 +1318,8 @@ export class AuthService {
         sub: user.id,
         tenantId: user.tenantId,
         type: 'password-reset',
+        // Pins the credential this link was issued against (DP-QA-031).
+        pwv: user.passwordChangedAt?.getTime() ?? 0,
       },
       {
         secret: getClientAccessTokenSecret(this.configService, 'web'),
@@ -1415,7 +1417,11 @@ export class AuthService {
   }
 
   async resetPassword(token: string, password: string) {
-    let payload: Omit<AuthTokenPayload, 'type'> & { type?: string };
+    let payload: Omit<AuthTokenPayload, 'type'> & {
+      type?: string;
+      pwv?: number;
+      iat?: number;
+    };
     try {
       payload = this.jwtService.verify(token, {
         secret: getClientAccessTokenSecret(this.configService, 'web'),
@@ -1436,6 +1442,18 @@ export class AuthService {
       );
     }
 
+    const expired = new UnauthorizedException(
+      'This password reset link is invalid or expired.',
+    );
+    const account = await this.prisma.user.findFirst({
+      where: { id: payload.sub, tenantId: payload.tenantId },
+      select: { passwordChangedAt: true },
+    });
+
+    if (!account || !this.resetTokenMatchesCredential(payload, account)) {
+      throw expired;
+    }
+
     await this.passwordPolicyService.assertPasswordMeetsPolicy(
       payload.tenantId,
       password,
@@ -1448,8 +1466,18 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, 10);
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: payload.sub },
+      /*
+       * Compare-and-set on the credential the token was issued against. The
+       * read above is advisory; this write is the claim. Two requests presenting
+       * the same token both pass the read, and only the first finds
+       * `passwordChangedAt` still unchanged - the loser updates nothing.
+       */
+      const claimed = await tx.user.updateMany({
+        where: {
+          id: payload.sub,
+          tenantId: payload.tenantId,
+          passwordChangedAt: account.passwordChangedAt,
+        },
         data: {
           passwordHash,
           passwordChangedAt: new Date(),
@@ -1457,6 +1485,11 @@ export class AuthService {
           updatedById: payload.sub,
         },
       });
+
+      if (claimed.count !== 1) {
+        throw expired;
+      }
+
       /*
        * The identity carries the same credential. Inside the transaction, so a
        * reset cannot half-apply and leave the two copies disagreeing — which,
@@ -1483,6 +1516,26 @@ export class AuthService {
     return { ok: true };
   }
 
+  /**
+   * Whether a reset token still matches the credential it was issued against.
+   * Tokens carry `pwv` (the `passwordChangedAt` they were issued against). A
+   * token from before that claim existed is accepted only if the password has not
+   * changed since it was signed, compared at second resolution like `iat`.
+   */
+  private resetTokenMatchesCredential(
+    payload: { pwv?: number; iat?: number },
+    account: { passwordChangedAt: Date | null },
+  ) {
+    const current = account.passwordChangedAt?.getTime() ?? 0;
+
+    if (typeof payload.pwv === 'number') {
+      return payload.pwv === current;
+    }
+
+    const issuedAtMs = (payload.iat ?? 0) * 1000;
+    return current <= issuedAtMs + 999;
+  }
+
   private async sendPasswordResetEmail(input: {
     user: {
       id: string;
@@ -1496,11 +1549,23 @@ export class AuthService {
     requestedByUserId: string;
     source: string;
   }) {
+    /*
+     * DP-QA-031. A reset token is single-use. `pwv` pins the credential it was
+     * issued against - the user's `passwordChangedAt` at issue time - so the
+     * first successful reset (which moves that timestamp) invalidates this token
+     * and every other reset link issued for the same credential. Nothing secret
+     * is stored: the token stays a signed, stateless claim.
+     */
+    const current = await this.prisma.user.findFirst({
+      where: { id: input.user.id, tenantId: input.user.tenantId },
+      select: { passwordChangedAt: true },
+    });
     const resetToken = this.jwtService.sign(
       {
         sub: input.user.id,
         tenantId: input.user.tenantId,
         type: 'password-reset',
+        pwv: current?.passwordChangedAt?.getTime() ?? 0,
       },
       {
         secret: getClientAccessTokenSecret(this.configService, 'web'),
@@ -1540,7 +1605,7 @@ export class AuthService {
       metadata: {
         userId: input.user.id,
         employeeId: input.user.employee?.id ?? null,
-        resetUrl,
+        // Not the reset URL: it carries a live token, and this record is stored.
         source: input.source,
       },
       requestedByUserId: input.requestedByUserId,
@@ -1616,6 +1681,8 @@ export class AuthService {
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
     const sessionId = this.extractTokenFromRequest(req, cookieNames.session);
 
+    let revokedBySession = 0;
+
     if (sessionId) {
       /*
        * BUG-0627. The refresh cookie is the shortest-lived of the three, so the
@@ -1644,12 +1711,19 @@ export class AuthService {
        * runs whenever the session is known, and the scan below is left as the
        * fallback for a client that sent no session cookie.
        */
-      await this.revokeSessionTokens(clientId, sessionId);
+      revokedBySession = await this.revokeSessionTokens(clientId, sessionId);
     }
 
-    // Fallback only: reached when no session cookie arrived, or alongside the
-    // exact revocation above for a token issued before sessions were recorded.
-    if (refreshToken) {
+    /*
+     * Fallback only. DP-QA-007: this scan bcrypt-compares up to twenty stored
+     * hashes one after another, and it used to run on EVERY sign-out that carried
+     * a refresh cookie - including the ordinary one, where the exact revocation
+     * above had already done the job. That was the 0.6-3.9 s logout the go-live
+     * QA measured, long enough that the client timed out at 8 s and left a user
+     * unsure they had signed out. It now runs only when the session id revoked
+     * nothing: no session cookie arrived, or the token predates sessions.
+     */
+    if (refreshToken && revokedBySession === 0) {
       if (clientId === 'admin') {
         const activeTokens = await this.prisma.platformRefreshToken.findMany({
           where: { revokedAt: null, appClientId: clientId },
@@ -1731,11 +1805,17 @@ export class AuthService {
       expiresAt: { gt: new Date() },
     };
 
+    const select = {
+      id: true,
+      absoluteExpiresAt: true,
+      lastActivityAt: true,
+    } as const;
     const record =
       clientId === 'admin' && payload.authSubjectType === 'platform-user'
         ? await this.prisma.platformRefreshToken.findFirst({
             where: { ...where, platformUserId: payload.sub },
-            select: { id: true },
+            orderBy: { createdAt: 'desc' },
+            select,
           })
         : await this.prisma.refreshToken.findFirst({
             where: {
@@ -1743,10 +1823,38 @@ export class AuthService {
               userId: payload.sub,
               tenantId: payload.tenantId,
             },
-            select: { id: true },
+            orderBy: { createdAt: 'desc' },
+            select,
           });
 
-    return Boolean(record);
+    if (!record) return false;
+
+    /*
+     * DP-QA-040 - revocation and expiry were checked here but not the absolute
+     * lifetime or the idle window, so `/auth/me` kept answering 200 for a session
+     * every guarded endpoint had already refused with SESSION_EXPIRED. Same rule,
+     * same tenant policy, as `JwtAuthGuard`: an idle-expired session is reported
+     * not live, which sends the caller to the refresh path, and refresh enforces
+     * the same window.
+     */
+    try {
+      const idleTimeoutMs =
+        clientId === 'web' &&
+        payload.authSubjectType !== 'platform-user' &&
+        payload.tenantId
+          ? (
+              await this.tenantAuthPolicyService.resolveEffectivePolicy(
+                payload.tenantId,
+              )
+            ).idleTimeoutMinutes * 60_000
+          : undefined;
+      this.assertSessionNotExpired(record, clientId, idleTimeoutMs);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) return false;
+      throw error;
+    }
+
+    return true;
   }
 
   /**
@@ -1757,22 +1865,26 @@ export class AuthService {
    * sign-out. `revokedAt: null` in the filter keeps an already-closed session's
    * timestamp at the moment it was actually closed.
    */
-  private async revokeSessionTokens(clientId: AuthClientId, sessionId: string) {
+  private async revokeSessionTokens(
+    clientId: AuthClientId,
+    sessionId: string,
+  ): Promise<number> {
     const now = new Date();
     const where = { sessionId, appClientId: clientId, revokedAt: null };
 
     if (clientId === 'admin') {
-      await this.prisma.platformRefreshToken.updateMany({
+      const result = await this.prisma.platformRefreshToken.updateMany({
         where,
         data: { revokedAt: now, lastUsedAt: now },
       });
-      return;
+      return result.count;
     }
 
-    await this.prisma.refreshToken.updateMany({
+    const result = await this.prisma.refreshToken.updateMany({
       where,
       data: { revokedAt: now, lastUsedAt: now },
     });
+    return result.count;
   }
 
   private async validateCredentials(

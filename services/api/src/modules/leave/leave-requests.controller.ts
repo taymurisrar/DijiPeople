@@ -16,6 +16,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import {
   Permissions,
+  RequireAnyPermission,
   RequirePermission,
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -168,8 +169,18 @@ export class LeaveRequestsController {
   }
 
   @Post(':id/cancel')
+  /*
+   * Withdrawing a request is self-service. This used to demand the DELETE
+   * privilege, which no non-admin system role holds, so an employee could not
+   * cancel their own pending request (DP-QA-011). A holder of CREATE may now
+   * reach the handler; the service still refuses anyone who is neither the
+   * requester nor entitled to administer that employee's leave.
+   */
   @Permissions('leave-requests.cancel')
-  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'delete')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.LEAVE_REQUESTS, action: 'create' },
+    { entityKey: ENTITY_KEYS.LEAVE_REQUESTS, action: 'delete' },
+  )
   cancel(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

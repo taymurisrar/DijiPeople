@@ -492,6 +492,11 @@ jobs:
         # Guards sensitive/system-managed fields from becoming writable or
         # exportable. Cheap, and a real security contract.
         run: npm run test:runtime-schema
+      - name: Entitlement enforcement release gate
+        # The production release refuses to proceed unless plan entitlements are
+        # ENFORCED (DP-QA-005). The decision logic is a pure function; this proves
+        # a missing, OFF, REPORT_ONLY or malformed value fails the gate.
+        run: npm run test:entitlement-gate
       - name: Workspace hostname rules
         # The hostname parser decides which tenant a request belongs to. These
         # are the suffix-confusion and reserved-label cases that would otherwise

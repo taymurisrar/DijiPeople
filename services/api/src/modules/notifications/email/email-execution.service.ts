@@ -11,6 +11,7 @@ import { SecretEncryptionService } from '../../../common/security/secret-encrypt
 import { SECRET_KEY_PATTERN } from './email-safety';
 import { NotificationsRepository } from '../notifications.repository';
 import { EmailProviderFactory } from './email-provider-factory.service';
+import { EmailBrandingService } from './email-branding.service';
 import { PlatformEmailProviderResolver } from './platform-email-provider.resolver';
 import { EffectiveEmailProviderService } from './effective-email-provider.service';
 import { isSinkProvider } from './providers';
@@ -67,6 +68,14 @@ export type SendTemplateEmailInput = {
   metadata?: Record<string, unknown> | null;
   requestedByUserId?: string | null;
   dryRun?: boolean;
+  /**
+   * Skip the per-recipient cool-down that stops anonymous endpoints (forgot
+   * password) being used to mail-bomb an address. Only for messages an
+   * authenticated administrator or the platform explicitly asked for, such as
+   * an invitation resend (DP-QA-028): that flow revokes the previous link before
+   * sending, so a cool-down skip left the user with no valid link at all.
+   */
+  bypassAuthNotificationCooldown?: boolean;
   /*
    * Who is sending, not who it is about. A tenant id says which workspace the
    * message concerns; it does not say whether DijiPeople or the tenant is the
@@ -126,6 +135,7 @@ export class EmailExecutionService {
     private readonly secretEncryption: SecretEncryptionService,
     private readonly platformProvider: PlatformEmailProviderResolver,
     private readonly effectiveProvider: EffectiveEmailProviderService,
+    private readonly branding: EmailBrandingService,
   ) {}
 
   /**
@@ -280,10 +290,18 @@ export class EmailExecutionService {
       );
     }
 
-    const rendered = this.renderer.render({
+    const plain = this.renderer.render({
       template,
       variables: input.variables,
     });
+    // Essential tenant branding, every plan. Presentation only: it never
+    // touches links, tokens or copy, and falls back to the plain message.
+    const branded = await this.branding.brand(input.tenantId, plain);
+    const rendered = {
+      ...plain,
+      renderedHtml: branded.html,
+      renderedText: branded.text,
+    };
 
     const catalogEntry = CATALOG_BY_CODE.get(input.eventCode);
     const isConfigurable = catalogEntry
@@ -657,7 +675,11 @@ export class EmailExecutionService {
   }
 
   private async checkAuthNotificationCooldown(input: SendTemplateEmailInput) {
-    if (input.dryRun || !AUTH_NOTIFICATION_EVENTS.has(input.eventCode)) {
+    if (
+      input.dryRun ||
+      input.bypassAuthNotificationCooldown ||
+      !AUTH_NOTIFICATION_EVENTS.has(input.eventCode)
+    ) {
       return { limited: false, cooldownSeconds: 0 };
     }
 

@@ -127,7 +127,7 @@ export function SettingsWorkspaceLanding() {
                 href={category.route}
                 className="group flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm transition hover:border-accent/40 hover:shadow-md"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-strong">
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
 
@@ -245,7 +245,7 @@ export function SettingsCategoryLanding({
               href={item.route}
               className="group rounded-[22px] border border-border bg-surface p-5 shadow-sm transition hover:border-accent/30 hover:shadow-md"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent-strong">
                 <Settings2 className="h-5 w-5" />
               </span>
               <h2 className="mt-4 font-semibold text-foreground">
@@ -277,7 +277,7 @@ export function SettingsCategoryLanding({
             className="rounded-[24px] border border-border bg-surface p-5 shadow-sm"
           >
             <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-soft text-accent-strong">
                 <FolderCog className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
@@ -371,7 +371,7 @@ export function SettingsGroupLanding({
             href={item.route}
             className="group rounded-[22px] border border-border bg-surface p-5 shadow-sm transition hover:border-accent/30 hover:shadow-md"
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent-strong">
               <Settings2 className="h-5 w-5" />
             </span>
             <h2 className="mt-4 font-semibold text-foreground">{item.label}</h2>

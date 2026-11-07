@@ -5,6 +5,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
 import { AuditService } from '../audit/audit.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 import { FeatureAccessService } from '../tenant-settings/feature-access.service';
 import {
@@ -134,6 +135,26 @@ export class TenantModulesService {
     this.entitlements.invalidate(tenant.id);
 
     const after = await this.buildModuleView(tenant.id);
+
+    /*
+     * Withdrawing the Desktop Agent must end the sessions it already
+     * has, not wait for them to lapse. The entitlement cache was invalidated
+     * above, so the guard refuses the next request; revoking the refresh tokens
+     * means a device cannot mint a new access token either. Tenant-scoped.
+     */
+    const agentBefore = before.modules.find(
+      (item) => item.key === TENANT_FEATURE_KEYS.DESKTOP_AGENT,
+    )?.effectiveEnabled;
+    const agentAfter = after.modules.find(
+      (item) => item.key === TENANT_FEATURE_KEYS.DESKTOP_AGENT,
+    )?.effectiveEnabled;
+    if (agentBefore && !agentAfter) {
+      await this.prisma.agentRefreshToken.updateMany({
+        where: { tenantId: tenant.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+    }
+
     const changed = after.modules.filter((item) => {
       const previous = before.modules.find((entry) => entry.key === item.key);
       return (

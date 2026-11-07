@@ -196,7 +196,10 @@ export class ImportAnalysisService {
     const validated = this.assertUpload(file);
     const workbook = await this.readWorkbook(validated);
     const sheet = this.selectSheet(workbook, options.sheetName);
-    const { headers, rows } = this.readSheet(sheet);
+    const { headers, rows } = this.readSheet(
+      sheet,
+      new Set(module.importFields.map((field) => field.key)),
+    );
 
     if (headers.length === 0) {
       throw new BadRequestException(
@@ -431,15 +434,28 @@ export class ImportAnalysisService {
    * The hidden key row is preferred over the visible labels so renaming or
    * translating a header cannot break the file. The example row is skipped.
    */
-  private readSheet(sheet: ExcelJS.Worksheet) {
+  private readSheet(
+    sheet: ExcelJS.Worksheet,
+    knownFieldKeys: ReadonlySet<string>,
+  ) {
     const labelRow = sheet.getRow(LABEL_ROW);
     const keyRow = sheet.getRow(KEY_ROW);
 
     const labels = readRowStrings(labelRow);
     const keys = readRowStrings(keyRow);
+    /*
+     * Row 2 is the template's hidden key row only when it actually holds field
+     * keys. It used to be taken for one whenever it was as wide as the header,
+     * so a plain CSV (one header row, then data) had its FIRST DATA ROW read as
+     * the keys: the headers became that person's values, nothing mapped and the
+     * import wrote no rows (DP-QA-035).
+     */
+    const filledKeys = keys.filter(Boolean);
     const keyRowLooksLikeKeys =
-      keys.length > 0 &&
-      keys.filter(Boolean).length >= labels.filter(Boolean).length;
+      filledKeys.length > 0 &&
+      filledKeys.length >= labels.filter(Boolean).length &&
+      filledKeys.filter((key) => knownFieldKeys.has(key)).length >=
+        Math.ceil(filledKeys.length * 0.8);
 
     const headers = keyRowLooksLikeKeys ? keys : labels;
     const firstDataRow = keyRowLooksLikeKeys ? EXAMPLE_ROW : KEY_ROW;

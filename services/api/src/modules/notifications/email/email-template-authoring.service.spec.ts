@@ -66,6 +66,7 @@ function tenantRow(overrides: Partial<EmailTemplate> = {}): EmailTemplate {
 function buildService(input: {
   rows?: EmailTemplate[];
   features?: string[];
+  noCustomization?: boolean;
   occupant?: EmailTemplate | null;
   keyTaken?: boolean;
 }) {
@@ -123,7 +124,10 @@ function buildService(input: {
     renderer: new EmailTemplateRendererService(),
     featureAccess: {
       getResolvedTenantFeatures: jest.fn(async () => ({
-        enabledKeys: input.features ?? ['payroll'],
+        enabledKeys: [
+          ...(input.features ?? ['payroll']),
+          ...(input.noCustomization ? [] : ['email-template-customization']),
+        ],
       })),
     },
     auditService,
@@ -377,5 +381,32 @@ describe('EmailTemplateAuthoringService preview and test send', () => {
         }) as unknown,
       }),
     );
+  });
+});
+
+describe('email template customization entitlement', () => {
+  it('refuses create, update and clone on a plan without it, and marks nothing customizable', async () => {
+    const { service } = buildService({
+      rows: [systemRow('AUTH_PASSWORD_RESET')],
+      noCustomization: true,
+    });
+
+    await expect(
+      service.createTemplate(USER, {
+        eventCode: 'AUTH_PASSWORD_RESET',
+        name: 'x',
+        subjectTemplate: 's',
+        htmlTemplate: '<p>h</p>',
+      } as never),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+    await expect(
+      service.updateTemplate(USER, 'tenant-template-1', {} as never),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+    await expect(
+      service.cloneTemplate(USER, 'system-AUTH_PASSWORD_RESET'),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+
+    const { items } = await service.listTemplates(USER);
+    expect(items.every((item) => item.customizable === false)).toBe(true);
   });
 });

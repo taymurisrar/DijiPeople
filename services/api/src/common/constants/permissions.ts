@@ -2217,6 +2217,13 @@ export const BASE_ROLE_DEFINITIONS: Array<{
   },
 ];
 
+/**
+ * @deprecated Not read by provisioning. Tenant roles are granted from
+ * `SYSTEM_ROLE_PRIVILEGES` and `SYSTEM_ROLE_MISC_PERMISSIONS` in `rbac-matrix.ts`
+ * (see `PermissionBootstrapService`); adding a key here grants nothing. It stays
+ * only as a record of the earlier design intent, and `wiring-invariants.spec.ts`
+ * no longer counts it as a grant. Do not extend it.
+ */
 export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   'system-admin': NON_CUSTOMIZATION_PERMISSION_KEYS,
   'system-customizer': [

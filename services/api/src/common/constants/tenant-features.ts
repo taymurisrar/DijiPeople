@@ -24,10 +24,13 @@ export const TENANT_FEATURE_KEYS = {
   DOCUMENTS: 'documents',
   NOTIFICATIONS: 'notifications',
   BRANDING: 'branding',
+  EMAIL_TEMPLATE_CUSTOMIZATION: 'email-template-customization',
+  EMAIL_WHITE_LABEL: 'email-white-label',
   DESKTOP_AGENT: 'desktop-agent',
   ATTENDANCE_INTEGRATIONS: 'attendance-integrations',
   COMPLIANCE: 'compliance',
-  DATA_MANAGEMENT: 'data-management',
+  DATA_IMPORT_EXPORT: 'data-import-export',
+  ADVANCED_DATA_MANAGEMENT: 'advanced-data-management',
   PAYROLL: 'payroll',
 } as const;
 
@@ -57,6 +60,7 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
   attendance: TENANT_FEATURE_KEYS.ATTENDANCE,
   'attendance-engine': TENANT_FEATURE_KEYS.ATTENDANCE,
   compensation: TENANT_FEATURE_KEYS.PAYROLL,
+  'data-management': TENANT_FEATURE_KEYS.DATA_IMPORT_EXPORT,
   leave: TENANT_FEATURE_KEYS.LEAVE,
   onboarding: TENANT_FEATURE_KEYS.ONBOARDING,
   'pay-components': TENANT_FEATURE_KEYS.PAYROLL,
@@ -68,6 +72,59 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
   'time-payroll': TENANT_FEATURE_KEYS.PAYROLL,
   timesheets: TENANT_FEATURE_KEYS.TIMESHEETS,
 };
+
+/**
+ * Features every tenant has whatever its plan, including a custom plan that does not
+ * list them: basic data import/export and templates (owner decision). Plan rows do
+ * not need to carry them, and removing the row can never take them away. Role
+ * permissions still decide WHO may use them.
+ */
+export const BASELINE_FEATURE_KEYS: ReadonlySet<string> = new Set([
+  TENANT_FEATURE_KEYS.DATA_IMPORT_EXPORT,
+]);
+
+/**
+ * Controllers gated one by one inside a module that is NOT gated as a whole
+ * (DP-QA-010). The tenant-admin surface of a paid feature is refused for a plan
+ * that does not sell it; the machine-facing surface beside it is not, because a
+ * deployed gateway or desktop agent cannot be upgraded past a refusal and
+ * dropping its sync would break attendance a tenant did buy.
+ *
+ * Keyed by exported class name. `entitlement-wiring.invariants.spec.ts` reads
+ * the real Nest metadata and fails on any disagreement with this register.
+ */
+export const ENTITLEMENT_GATED_CONTROLLERS: Readonly<
+  Record<string, TenantFeatureKey>
+> = {
+  AgentController: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
+  DlpController: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
+  AuditController: TENANT_FEATURE_KEYS.COMPLIANCE,
+  AttendanceConnectorsController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  AttendanceDeviceController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  AttendanceIntegrationController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  AttendanceOperationsController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  GatewayAdminController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  WorkSiteReadinessController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+};
+
+/** Controllers that must stay open whatever the plan, and why. */
+export const ENTITLEMENT_OPEN_CONTROLLERS: Readonly<Record<string, string>> = {
+  GatewayRuntimeController:
+    'Called by an on-premise gateway already dialling a customer network; refusing it is an integration break, not a commercial one.',
+  GatewayServiceController:
+    'Gateway pairing and service calls authenticate with a gateway credential, not a tenant user, so there is no tenant to evaluate.',
+  PlatformAuditController:
+    'Platform-operator audit history; a platform subject is not a tenant using a plan.',
+};
+
+/** Every feature key some route guard answers for, however it is attached. */
+export const ENTITLEMENT_GATED_FEATURE_KEYS: readonly TenantFeatureKey[] =
+  Array.from(
+    new Set<TenantFeatureKey>([
+      ...Object.values(ENTITLEMENT_GATED_MODULES),
+      ...Object.values(ENTITLEMENT_GATED_CONTROLLERS),
+    ]),
+  );
 
 /**
  * Feature keys that no gated module answers for, and why.
@@ -94,14 +151,12 @@ export const ENTITLEMENT_UNGATED_FEATURE_KEYS: Readonly<
     'Delivery infrastructure, invoked by modules rather than bought by a tenant.',
   [TENANT_FEATURE_KEYS.BRANDING]:
     'A settings surface rather than a route module; enforced where settings resolve.',
-  [TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS]:
-    'Attendance hardware, sold apart from Attendance itself, and enforced only where settings resolve. The `attendance-integrations` MODULE stays ungated for its own reason, recorded below: two of its controllers carry no AuthenticatedUser, and refusing a gateway already dialling a customer network is an integration break rather than a commercial one.',
-  [TENANT_FEATURE_KEYS.COMPLIANCE]:
-    'Retention policy, compliance exports and the two audit histories. Enforced where settings resolve: the reads behind these pages are served by `audit`, which every tenant needs for its own record, so a route gate would refuse writes the product depends on.',
-  [TENANT_FEATURE_KEYS.DATA_MANAGEMENT]:
-    'Bulk import and export. Enforced where settings resolve: the `data-management` module reaches modules that are each already gated on their own key, so this sells the bulk path rather than access to anything otherwise unreachable.',
-  [TENANT_FEATURE_KEYS.DESKTOP_AGENT]:
-    'Sold separately from Attendance, but enforced only where settings resolve — the Desktop Agent settings page, its installers and its enrolment. Deliberately NOT a route gate on the `agent` module: agents are already deployed in the field on a build that cannot be upgraded past a refusal, and their sync endpoints carry attendance a tenant did buy. Gating those would break attendance capture to enforce a packaging boundary.',
+  [TENANT_FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION]:
+    'Enforced inside the email template authoring service (create/update/clone), because the template routes share a controller with notification settings that every plan keeps.',
+  [TENANT_FEATURE_KEYS.EMAIL_WHITE_LABEL]:
+    'Not a route: it decides at send time whether the DijiPeople attribution is dropped from branded transactional email. Essential branding itself is open to every plan.',
+  [TENANT_FEATURE_KEYS.ADVANCED_DATA_MANAGEMENT]:
+    'Premium tier of data management (saved mappings, scheduled jobs, transformations, integrations). None of those routes exist yet, so nothing can be gated; whoever builds one must gate it with this key and move it out of this register. Basic import/export is data-import-export and is open to every plan.',
 };
 
 /**
@@ -124,8 +179,9 @@ export const ENTITLEMENT_UNGATED_MODULES: Readonly<Record<string, string>> = {
   branding:
     'A settings surface rather than a route module; enforced where settings resolve, not by a route gate.',
   'attendance-integrations':
-    'The .NET gateway contract. Two of its controllers carry no AuthenticatedUser at all, and refusing a deployed on-premise gateway is an integration break rather than a commercial one. The attendance key is enabled on every plan, so nothing is lost.',
-  agent: 'The desktop agent client surface, for the same reason.',
+    'Gated controller by controller (ENTITLEMENT_GATED_CONTROLLERS), not as a module: the gateway runtime and service controllers carry no tenant user, and refusing a deployed on-premise gateway is an integration break rather than a commercial one.',
+  agent:
+    'Gated as a controller (ENTITLEMENT_GATED_CONTROLLERS); its three public auth routes carry no tenant and pass the guard.',
   benefits:
     'No feature key sells it. Whether it belongs to the payroll entitlement is a product decision this record did not make; gating it would make one silently.',
   claims: 'No feature key sells it — same reasoning as benefits.',

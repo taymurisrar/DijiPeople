@@ -43,6 +43,7 @@ const VARIANT_ICONS: Record<DashboardErrorVariant, typeof AlertTriangle> = {
   "access-denied": Lock,
   "not-found": ShieldAlert,
   "api-error": AlertTriangle,
+  "rate-limited": AlertTriangle,
   "server-error": AlertTriangle,
   unexpected: AlertTriangle,
 };
@@ -150,18 +151,15 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
               </p>
               <p className="mt-2 text-sm leading-6 text-muted">
                 Confirm the user role, business unit visibility, tenant access,
-                feature permissions, and whether the record is assigned or shared
-                with the current user.
+                feature permissions, and whether the record is assigned or
+                shared with the current user.
               </p>
             </div>
           ) : null}
 
           <div className="flex flex-wrap gap-3">
             {config.primaryAction === "login" ? (
-              <Button
-                href={loginHref}
-                leftIcon={<LogIn className="h-4 w-4" />}
-              >
+              <Button href={loginHref} leftIcon={<LogIn className="h-4 w-4" />}>
                 Go to sign in
               </Button>
             ) : (

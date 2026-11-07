@@ -17,7 +17,10 @@ export function mapEntityQueryToPrismaArgs(
   scopeWhere: Record<string, unknown>,
 ): EntityPrismaArgs {
   const queryWhere = buildWhere(metadata, query);
-  const where = combineWhere(scopeWhere, queryWhere);
+  const liveRows = metadata.softDeleteField
+    ? { [metadata.softDeleteField]: false }
+    : {};
+  const where = combineAnd([liveRows, scopeWhere, queryWhere]);
   const select = buildSelect(metadata, query);
   const orderBy = query.orderBy.map((item) => ({
     [toPrismaField(metadata.fields[item.field], item.field)]: item.direction,
@@ -206,13 +209,6 @@ function toPrismaField(
   publicField: string,
 ) {
   return fieldMetadata.prismaField ?? publicField;
-}
-
-function combineWhere(
-  first: Record<string, unknown>,
-  second: Record<string, unknown>,
-) {
-  return combineAnd([first, second]);
 }
 
 function combineAnd(items: Array<Record<string, unknown>>) {

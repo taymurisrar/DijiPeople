@@ -184,7 +184,7 @@ export function SettingsRuntimeNav({
                             return (
                               /*
                                 BUG-1986 — axe reported `color-contrast` on
-                                `.bg-accent-soft.text-accent[aria-current="page"]`:
+                                `.bg-accent-soft.text-accent-strong[aria-current="page"]`:
                                 the current-page indicator, whose whole job is
                                 telling you where you are, failed the threshold.
 

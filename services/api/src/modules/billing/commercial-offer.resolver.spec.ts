@@ -557,7 +557,7 @@ describe('two billing models on one plan', () => {
   });
 
   it('refuses self-service on a custom-only plan even with a permissive price', () => {
-    // Enterprise+ is CUSTOM_ONLY at the plan level. narrowestSalesModel must
+    // A custom contract plan is CUSTOM_ONLY at the plan level. narrowestSalesModel must
     // stop one permissive price row from widening it.
     const result = resolve({
       plan: plan({ salesModel: CommercialSalesModel.CUSTOM_ONLY }),
@@ -566,6 +566,35 @@ describe('two billing models on one plan', () => {
 
     expect(result.available).toBe(false);
     expect(!result.available && result.reason).toBe('CUSTOM_CONTRACT_ONLY');
+  });
+
+  it('never sells a customer-reserved plan anonymously, whatever its sales model says', () => {
+    const result = resolve({
+      plan: plan({ eligibleCustomerAccountId: 'cust-1' }),
+      prices: [perSeat],
+    });
+
+    expect(result.available).toBe(false);
+    expect(!result.available && result.reason).toBe('CUSTOM_CONTRACT_ONLY');
+  });
+
+  it('stops new sales once a plan has expired or before it starts', () => {
+    const expired = resolve({
+      plan: plan({ effectiveUntil: new Date('2026-08-01T00:00:00.000Z') }),
+      prices: [perSeat],
+    });
+    const notYet = resolve({
+      plan: plan({ effectiveFrom: new Date('2026-09-01T00:00:00.000Z') }),
+      prices: [perSeat],
+    });
+    const open = resolve({
+      plan: plan({ effectiveUntil: new Date('2026-12-01T00:00:00.000Z') }),
+      prices: [perSeat],
+    });
+
+    expect(expired.available).toBe(false);
+    expect(notYet.available).toBe(false);
+    expect(open.available).toBe(true);
   });
 
   it('still reports a genuinely absent price as absent', () => {

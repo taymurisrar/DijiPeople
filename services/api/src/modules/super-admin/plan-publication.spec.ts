@@ -7,7 +7,7 @@ import {
 type State = Parameters<typeof planPublicationRefusal>[1];
 
 const plan = (overrides: Partial<State> = {}): State => ({
-  name: 'Enterprise+',
+  name: 'Acme Contract Plan',
   isActive: false,
   publicationStatus: 'PUBLISHED',
   salesModel: 'CUSTOM_ONLY',
@@ -94,8 +94,8 @@ describe('PlanPublicationService.transition', () => {
   }
   const row = {
     id: 'p1',
-    key: 'enterprise-plus',
-    name: 'Enterprise+',
+    key: 'custom-acme',
+    name: 'Acme Contract Plan',
     isActive: false,
     publicationStatus: 'PUBLISHED',
     salesModel: 'CUSTOM_ONLY',

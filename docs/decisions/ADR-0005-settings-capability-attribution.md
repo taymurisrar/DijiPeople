@@ -233,3 +233,12 @@ presentation, with the group layer and every URL left intact.
   — the API enforcement layer this mirrors, and the record Decision 2 corrects.
 - [`PLAN-035`](../plans/EXECPLAN-0031-plan-scoped-settings-visibility.md) — the
   ExecPlan.
+
+
+## Update 2026-11-01 - partly superseded by ADR-0028
+
+The `data-management` key described above was split: `data-import-export` is now
+sold on every plan and `advanced-data-management` is the premium tier. The
+`desktop-agent` key is now Enterprise/Custom only (it was sold from Growth), and
+the agent's public login/refresh routes are entitlement-checked in the service.
+See [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding]].

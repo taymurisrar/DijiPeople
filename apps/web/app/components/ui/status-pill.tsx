@@ -18,7 +18,7 @@ export function StatusPill({
             ? "border-sky-200 bg-sky-50 text-sky-700"
             : tone === "muted"
               ? "border-slate-200 bg-slate-50 text-slate-600"
-              : "border-accent/20 bg-accent-soft text-accent";
+              : "border-accent/20 bg-accent-soft text-accent-strong";
 
   return (
     <span

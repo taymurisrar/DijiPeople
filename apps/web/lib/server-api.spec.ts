@@ -14,6 +14,16 @@ jest.mock("next/headers", () => ({
   cookies: jest.fn(),
 }));
 
+// React's `cache` memoises per server request. Jest has no request, so a plain
+// once-only memo stands in; real per-request scoping is verified on the live stack.
+jest.mock("react", () => ({
+  ...jest.requireActual("react"),
+  cache: <T>(fn: () => T) => {
+    let value: T | undefined;
+    return () => (value ??= fn());
+  },
+}));
+
 jest.mock("@/lib/auth", () => ({
   getApiBaseUrl: () => "https://api.test",
 }));
@@ -105,7 +115,9 @@ describe("apiRequest — never sends an unauthenticatable request (BUG-3356)", (
   it("returns a session-ended response, not AUTH_TOKEN_MISSING, when there is no refresh token at all", async () => {
     (cookies as jest.Mock).mockResolvedValue(cookieStore({}));
     global.fetch = jest.fn(async () => {
-      throw new Error("apiRequest must not call fetch with no credentials at all");
+      throw new Error(
+        "apiRequest must not call fetch with no credentials at all",
+      );
     }) as unknown as typeof fetch;
 
     const response = await apiRequest("/billing/plans");
@@ -118,7 +130,9 @@ describe("apiRequest — never sends an unauthenticatable request (BUG-3356)", (
 
   it("still sends genuinely anonymous requests (includeAuth: false) unauthenticated", async () => {
     (cookies as jest.Mock).mockResolvedValue(cookieStore({}));
-    global.fetch = jest.fn(async () => jsonResponse({ ok: true }, 200)) as unknown as typeof fetch;
+    global.fetch = jest.fn(async () =>
+      jsonResponse({ ok: true }, 200),
+    ) as unknown as typeof fetch;
 
     const response = await apiRequest("/public/tenants/resolve", {
       includeAuth: false,
@@ -173,5 +187,74 @@ describe("apiRequest — an unwritable cookie store skips refresh entirely (BUG-
     // component (the middleware, a route handler) refreshes next.
     expect(fetchedUrls).toEqual([]);
     expect(response.status).toBe(401);
+  });
+});
+
+/**
+ * DP-QA-025. Identical GETs inside one request share one API call; a write
+ * clears the sharing so nothing stale is served; failures are not retained.
+ */
+describe("apiRequestJson request-scoped sharing", () => {
+  const { apiRequestJson } =
+    jest.requireActual<typeof import("./server-api")>("./server-api");
+
+  function arrange() {
+    (cookies as jest.Mock).mockResolvedValue(
+      cookieStore({ [ACCESS_TOKEN_COOKIE]: "access" }),
+    );
+    const fetchMock = jest.fn(async () =>
+      jsonResponse({ items: [1, 2, 3] }, 200),
+    );
+    global.fetch = fetchMock as never;
+    return fetchMock;
+  }
+
+  it("makes one API call for many identical concurrent GETs", async () => {
+    const fetchMock = arrange();
+    const results = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        apiRequestJson<{ items: number[] }>("/locations?isActive=true"),
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(results.every((r) => r.items.length === 3)).toBe(true);
+  });
+
+  it("gives every caller its own copy, so one cannot corrupt another", async () => {
+    arrange();
+    const [a, b] = await Promise.all([
+      apiRequestJson<{ items: number[] }>("/designations"),
+      apiRequestJson<{ items: number[] }>("/designations"),
+    ]);
+    a.items.push(99);
+    expect(b.items).toEqual([1, 2, 3]);
+  });
+
+  it("does not share different paths", async () => {
+    const fetchMock = arrange();
+    await Promise.all([apiRequestJson("/a"), apiRequestJson("/b")]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("a write clears sharing so a later read is fresh", async () => {
+    const fetchMock = arrange();
+    await apiRequestJson("/settings/x");
+    await apiRequestJson("/settings/x", { method: "PATCH", body: "{}" });
+    await apiRequestJson("/settings/x");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retain a failure: the next identical GET tries again", async () => {
+    (cookies as jest.Mock).mockResolvedValue(
+      cookieStore({ [ACCESS_TOKEN_COOKIE]: "access" }),
+    );
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ message: "boom" }, 500))
+      .mockResolvedValue(jsonResponse({ ok: true }, 200));
+    global.fetch = fetchMock as never;
+
+    await expect(apiRequestJson("/flaky")).rejects.toBeDefined();
+    await expect(apiRequestJson("/flaky")).resolves.toEqual({ ok: true });
   });
 });

@@ -94,12 +94,12 @@ describe("classifyDashboardError", () => {
 
   describe("client-originated failures still classify by message", () => {
     it("keeps the four message branches reachable", () => {
-      expect(
-        classifyDashboardError({ message: "jwt expired" }).variant,
-      ).toBe("session-expired");
-      expect(
-        classifyDashboardError({ message: "Access denied" }).variant,
-      ).toBe("access-denied");
+      expect(classifyDashboardError({ message: "jwt expired" }).variant).toBe(
+        "session-expired",
+      );
+      expect(classifyDashboardError({ message: "Access denied" }).variant).toBe(
+        "access-denied",
+      );
       expect(
         classifyDashboardError({ message: "Record not found" }).variant,
       ).toBe("not-found");
@@ -135,5 +135,39 @@ describe("classifyDashboardError", () => {
       );
       expect(classifyDashboardError({}).variant).toBe("unexpected");
     });
+  });
+});
+
+describe("rate limiting (DP-QA-024)", () => {
+  it("classifies a 429 status as rate-limited, not a crash", () => {
+    expect(classifyDashboardError({ status: 429 }).variant).toBe(
+      "rate-limited",
+    );
+  });
+
+  it("recognises the digest a server-component 429 leaves behind", () => {
+    expect(
+      classifyDashboardError({
+        message: "An error occurred in the Server Components render.",
+        digest: "DP_RATE_LIMITED",
+      }).variant,
+    ).toBe("rate-limited");
+  });
+
+  it("recognises the API's own message on a client-side failure", () => {
+    expect(
+      classifyDashboardError({
+        message: "Too many requests. Wait a minute and try again.",
+      }).variant,
+    ).toBe("rate-limited");
+  });
+
+  it("still treats other server-component failures as server errors", () => {
+    expect(
+      classifyDashboardError({
+        message: "An error occurred in the Server Components render.",
+        digest: "12345",
+      }).variant,
+    ).toBe("server-error");
   });
 });

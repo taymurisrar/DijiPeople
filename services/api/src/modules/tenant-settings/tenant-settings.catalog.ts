@@ -561,8 +561,11 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     legalCompanyName: '',
     shortBrandName: '',
     brandDescription: '',
-    primaryColor: '#059669',
-    secondaryColor: '#047857',
+    // Darkened from #059669 (3.76:1 on white) so default-theme text and white-on-
+    // accent controls meet WCAG AA 4.5:1 (DP-QA-013). Tenants that already store a
+    // colour keep it.
+    primaryColor: '#047857',
+    secondaryColor: '#065f46',
     accentColor: '#34D399',
     backgroundColor: '#f8fafc',
     surfaceColor: '#ffffff',
@@ -571,7 +574,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     borderColor: '#e2e8f0',
     sidebarBackgroundColor: '#0f172a',
     sidebarTextColor: '#e5e7eb',
-    sidebarActiveBackgroundColor: '#059669',
+    sidebarActiveBackgroundColor: '#047857',
     sidebarActiveTextColor: '#ffffff',
     successColor: '#16a34a',
     warningColor: '#f59e0b',
@@ -867,12 +870,13 @@ export const TENANT_FEATURE_DEFINITIONS = [
   /*
    * Sold separately from Attendance, which is what the agent captures for.
    *
-   * The separation is deliberate and narrow: this key gates the Desktop Agent
-   * settings page — installers, enrolment and agent policy — and nothing else.
-   * The agent's own sync endpoints stay gated on `attendance`, because agents
-   * are already deployed in the field on a version they cannot be upgraded
-   * past, and gating those would stop attendance reaching a tenant that had
-   * bought attendance. See docs/decisions/ADR-0031-desktop-agent-capability.md.
+   * Final product decision: Enterprise and Custom only. This key gates the whole
+   * agent surface — login/refresh, device enrolment, sessions, heartbeats,
+   * settings, and DLP ingest and review. Attendance *hardware* integrations
+   * (`attendance-integrations`) are a different capability and are not affected.
+   * A downgraded tenant keeps nothing implicitly; only an explicit grandfather
+   * override (ADR-0009) can extend access. See ADR-0028; this supersedes the
+   * earlier "agent sync stays on attendance" carve-out.
    */
   {
     key: 'desktop-agent',
@@ -936,22 +940,74 @@ export const TENANT_FEATURE_DEFINITIONS = [
     isVisible: true,
   },
   /*
-   * Bulk import and export of the tenant's own records.
-   *
-   * A scaling capability rather than a compliance one: the modules it can reach
-   * are already gated individually, so this sells the bulk path, not access to
-   * data the tenant could not otherwise see.
+   * Essential email branding (organisation name, logo, accent, standard
+   * footer) is NOT a feature: every plan gets it. These two keys sell what sits
+   * above it. Neither is a template designer; that is out of scope.
    */
   {
-    key: 'data-management',
+    key: 'email-template-customization',
+    label: 'Email Template Customization',
+    description:
+      'Create, edit and clone the wording of the tenant email templates.',
+    defaultEnabled: true,
+    categoryKey: 'platform',
+    categoryLabel: 'Platform',
+    categoryOrder: 50,
+    sortOrder: 70,
+    icon: 'mail-plus',
+    isVisible: true,
+  },
+  {
+    key: 'email-white-label',
+    label: 'Email White-Label',
+    description:
+      'Send transactional email without the DijiPeople attribution footer.',
+    defaultEnabled: true,
+    categoryKey: 'platform',
+    categoryLabel: 'Platform',
+    categoryOrder: 50,
+    sortOrder: 75,
+    icon: 'badge-check',
+    isVisible: true,
+  },
+  /*
+   * Basic import and export of the tenant's own records: CSV/XLSX templates,
+   * validation with row-level errors, and secure exports. Sold on EVERY plan
+   * (final product decision, RUN-005 follow-up). The modules it reaches are
+   * gated individually and by role, so this is the bulk path, not access to data
+   * the tenant could not otherwise see. This key replaces the Growth-only
+   * `data-management`; see the data-model migration that renames it.
+   */
+  {
+    key: 'data-import-export',
     label: 'Import & Export',
-    description: 'Bulk import and export of tenant records, with templates.',
+    description:
+      'Basic bulk import and export of tenant records, with templates.',
     defaultEnabled: true,
     categoryKey: 'platform',
     categoryLabel: 'Platform',
     categoryOrder: 50,
     sortOrder: 60,
     icon: 'arrow-down-up',
+    isVisible: true,
+  },
+  /*
+   * The premium tier of data management: advanced mappings, scheduled jobs,
+   * complex transformations and integrations. Deliberately a separate key so
+   * unlocking basic import/export on Starter can never unlock these. No such
+   * route exists yet; anything built for this tier must be gated with this key.
+   */
+  {
+    key: 'advanced-data-management',
+    label: 'Advanced Data Management',
+    description:
+      'Saved mappings, scheduled jobs, transformations and data integrations.',
+    defaultEnabled: true,
+    categoryKey: 'platform',
+    categoryLabel: 'Platform',
+    categoryOrder: 50,
+    sortOrder: 65,
+    icon: 'database-zap',
     isVisible: true,
   },
   {

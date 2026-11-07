@@ -450,7 +450,7 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
     expect(gated).toEqual([]);
   });
 
-  it('activates a workspace that still has nothing a user can open', async () => {
+  it('activates a workspace whose plan grants only the universal baseline: no modules blocker', async () => {
     /*
      * ITEM-0079, recorded as an observation rather than asserted as correct.
      *
@@ -479,6 +479,15 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
 
     const response = await asOperator('/readiness');
 
-    expect(blockersOf(response).map((check) => check.key)).toEqual(['modules']);
+    /*
+     * Corrective release 2026-11-04 (DP-QA-051): basic import/export is now a universal
+     * baseline that every plan grants, including a plan created with no features
+     * (owner decision, `BASELINE_FEATURE_KEYS`; migration 20261101090000 adds it to
+     * existing plans). A workspace therefore always has one module to open, so the
+     * `modules` blocker this test used to pin can no longer be produced through a plan.
+     * ITEM-0079's gap (the gate does not check modules) is unchanged but its example is
+     * gone: the assertion now pins that the baseline keeps the blocker away.
+     */
+    expect(blockersOf(response).map((check) => check.key)).toEqual([]);
   });
 });
