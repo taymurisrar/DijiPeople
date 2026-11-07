@@ -163,7 +163,7 @@
     "typescript": "5.9.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/node": "^22"
+    "@types/node": "^26"
   },
   "devDependencies": {
     "prettier": "^3.7.4",
