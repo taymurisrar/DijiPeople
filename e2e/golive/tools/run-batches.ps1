@@ -16,6 +16,7 @@ $batches = [ordered]@{
   b10 = @('31-run007-subscription-architecture')
   b11 = @('25-seed-migration-idempotency', '26-deploy-seed-approval-routes', '27-run007-approval-workflows')
   b12 = @('32-run008-remediation-retest')      # RUN-008: DP-QA-043/044/047/005 retests (API level)
+  b14 = @('34-integrated-release-checks')   # corrective release: DP-QA-052, tenant-aware smoke, recovery, preservation
   b13 = @('33-run008-admin-ui-and-session-links')   # RUN-008: admin console publish UI + SESS-005 on the production build
 }
 $dir = "golive-results\$Run"; New-Item -ItemType Directory -Force $dir | Out-Null

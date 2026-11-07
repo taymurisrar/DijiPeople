@@ -471,7 +471,7 @@ test.describe('DP-QA-005 deployment safeguards', () => {
       const r = await request.get(`${env.QA_API_URL}${path}`);
       expect(r.status(), path).toBe(200);
       const b = await r.json();
-      expect(b.entitlementEnforcement, path).toEqual({ mode: 'ENFORCE', enforced: true });
+      expect(b.entitlementEnforcement, path).toMatchObject({ mode: 'ENFORCE', enforced: true }); // DP-QA-052 adds source/stored/floor (integrated candidate)
       expect(JSON.stringify(b), `${path}: no secrets in health`).not.toMatch(/secret|password|token|postgres(ql)?:\/\//i);
     }
     // the effective mode is also what the guard does: a Starter tenant is refused a module its plan does not include
@@ -480,7 +480,7 @@ test.describe('DP-QA-005 deployment safeguards', () => {
   });
 
   test('[DPQA-GATE-006] smoke:deployment passes its enforcement checks against the ENFORCED API, as reported by the running service', async () => {
-    const r = spawnSync(process.execPath, ['scripts/smoke-deployment.mjs'], { cwd: worktree, encoding: 'utf8', timeout: 120_000, env: { PATH: process.env.PATH ?? '', SMOKE_API_BASE_URL: `${env.QA_API_URL}/api`, SMOKE_ORIGIN: tenantUrl('A', ''), SMOKE_STARTER_LOGIN_EMAIL: credentials('A', 'OWNER').email, SMOKE_STARTER_LOGIN_PASSWORD: env.QA_PASSWORD, SMOKE_LOGIN_EMAIL: credentials('A', 'OWNER').email, SMOKE_LOGIN_PASSWORD: env.QA_PASSWORD } });
+    const r = spawnSync(process.execPath, ['scripts/smoke-deployment.mjs'], { cwd: worktree, encoding: 'utf8', timeout: 120_000, env: { PATH: process.env.PATH ?? '', SMOKE_API_BASE_URL: `${env.QA_API_URL}/api`, SMOKE_ORIGIN: tenantUrl('A', ''), SMOKE_STARTER_LOGIN_EMAIL: credentials('A', 'OWNER').email, SMOKE_STARTER_LOGIN_PASSWORD: env.QA_PASSWORD, SMOKE_STARTER_TENANT_SLUG: TENANTS.A.slug, SMOKE_LOGIN_EMAIL: credentials('A', 'OWNER').email, SMOKE_LOGIN_PASSWORD: env.QA_PASSWORD } });
     const out = `${r.stdout}\n${r.stderr}`;
     test.info().annotations.push({ type: 'evidence', description: out.split('\n').filter((l) => /enforced|Starter/i.test(l)).join(' | ') });
     expect(out).toMatch(/^ok - plan entitlements are enforced/m);
@@ -488,7 +488,7 @@ test.describe('DP-QA-005 deployment safeguards', () => {
   });
 
   test('[DPQA-GATE-008] the smoke Starter behavioural probe (SMOKE_STARTER_LOGIN_*) can actually sign in and proves a Starter tenant is refused a paid module', async () => {
-    const r = spawnSync(process.execPath, ['scripts/smoke-deployment.mjs'], { cwd: worktree, encoding: 'utf8', timeout: 120_000, env: { PATH: process.env.PATH ?? '', SMOKE_API_BASE_URL: `${env.QA_API_URL}/api`, SMOKE_ORIGIN: tenantUrl('A', ''), SMOKE_STARTER_LOGIN_EMAIL: credentials('A', 'OWNER').email, SMOKE_STARTER_LOGIN_PASSWORD: env.QA_PASSWORD } });
+    const r = spawnSync(process.execPath, ['scripts/smoke-deployment.mjs'], { cwd: worktree, encoding: 'utf8', timeout: 120_000, env: { PATH: process.env.PATH ?? '', SMOKE_API_BASE_URL: `${env.QA_API_URL}/api`, SMOKE_ORIGIN: tenantUrl('A', ''), SMOKE_STARTER_LOGIN_EMAIL: credentials('A', 'OWNER').email, SMOKE_STARTER_LOGIN_PASSWORD: env.QA_PASSWORD, SMOKE_STARTER_TENANT_SLUG: TENANTS.A.slug } });
     const out = `${r.stdout}\n${r.stderr}`;
     test.info().annotations.push({ type: 'evidence', description: out.split('\n').filter((l) => /Starter/i.test(l)).join(' | ') });
     expect(out, 'Starter behavioural probe ran and passed (DP-QA-048: the probe posts no tenant context, so /auth/login answers AUTH_UNAUTHORIZED, Company or tenant context is required)').toMatch(/^ok - a Starter tenant is refused a module its plan does not include/m);
