@@ -87,7 +87,7 @@ jobs:
       evidence_run_id: ${{ steps.evidence.outputs.evidence_run_id }}
       evidence_run_url: ${{ steps.evidence.outputs.evidence_run_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Only what the resolver reads: the script, and the workflow it derives
           # the required job list from. No npm ci — the script has no deps.
@@ -95,7 +95,7 @@ jobs:
           sparse-checkout: |
             scripts
             .github
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.x'
       - name: Look for completed evidence on this exact SHA
@@ -116,7 +116,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # DEVELOP_CONTAINS_MAIN is an ancestry check between origin/main and
           # origin/develop; a depth-1 checkout cannot see either, so it used to
@@ -237,7 +237,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - name: Generate Prisma client
         run: npm run prisma:generate
@@ -252,7 +252,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - name: Generate Prisma client
         # ESLint's type-aware rules resolve @prisma/client types.
@@ -358,7 +358,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: npm run prisma:generate
       - name: API unit tests
@@ -382,7 +382,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: npm --workspace web run test
 
@@ -393,7 +393,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: npm --workspace admin run test
 
@@ -408,7 +408,7 @@ jobs:
     # array position both shipped. The suite covers the rules that decide what
     # a customer is quoted and where a buy button leads, so it gates.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: npm --workspace landing run test
 
@@ -425,7 +425,7 @@ jobs:
     # no test touched — BUG-0036's offline queue among it, whose fix landed on
     # the server while the queue kept no statement of what it re-sends.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: npm --workspace agent-desktop run test
 
@@ -459,8 +459,8 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Restore and build the gateway solution
@@ -478,7 +478,7 @@ jobs:
     if: needs.resolve.outputs.reuse != 'true'
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - name: Platform runtime schema is derived from the current schema
         # The manifest that decides which Prisma columns Platform Admin can see
@@ -686,7 +686,7 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/dijipeople_test
       NODE_ENV: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - name: Refuse to run against a non-disposable database
         # Runs before anything destructive. Allowlist-shaped, so an unrecognised
@@ -811,7 +811,7 @@ jobs:
       PLATFORM_SUPER_ADMIN_EMAIL: ci-admin@example.invalid
       PLATFORM_SUPER_ADMIN_PASSWORD: ci-test-only-password-000000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: node scripts/assert-test-database.mjs
       - name: Prepare the database
@@ -903,7 +903,7 @@ jobs:
         # explains it. `if: always()` would do the same, but ordering it here
         # means the artifact exists even if the verdict step is what fails.
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: database-e2e-report
           path: e2e-report.txt
@@ -952,7 +952,7 @@ jobs:
     # The trade is explicit: a genuinely broken tree now spends one extra runner
     # for ~4 minutes. That is cheaper than adding ~4 minutes to every green run.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: npm run prisma:generate
       - name: Restore the Turborepo cache
@@ -966,7 +966,7 @@ jobs:
         # NEXT_PUBLIC_* inlining problem (BUG-0042), and that is guarded
         # separately by `check:env-registered` in the test-runtime job, which
         # fails if a variable is read but absent from turbo globalEnv.
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
@@ -1089,7 +1089,7 @@ jobs:
       API_BASE_URL: http://localhost:4000/api
       API_ORIGIN: http://localhost:4000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-npm
       - run: node scripts/assert-test-database.mjs
       - name: Prepare the database
@@ -1176,7 +1176,7 @@ jobs:
         run: npm run test:browser
       - name: Upload the report, traces and screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-e2e-report
           path: |
