@@ -6,19 +6,19 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 126
+**Active: 1** · completed: 127
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0133](../../docs/sessions/SESSION-0133-complete-multi-payment-billing-end-to-end.md) | — | Complete multi-payment billing end-to-end | ACTIVE | `feature/pk-payment-methods-bank-first` | `develop` | — | 2026-11-05T06:52:59.136Z |
 | [SESSION-0130](../../docs/sessions/SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2.md) | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | 2026-10-30T19:14:29.947Z |
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0133](../../docs/sessions/SESSION-0133-complete-multi-payment-billing-end-to-end.md) | — | Complete multi-payment billing end-to-end | COMPLETE | `feature/pk-payment-methods-bank-first` | `develop` | — | 2026-11-05T06:52:59.136Z |
 | [SESSION-0132](../../docs/sessions/SESSION-0132-security-advisory-remediation-production-dependencies.md) | — | Security advisory remediation (production dependencies) | COMPLETE | `agent/security-advisory-remediation` | `develop` | — | 2026-11-03T06:35:59.286Z |
 | [SESSION-0131](../../docs/sessions/SESSION-0131-engineering-governance-agent-os-api-module-completeness-gate.md) | — | Engineering governance: agent OS, API/module completeness gates, CI diagnostics, hotfix dry-run | COMPLETE | `agent/engineering-governance` | `develop` | — | 2026-11-03T05:02:10.270Z |
 | [SESSION-0128](../../docs/sessions/SESSION-0128-contract-signing-hotfix-multi-party-signature-blocks-dialog-.md) | — | Contract signing hotfix: multi-party signature blocks, dialog overflow, PDF layout | COMPLETE | `agent/contract-signing-multiparty` | `develop` | — | 2026-10-13T04:41:57.844Z |

@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **1** |
 | Active parent tasks | 5 |
 | Active work packages | 5 |
 | Blocked work packages | 0 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0133-complete-multi-payment-billing-end-to-end|SESSION-0133]] | — | Complete multi-payment billing end-to-end | ACTIVE | `feature/pk-payment-methods-bank-first` | `develop` | — | NO |
 | [[SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2|SESSION-0130]] | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
