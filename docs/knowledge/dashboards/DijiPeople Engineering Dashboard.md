@@ -9,10 +9,10 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **121** |
-| Open total | 295 |
+| Open total | 297 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
-| Deferred | 124 |
+| Deferred | 125 |
 | Completed | 357 |
 | Awaiting Architect triage | 0 |
 
@@ -197,6 +197,7 @@
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
+| [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
 
 ## Current Infrastructure Gaps
 
@@ -695,6 +696,7 @@
 |---|---|---|---|---|---|---|
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | IN_PROGRESS | api:billing | FIX_NOW |
+| [[ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p|ITEM-0232]] | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | READY | billing | PLAN_REQUIRED |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -859,6 +861,7 @@
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 | [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
+| [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -890,6 +893,7 @@
 - [[ADR-0026-partner-lifecycle-commission-and-currency|ADR-0026 — Partner status is action-driven, commission is a snapshotted percentage, and currency comes from an enabled platform subset]]
 - [[ADR-0027-generic-platform-number-sequences|ADR-0027 — Human-readable platform numbers come from one configurable, transactional sequence service]]
 - [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding|ADR-0028 - Final subscription entitlements]]
+- [[ADR-0029-bank-transfer-is-a-payment-channel-settled-only-by-operator-verification|ADR-0029 - Bank transfer is a payment channel settled only by operator verification]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -900,14 +904,14 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 565 |
-| Backlog items | 230 |
+| Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
 | Engineering history records | 104 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 32 |
+| Decision notes (ADR + generated) | 33 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

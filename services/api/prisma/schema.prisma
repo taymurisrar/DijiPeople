@@ -15129,7 +15129,7 @@ model RecordAssignmentRule {
 }
 
 // ---------------------------------------------------------------------------
-// Payment methods and bank-transfer settlement (EXECPLAN-0045)
+// Payment methods and bank-transfer settlement (EXECPLAN-0056)
 //
 // A bank transfer is a payment *channel*, not a gateway: nothing executes it,
 // so it is deliberately not a PaymentProvider. Stripe and Safepay remain two

@@ -6,14 +6,14 @@ AREA: billing
 MODULE: services/api/src/modules/billing
 TYPE: DATABASE
 RISK: CRITICAL
-AUTOMATION_STATUS: MANUAL
-TEST_REFERENCE:
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/bank-transfer-settlement.e2e-spec.ts
 RELATED_BUGS: [BUG-0072, BUG-3232]
 RELATED_REGRESSIONS: [REG-067]
-LAST_RUN:
-LAST_RESULT: NOT_RUN
+LAST_RUN: 2026-11-12
+LAST_RESULT: PASS
 CREATED_AT: 2026-11-05
-UPDATED_AT: 2026-11-05
+UPDATED_AT: 2026-11-12
 ---
 
 # QA-BILLING-048 — Bank-transfer settlement is authorized, atomic and single-allocation

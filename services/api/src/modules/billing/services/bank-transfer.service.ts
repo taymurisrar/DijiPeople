@@ -874,7 +874,10 @@ export class BankTransferService {
         // or aged out since it was read, and money for such an order is a
         // reconciliation case. Throwing rolls the claim decision back with it.
         const stillPayable = await tx.subscriptionOrder.count({
-          where: { id: order.id, status: SubscriptionOrderStatus.PENDING_PAYMENT },
+          where: {
+            id: order.id,
+            status: SubscriptionOrderStatus.PENDING_PAYMENT,
+          },
         });
         if (stillPayable === 0) {
           throw new ConflictException({

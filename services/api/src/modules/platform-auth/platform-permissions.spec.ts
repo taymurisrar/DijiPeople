@@ -715,7 +715,7 @@ const SUPER_ADMIN_ONLY_ROUTES = [
   'POST /super-admin/subscriptions/:subscriptionId/invoices -> platform.billing.administer',
   // Returns money to a card through the provider; cannot be undone.
   'POST /super-admin/payments/:paymentId/refund -> platform.billing.administer',
-  // EXECPLAN-0045: where customer money is sent is configured by the narrow
+  // EXECPLAN-0056: where customer money is sent is configured by the narrow
   // tier only; deciding a transfer is payments.verify (finance), not listed here.
   'PATCH /super-admin/billing/payment-methods/:id/approval -> platform.billing.administer',
   'PATCH /super-admin/billing/payment-methods/:id/enabled -> platform.billing.administer',

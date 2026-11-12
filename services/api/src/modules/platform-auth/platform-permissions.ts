@@ -44,7 +44,7 @@ export type PlatformPermission =
   | 'payments.read'
   | 'payments.manage'
   /*
-   * EXECPLAN-0045. Deciding a bank-transfer claim — approve, reject, ask for
+   * EXECPLAN-0056. Deciding a bank-transfer claim — approve, reject, ask for
    * clarification — is what releases a customer's workspace. It is narrower than
    * `payments.manage` (which edits payment records) so that deciding money is a
    * finance act held by name: SUPER_ADMIN via `platform.*`, PLATFORM_ADMIN and

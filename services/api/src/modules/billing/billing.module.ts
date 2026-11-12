@@ -103,7 +103,7 @@ import { ReconciliationService } from './services/reconciliation.service';
     // settlement on the provider's own confirmation, and the renewal sweep.
     SafepayGateway,
     PaymentGateways,
-    // Payment-method registry and bank-transfer settlement (EXECPLAN-0045).
+    // Payment-method registry and bank-transfer settlement (EXECPLAN-0056).
     SecretEncryptionService,
     PaymentMethodRegistryService,
     BankTransferService,

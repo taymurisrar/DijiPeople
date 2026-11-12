@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 795,
+    "total_records": 798,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -824,6 +824,7 @@
         "REG-298"
       ],
       "qa_scenarios": [
+        "QA-BILLING-049",
         "QA-PROV-004",
         "QA-TENANT-050"
       ],
@@ -3728,7 +3729,8 @@
         "REG-067"
       ],
       "qa_scenarios": [
-        "QA-AUTHZ-011"
+        "QA-AUTHZ-011",
+        "QA-BILLING-048"
       ],
       "test_plan": [
         "PLAN-002"
@@ -4793,7 +4795,8 @@
         "REG-177"
       ],
       "qa_scenarios": [
-        "QA-BILLING-012"
+        "QA-BILLING-012",
+        "QA-BILLING-049"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -16817,7 +16820,9 @@
         "services/api/src/modules/app-releases"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-BILLING-047"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -16894,7 +16899,9 @@
         "services/api/src/common"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-BILLING-047"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18198,7 +18205,9 @@
         "services/api/src/common"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-BILLING-047"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18593,7 +18602,9 @@
         "services/api/src/modules/billing"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-BILLING-048"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -34895,6 +34906,120 @@
           "contracts"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0231",
+      "type": "FOLLOW_UP",
+      "title": "Tenant self-service payment report for bank-transfer renewal invoices",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0231-tenant-self-service-payment-report-for-bank-transfer-renewal.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-12",
+        "updated_at": "2026-11-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0231-tenant-self-service-payment-report-for-bank-transfer-renewal.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0232",
+      "type": "SECURITY",
+      "title": "Malware scanning for bank-transfer payment evidence before production receipts",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-11-12",
+        "updated_at": "2026-11-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0233",
+      "type": "TEST_GAP",
+      "title": "Verify plan and seat change invoices for bank-paid subscriptions end to end",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-11-12",
+        "updated_at": "2026-11-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

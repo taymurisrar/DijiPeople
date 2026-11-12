@@ -66,7 +66,7 @@ MAIN_CHANGE_STATUS = UNTOUCHED.
 ## History
 
 - 2026-11-05 — created at `c4b27345`.
-- 2026-11-05 — discovery completed; PLAN-045 allocated; database preflight
+- 2026-11-05 — discovery completed; PLAN-056 allocated; database preflight
   repaired the generated client and applied 236 committed migrations to the
   localhost development database, then passed.
 

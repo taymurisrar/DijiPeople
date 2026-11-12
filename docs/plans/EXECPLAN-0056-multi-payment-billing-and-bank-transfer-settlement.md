@@ -1,6 +1,6 @@
 # ExecPlan — Multi-payment billing and bank-transfer settlement
 
-> PLAN-045 for [[TASK-0038]], GitHub Issue #137, and draft PR #136. Required by
+> PLAN-056 for [[TASK-0038]], GitHub Issue #137, and draft PR #136. Required by
 > `PLANS.md` because this changes billing authority, tenant provisioning,
 > external-provider routing, permissions, and database persistence.
 

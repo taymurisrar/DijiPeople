@@ -20,7 +20,7 @@ import { SafepayGateway } from '../src/modules/billing/providers/safepay.gateway
 import { PartnerReferralResolverService } from '../src/modules/partner-experience/partner-referral-resolver.service';
 
 /**
- * Bank-transfer settlement against a real PostgreSQL (EXECPLAN-0045).
+ * Bank-transfer settlement against a real PostgreSQL (EXECPLAN-0056).
  *
  * WHY THIS CANNOT BE A MOCKED TEST. The guarantees are: one operator decision
  * wins however many arrive together; one bank credit settles one order; a

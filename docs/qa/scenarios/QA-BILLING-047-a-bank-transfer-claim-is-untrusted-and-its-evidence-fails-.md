@@ -6,14 +6,14 @@ AREA: billing
 MODULE: services/api/src/modules/billing
 TYPE: SECURITY
 RISK: CRITICAL
-AUTOMATION_STATUS: MANUAL
-TEST_REFERENCE:
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/bank-transfer-settlement.e2e-spec.ts
 RELATED_BUGS: [BUG-3177, BUG-3179, BUG-3222]
 RELATED_REGRESSIONS: []
-LAST_RUN:
-LAST_RESULT: NOT_RUN
+LAST_RUN: 2026-11-12
+LAST_RESULT: PASS
 CREATED_AT: 2026-11-05
-UPDATED_AT: 2026-11-05
+UPDATED_AT: 2026-11-12
 ---
 
 # QA-BILLING-047 — A bank-transfer claim is untrusted and its evidence fails closed
