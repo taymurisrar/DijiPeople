@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-11-12
-> **Verified against commit:** 9e805641
+> **Verified against commit:** 8ec86ca0
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -66,7 +66,7 @@ re-derived on each run.
 | `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:31 | What has happened on this platform that somebody should look at. |
 | `NumberSequencesManager` | component | 1 | `apps/admin/app/_components/settings/number-sequences-manager.tsx`:27 | Settings > Numbering (ADR-0027). |
-| `PaymentMethodsClient` | component | 1 | `apps/admin/app/_components/billing/payment-methods-client.tsx`:69 | Payment methods by market, and the receiving accounts behind a bank transfer. |
+| `PaymentMethodsClient` | component | 1 | `apps/admin/app/_components/billing/payment-methods-client.tsx`:70 | Payment methods by market, and the receiving accounts behind a bank transfer. |
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
 | `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
 | `PlanEntitlementsPanel` | component | 1 | `apps/admin/app/_components/plans/plan-entitlements-panel.tsx`:22 | Plan entitlements. The entitlement set is what a plan actually sells, and until now it could only be changed on the legacy `?workspace=legacy-commerce` page — the runtime record page showed an "Entitlements" tab with nothing on it. |
@@ -95,12 +95,12 @@ re-derived on each run.
 | `relativeTime` | function | 5 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:439 | Relative time for heartbeat and last-seen columns. |
 | `humanizeLabel` | function | 4 | `apps/admin/lib/runtime/humanize-label.ts`:89 | Display text for a stored enum value, lookup key or similar. |
 | `runStandardRecordCommand` | function | 4 | `apps/admin/lib/runtime/standard-record-commands.ts`:23 | Back, New and Refresh for the record pages that are **not** the runtime. |
+| `useReasonPrompt` | function | 4 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
 | `displayForOpaqueValue` | function | 3 | `apps/admin/lib/runtime/reference-display.ts`:104 | The text for a cell or read-only field whose value may be an id. |
 | `humanizeErrorMessage` | function | 3 | `apps/admin/lib/runtime/humanize-field-error.ts`:62 | Whether this message is implementation detail rather than user-facing text. |
 | `matchesVisibility` | function | 3 | `apps/admin/lib/runtime/visibility-condition.ts`:39 | `hasValue` wins over `in`, which wins over `equals`. |
 | `readDeleteOutcome` | function | 3 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:23 | What a runtime delete actually did, read from where the API puts it. |
 | `recordDisplayName` | function | 3 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
-| `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
 | `useRuntimeLookupOptions` | function | 3 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:34 | Read an allowlisted runtime lookup. |
 | `describeDestructiveConfirm` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
 | `describePlanSchedule` | function | 2 | `apps/admin/lib/runtime/plan-headline-prices.ts`:180 | "Per seat, PKR" — how the tiles name the schedule they are showing. |
