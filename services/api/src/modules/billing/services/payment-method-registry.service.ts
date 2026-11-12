@@ -49,6 +49,8 @@ export type BankInstructions = {
   raastId: string | null;
   currency: string;
   paymentInstructions: string | null;
+  receiptContactEmail: string | null;
+  receiptContactPhone: string | null;
 };
 
 type Actor = { platformUserId: string | null };
@@ -221,6 +223,8 @@ export class PaymentMethodRegistryService {
       raastId: plain(account.raastIdEncrypted),
       currency: account.currency,
       paymentInstructions: account.paymentInstructions,
+      receiptContactEmail: account.receiptContactEmail,
+      receiptContactPhone: account.receiptContactPhone,
     };
   }
 
@@ -448,6 +452,8 @@ export class PaymentMethodRegistryService {
       iban?: string;
       raastId?: string;
       paymentInstructions?: string;
+      receiptContactEmail?: string;
+      receiptContactPhone?: string;
     },
     actor: Actor,
   ) {
@@ -499,6 +505,8 @@ export class PaymentMethodRegistryService {
         maskedIban: iban ? maskIdentifier(iban) : null,
         maskedRaastId: raastId ? maskIdentifier(raastId) : null,
         paymentInstructions: input.paymentInstructions?.trim() || null,
+        receiptContactEmail: input.receiptContactEmail?.trim() || null,
+        receiptContactPhone: input.receiptContactPhone?.trim() || null,
         status: ReceivingAccountStatus.PENDING_APPROVAL,
         isActive: false,
         createdById: actor.platformUserId,
@@ -530,7 +538,8 @@ export class PaymentMethodRegistryService {
     if (
       decision === 'APPROVE' &&
       actor.platformUserId &&
-      before.createdById === actor.platformUserId
+      before.createdById === actor.platformUserId &&
+      !(await this.isSoleOwner(actor.platformUserId))
     ) {
       throw new ConflictException({
         code: 'SEPARATION_OF_DUTIES',
@@ -581,6 +590,24 @@ export class PaymentMethodRegistryService {
       toMaskedAccount(updated),
     );
     return toMaskedAccount(updated);
+  }
+
+  /**
+   * A business with exactly one active owner has no second person to approve an
+   * account. In that one case the owner may approve their own entry; the
+   * decision is still audited with the actor. With two or more active owners
+   * the rule applies in full.
+   */
+  private async isSoleOwner(platformUserId: string): Promise<boolean> {
+    const owners = await this.prisma.platformUser.findMany({
+      where: {
+        status: 'ACTIVE',
+        role: { in: ['SUPER_ADMIN', 'PLATFORM_OWNER'] },
+      },
+      select: { id: true },
+      take: 2,
+    });
+    return owners.length === 1 && owners[0].id === platformUserId;
   }
 
   /**
@@ -664,6 +691,8 @@ export function toMaskedAccount(row: BankReceivingAccount) {
     maskedIban: row.maskedIban,
     maskedRaastId: row.maskedRaastId,
     paymentInstructions: row.paymentInstructions,
+    receiptContactEmail: row.receiptContactEmail,
+    receiptContactPhone: row.receiptContactPhone,
     status: row.status,
     isActive: row.isActive,
     createdById: row.createdById,

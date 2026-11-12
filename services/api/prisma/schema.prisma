@@ -15223,6 +15223,10 @@ model BankReceivingAccount {
   maskedIban             String?
   maskedRaastId          String?
   paymentInstructions    String?
+  /// Where a payer sends a receipt (email / WhatsApp). Public by design: it is
+  /// shown on the invoice page, so it is stored plain, not encrypted.
+  receiptContactEmail    String?
+  receiptContactPhone    String?
   status                 ReceivingAccountStatus @default(PENDING_APPROVAL)
   /// At most one active account per method configuration — enforced by the
   /// partial unique index in the migration, since Prisma cannot express it.

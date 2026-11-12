@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-11-12
-> **Verified against commit:** 8ec86ca0
+> **Verified against commit:** 2f3c8851
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -66,7 +66,7 @@ re-derived on each run.
 | `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:31 | What has happened on this platform that somebody should look at. |
 | `NumberSequencesManager` | component | 1 | `apps/admin/app/_components/settings/number-sequences-manager.tsx`:27 | Settings > Numbering (ADR-0027). |
-| `PaymentMethodsClient` | component | 1 | `apps/admin/app/_components/billing/payment-methods-client.tsx`:70 | Payment methods by market, and the receiving accounts behind a bank transfer. |
+| `PaymentMethodsClient` | component | 1 | `apps/admin/app/_components/billing/payment-methods-client.tsx`:72 | Payment methods by market, and the receiving accounts behind a bank transfer. |
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
 | `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
 | `PlanEntitlementsPanel` | component | 1 | `apps/admin/app/_components/plans/plan-entitlements-panel.tsx`:22 | Plan entitlements. The entitlement set is what a plan actually sells, and until now it could only be changed on the legacy `?workspace=legacy-commerce` page — the runtime record page showed an "Entitlements" tab with nothing on it. |
