@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { useReasonPrompt } from "@/app/_components/runtime/use-reason-prompt";
 import {
   Notice,
   StatusChip,
@@ -456,6 +457,7 @@ function AccountsPanel({
   onChanged: (text: string) => Promise<void>;
   onError: (text: string) => void;
 }) {
+  const { requestReason, reasonDialog } = useReasonPrompt();
   const [accounts, setAccounts] = useState<Account[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -480,8 +482,15 @@ function AccountsPanel({
   ) {
     let reason: string | undefined;
     if (action === "reject" || action === "suspend") {
-      reason = window.prompt(`Reason to ${action} this account:`)?.trim();
-      if (!reason) return;
+      const answer = await requestReason({
+        title: `${action === "reject" ? "Reject" : "Suspend"} receiving account`,
+        label: "Reason",
+        confirmLabel: action === "reject" ? "Reject" : "Suspend",
+        tone: "danger",
+        minLength: 3,
+      });
+      if (!answer) return;
+      reason = answer.trim();
     }
     setBusy(`${account.id}:${action}`);
     try {
@@ -502,6 +511,7 @@ function AccountsPanel({
 
   return (
     <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      {reasonDialog}
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-sm font-semibold text-slate-900">
           Receiving accounts

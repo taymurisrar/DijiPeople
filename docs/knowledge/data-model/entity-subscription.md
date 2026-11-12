@@ -153,7 +153,7 @@ tenant-facing response.
 - `billingCycle` — `BillingCycle`: `MONTHLY`, `ANNUAL`
 - `discountType` — `DiscountType`: `NONE`, `PERCENTAGE`, `FLAT`
 - `status` — `SubscriptionStatus`: `TRIALING`, `ACTIVE`, `PAST_DUE`, `CANCELLED`, `CANCELED`, `UNPAID`, `INCOMPLETE`, `EXPIRED`, `PAUSED`
-- `paymentProvider` — `PaymentProvider`: `STRIPE`, `SAFEPAY`
+- `paymentProvider` — `PaymentProvider`: `STRIPE`, `SAFEPAY`, `BANK_TRANSFER`
 
 ### Relationships
 
