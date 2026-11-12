@@ -115,6 +115,21 @@ type BillingInvoice = {
   invoicePdfUrl: string | null;
   /** The API's decision that this invoice can be paid online now. */
   payable?: boolean;
+  /** Set only on an open bank-transfer renewal invoice: how to pay it. */
+  bankTransfer?: {
+    reference: string;
+    amount: number;
+    currency: string;
+    dueDate: string;
+    instructions: {
+      bankName: string;
+      accountTitle: string;
+      accountNumber: string | null;
+      iban: string | null;
+      raastId: string | null;
+      paymentInstructions: string | null;
+    } | null;
+  } | null;
 };
 
 type BillingSettingsClientProps = {
@@ -975,7 +990,108 @@ export function BillingSettingsClient({
                               PDF
                             </SafeExternalLink>
                           ) : null}
+                          {invoice.bankTransfer ? (
+                            <details className="w-full max-w-sm rounded-xl border border-border p-3 text-sm">
+                              <summary className="cursor-pointer font-semibold text-foreground">
+                                Pay by bank transfer
+                              </summary>
+                              <dl className="mt-2 grid gap-1 text-muted">
+                                <div>
+                                  <dt className="inline font-medium">
+                                    Reference:{" "}
+                                  </dt>
+                                  <dd className="inline font-mono text-foreground">
+                                    {invoice.bankTransfer.reference}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt className="inline font-medium">
+                                    Amount:{" "}
+                                  </dt>
+                                  <dd className="inline text-foreground">
+                                    {formatMoney(
+                                      invoice.bankTransfer.amount,
+                                      invoice.bankTransfer.currency,
+                                    )}
+                                  </dd>
+                                </div>
+                                {invoice.bankTransfer.instructions ? (
+                                  <>
+                                    <div>
+                                      <dt className="inline font-medium">
+                                        Bank:{" "}
+                                      </dt>
+                                      <dd className="inline text-foreground">
+                                        {
+                                          invoice.bankTransfer.instructions
+                                            .bankName
+                                        }
+                                      </dd>
+                                    </div>
+                                    <div>
+                                      <dt className="inline font-medium">
+                                        Account title:{" "}
+                                      </dt>
+                                      <dd className="inline text-foreground">
+                                        {
+                                          invoice.bankTransfer.instructions
+                                            .accountTitle
+                                        }
+                                      </dd>
+                                    </div>
+                                    {invoice.bankTransfer.instructions.iban ? (
+                                      <div>
+                                        <dt className="inline font-medium">
+                                          IBAN:{" "}
+                                        </dt>
+                                        <dd className="inline break-all text-foreground">
+                                          {
+                                            invoice.bankTransfer.instructions
+                                              .iban
+                                          }
+                                        </dd>
+                                      </div>
+                                    ) : null}
+                                    {invoice.bankTransfer.instructions
+                                      .accountNumber ? (
+                                      <div>
+                                        <dt className="inline font-medium">
+                                          Account:{" "}
+                                        </dt>
+                                        <dd className="inline text-foreground">
+                                          {
+                                            invoice.bankTransfer.instructions
+                                              .accountNumber
+                                          }
+                                        </dd>
+                                      </div>
+                                    ) : null}
+                                    {invoice.bankTransfer.instructions
+                                      .raastId ? (
+                                      <div>
+                                        <dt className="inline font-medium">
+                                          Raast ID:{" "}
+                                        </dt>
+                                        <dd className="inline text-foreground">
+                                          {
+                                            invoice.bankTransfer.instructions
+                                              .raastId
+                                          }
+                                        </dd>
+                                      </div>
+                                    ) : null}
+                                  </>
+                                ) : null}
+                              </dl>
+                              <p className="mt-2 text-xs text-muted">
+                                Quote the reference in the transfer. Your
+                                renewal is applied after we verify the funds in
+                                our bank account.
+                              </p>
+                            </details>
+                          ) : null}
                           {!invoice.payable &&
+                          !invoice.bankTransfer &&
                           !invoice.hostedInvoiceUrl &&
                           !invoice.invoicePdfUrl ? (
                             <span className="text-muted">No links</span>

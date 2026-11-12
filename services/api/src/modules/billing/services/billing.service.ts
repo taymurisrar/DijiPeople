@@ -1533,9 +1533,11 @@ export class BillingService {
       isStripeBacked: Boolean(subscription.stripeSubscriptionId),
       // True when DijiPeople issues this subscription's invoices itself and
       // the tenant pays each one — no provider billing portal exists for it.
-      isManagedBilling: this.paymentGateways.isManaged(
-        subscription.paymentProvider,
-      ),
+      isManagedBilling:
+        this.paymentGateways.isManaged(subscription.paymentProvider) ||
+        // A bank-transfer subscription is billed by DijiPeople too: invoices
+        // are issued here and there is no Stripe portal to send the tenant to.
+        subscription.paymentProvider === PaymentProvider.BANK_TRANSFER,
       gracePeriodEndsAt: subscription.gracePeriodEndsAt,
       billingCycle: subscription.billingCycle,
       basePrice: Number(subscription.basePrice),
@@ -1596,7 +1598,71 @@ export class BillingService {
       orderBy: [{ issueDate: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return invoices.map((invoice) => mapTenantInvoice(invoice));
+    const mapped = invoices.map((invoice) => mapTenantInvoice(invoice));
+    return this.withBankTransferDetails(tenantId, invoices, mapped);
+  }
+
+  /**
+   * Attach how to pay an open bank-transfer renewal invoice: its payment
+   * reference and the receiving account the subscription was told to pay into.
+   * Tenant-scoped like every read here; nothing is added for any other invoice.
+   */
+  private async withBankTransferDetails<T extends { id: string }>(
+    tenantId: string,
+    invoices: Array<{
+      id: string;
+      status: string;
+      bankReference: string | null;
+      dueDate: Date;
+      amount: { toString(): string };
+      currency: string;
+      subscription: { id: string; paymentProvider: PaymentProvider | null };
+    }>,
+    mapped: T[],
+  ) {
+    const open = invoices.filter(
+      (invoice) =>
+        invoice.bankReference &&
+        invoice.subscription.paymentProvider ===
+          PaymentProvider.BANK_TRANSFER &&
+        (
+          [
+            InvoiceStatus.ISSUED,
+            InvoiceStatus.OVERDUE,
+            InvoiceStatus.PAYMENT_FAILED,
+          ] as string[]
+        ).includes(invoice.status),
+    );
+    if (open.length === 0 || !this.paymentMethods) {
+      return mapped.map((item) => ({ ...item, bankTransfer: null }));
+    }
+    const origin = await this.prisma.subscriptionOrder.findFirst({
+      where: {
+        tenantId,
+        subscriptionId: { in: open.map((i) => i.subscription.id) },
+        receivingAccountId: { not: null },
+      },
+      select: { receivingAccount: true },
+    });
+    const instructions = origin?.receivingAccount
+      ? this.paymentMethods.instructionsFor(origin.receivingAccount)
+      : null;
+    const byId = new Map(open.map((invoice) => [invoice.id, invoice]));
+    return mapped.map((item) => {
+      const invoice = byId.get(item.id);
+      return {
+        ...item,
+        bankTransfer: invoice
+          ? {
+              reference: invoice.bankReference,
+              amount: Number(invoice.amount),
+              currency: invoice.currency,
+              dueDate: invoice.dueDate,
+              instructions,
+            }
+          : null,
+      };
+    });
   }
 
   async getInvoiceDetail(tenantId: string, invoiceId: string) {
@@ -2086,6 +2152,8 @@ function mapTenantInvoice(invoice: {
     payable:
       Boolean(invoice.subscription.paymentProvider) &&
       invoice.subscription.paymentProvider !== PaymentProvider.STRIPE &&
+      // Paid by transfer and verified by an operator, never through a checkout.
+      invoice.subscription.paymentProvider !== PaymentProvider.BANK_TRANSFER &&
       parseInvoicePurpose(invoice.metadataJson) !== null &&
       (
         [

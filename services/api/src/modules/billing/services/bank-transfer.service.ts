@@ -870,6 +870,19 @@ export class BankTransferService {
             message: 'Another operator has already decided this claim.',
           });
         }
+        // Re-checked inside the transaction: the order may have been cancelled
+        // or aged out since it was read, and money for such an order is a
+        // reconciliation case. Throwing rolls the claim decision back with it.
+        const stillPayable = await tx.subscriptionOrder.count({
+          where: { id: order.id, status: SubscriptionOrderStatus.PENDING_PAYMENT },
+        });
+        if (stillPayable === 0) {
+          throw new ConflictException({
+            code: 'ORDER_NOT_PAYABLE',
+            message:
+              'The order is no longer payable; this payment cannot activate it.',
+          });
+        }
         await this.audit.log(
           {
             tenantId: 'platform',

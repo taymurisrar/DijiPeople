@@ -864,6 +864,34 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
       await prisma.invoice.delete({ where: { id: invoice.id } });
     });
 
+    it('shows the tenant how to pay an open renewal invoice, never as an online payment', async () => {
+      const invoice = await renewalInvoice('tenantview');
+      type Row = {
+        id: string;
+        payable: boolean;
+        bankTransfer: {
+          reference: string;
+          instructions: { iban: string | null } | null;
+        } | null;
+      };
+      const rows = (await billing.getInvoices(tenantId)) as unknown as Row[];
+      const row = rows.find((item) => item.id === invoice.id)!;
+      // A card checkout must never be offered for a bank-paid invoice.
+      expect(row.payable).toBe(false);
+      expect(row.bankTransfer?.reference).toBe(invoice.bankReference);
+      expect(row.bankTransfer?.instructions?.iban).toBe(
+        'GB82WEST12345698765432',
+      );
+      // Tenant isolation: another workspace sees none of it.
+      expect(
+        await billing.getInvoices('00000000-0000-4000-8000-000000000000'),
+      ).toEqual([]);
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { status: 'VOIDED' },
+      });
+    });
+
     it('rejects a part payment and credits an exact one once, extending the period', async () => {
       const invoice = await renewalInvoice('pay');
       const record = (receivedAmount: string, ref: string) =>
