@@ -87,7 +87,7 @@ describe("the subscribe form when checkout is unavailable", () => {
     expect(assignments).toHaveLength(1);
   });
 
-  it("renders no step fields while online checkout is blocked unless bank transfer is selected", () => {
+  it("renders no step fields while online checkout is blocked unless a bank transfer is selected", () => {
     /*
      * The load-bearing assertion, and the change from the previous version: the
      * form was disabled and left on screen, which invited a visitor to read
@@ -95,7 +95,9 @@ describe("the subscribe form when checkout is unavailable", () => {
      * fieldset are now branches of one ternary, so there is no arrangement of
      * state that shows both.
      */
-    expect(form).toMatch(/\{block && !bankTransferSelected \? \(/);
+    expect(form).toMatch(
+      /\{block && !bankTransferSelected && !bankInvoiceSelected \? \(/,
+    );
     // The fieldset no longer needs a disabled state, because it is not rendered
     // at all while blocked. Continue and Submit keep theirs — BUG-0082.
     const fieldsetTag = form.slice(

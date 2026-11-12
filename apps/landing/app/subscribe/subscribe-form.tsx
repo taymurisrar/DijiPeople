@@ -171,6 +171,29 @@ export function SubscribeForm({
   const [paymentFlowSelection, setPaymentFlowSelection] =
     useState<PaymentFlowSelection | null>(null);
   const [bankRequestSubmitted, setBankRequestSubmitted] = useState(false);
+  // Whether the SERVER can issue a real bank invoice for this exact price. It
+  // is read, never assumed: market, currency and an approved receiving account
+  // all live server-side.
+  const [bankTransferLive, setBankTransferLive] = useState(false);
+  const selectedPriceId = selectedPrice?.id ?? null;
+  useEffect(() => {
+    setBankTransferLive(false);
+    if (!selectedPriceId) return;
+    const controller = new AbortController();
+    void fetch(
+      `/api/public/payment-methods?planPriceId=${encodeURIComponent(selectedPriceId)}`,
+      { signal: controller.signal, cache: "no-store" },
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { options?: Array<{ kind?: string }> } | null) => {
+        setBankTransferLive(
+          Boolean(payload?.options?.some((o) => o.kind === "bank_transfer")),
+        );
+      })
+      // A failed lookup leaves the existing (assisted) behaviour in place.
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [selectedPriceId]);
   const paymentProvider = chosenPaymentProvider(
     paymentProviders,
     pickedProvider,
@@ -182,17 +205,22 @@ export function SubscribeForm({
     currency,
     priceId: selectedPrice?.id ?? null,
     providerKeys: paymentProviders.map((provider) => provider.key),
+    bankTransferLive,
   });
   const paymentFlow = resolvePaymentFlow({
     contextKey: paymentContextKey,
     selection: paymentFlowSelection,
     bankTransferMarket,
     onlineCheckoutAvailable,
+    bankTransferLive,
   });
   const bankTransferSelected =
     bankTransferMarket && paymentFlow === "BANK_TRANSFER_REQUEST";
+  const bankInvoiceSelected =
+    bankTransferLive && paymentFlow === "BANK_TRANSFER";
   const canCheckout =
-    Boolean(selectedPrice) && (bankTransferSelected || onlineCheckoutAvailable);
+    Boolean(selectedPrice) &&
+    (bankTransferSelected || bankInvoiceSelected || onlineCheckoutAvailable);
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
@@ -547,7 +575,8 @@ export function SubscribeForm({
            */
           onboardingId: onboardingId ?? undefined,
           // Undefined (so omitted by JSON) unless the buyer had a choice.
-          provider: paymentProvider,
+          provider: bankInvoiceSelected ? undefined : paymentProvider,
+          paymentMethod: bankInvoiceSelected ? "BANK_TRANSFER" : undefined,
         }),
       });
     } catch {
@@ -641,7 +670,8 @@ export function SubscribeForm({
         onboardingId: onboardingId ?? undefined,
         // The same choice the first submission carried; the server refuses a
         // switch once a checkout is open on this order (PAYMENT_PROVIDER_LOCKED).
-        provider: paymentProvider,
+        provider: bankInvoiceSelected ? undefined : paymentProvider,
+        paymentMethod: bankInvoiceSelected ? "BANK_TRANSFER" : undefined,
       }),
     });
     const checkoutPayload = await checkout.json().catch(() => null);
@@ -878,9 +908,14 @@ export function SubscribeForm({
             a line here is still right: the price above it is the thing that
             cannot be bought.
           */}
-          {block && !bankTransferSelected ? (
+          {block && !bankTransferSelected && !bankInvoiceSelected ? (
             <p className="mt-2 text-xs font-medium text-warning">
               Not available to buy online ({block.code}).
+            </p>
+          ) : bankInvoiceSelected ? (
+            <p className="mt-2 text-xs text-muted">
+              Pay by bank transfer. Your subscription begins after we verify the
+              funds in our account.
             </p>
           ) : bankTransferSelected ? (
             <p className="mt-2 text-xs text-muted">
@@ -1032,7 +1067,7 @@ export function SubscribeForm({
         {/* The bank-transfer request is available for published PKR prices
             even before a live gateway is approved. It creates a sales inquiry,
             never a paid invoice or an activated subscription. */}
-        {bankTransferMarket && selectedPrice ? (
+        {(bankTransferMarket || bankTransferLive) && selectedPrice ? (
           <fieldset className="mt-4 grid gap-2 rounded-2xl border border-border p-4">
             <legend className="px-1 text-sm font-semibold text-foreground">
               Payment method
@@ -1043,7 +1078,7 @@ export function SubscribeForm({
                   type="radio"
                   name="paymentFlow"
                   value="ONLINE"
-                  checked={!bankTransferSelected}
+                  checked={!bankTransferSelected && !bankInvoiceSelected}
                   onChange={() =>
                     setPaymentFlowSelection({
                       contextKey: paymentContextKey,
@@ -1057,26 +1092,53 @@ export function SubscribeForm({
                   : ""}
               </label>
             ) : null}
-            <label className="flex items-center gap-3 text-sm text-foreground">
-              <input
-                type="radio"
-                name="paymentFlow"
-                value="BANK_TRANSFER_REQUEST"
-                checked={bankTransferSelected}
-                onChange={() =>
-                  setPaymentFlowSelection({
-                    contextKey: paymentContextKey,
-                    flow: "BANK_TRANSFER_REQUEST",
-                  })
-                }
-              />
-              Request bank transfer / Raast payment instructions
-            </label>
-            <p className="text-xs leading-5 text-muted">
-              Bank transfers are arranged with our team. We will confirm the
-              amount and bank details before you pay. Activation follows
-              independent payment verification, not a receipt screenshot.
-            </p>
+            {bankTransferLive ? (
+              <>
+                <label className="flex items-center gap-3 text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="paymentFlow"
+                    value="BANK_TRANSFER"
+                    checked={bankInvoiceSelected}
+                    onChange={() =>
+                      setPaymentFlowSelection({
+                        contextKey: paymentContextKey,
+                        flow: "BANK_TRANSFER",
+                      })
+                    }
+                  />
+                  Bank transfer / Raast
+                </label>
+                <p className="text-xs leading-5 text-muted">
+                  You will receive an invoice and a unique payment reference.
+                  Your subscription starts after we verify the funds in our
+                  account — a receipt or screenshot alone does not activate it.
+                </p>
+              </>
+            ) : (
+              <>
+                <label className="flex items-center gap-3 text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="paymentFlow"
+                    value="BANK_TRANSFER_REQUEST"
+                    checked={bankTransferSelected}
+                    onChange={() =>
+                      setPaymentFlowSelection({
+                        contextKey: paymentContextKey,
+                        flow: "BANK_TRANSFER_REQUEST",
+                      })
+                    }
+                  />
+                  Request bank transfer / Raast payment instructions
+                </label>
+                <p className="text-xs leading-5 text-muted">
+                  Bank transfers are arranged with our team. We will confirm the
+                  amount and bank details before you pay. Activation follows
+                  independent payment verification, not a receipt screenshot.
+                </p>
+              </>
+            )}
           </fieldset>
         ) : null}
 
@@ -1102,7 +1164,7 @@ export function SubscribeForm({
           journey asserts a single visible notice and a duplicate id is a
           strict-mode violation rather than twice the clarity.
         */}
-        {block && !bankTransferSelected ? (
+        {block && !bankTransferSelected && !bankInvoiceSelected ? (
           <div
             className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-5"
             id="subscribe-unavailable-notice"
@@ -1174,6 +1236,7 @@ export function SubscribeForm({
                 {...stepProps}
                 goTo={goTo}
                 bankTransferRequest={bankTransferSelected}
+                bankInvoice={bankInvoiceSelected}
                 onPaymentProviderChange={setPickedProvider}
                 paymentProvider={paymentProvider}
                 paymentProviders={paymentProviders}
