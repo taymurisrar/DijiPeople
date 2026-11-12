@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-11-03
-> **Verified against commit:** fe923d28
+> **Last verified:** 2026-11-12
+> **Verified against commit:** 9e805641
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 928 of
-1316 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 935 of
+1327 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-157 documented export(s); 301 undocumented export(s) omitted.
+161 documented export(s); 308 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -57,13 +57,16 @@ re-derived on each run.
 | `RecordStatusGroup` | component | 5 | `apps/admin/app/_components/runtime/record-status-group.tsx`:42 | The record header status group. |
 | `RecordHeader` | component | 4 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:42 | The one record header every Platform Admin record page draws. |
 | `CopyReference` | component | 3 | `apps/admin/app/_components/monitoring/monitoring-ui.tsx`:107 | A reference id that copies itself; it is what support pastes to a customer. |
+| `StatusChip` | component | 3 | `apps/admin/app/_components/billing/billing-client-utils.tsx`:4 | Status chip. Text always carries the meaning; colour only reinforces it. |
 | `DependencyAwareDeleteDialog` | component | 2 | `apps/admin/app/_components/runtime/dependency-aware-delete-dialog.tsx`:30 | The delete confirmation that asks the API what the delete would do first (EXECPLAN-0055 D5). |
 | `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:36 | The bell: a count, and the last few things worth knowing. |
 | `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:99 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
+| `BankTransfersClient` | component | 1 | `apps/admin/app/_components/billing/bank-transfers-client.tsx`:121 | The bank-transfer verification queue. |
 | `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:31 | What has happened on this platform that somebody should look at. |
 | `NumberSequencesManager` | component | 1 | `apps/admin/app/_components/settings/number-sequences-manager.tsx`:27 | Settings > Numbering (ADR-0027). |
+| `PaymentMethodsClient` | component | 1 | `apps/admin/app/_components/billing/payment-methods-client.tsx`:69 | Payment methods by market, and the receiving accounts behind a bank transfer. |
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
 | `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
 | `PlanEntitlementsPanel` | component | 1 | `apps/admin/app/_components/plans/plan-entitlements-panel.tsx`:22 | Plan entitlements. The entitlement set is what a plan actually sells, and until now it could only be changed on the legacy `?workspace=legacy-commerce` page — the runtime record page showed an "Entitlements" tab with nothing on it. |
@@ -71,6 +74,7 @@ re-derived on each run.
 | `ReadinessCard` | component | 1 | `apps/admin/app/_components/tenants/tenant-overview-panel.tsx`:446 | Deterministic readiness, shown as the list of rules it checked. |
 | `RecordCommandBar` | component | 1 | `apps/admin/app/_components/runtime/record-command-bar.tsx`:22 | The default record command bar for a **server-rendered** detail page. |
 | `RecordHighlightHeader` | component | 1 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:130 | The record header for a module that declares a `highlight` (EXECPLAN-0055 D8): its key values as cells, with Owner as the only control — taken from the status group so its permission check and assignment route are not duplicated. |
+| `RenewalInvoicesPanel` | component | 1 | `apps/admin/app/_components/billing/renewal-invoices-panel.tsx`:35 | Renewal invoices of bank-transfer subscriptions that are waiting for money. |
 | `RowActions` | component | 1 | `apps/admin/app/_components/crm/row-actions.tsx`:38 | The actions available on one row of a table. |
 | `RuntimeQuickCreatePanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-quick-create-panel.tsx`:46 | Create a related record from a subgrid, in a side sheet, without leaving the record (EXECPLAN-0055 D8). |
 | `RuntimeRelatedRecordsPanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-related-records-panel.tsx`:74 | A subgrid on a record page. |
