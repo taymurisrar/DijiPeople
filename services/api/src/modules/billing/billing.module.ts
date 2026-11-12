@@ -7,6 +7,11 @@ import { AuditModule } from '../audit/audit.module';
 import { RecordAssignmentModule } from '../super-admin/record-assignment.module';
 import { BillingController } from './controllers/billing.controller';
 import { PublicBillingController } from './controllers/public-billing.controller';
+import { PublicBankTransferController } from './controllers/public-bank-transfer.controller';
+import { PlatformBankTransferController } from './controllers/platform-bank-transfer.controller';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
+import { PaymentMethodRegistryService } from './services/payment-method-registry.service';
+import { BankTransferService } from './services/bank-transfer.service';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
 import { SafepayWebhookController } from './controllers/safepay-webhook.controller';
 import { STRIPE_CLIENT } from './constants/stripe.constants';
@@ -58,6 +63,8 @@ import { ReconciliationService } from './services/reconciliation.service';
   controllers: [
     BillingController,
     PublicBillingController,
+    PublicBankTransferController,
+    PlatformBankTransferController,
     StripeWebhookController,
     SafepayWebhookController,
   ],
@@ -96,6 +103,10 @@ import { ReconciliationService } from './services/reconciliation.service';
     // settlement on the provider's own confirmation, and the renewal sweep.
     SafepayGateway,
     PaymentGateways,
+    // Payment-method registry and bank-transfer settlement (EXECPLAN-0045).
+    SecretEncryptionService,
+    PaymentMethodRegistryService,
+    BankTransferService,
     PaymentSettlementService,
     ManagedCheckoutService,
     ManagedRenewalService,
@@ -131,6 +142,8 @@ import { ReconciliationService } from './services/reconciliation.service';
     PaymentSettlementService,
     PaymentGateways,
     ManagedRenewalService,
+    PaymentMethodRegistryService,
+    BankTransferService,
   ],
 })
 export class BillingModule {}

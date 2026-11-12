@@ -43,6 +43,14 @@ export type PlatformPermission =
   | 'monitoring.manage'
   | 'payments.read'
   | 'payments.manage'
+  /*
+   * EXECPLAN-0045. Deciding a bank-transfer claim — approve, reject, ask for
+   * clarification — is what releases a customer's workspace. It is narrower than
+   * `payments.manage` (which edits payment records) so that deciding money is a
+   * finance act held by name: SUPER_ADMIN via `platform.*`, PLATFORM_ADMIN and
+   * FINANCE_MANAGER by explicit grant, and nobody by wildcard.
+   */
+  | 'payments.verify'
   | 'billing.read'
   | 'billing.manage'
   | 'subscriptions.read'
@@ -156,6 +164,7 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
     'billing.*',
     'payments.read',
     'payments.manage',
+    'payments.verify',
     'subscriptions.read',
     'subscriptions.manage',
     'invoices.read',
@@ -228,6 +237,7 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
     'dashboard.read',
     'billing.*',
     'payments.read',
+    'payments.verify',
     'subscriptions.read',
     'invoices.read',
     'plans.read',

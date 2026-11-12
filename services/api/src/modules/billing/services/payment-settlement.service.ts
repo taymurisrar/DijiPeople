@@ -335,8 +335,26 @@ export class PaymentSettlementService {
         planPriceId: true,
         requestedSeats: true,
         promotionId: true,
+        bankReference: true,
       },
     });
+    // A bank-transfer order has no provider tracker: its money was verified by
+    // an operator, and its reference is what makes this idempotent.
+    if (
+      order?.tenantId &&
+      order.bankReference &&
+      order.planId &&
+      order.planPriceId
+    ) {
+      await this.recordBankOrderPayment({
+        ...order,
+        tenantId: order.tenantId,
+        bankReference: order.bankReference,
+        planId: order.planId,
+        planPriceId: order.planPriceId,
+      });
+      return;
+    }
     if (
       !order?.tenantId ||
       !order.paymentProvider ||
@@ -421,6 +439,92 @@ export class PaymentSettlementService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: { paymentProvider },
+      });
+    });
+  }
+
+  /**
+   * The bank-transfer twin of the provider path above: once provisioning has
+   * created the tenant, write the PAID invoice and the SUCCEEDED payment for a
+   * transfer an operator verified. Keyed on the bank reference, which is unique
+   * per order, so a replayed provisioning cannot record the money twice.
+   */
+  private async recordBankOrderPayment(order: {
+    id: string;
+    orderNumber: string;
+    tenantId: string;
+    bankReference: string;
+    currency: string;
+    subtotalAmount: Prisma.Decimal;
+    discountAmount: Prisma.Decimal;
+    taxAmount: Prisma.Decimal;
+    totalAmount: Prisma.Decimal;
+    paidAt: Date | null;
+    planId: string;
+    planPriceId: string;
+    requestedSeats: number;
+    promotionId: string | null;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.payment.findFirst({
+        where: {
+          tenantId: order.tenantId,
+          providerReference: order.bankReference,
+        },
+        select: { id: true },
+      });
+      if (existing) return;
+
+      const subscription = await tx.subscription.findUniqueOrThrow({
+        where: { tenantId: order.tenantId },
+        select: { id: true, currentPeriodStart: true, currentPeriodEnd: true },
+      });
+      const paidAt = order.paidAt ?? new Date();
+      const purpose: InvoicePurpose = {
+        kind: 'INITIAL',
+        planId: order.planId,
+        planPriceId: order.planPriceId,
+        seats: order.requestedSeats,
+        promotionId: order.promotionId,
+      };
+      const invoice = await tx.invoice.create({
+        data: {
+          tenantId: order.tenantId,
+          subscriptionId: subscription.id,
+          invoiceNumber: buildInvoiceNumber(paidAt),
+          amount: order.totalAmount,
+          currency: order.currency,
+          issueDate: paidAt,
+          dueDate: paidAt,
+          status: InvoiceStatus.PAID,
+          subtotal: order.subtotalAmount,
+          tax: order.taxAmount,
+          total: order.totalAmount,
+          amountPaid: order.totalAmount,
+          amountDue: 0,
+          periodStart: subscription.currentPeriodStart,
+          periodEnd: subscription.currentPeriodEnd,
+          paidAt,
+          metadataJson: {
+            ...purpose,
+            orderNumber: order.orderNumber,
+            bankReference: order.bankReference,
+            discountAmount: order.discountAmount.toString(),
+          } as Prisma.InputJsonValue,
+        },
+      });
+      await tx.payment.create({
+        data: {
+          tenantId: order.tenantId,
+          subscriptionId: subscription.id,
+          invoiceId: invoice.id,
+          amount: order.totalAmount,
+          currency: order.currency,
+          paymentMethod: 'BANK',
+          status: PaymentStatus.SUCCEEDED,
+          providerReference: order.bankReference,
+          paidAt,
+        },
       });
     });
   }

@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -51,6 +52,7 @@ import {
 } from '../billing-seat-pricing';
 import { parseInvoicePurpose } from '../managed-billing.rules';
 import { PaymentGateways } from '../providers/payment-gateways';
+import { PaymentMethodRegistryService } from './payment-method-registry.service';
 import { openOrderCheckoutProvider } from '../providers/payment-provider.resolver';
 import {
   ManagedCheckoutService,
@@ -73,7 +75,62 @@ export class BillingService {
     // provider other than Stripe. Stripe keeps its own path below unchanged.
     private readonly paymentGateways: PaymentGateways,
     private readonly managedCheckout: ManagedCheckoutService,
+    // Optional and last so existing manual constructions keep compiling; absent
+    // means "no operator veto", which is the behaviour before the registry.
+    @Optional() private readonly paymentMethods?: PaymentMethodRegistryService,
   ) {}
+
+  /**
+   * Every payment method this price may be bought with right now — the card
+   * gateways that can collect it, minus any an operator has withdrawn for the
+   * market, plus a bank transfer when an approved receiving account exists.
+   *
+   * Decided from the priced row's own market and currency, never from the
+   * request, and exposes no gateway state beyond a label.
+   */
+  async getPublicPaymentOptions(planPriceId: string) {
+    const price = await this.prisma.planPrice.findUnique({
+      where: { id: planPriceId },
+      include: { plan: true },
+    });
+    if (
+      !price ||
+      !price.isActive ||
+      !price.plan.isActive ||
+      price.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
+    ) {
+      throw new NotFoundException('Plan price not found.');
+    }
+    this.assertPlanPriceCurrentlySellable(price);
+    this.assertSellableToAnonymousVisitor(price);
+
+    const cardProviders = this.paymentGateways.availableProviders(
+      price.currency,
+      this.stripeFactsFor(price),
+    );
+    const resolved = this.paymentMethods
+      ? await this.paymentMethods.listPublicOptions({
+          marketId: price.marketId,
+          currency: price.currency,
+          cardProviders,
+        })
+      : {
+          options: cardProviders.map((provider) => ({
+            key:
+              provider === PaymentProvider.STRIPE
+                ? 'STRIPE_CARD'
+                : 'SAFEPAY_CARD',
+            label:
+              provider === PaymentProvider.STRIPE
+                ? 'Card (Stripe)'
+                : 'Card (Safepay)',
+            kind: 'card' as const,
+            provider,
+          })),
+          assistedInvoiceFallback: true,
+        };
+    return { currency: price.currency, ...resolved };
+  }
 
   /**
    * The one place a plan price's sellability is asserted from a stored row —
@@ -605,6 +662,21 @@ export class BillingService {
       input.provider,
       () => this.stripeFactsFor(planPrice),
     );
+    // An operator's veto: a method withdrawn for this market is refused even
+    // if its gateway is configured.
+    if (
+      this.paymentMethods &&
+      !(await this.paymentMethods.isCardMethodPermitted({
+        provider,
+        marketId: planPrice.marketId,
+        currency: planPrice.currency,
+      }))
+    ) {
+      throw new BadRequestException({
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+        message: 'This payment method is not available for this selection.',
+      });
+    }
     if (
       provider === PaymentProvider.STRIPE &&
       !this.stripePubliclyAvailable()

@@ -46,6 +46,7 @@ export const STORAGE_DOMAINS = [
   'invoices',
   'app-releases',
   'platform-communications',
+  'payment-evidence',
 ] as const;
 
 export type StorageDomain = (typeof STORAGE_DOMAINS)[number];

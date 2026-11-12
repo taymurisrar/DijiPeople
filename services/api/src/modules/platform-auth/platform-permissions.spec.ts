@@ -22,6 +22,7 @@ import { AdminLegalController } from '../legal/admin-legal.controller';
 import { DemoDataController } from '../demo-data/demo-data.controller';
 import { PlatformTeamsController } from '../platform-users/platform-teams.controller';
 import { SuperAdminController } from '../super-admin/super-admin.controller';
+import { PlatformBankTransferController } from '../billing/controllers/platform-bank-transfer.controller';
 import type {
   AuthenticatedRequest,
   AuthenticatedUser,
@@ -500,6 +501,10 @@ describe('the platform boundary guard', () => {
 describe('ADR-0018 platform route authorization', () => {
   const controllers: Array<{ name: string; type: object }> = [
     { name: 'SuperAdminController', type: SuperAdminController },
+    {
+      name: 'PlatformBankTransferController',
+      type: PlatformBankTransferController,
+    },
     { name: 'AdminLeadsController', type: AdminLeadsController },
     { name: 'AdminLegalController', type: AdminLegalController },
     { name: 'DemoDataController', type: DemoDataController },
@@ -710,6 +715,14 @@ const SUPER_ADMIN_ONLY_ROUTES = [
   'POST /super-admin/subscriptions/:subscriptionId/invoices -> platform.billing.administer',
   // Returns money to a card through the provider; cannot be undone.
   'POST /super-admin/payments/:paymentId/refund -> platform.billing.administer',
+  // EXECPLAN-0045: where customer money is sent is configured by the narrow
+  // tier only; deciding a transfer is payments.verify (finance), not listed here.
+  'PATCH /super-admin/billing/payment-methods/:id/approval -> platform.billing.administer',
+  'PATCH /super-admin/billing/payment-methods/:id/enabled -> platform.billing.administer',
+  'POST /super-admin/billing/receiving-accounts/:accountId/approve -> platform.billing.administer',
+  'POST /super-admin/billing/receiving-accounts/:accountId/reject -> platform.billing.administer',
+  'POST /super-admin/billing/receiving-accounts/:accountId/suspend -> platform.billing.administer',
+  'POST /super-admin/billing/receiving-accounts/:accountId/activate -> platform.billing.administer',
   // SuperAdminService.updateTenantSlug already refused everyone else.
   'PATCH /super-admin/tenants/:tenantId/slug -> platform.tenants.administer',
   // Class-level @RequireRoles('system-admin') before ADR-0018.

@@ -520,6 +520,16 @@ export class SubscriptionOrderService {
       where: {
         status: SubscriptionOrderStatus.PENDING_PAYMENT,
         expiresAt: { lt: now },
+        // A bank transfer awaiting an operator's verification may already be
+        // in the receiving account. Ageing the order out from under it would
+        // strand real money; bank claims expire on their own, later schedule.
+        bankTransferClaims: {
+          none: {
+            status: {
+              in: ['PENDING_VERIFICATION', 'CLARIFICATION_REQUESTED'],
+            },
+          },
+        },
       },
       data: {
         status: SubscriptionOrderStatus.ABANDONED,
