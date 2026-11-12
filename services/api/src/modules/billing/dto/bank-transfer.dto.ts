@@ -189,7 +189,7 @@ export class CreateReceivingAccountDto {
   /** Phone / WhatsApp number payers can send a receipt to. */
   @IsOptional()
   @Transform(trim)
-  @Matches(/^\+?[0-9][0-9 \-]{6,19}$/, {
+  @Matches(/^\+?[0-9][0-9 -]{6,19}$/, {
     message: 'receiptContactPhone must be a phone number.',
   })
   receiptContactPhone?: string;
