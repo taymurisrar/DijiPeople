@@ -14,7 +14,7 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**369 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**370 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
@@ -389,7 +389,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 
 ## Landing — `apps/landing` (port 3000)
 
-14 screens, 0 runtime-driven.
+15 screens, 0 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -405,6 +405,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/request-demo` | `apps/landing/app/request-demo/page.tsx` | _bespoke_ | — |
 | `/sign/[token]` | `apps/landing/app/sign/[token]/page.tsx` | _bespoke_ | — |
 | `/subscribe` | `apps/landing/app/subscribe/page.tsx` | _bespoke_ | — |
+| `/subscribe/bank-transfer` | `apps/landing/app/subscribe/bank-transfer/page.tsx` | _bespoke_ | — |
 | `/subscribe/cancel` | `apps/landing/app/subscribe/cancel/page.tsx` | _bespoke_ | — |
 | `/subscribe/success` | `apps/landing/app/subscribe/success/page.tsx` | _bespoke_ | — |
 
