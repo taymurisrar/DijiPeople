@@ -145,8 +145,12 @@ export class PlatformBankTransferController {
 
   @Get('billing/payment-methods')
   @RequirePlatformPermission('billing.read')
-  methods() {
-    return this.registry.listConfigurations();
+  async methods() {
+    const [items, markets] = await Promise.all([
+      this.registry.listConfigurations(),
+      this.registry.listMarkets(),
+    ]);
+    return { items, markets };
   }
 
   @Post('billing/payment-methods')

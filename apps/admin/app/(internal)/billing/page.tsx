@@ -6,6 +6,7 @@ import {
   Clock3,
   CreditCard,
   FileText,
+  Landmark,
   Package,
   ReceiptText,
   RefreshCw,
@@ -21,6 +22,8 @@ import {
 } from "@/app/_components/admin-ui";
 import { WebhookEventsClient } from "@/app/_components/billing/webhook-events-client";
 import { ProviderPaymentsClient } from "@/app/_components/billing/provider-payments-client";
+import { BankTransfersClient } from "@/app/_components/billing/bank-transfers-client";
+import { PaymentMethodsClient } from "@/app/_components/billing/payment-methods-client";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
@@ -71,6 +74,8 @@ type WebhookEventsResponse = Parameters<
 >[0]["initialData"];
 
 type ProviderPaymentsProps = Parameters<typeof ProviderPaymentsClient>[0];
+type BankTransfersProps = Parameters<typeof BankTransfersClient>[0];
+type PaymentMethodsProps = Parameters<typeof PaymentMethodsClient>[0];
 
 const tabs = [
   { key: "overview", label: "Overview", href: "/billing", icon: ReceiptText },
@@ -82,6 +87,18 @@ const tabs = [
     label: "Subscriptions",
     href: "/subscriptions",
     icon: Clock3,
+  },
+  {
+    key: "bank-transfers",
+    label: "Bank transfers",
+    href: "/billing?tab=bank-transfers",
+    icon: Landmark,
+  },
+  {
+    key: "payment-methods",
+    label: "Payment methods",
+    href: "/billing?tab=payment-methods",
+    icon: CreditCard,
   },
   {
     key: "webhooks",
@@ -110,34 +127,61 @@ export default async function BillingPage({
 }) {
   const params = await searchParams;
   const activeTab =
-    params?.tab === "webhooks" || params?.tab === "safepay"
+    params?.tab === "webhooks" ||
+    params?.tab === "safepay" ||
+    params?.tab === "bank-transfers" ||
+    params?.tab === "payment-methods"
       ? params.tab
       : "overview";
 
-  const [invoices, payments, diagnostics, webhookEvents, settings, safepay] =
-    await Promise.all([
-      apiRequestJson<InvoiceRecord[]>("/super-admin/invoices"),
-      apiRequestJson<PaymentRecord[]>("/super-admin/payments"),
-      apiRequestJson<BillingDiagnostics>("/super-admin/billing/diagnostics"),
-      activeTab === "webhooks"
-        ? apiRequestJson<WebhookEventsResponse>(
-            "/super-admin/billing/stripe-webhook-events?page=1&pageSize=25",
-          )
-        : Promise.resolve(null),
-      apiRequestJson<{
-        platformDefaults?: { currency?: string; reportingCurrency?: string };
-      }>("/super-admin/platform-settings"),
-      activeTab === "safepay"
-        ? Promise.all([
-            apiRequestJson<ProviderPaymentsProps["providers"]>(
-              "/super-admin/billing/payment-providers",
-            ),
-            apiRequestJson<{ items: ProviderPaymentsProps["events"] }>(
-              "/super-admin/billing/provider-events?page=1&pageSize=50",
-            ),
-          ])
-        : Promise.resolve(null),
-    ]);
+  const [
+    invoices,
+    payments,
+    diagnostics,
+    webhookEvents,
+    settings,
+    safepay,
+    bankTransfers,
+    paymentMethods,
+  ] = await Promise.all([
+    apiRequestJson<InvoiceRecord[]>("/super-admin/invoices"),
+    apiRequestJson<PaymentRecord[]>("/super-admin/payments"),
+    apiRequestJson<BillingDiagnostics>("/super-admin/billing/diagnostics"),
+    activeTab === "webhooks"
+      ? apiRequestJson<WebhookEventsResponse>(
+          "/super-admin/billing/stripe-webhook-events?page=1&pageSize=25",
+        )
+      : Promise.resolve(null),
+    apiRequestJson<{
+      platformDefaults?: { currency?: string; reportingCurrency?: string };
+    }>("/super-admin/platform-settings"),
+    activeTab === "safepay"
+      ? Promise.all([
+          apiRequestJson<ProviderPaymentsProps["providers"]>(
+            "/super-admin/billing/payment-providers",
+          ),
+          apiRequestJson<{ items: ProviderPaymentsProps["events"] }>(
+            "/super-admin/billing/provider-events?page=1&pageSize=50",
+          ),
+        ])
+      : Promise.resolve(null),
+    activeTab === "bank-transfers"
+      ? Promise.all([
+          apiRequestJson<BankTransfersProps["initialList"]>(
+            "/super-admin/payments/bank-transfers?page=1&pageSize=25&status=PENDING_VERIFICATION",
+          ),
+          apiRequestJson<BankTransfersProps["initialSummary"]>(
+            "/super-admin/payments/bank-transfers/summary",
+          ),
+        ])
+      : Promise.resolve(null),
+    activeTab === "payment-methods"
+      ? apiRequestJson<{
+          items: PaymentMethodsProps["initialMethods"];
+          markets: PaymentMethodsProps["markets"];
+        }>("/super-admin/billing/payment-methods")
+      : Promise.resolve(null),
+  ]);
   const reportingCurrency =
     settings.platformDefaults?.reportingCurrency ??
     settings.platformDefaults?.currency ??
@@ -197,7 +241,17 @@ export default async function BillingPage({
         </div>
       </nav>
 
-      {activeTab === "safepay" && safepay ? (
+      {activeTab === "bank-transfers" && bankTransfers ? (
+        <BankTransfersClient
+          initialList={bankTransfers[0]}
+          initialSummary={bankTransfers[1]}
+        />
+      ) : activeTab === "payment-methods" && paymentMethods ? (
+        <PaymentMethodsClient
+          initialMethods={paymentMethods.items}
+          markets={paymentMethods.markets}
+        />
+      ) : activeTab === "safepay" && safepay ? (
         <ProviderPaymentsClient
           providers={safepay[0]}
           events={safepay[1].items}

@@ -265,6 +265,21 @@ export class PaymentMethodRegistryService {
 
   // ---- administration -------------------------------------------------------
 
+  /** Markets a method can be configured for — the picker in the console. */
+  listMarkets() {
+    return this.prisma.market.findMany({
+      where: { archivedAt: null },
+      orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        defaultCurrency: true,
+        supportedCurrencies: true,
+      },
+    });
+  }
+
   async listConfigurations() {
     const rows = await this.prisma.paymentMethodConfiguration.findMany({
       orderBy: [{ marketId: 'asc' }, { currency: 'asc' }, { methodKey: 'asc' }],
