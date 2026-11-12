@@ -368,6 +368,11 @@ enum WebhookProcessingStatus {
 enum PaymentProvider {
   STRIPE
   SAFEPAY
+  /// A manual bank transfer / Raast payment verified by an operator. Nothing
+  /// executes it, so it has no gateway; it is a provider only so a subscription
+  /// can record how it is paid, and so the renewal and period-boundary sweeps
+  /// that already run every non-Stripe subscription cover it too.
+  BANK_TRANSFER
 }
 
 enum DocumentEntityType {
@@ -4185,6 +4190,7 @@ model Market {
   // overrides the global one of the same type.
   legalDocuments      LegalDocument[]
   subscriptionOrders  SubscriptionOrder[]
+  paymentMethods      PaymentMethodConfiguration[]
 
   @@index([publicationStatus, isEnabled, sortOrder])
   @@index([launchStatus])
@@ -8577,7 +8583,11 @@ model Invoice {
   updatedById            String?
   tenant                 Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription           Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  /// Set only on renewal invoices of a bank-transfer subscription: the unique
+  /// reference the payer quotes, exactly as on a first-purchase order.
+  bankReference          String?       @unique
   payments               Payment[]
+  bankTransferClaims     BankTransferClaim[]
   supportCases           SupportCase[]
 
   @@unique([tenantId, invoiceNumber])
@@ -13989,6 +13999,15 @@ model SubscriptionOrder {
   planPriceId String?
   marketId    String?
 
+  /// Bank-transfer settlement. All null on Stripe/Safepay orders. The reference
+  /// is the unique string the buyer quotes on the transfer; the receiving account
+  /// is frozen at invoice time so a later account change cannot redirect money
+  /// the buyer was already told to send somewhere else.
+  paymentMethodConfigId String?
+  receivingAccountId    String?
+  bankReference         String?   @unique
+  bankInvoiceIssuedAt   DateTime?
+
   /// Commercial terms as resolved by the server, copied rather than joined.
   /// A later edit to the PlanPrice must not change what this order was.
   currency        String
@@ -14112,12 +14131,16 @@ model SubscriptionOrder {
   planPrice    PlanPrice?      @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
   market       Market?         @relation(fields: [marketId], references: [id], onDelete: Restrict)
   provisioningRuns TenantProvisioningRun[]
+  paymentMethodConfig PaymentMethodConfiguration? @relation(fields: [paymentMethodConfigId], references: [id], onDelete: Restrict)
+  receivingAccount    BankReceivingAccount?       @relation(fields: [receivingAccountId], references: [id], onDelete: Restrict)
+  bankTransferClaims  BankTransferClaim[]
   promotion    Promotion?      @relation(fields: [promotionId], references: [id], onDelete: SetNull)
 
   @@index([customerAccountId, status])
   @@index([status, expiresAt])
   @@index([tenantId])
   @@index([planPriceId])
+  @@index([paymentMethodConfigId, status])
   @@index([leadId])
 }
 
@@ -15103,4 +15126,185 @@ model RecordAssignmentRule {
 
   @@index([moduleKey, isActive, priority])
   @@index([targetTeamId])
+}
+
+// ---------------------------------------------------------------------------
+// Payment methods and bank-transfer settlement (EXECPLAN-0056)
+//
+// A bank transfer is a payment *channel*, not a gateway: nothing executes it,
+// so it is deliberately not a PaymentProvider. Stripe and Safepay remain two
+// executors of the card channel. Availability of every channel is decided by a
+// row here plus server-side readiness checks, never by a client flag.
+// ---------------------------------------------------------------------------
+
+enum BillingPaymentMethodKey {
+  BANK_TRANSFER
+  STRIPE_CARD
+  SAFEPAY_CARD
+}
+
+enum PaymentMethodEnvironment {
+  MANUAL
+  SANDBOX
+  PRODUCTION
+}
+
+enum PaymentMethodApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ReceivingAccountStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum BankTransferClaimStatus {
+  PENDING_VERIFICATION
+  CLARIFICATION_REQUESTED
+  APPROVED
+  REJECTED
+  DUPLICATE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentEvidenceScanStatus {
+  QUARANTINED
+  CLEAN
+  REJECTED
+}
+
+/// Server-owned availability and rollout state for one payment choice in one
+/// commercial market. Gateway credentials stay in environment configuration;
+/// this row decides whether a configured integration may be offered publicly.
+model PaymentMethodConfiguration {
+  id             String                      @id @default(uuid())
+  marketId       String
+  currency       String
+  methodKey      BillingPaymentMethodKey
+  environment    PaymentMethodEnvironment
+  displayName    String
+  enabled        Boolean                     @default(false)
+  approvalStatus PaymentMethodApprovalStatus @default(PENDING)
+  approvedAt     DateTime?
+  approvedById   String?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  createdById    String?
+  updatedById    String?
+
+  market             Market                 @relation(fields: [marketId], references: [id], onDelete: Restrict)
+  receivingAccounts  BankReceivingAccount[]
+  subscriptionOrders SubscriptionOrder[]
+  claims             BankTransferClaim[]
+
+  @@unique([marketId, currency, methodKey, environment])
+  @@index([marketId, currency, enabled, approvalStatus])
+}
+
+/// A DijiPeople merchant receiving account. Raw identifiers are encrypted by
+/// SecretEncryptionService; only the masked projection may reach a checkout.
+model BankReceivingAccount {
+  id                     String                 @id @default(uuid())
+  paymentMethodConfigId  String
+  currency               String
+  bankName               String
+  accountTitleEncrypted  String
+  accountNumberEncrypted String?
+  ibanEncrypted          String?
+  raastIdEncrypted       String?
+  maskedAccountTitle     String
+  maskedAccountNumber    String?
+  maskedIban             String?
+  maskedRaastId          String?
+  paymentInstructions    String?
+  status                 ReceivingAccountStatus @default(PENDING_APPROVAL)
+  /// At most one active account per method configuration — enforced by the
+  /// partial unique index in the migration, since Prisma cannot express it.
+  isActive               Boolean                @default(false)
+  approvedAt             DateTime?
+  approvedById           String?
+  rejectedAt             DateTime?
+  rejectionReason        String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  createdById            String?
+  updatedById            String?
+
+  paymentMethodConfig PaymentMethodConfiguration @relation(fields: [paymentMethodConfigId], references: [id], onDelete: Restrict)
+  claims              BankTransferClaim[]
+  orders              SubscriptionOrder[]
+
+  @@index([paymentMethodConfigId, status, isActive])
+}
+
+/// A customer's untrusted assertion that a transfer was made. It is not a
+/// Payment: only an authorised operator's independent verification may settle
+/// the order.
+model BankTransferClaim {
+  id                              String                  @id @default(uuid())
+  /// Exactly one of subscriptionOrderId / invoiceId is set (CHECK constraint in
+  /// the migration): a first purchase is claimed against its order, a renewal
+  /// payment is recorded against its invoice.
+  subscriptionOrderId             String?
+  invoiceId                       String?
+  paymentMethodConfigId           String
+  receivingAccountId              String
+  status                          BankTransferClaimStatus @default(PENDING_VERIFICATION)
+  claimedAmount                   Decimal                 @db.Decimal(12, 2)
+  currency                        String
+  transferredAt                   DateTime?
+  customerReferenceEncrypted      String?
+  /// Keyed hash of the customer's transaction reference, for duplicate
+  /// detection without exposing it in an index.
+  customerReferenceHash           String?
+  customerNote                    String?
+  clarificationRequest            String?
+  decisionReason                  String?
+  /// The operator's own statement reference. Unique, so one bank credit can
+  /// never settle two orders — the database refuses the second, not a pre-check.
+  bankStatementReferenceHash      String?                 @unique
+  bankStatementReferenceEncrypted String?
+  verifiedAmount                  Decimal?                @db.Decimal(12, 2)
+  submittedAt                     DateTime                @default(now())
+  reviewedAt                      DateTime?
+  reviewedById                    String?
+  createdAt                       DateTime                @default(now())
+  updatedAt                       DateTime                @updatedAt
+
+  subscriptionOrder   SubscriptionOrder?         @relation(fields: [subscriptionOrderId], references: [id], onDelete: Restrict)
+  invoice             Invoice?                   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  paymentMethodConfig PaymentMethodConfiguration @relation(fields: [paymentMethodConfigId], references: [id], onDelete: Restrict)
+  receivingAccount    BankReceivingAccount       @relation(fields: [receivingAccountId], references: [id], onDelete: Restrict)
+  evidence            BankTransferEvidence[]
+
+  @@index([status, submittedAt])
+  @@index([subscriptionOrderId, status])
+  @@index([invoiceId, status])
+  @@index([customerReferenceHash])
+}
+
+/// Private evidence. A row is not proof of payment, and CLEAN only means the
+/// configured scanner accepted the bytes.
+model BankTransferEvidence {
+  id               String                    @id @default(uuid())
+  claimId          String
+  storageKey       String                    @unique
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String
+  scanStatus       PaymentEvidenceScanStatus @default(QUARANTINED)
+  rejectionReason  String?
+  uploadedAt       DateTime                  @default(now())
+
+  claim BankTransferClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId, scanStatus])
+  @@index([checksumSha256])
 }

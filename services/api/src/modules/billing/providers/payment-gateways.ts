@@ -96,7 +96,13 @@ export class PaymentGateways {
 
   /** True for a provider whose invoices and renewals DijiPeople runs itself. */
   isManaged(provider: PaymentProvider | null | undefined): boolean {
-    return Boolean(provider) && provider !== PaymentProvider.STRIPE;
+    // A bank transfer is billed by DijiPeople but executed by nobody: there is
+    // no gateway to call, so every gateway path must treat it as not managed.
+    return (
+      Boolean(provider) &&
+      provider !== PaymentProvider.STRIPE &&
+      provider !== PaymentProvider.BANK_TRANSFER
+    );
   }
 
   get(provider: PaymentProvider): PaymentGateway {

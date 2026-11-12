@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 490** · automated: 402 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 494** · automated: 406 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -141,6 +141,10 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-043](../../../docs/qa/scenarios/QA-BILLING-043-a-safepay-checkout-is-priced-on-the-server-and-a-fixed-coupo.md) | A Safepay checkout is priced on the server and a fixed coupon never crosses currencies | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/managed-checkout.service.spec.ts` | — | — |
 | [QA-BILLING-044](../../../docs/qa/scenarios/QA-BILLING-044-a-renewal-paid-or-a-cancellation-revoked-while-the-billing-s.md) | A renewal paid or a cancellation revoked while the billing sweep runs is never overwritten by the sweep | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/managed-renewal.service.spec.ts` | — | — |
 | [QA-BILLING-045](../../../docs/qa/scenarios/QA-BILLING-045-subscription-success-page-reconciles-without-waiting-for-the.md) | Subscription success page reconciles without waiting for the webhook | subscription-orders | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/billing/services/payment-recheck.service.spec.ts` | BUG-4054 | REG-669 |
+| [QA-BILLING-046](../../../docs/qa/scenarios/QA-BILLING-046-a-payment-method-is-public-only-when-its-market-currency-a.md) | A payment method is public only when its market, currency, approval and live readiness all agree | billing | SECURITY | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | — | — |
+| [QA-BILLING-047](../../../docs/qa/scenarios/QA-BILLING-047-a-bank-transfer-claim-is-untrusted-and-its-evidence-fails-.md) | A bank-transfer claim is untrusted and its evidence fails closed | billing | SECURITY | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | BUG-3177, BUG-3179, BUG-3222 | — |
+| [QA-BILLING-048](../../../docs/qa/scenarios/QA-BILLING-048-bank-transfer-settlement-is-authorized-atomic-and-single-al.md) | Bank-transfer settlement is authorized, atomic and single-allocation | billing | DATABASE | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | BUG-0072, BUG-3232 | REG-067 |
+| [QA-BILLING-049](../../../docs/qa/scenarios/QA-BILLING-049-only-a-verified-bank-payment-can-provision-and-lifecycle-ch.md) | Only a verified bank payment can provision, and lifecycle changes never double-charge | billing | DATABASE | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | BUG-0015, BUG-0280 | — |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |

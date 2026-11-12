@@ -17,7 +17,7 @@ const viewCopy: Record<
   overview: {
     title: "Subscription",
     description:
-      "Review current plan status, billing cycle, renewal details, Stripe status, and subscription actions.",
+      "Review current plan status, billing cycle, renewal details, payment status, and subscription actions.",
   },
   plans: {
     title: "Plans & Features",

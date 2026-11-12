@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -26,7 +27,10 @@ import {
   assertValidTenantSlug,
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
-import { StripeBillingService } from './stripe-billing.service';
+import {
+  isProductionLike,
+  StripeBillingService,
+} from './stripe-billing.service';
 // The one channel rule, shared with `/public/commercial-config` rather than
 // restated here — see the filter in `getPublicPlans`.
 import {
@@ -48,6 +52,8 @@ import {
 } from '../billing-seat-pricing';
 import { parseInvoicePurpose } from '../managed-billing.rules';
 import { PaymentGateways } from '../providers/payment-gateways';
+import { PaymentMethodRegistryService } from './payment-method-registry.service';
+import { BankTransferService } from './bank-transfer.service';
 import { openOrderCheckoutProvider } from '../providers/payment-provider.resolver';
 import {
   ManagedCheckoutService,
@@ -70,7 +76,63 @@ export class BillingService {
     // provider other than Stripe. Stripe keeps its own path below unchanged.
     private readonly paymentGateways: PaymentGateways,
     private readonly managedCheckout: ManagedCheckoutService,
+    // Optional and last so existing manual constructions keep compiling; absent
+    // means "no operator veto", which is the behaviour before the registry.
+    @Optional() private readonly paymentMethods?: PaymentMethodRegistryService,
+    @Optional() private readonly bankTransfer?: BankTransferService,
   ) {}
+
+  /**
+   * Every payment method this price may be bought with right now — the card
+   * gateways that can collect it, minus any an operator has withdrawn for the
+   * market, plus a bank transfer when an approved receiving account exists.
+   *
+   * Decided from the priced row's own market and currency, never from the
+   * request, and exposes no gateway state beyond a label.
+   */
+  async getPublicPaymentOptions(planPriceId: string) {
+    const price = await this.prisma.planPrice.findUnique({
+      where: { id: planPriceId },
+      include: { plan: true },
+    });
+    if (
+      !price ||
+      !price.isActive ||
+      !price.plan.isActive ||
+      price.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
+    ) {
+      throw new NotFoundException('Plan price not found.');
+    }
+    this.assertPlanPriceCurrentlySellable(price);
+    this.assertSellableToAnonymousVisitor(price);
+
+    const cardProviders = this.paymentGateways.availableProviders(
+      price.currency,
+      this.stripeFactsFor(price),
+    );
+    const resolved = this.paymentMethods
+      ? await this.paymentMethods.listPublicOptions({
+          marketId: price.marketId,
+          currency: price.currency,
+          cardProviders,
+        })
+      : {
+          options: cardProviders.map((provider) => ({
+            key:
+              provider === PaymentProvider.STRIPE
+                ? 'STRIPE_CARD'
+                : 'SAFEPAY_CARD',
+            label:
+              provider === PaymentProvider.STRIPE
+                ? 'Card (Stripe)'
+                : 'Card (Safepay)',
+            kind: 'card' as const,
+            provider,
+          })),
+          assistedInvoiceFallback: true,
+        };
+    return { currency: price.currency, ...resolved };
+  }
 
   /**
    * The one place a plan price's sellability is asserted from a stored row —
@@ -91,6 +153,14 @@ export class BillingService {
     }
   }
 
+  /** A sandbox Stripe key is never a live-payment option in production. */
+  private stripePubliclyAvailable(): boolean {
+    return (
+      !isProductionLike(this.configService) ||
+      this.stripeBillingService.getRuntimeMode() === 'live'
+    );
+  }
+
   /**
    * Whether a price can be checked out, judged against the provider that will
    * collect it. A Stripe price needs its synced Stripe Price; a price another
@@ -103,7 +173,17 @@ export class BillingService {
   ) {
     const provider = this.paymentGateways.resolveProvider(price.currency);
     if (!this.paymentGateways.isManaged(provider)) {
-      return deriveCheckoutReadiness(price, expectedStripeEnvironment);
+      const readiness = deriveCheckoutReadiness(
+        price,
+        expectedStripeEnvironment,
+      );
+      if (!this.stripePubliclyAvailable()) {
+        return {
+          checkoutReady: false,
+          reasons: [...readiness.reasons, 'LIVE_STRIPE_REQUIRED'],
+        };
+      }
+      return readiness;
     }
     return deriveManagedCheckoutReadiness(
       price,
@@ -125,7 +205,9 @@ export class BillingService {
     ),
   ) {
     return {
-      configured: this.stripeBillingService.isSecretKeyConfigured(),
+      configured:
+        this.stripePubliclyAvailable() &&
+        this.stripeBillingService.isSecretKeyConfigured(),
       priceReady: deriveCheckoutReadiness(
         {
           ...mapSeatPriceContract(price),
@@ -547,6 +629,8 @@ export class BillingService {
      * for this price. Declared for the same spread reason as `onboardingId`.
      */
     provider?: PaymentProvider | null;
+    /** A bank invoice instead of a card checkout; see PublicSubscribeDto. */
+    paymentMethod?: 'BANK_TRANSFER';
   }) {
     if (input.website?.trim()) {
       return { submitted: true };
@@ -577,12 +661,51 @@ export class BillingService {
     );
     // Decided once. Currency routing unless the buyer picked another provider
     // the server itself offers for this price; never an amount from the request.
-    const provider = this.paymentGateways.chooseProvider(
-      planPrice.currency,
-      input.provider,
-      () => this.stripeFactsFor(planPrice),
-    );
-    if (this.paymentGateways.isManaged(provider)) {
+    const bankTransferRequested = input.paymentMethod === 'BANK_TRANSFER';
+    if (bankTransferRequested && !this.bankTransfer) {
+      throw new BadRequestException({
+        code: 'BANK_TRANSFER_UNAVAILABLE',
+        message: 'Bank transfer is not available for this selection.',
+      });
+    }
+    const provider = bankTransferRequested
+      ? null
+      : this.paymentGateways.chooseProvider(
+          planPrice.currency,
+          input.provider,
+          () => this.stripeFactsFor(planPrice),
+        );
+    // An operator's veto: a method withdrawn for this market is refused even
+    // if its gateway is configured.
+    if (
+      provider &&
+      provider !== PaymentProvider.BANK_TRANSFER &&
+      this.paymentMethods &&
+      !(await this.paymentMethods.isCardMethodPermitted({
+        provider,
+        marketId: planPrice.marketId,
+        currency: planPrice.currency,
+      }))
+    ) {
+      throw new BadRequestException({
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+        message: 'This payment method is not available for this selection.',
+      });
+    }
+    if (
+      provider === PaymentProvider.STRIPE &&
+      !this.stripePubliclyAvailable()
+    ) {
+      throw new BadRequestException({
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+        message:
+          'Online card payments are not yet available for this selection.',
+      });
+    }
+    if (!provider) {
+      // Bank transfer: no gateway or Stripe Price is involved; availability is
+      // decided by the registry when the invoice is issued.
+    } else if (this.paymentGateways.isManaged(provider)) {
       // Refuse before an order is opened, not after the buyer verified.
       this.paymentGateways.require(provider);
     } else {
@@ -700,6 +823,7 @@ export class BillingService {
         paymentProvider: true,
         providerPaymentId: true,
         stripeCheckoutSessionId: true,
+        bankReference: true,
       },
     });
 
@@ -719,6 +843,43 @@ export class BillingService {
         leadId: null,
         reused: order.reused,
       };
+    }
+
+    /*
+     * Bank transfer: issue (or return) the invoice and send the buyer to the
+     * page that shows it. Nothing is charged and nothing is activated here —
+     * activation waits for an operator to verify the funds.
+     */
+    if (bankTransferRequested) {
+      const invoice = await this.bankTransfer!.issueInvoice(order.orderId);
+      return {
+        submitted: true,
+        checkoutSessionId: null,
+        url: this.resolvePublicCheckoutUrl(
+          `/subscribe/bank-transfer?onboarding=${order.orderId}`,
+        ),
+        tenantId: null,
+        leadId: null,
+        orderNumber: order.orderNumber,
+        reused: order.reused,
+        bankReference: invoice.reference,
+      };
+    }
+    // The reverse lock: a bank invoice that can still be paid and a card
+    // checkout that can still be paid must never coexist on one order.
+    if (verifiedOrder.bankReference) {
+      throw new ConflictException({
+        code: 'PAYMENT_PROVIDER_LOCKED',
+        message:
+          'A bank-transfer invoice is already open for this order. Complete it, or cancel it from the invoice page to choose another payment method.',
+      });
+    }
+    if (!provider) {
+      // Unreachable: a null provider means a bank transfer, which returned above.
+      throw new BadRequestException({
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+        message: 'No payment method was selected.',
+      });
     }
 
     /*
@@ -1372,9 +1533,11 @@ export class BillingService {
       isStripeBacked: Boolean(subscription.stripeSubscriptionId),
       // True when DijiPeople issues this subscription's invoices itself and
       // the tenant pays each one — no provider billing portal exists for it.
-      isManagedBilling: this.paymentGateways.isManaged(
-        subscription.paymentProvider,
-      ),
+      isManagedBilling:
+        this.paymentGateways.isManaged(subscription.paymentProvider) ||
+        // A bank-transfer subscription is billed by DijiPeople too: invoices
+        // are issued here and there is no Stripe portal to send the tenant to.
+        subscription.paymentProvider === PaymentProvider.BANK_TRANSFER,
       gracePeriodEndsAt: subscription.gracePeriodEndsAt,
       billingCycle: subscription.billingCycle,
       basePrice: Number(subscription.basePrice),
@@ -1435,7 +1598,71 @@ export class BillingService {
       orderBy: [{ issueDate: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return invoices.map((invoice) => mapTenantInvoice(invoice));
+    const mapped = invoices.map((invoice) => mapTenantInvoice(invoice));
+    return this.withBankTransferDetails(tenantId, invoices, mapped);
+  }
+
+  /**
+   * Attach how to pay an open bank-transfer renewal invoice: its payment
+   * reference and the receiving account the subscription was told to pay into.
+   * Tenant-scoped like every read here; nothing is added for any other invoice.
+   */
+  private async withBankTransferDetails<T extends { id: string }>(
+    tenantId: string,
+    invoices: Array<{
+      id: string;
+      status: string;
+      bankReference: string | null;
+      dueDate: Date;
+      amount: { toString(): string };
+      currency: string;
+      subscription: { id: string; paymentProvider: PaymentProvider | null };
+    }>,
+    mapped: T[],
+  ) {
+    const open = invoices.filter(
+      (invoice) =>
+        invoice.bankReference &&
+        invoice.subscription.paymentProvider ===
+          PaymentProvider.BANK_TRANSFER &&
+        (
+          [
+            InvoiceStatus.ISSUED,
+            InvoiceStatus.OVERDUE,
+            InvoiceStatus.PAYMENT_FAILED,
+          ] as string[]
+        ).includes(invoice.status),
+    );
+    if (open.length === 0 || !this.paymentMethods) {
+      return mapped.map((item) => ({ ...item, bankTransfer: null }));
+    }
+    const origin = await this.prisma.subscriptionOrder.findFirst({
+      where: {
+        tenantId,
+        subscriptionId: { in: open.map((i) => i.subscription.id) },
+        receivingAccountId: { not: null },
+      },
+      select: { receivingAccount: true },
+    });
+    const instructions = origin?.receivingAccount
+      ? this.paymentMethods.instructionsFor(origin.receivingAccount)
+      : null;
+    const byId = new Map(open.map((invoice) => [invoice.id, invoice]));
+    return mapped.map((item) => {
+      const invoice = byId.get(item.id);
+      return {
+        ...item,
+        bankTransfer: invoice
+          ? {
+              reference: invoice.bankReference,
+              amount: Number(invoice.amount),
+              currency: invoice.currency,
+              dueDate: invoice.dueDate,
+              instructions,
+            }
+          : null,
+      };
+    });
   }
 
   async getInvoiceDetail(tenantId: string, invoiceId: string) {
@@ -1925,6 +2152,8 @@ function mapTenantInvoice(invoice: {
     payable:
       Boolean(invoice.subscription.paymentProvider) &&
       invoice.subscription.paymentProvider !== PaymentProvider.STRIPE &&
+      // Paid by transfer and verified by an operator, never through a checkout.
+      invoice.subscription.paymentProvider !== PaymentProvider.BANK_TRANSFER &&
       parseInvoicePurpose(invoice.metadataJson) !== null &&
       (
         [

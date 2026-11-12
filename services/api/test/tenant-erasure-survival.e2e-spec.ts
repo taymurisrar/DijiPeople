@@ -267,6 +267,55 @@ describeWithDatabase()(
       });
       retained.push({ model: 'supportCase', id: supportCase.id });
 
+      /*
+       * A renewal bank-transfer record points at the tenant's invoice and cannot
+       * be detached (a claim must target an order or an invoice), so erasure
+       * removes it through that relation. The market, method and receiving
+       * account it hangs off are platform configuration and are retained.
+       */
+      const market = await prisma.market.create({
+        data: {
+          code: `MK-${suffix}`,
+          name: `Market ${suffix}`,
+          defaultCurrency: 'AED',
+          supportedCurrencies: ['AED'],
+        },
+        select: { id: true },
+      });
+      retained.push({ model: 'market', id: market.id });
+      const method = await prisma.paymentMethodConfiguration.create({
+        data: {
+          marketId: market.id,
+          currency: 'AED',
+          methodKey: 'BANK_TRANSFER',
+          environment: 'MANUAL',
+          displayName: `Bank ${suffix}`,
+        },
+        select: { id: true },
+      });
+      retained.push({ model: 'paymentMethodConfiguration', id: method.id });
+      const account = await prisma.bankReceivingAccount.create({
+        data: {
+          paymentMethodConfigId: method.id,
+          currency: 'AED',
+          bankName: 'Test Bank',
+          accountTitleEncrypted: 'x',
+          maskedAccountTitle: 'T•••',
+        },
+        select: { id: true },
+      });
+      retained.push({ model: 'bankReceivingAccount', id: account.id });
+      await prisma.bankTransferClaim.create({
+        data: {
+          invoiceId: invoice.id,
+          paymentMethodConfigId: method.id,
+          receivingAccountId: account.id,
+          status: 'APPROVED',
+          claimedAmount: '50.00',
+          currency: 'AED',
+        },
+      });
+
       const onboarding = await prisma.customerOnboarding.create({
         data: {
           tenantId,

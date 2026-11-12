@@ -20,6 +20,7 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { PlatformEventsService } from '../../platform-events/platform-events.service';
+import { generateBankReference } from '../bank-transfer/bank-transfer.rules';
 import { resolveBillableSeats } from '../billing-seat-pricing';
 import {
   addBillingInterval,
@@ -55,6 +56,15 @@ const OPEN_INVOICE_STATUSES: InvoiceStatus[] = [
 const MANAGED_PROVIDERS: PaymentProvider[] = Object.values(
   PaymentProvider,
 ).filter((provider) => provider !== PaymentProvider.STRIPE);
+
+/**
+ * Providers that have a gateway to ask. A bank transfer is billed and renewed
+ * here like the others, but has nothing to re-verify: its payments are settled
+ * only by an operator, so the gateway reconciliation below must skip it.
+ */
+const GATEWAY_PROVIDERS: PaymentProvider[] = MANAGED_PROVIDERS.filter(
+  (provider) => provider !== PaymentProvider.BANK_TRANSFER,
+);
 
 /**
  * The recurring half of DijiPeople-billed subscriptions.
@@ -102,7 +112,7 @@ export class ManagedRenewalService {
     // Never reached the provider: nothing can be paid on these.
     const neverOpened = await this.prisma.payment.updateMany({
       where: {
-        paymentProvider: { in: MANAGED_PROVIDERS },
+        paymentProvider: { in: GATEWAY_PROVIDERS },
         status: PaymentStatus.PENDING,
         providerPaymentId: null,
         createdAt: { lt: new Date(now.getTime() - NEVER_OPENED_AFTER_MS) },
@@ -116,7 +126,7 @@ export class ManagedRenewalService {
 
     const pending = await this.prisma.payment.findMany({
       where: {
-        paymentProvider: { in: MANAGED_PROVIDERS },
+        paymentProvider: { in: GATEWAY_PROVIDERS },
         status: PaymentStatus.PENDING,
         providerPaymentId: { not: null },
         createdAt: { lt: verifyBefore },
@@ -155,7 +165,7 @@ export class ManagedRenewalService {
 
     const orders = await this.prisma.subscriptionOrder.findMany({
       where: {
-        paymentProvider: { in: MANAGED_PROVIDERS },
+        paymentProvider: { in: GATEWAY_PROVIDERS },
         status: {
           in: [
             SubscriptionOrderStatus.PENDING_PAYMENT,
@@ -485,6 +495,12 @@ export class ManagedRenewalService {
           periodStart,
           periodEnd: addBillingInterval(periodStart, planPrice.billingInterval),
           metadataJson: purpose as unknown as Prisma.InputJsonValue,
+          // A bank-transfer subscription's renewal is paid by transfer, quoting
+          // this reference; an operator then records the credit against it.
+          bankReference:
+            subscription.paymentProvider === PaymentProvider.BANK_TRANSFER
+              ? generateBankReference()
+              : null,
         },
         select: { id: true, invoiceNumber: true },
       });

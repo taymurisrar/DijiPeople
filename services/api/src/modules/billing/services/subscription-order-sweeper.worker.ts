@@ -5,6 +5,8 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Optional } from '@nestjs/common';
+import { BankTransferService } from './bank-transfer.service';
 import { SubscriptionOrderService } from './subscription-order.service';
 
 const DEFAULT_POLL_INTERVAL_MS = 15 * 60 * 1000;
@@ -42,6 +44,8 @@ export class SubscriptionOrderSweeperWorker
   constructor(
     private readonly configService: ConfigService,
     private readonly subscriptionOrderService: SubscriptionOrderService,
+    // Optional so the worker can still be built without the bank-transfer module.
+    @Optional() private readonly bankTransfer?: BankTransferService,
   ) {}
 
   onModuleInit(): void {
@@ -111,6 +115,13 @@ export class SubscriptionOrderSweeperWorker
       if (count > 0) {
         this.logger.log(
           `Subscription order sweep: abandoned ${count} expired order(s).`,
+        );
+      }
+      // Claims left undecided long past their invoice's due date.
+      const stale = (await this.bankTransfer?.expireStaleClaims()) ?? 0;
+      if (stale > 0) {
+        this.logger.log(
+          `Bank transfer sweep: expired ${stale} stale claim(s).`,
         );
       }
     } catch (error) {

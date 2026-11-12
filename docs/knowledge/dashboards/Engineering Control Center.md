@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 4 |
-| Active work packages | 4 |
+| Active sessions | **2** |
+| Active parent tasks | 5 |
+| Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 295 |
-| No next action | 295 |
-| Aging — 7d / 30d / 90d | 295 / 275 / 0 |
+| No acceptance criteria | 297 |
+| No next action | 297 |
+| Aging — 7d / 30d / 90d | 295 / 295 / 0 |
 | Architecture and technical debt | 8 |
-| Security gaps | 47 |
+| Security gaps | 48 |
 | Database gaps | 29 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0133-complete-multi-payment-billing-end-to-end|SESSION-0133]] | — | Complete multi-payment billing end-to-end | ACTIVE | `feature/pk-payment-methods-bank-first` | `develop` | — | NO |
 | [[SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2|SESSION-0130]] | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -59,6 +60,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0038-complete-multi-payment-billing-end-to-end|TASK-0038]] | Complete multi-payment billing end-to-end | FEATURE | LARGE | 0/8 | WP-01 | — | — |
 
 ## Branch model
 
@@ -305,9 +307,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 295 |
+| Open total | 297 |
 | Blocked | 4 |
-| Deferred | 124 |
+| Deferred | 125 |
 | Awaiting a product decision | 15 |
 | Awaiting Architect triage | 0 |
 

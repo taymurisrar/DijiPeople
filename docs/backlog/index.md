@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**795 records** — 565 bugs under [`docs/bugs/`](../bugs/), 230 non-bug items under [`items/`](items/).
+**798 records** — 565 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 295 |
+| Open (active work) | 297 |
 | Blocked | 4 |
-| Deferred | 124 |
+| Deferred | 125 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 121 |
-| MEDIUM | 134 |
+| MEDIUM | 135 |
 | LOW | 30 |
 
 ## Open by type
@@ -45,11 +45,11 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 7 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
-| SECURITY | 27 |
+| SECURITY | 28 |
 | STATE_MACHINE | 7 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
-| TEST_GAP | 9 |
+| TEST_GAP | 10 |
 | UX | 66 |
 
 ## All records by status
@@ -59,13 +59,13 @@ see [`README.md`](README.md) for why.
 | OPEN | 55 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
-| DEFERRED | 124 |
+| DEFERRED | 125 |
 | PRODUCT_DECISION | 15 |
 | FIXED | 213 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 25 |
+| READY | 27 |
 | DONE | 122 |
 
 ## All records
@@ -364,6 +364,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
 | [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | DONE | api:contracts, api:partners | DONE |
 | [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | IN_PROGRESS | api:billing | FIX_NOW |
+| [ITEM-0232](../../docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md) | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | P1 | READY | billing | PLAN_REQUIRED |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -861,6 +862,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0227](../../docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md) | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [ITEM-0229](../../docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md) | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
 | [ITEM-0230](../../docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md) | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | P2 | IN_PROGRESS | contracts | FIX_NOW |
+| [ITEM-0231](../../docs/backlog/items/ITEM-0231-tenant-self-service-payment-report-for-bank-transfer-renewal.md) | Tenant self-service payment report for bank-transfer renewal invoices | FOLLOW_UP | — | P2 | DEFERRED | billing | DEFER |
+| [ITEM-0233](../../docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md) | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | P2 | READY | billing | PLAN_REQUIRED |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

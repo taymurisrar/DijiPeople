@@ -396,7 +396,7 @@ const DELETE_REFUSALS: Partial<Record<PlatformModuleKey, string>> = {
   invoices:
     "Invoices are financial records the business is required to be able to produce. Void or credit the invoice instead, which is what an auditor expects to see.",
   payments:
-    "A payment is a record of money moving, reconciled against Stripe. Refund it instead — deleting it would leave the reconciliation permanently short.",
+    "A payment is a record of money moving, reconciled against its provider or bank settlement. Refund it instead — deleting it would leave the reconciliation permanently short.",
   commissions:
     "A commission is what a partner is owed or was paid. Void it instead (until it is paid); deleting one removes the explanation for a payment that already happened.",
   "monitoring-incidents":
@@ -1045,7 +1045,8 @@ const PARTNER_HIGHLIGHT: RuntimeRecordHighlightDefinition = {
  * related payload carries (`PartnersService.get`), says what an empty grid
  * means, and offers Add where the API can create the record.
  */
-const PARTNER_REFERRAL_LINK_ACTION = "/partners/{parentId}/referral-links/{id}/action";
+const PARTNER_REFERRAL_LINK_ACTION =
+  "/partners/{parentId}/referral-links/{id}/action";
 const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
   {
     key: "commissions",
@@ -1156,9 +1157,18 @@ const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
       actionLabel: "Add contact",
       title: "New contact",
       fields: [
-        { ...field("firstName", "First name", "text", "contact", true), maxLength: 100 },
-        { ...field("lastName", "Last name", "text", "contact", true), maxLength: 100 },
-        { ...field("email", "Email", "email", "contact", true), maxLength: 254 },
+        {
+          ...field("firstName", "First name", "text", "contact", true),
+          maxLength: 100,
+        },
+        {
+          ...field("lastName", "Last name", "text", "contact", true),
+          maxLength: 100,
+        },
+        {
+          ...field("email", "Email", "email", "contact", true),
+          maxLength: 254,
+        },
       ],
       submit: { path: "/partners/{parentId}/contacts", envelope: "body" },
     },
@@ -1229,7 +1239,10 @@ const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
       title: "New referral link",
       fields: [
         { ...field("name", "Link name", "text", "link", true), maxLength: 160 },
-        { ...field("campaignName", "Campaign", "text", "link"), maxLength: 160 },
+        {
+          ...field("campaignName", "Campaign", "text", "link"),
+          maxLength: 160,
+        },
         field("expiresAt", "Expires", "date", "link"),
       ],
       submit: { path: "/partners/{parentId}/referral-links", envelope: "body" },
@@ -1358,7 +1371,8 @@ const partnerFields: RuntimeFieldDefinition[] = [
   {
     ...field("partnerNumber", "Partner number", "text", "identity"),
     readOnly: true,
-    readOnlyReason: "Issued from the partner number sequence when the partner is created.",
+    readOnlyReason:
+      "Issued from the partner number sequence when the partner is created.",
   },
   {
     ...field("code", "Partner code", "text", "identity"),
@@ -1545,7 +1559,8 @@ const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
  */
 const RECORD_ORIGINS: Partial<Record<PlatformModuleKey, string>> = {
   invoices: "Invoices are raised automatically when a subscription bills.",
-  payments: "Payments appear when a customer pays an invoice through Stripe.",
+  payments:
+    "Payments appear when a customer settles an invoice through a configured provider or a verified bank transfer.",
   /*
    * No `commissions` entry. It said commissions were "calculated when a
    * partner-referred subscription bills", which nothing does (ADR-0026 D3;
@@ -1852,7 +1867,12 @@ const definitions: PlatformModuleDefinition[] = [
           "Other",
         ]),
         {
-          ...field("partnerId", "Referral partner", "lookup", "partner-attribution"),
+          ...field(
+            "partnerId",
+            "Referral partner",
+            "lookup",
+            "partner-attribution",
+          ),
           /*
            * TASK-0032 WP-04, item 4. Filtered to `status=ACTIVE` so the picker
            * itself cannot offer a suspended/inactive/terminated/rejected
@@ -1902,13 +1922,23 @@ const definitions: PlatformModuleDefinition[] = [
           visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
-          ...field("referralSource", "Referral source", "text", "partner-attribution"),
+          ...field(
+            "referralSource",
+            "Referral source",
+            "text",
+            "partner-attribution",
+          ),
           readOnly: true,
           hideWhenEmpty: true,
           visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
-          ...field("referredAt", "Referred at", "dateTime", "partner-attribution"),
+          ...field(
+            "referredAt",
+            "Referred at",
+            "dateTime",
+            "partner-attribution",
+          ),
           readOnly: true,
           hideWhenEmpty: true,
           visibleWhen: { field: "partnerId", hasValue: true },
@@ -2043,7 +2073,14 @@ const definitions: PlatformModuleDefinition[] = [
           readOnly: true,
         },
       ],
-      ["Summary", "Partner", "Commercial", "Agreements", "Activities", "System"],
+      [
+        "Summary",
+        "Partner",
+        "Commercial",
+        "Agreements",
+        "Activities",
+        "System",
+      ],
       {
         "lead-information": "summary",
         /*
@@ -4286,7 +4323,8 @@ const definitions: PlatformModuleDefinition[] = [
          * with no customer yet still offers every tenant — the API derives
          * the customer from the tenant and refuses a mismatched pair.
          */
-        lookupPath: "/super-admin/tenants?customerAccountId={customerAccountId?}",
+        lookupPath:
+          "/super-admin/tenants?customerAccountId={customerAccountId?}",
       },
       field("requesterName", "Requester name", "text", "customer"),
       field("requesterEmail", "Requester email", "email", "customer"),
@@ -4567,8 +4605,14 @@ const definitions: PlatformModuleDefinition[] = [
     ),
     forms: form("payments", [
       // Lookups resolve the embedded `tenant` / `invoice`; text printed the ids.
-      { ...field("tenantId", "Tenant", "lookup", "payment"), displayHref: "/tenants/{tenantId}" },
-      { ...field("invoiceId", "Invoice", "lookup", "payment"), displayHref: "/invoices/{invoiceId}" },
+      {
+        ...field("tenantId", "Tenant", "lookup", "payment"),
+        displayHref: "/tenants/{tenantId}",
+      },
+      {
+        ...field("invoiceId", "Invoice", "lookup", "payment"),
+        displayHref: "/invoices/{invoiceId}",
+      },
       field("status", "Status", "text", "payment"),
       field("amount", "Amount", "currency", "payment"),
       field("currency", "Currency", "text", "payment"),
@@ -4691,16 +4735,32 @@ const definitions: PlatformModuleDefinition[] = [
       },
       field("invoiceId", "Invoice ID", "text", "commission"),
       {
-        ...field("baseAmount", "Commissionable amount", "currency", "commercial", true),
+        ...field(
+          "baseAmount",
+          "Commissionable amount",
+          "currency",
+          "commercial",
+          true,
+        ),
         min: 0,
       },
       {
-        ...field("commissionRate", "Commission rate", "percentage", "commercial"),
+        ...field(
+          "commissionRate",
+          "Commission rate",
+          "percentage",
+          "commercial",
+        ),
         min: 0,
         max: 100,
       },
       {
-        ...field("commissionAmount", "Commission amount", "currency", "commercial"),
+        ...field(
+          "commissionAmount",
+          "Commission amount",
+          "currency",
+          "commercial",
+        ),
         readOnly: true,
       },
       // A code, like the two above — see the note on the partner declaration.

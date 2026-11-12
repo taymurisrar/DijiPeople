@@ -364,8 +364,8 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **<!--fact:schemaLines-->15,106<!--/fact--> lines, <!--fact:prismaModels-->340<!--/fact--> models, <!--fact:prismaEnums-->316<!--/fact--> enums**,
-with **<!--fact:migrations-->238<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
+`services/api/prisma/schema.prisma` — **<!--fact:schemaLines-->15,310<!--/fact--> lines, <!--fact:prismaModels-->344<!--/fact--> models, <!--fact:prismaEnums-->322<!--/fact--> enums**,
+with **<!--fact:migrations-->239<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
 derived by `scripts/derive-doc-facts.mjs` and checked on every push; they drifted
 before that existed (this file said 312 models and 210 migrations when the tree had 340 and 235). Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
@@ -428,7 +428,7 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
   `@Public()` marks a genuinely unauthenticated route. At this baseline there
-  are **<!--fact:publicHandlers-->59<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->16<!--/fact--> controllers**, including partially
+  are **<!--fact:publicHandlers-->64<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->17<!--/fact--> controllers**, including partially
   public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
   where most handlers are guarded and a few are not. Count them on your branch;
   never assume a controller is uniformly public or uniformly guarded.

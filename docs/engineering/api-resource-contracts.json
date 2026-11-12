@@ -194,6 +194,22 @@
       "allow": []
     },
     {
+      "controller": "services/api/src/modules/billing/controllers/public-bank-transfer.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
+      "controller": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts",
+      "type": "sensitive",
+      "requires": [],
+      "notApplicable": {},
+      "classifiedBy": "architect: financial/security/historical domain",
+      "allow": []
+    },
+    {
       "controller": "services/api/src/modules/billing/controllers/public-billing.controller.ts",
       "type": "sensitive",
       "requires": [],

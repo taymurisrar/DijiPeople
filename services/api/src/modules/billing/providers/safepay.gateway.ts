@@ -77,6 +77,17 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
    * so a developer machine without Safepay keys still starts.
    */
   onModuleInit(): void {
+    // Explicitly refuse an enabled sandbox on a live deployment. Silently
+    // suppressing its routing would hide a broken merchant configuration.
+    if (
+      isProductionLike(this.configService) &&
+      this.configService.get<string>('SAFEPAY_ENABLED')?.trim() === 'true' &&
+      this.environmentOrNull() !== 'production'
+    ) {
+      throw new Error(
+        'SAFEPAY_ENABLED requires SAFEPAY_ENVIRONMENT=production in a production-like deployment.',
+      );
+    }
     if (!this.isEnabled()) return;
 
     if (!this.isConfigured()) {
@@ -105,9 +116,19 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
     }
   }
 
-  /** The routing switch read by `resolvePaymentProvider`. */
+  /**
+   * Sandbox stays usable in development, never as a customer-facing payment
+   * method on a production-like deployment. Merchant approval and live keys
+   * are required before the production route can be enabled.
+   */
   isEnabled(): boolean {
-    return this.configService.get<string>('SAFEPAY_ENABLED')?.trim() === 'true';
+    if (this.configService.get<string>('SAFEPAY_ENABLED')?.trim() !== 'true') {
+      return false;
+    }
+    return (
+      !isProductionLike(this.configService) ||
+      this.environmentOrNull() === 'production'
+    );
   }
 
   isConfigured(): boolean {
@@ -132,6 +153,18 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
   }
 
   async createCheckout(input: HostedCheckoutRequest): Promise<HostedCheckout> {
+    // Provider routing is not the only entry point: existing invoices can be
+    // re-opened directly. Block a sandbox redirect here too, before creating
+    // any provider tracker for a live customer.
+    if (
+      isProductionLike(this.configService) &&
+      this.environmentOrNull() !== 'production'
+    ) {
+      throw new AppError('PAYMENT_PROVIDER_NOT_CONFIGURED', {
+        message:
+          'Safepay live merchant credentials are required for this checkout.',
+      });
+    }
     const environment = this.requireEnvironment();
 
     const created = await this.request<{

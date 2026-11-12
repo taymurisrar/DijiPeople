@@ -2691,6 +2691,301 @@
   "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
  },
  {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/payments/bank-transfers/summary",
+  "module": "billing",
+  "line": 58,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/payments/bank-transfers",
+  "module": "billing",
+  "line": 64,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/payments/bank-transfers/renewal-invoices",
+  "module": "billing",
+  "line": 71,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/payments/bank-transfers/invoices/:invoiceId/record",
+  "module": "billing",
+  "line": 82,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/payments/bank-transfers/:claimId",
+  "module": "billing",
+  "line": 96,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/payments/bank-transfers/:claimId/evidence/:evidenceId",
+  "module": "billing",
+  "line": 103,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/payments/bank-transfers/:claimId/approve",
+  "module": "billing",
+  "line": 126,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/payments/bank-transfers/:claimId/reject",
+  "module": "billing",
+  "line": 136,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/payments/bank-transfers/:claimId/request-clarification",
+  "module": "billing",
+  "line": 146,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/payments/bank-transfers/:claimId/mark-duplicate",
+  "module": "billing",
+  "line": 160,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/billing/payment-methods",
+  "module": "billing",
+  "line": 172,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/billing/payment-methods",
+  "module": "billing",
+  "line": 182,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#PATCH super-admin/billing/payment-methods/:id/approval",
+  "module": "billing",
+  "line": 191,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#PATCH super-admin/billing/payment-methods/:id/enabled",
+  "module": "billing",
+  "line": 201,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#GET super-admin/billing/payment-methods/:id/accounts",
+  "module": "billing",
+  "line": 211,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/billing/payment-methods/:id/accounts",
+  "module": "billing",
+  "line": 217,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/billing/receiving-accounts/:accountId/approve",
+  "module": "billing",
+  "line": 227,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/billing/receiving-accounts/:accountId/reject",
+  "module": "billing",
+  "line": 241,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/billing/receiving-accounts/:accountId/suspend",
+  "module": "billing",
+  "line": 256,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/platform-bank-transfer.controller.ts#POST super-admin/billing/receiving-accounts/:accountId/activate",
+  "module": "billing",
+  "line": 271,
+  "guards": [
+   "JwtAuthGuard",
+   "PlatformPermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/public-bank-transfer.controller.ts#GET public/payment-methods",
+  "module": "billing",
+  "line": 44,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/public-bank-transfer.controller.ts#POST public/onboarding/:onboardingId/bank-transfer",
+  "module": "billing",
+  "line": 55,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/public-bank-transfer.controller.ts#GET public/onboarding/:onboardingId/bank-transfer",
+  "module": "billing",
+  "line": 67,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/public-bank-transfer.controller.ts#POST public/onboarding/:onboardingId/bank-transfer/cancel",
+  "module": "billing",
+  "line": 78,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
+  "route": "services/api/src/modules/billing/controllers/public-bank-transfer.controller.ts#POST public/onboarding/:onboardingId/bank-transfer/claims",
+  "module": "billing",
+  "line": 92,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
   "route": "services/api/src/modules/billing/controllers/public-billing.controller.ts#GET public/plans",
   "module": "billing",
   "line": 105,
@@ -14873,7 +15168,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings",
   "module": "super-admin",
-  "line": 907,
+  "line": 908,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14885,7 +15180,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-settings",
   "module": "super-admin",
-  "line": 912,
+  "line": 913,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14897,7 +15192,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/currencies",
   "module": "super-admin",
-  "line": 931,
+  "line": 932,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14909,7 +15204,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/numbering",
   "module": "super-admin",
-  "line": 946,
+  "line": 947,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14921,7 +15216,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/numbering/:key",
   "module": "super-admin",
-  "line": 951,
+  "line": 952,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14933,7 +15228,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-settings/numbering/:key",
   "module": "super-admin",
-  "line": 956,
+  "line": 957,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14945,7 +15240,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-settings/exchange-rates",
   "module": "super-admin",
-  "line": 974,
+  "line": 975,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14957,7 +15252,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/platform-settings/exchange-rates/refresh",
   "module": "super-admin",
-  "line": 981,
+  "line": 982,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14969,7 +15264,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PUT super-admin/platform-settings/exchange-rates/:quoteCurrency",
   "module": "super-admin",
-  "line": 988,
+  "line": 989,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14981,7 +15276,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#DELETE super-admin/platform-settings/exchange-rates/:quoteCurrency",
   "module": "super-admin",
-  "line": 1004,
+  "line": 1005,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -14993,7 +15288,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-email",
   "module": "super-admin",
-  "line": 1013,
+  "line": 1014,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -15005,7 +15300,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-email",
   "module": "super-admin",
-  "line": 1018,
+  "line": 1019,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -15017,7 +15312,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/platform-email/test-connection",
   "module": "super-admin",
-  "line": 1026,
+  "line": 1027,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -15029,7 +15324,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#POST super-admin/platform-email/test-email",
   "module": "super-admin",
-  "line": 1031,
+  "line": 1032,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -15041,7 +15336,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-email/deliveries",
   "module": "super-admin",
-  "line": 1065,
+  "line": 1066,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -15053,7 +15348,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#GET super-admin/platform-email/templates",
   "module": "super-admin",
-  "line": 1076,
+  "line": 1077,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"
@@ -15065,7 +15360,7 @@
  {
   "route": "services/api/src/modules/super-admin/super-admin.controller.ts#PATCH super-admin/platform-email/templates/:templateId",
   "module": "super-admin",
-  "line": 1081,
+  "line": 1082,
   "guards": [
    "JwtAuthGuard",
    "PlatformPermissionsGuard"

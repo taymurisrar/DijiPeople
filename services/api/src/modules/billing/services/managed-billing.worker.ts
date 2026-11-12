@@ -5,6 +5,8 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Optional } from '@nestjs/common';
+import { BankTransferService } from './bank-transfer.service';
 import { ManagedRenewalService } from './managed-renewal.service';
 
 const DEFAULT_POLL_INTERVAL_MS = 15 * 60 * 1000;
@@ -33,6 +35,8 @@ export class ManagedBillingWorker implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly renewals: ManagedRenewalService,
+    // Optional so the worker still builds without the bank-transfer module.
+    @Optional() private readonly bankTransfer?: BankTransferService,
   ) {}
 
   onModuleInit(): void {
@@ -83,6 +87,9 @@ export class ManagedBillingWorker implements OnModuleInit, OnModuleDestroy {
 
     try {
       const result = await this.renewals.runOnce();
+      // Bank-transfer subscriptions renew through the same sweep; their payers
+      // are reminded here because nothing else will ask them to pay.
+      await this.bankTransfer?.sendRenewalReminders();
       if (
         result.verified ||
         result.abandoned ||
