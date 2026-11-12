@@ -8,6 +8,7 @@ import {
 import {
   IsBoolean,
   IsDate,
+  IsEmail,
   IsEnum,
   IsInt,
   IsOptional,
@@ -177,6 +178,21 @@ export class CreateReceivingAccountDto {
   @IsString()
   @MaxLength(500)
   paymentInstructions?: string;
+
+  /** Where payers send a receipt. Shown on the invoice page. */
+  @IsOptional()
+  @Transform(trim)
+  @IsEmail()
+  @MaxLength(120)
+  receiptContactEmail?: string;
+
+  /** Phone / WhatsApp number payers can send a receipt to. */
+  @IsOptional()
+  @Transform(trim)
+  @Matches(/^\+?[0-9][0-9 \-]{6,19}$/, {
+    message: 'receiptContactPhone must be a phone number.',
+  })
+  receiptContactPhone?: string;
 }
 
 export class ReceivingAccountDecisionDto {

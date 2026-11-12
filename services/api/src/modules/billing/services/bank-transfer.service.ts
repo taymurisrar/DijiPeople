@@ -183,6 +183,12 @@ export class BankTransferService {
       lines: [
         `Please transfer ${issued.amount} ${issued.currency} and quote the reference ${issued.reference}.`,
         `The invoice is payable until ${issued.dueAt?.toISOString().slice(0, 10)}.`,
+        ...(issued.instructions.receiptContactEmail ||
+        issued.instructions.receiptContactPhone
+          ? [
+              `Send your payment receipt, quoting ${issued.reference}, to ${[issued.instructions.receiptContactEmail, issued.instructions.receiptContactPhone ? `WhatsApp/phone ${issued.instructions.receiptContactPhone}` : null].filter(Boolean).join(' or ')}.`,
+            ]
+          : []),
         'Your subscription is activated only after we have verified the funds in our bank account — a transfer receipt or screenshot alone does not activate it.',
       ],
       key: `bank-invoice:${orderId}`,

@@ -43,6 +43,8 @@ type Account = {
   maskedAccountNumber: string | null;
   maskedRaastId: string | null;
   paymentInstructions: string | null;
+  receiptContactEmail: string | null;
+  receiptContactPhone: string | null;
   status: string;
   isActive: boolean;
   rejectionReason: string | null;
@@ -636,6 +638,8 @@ function AccountForm({
     accountNumber: "",
     raastId: "",
     paymentInstructions: "",
+    receiptContactEmail: "",
+    receiptContactPhone: "",
   });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -711,6 +715,26 @@ function AccountForm({
           onChange={set("raastId")}
           className={input}
           autoComplete="off"
+        />
+      </label>
+      <label className="text-sm font-medium text-slate-700">
+        Receipt email (payers send proof here)
+        <input
+          type="email"
+          value={values.receiptContactEmail}
+          onChange={set("receiptContactEmail")}
+          maxLength={120}
+          className={input}
+        />
+      </label>
+      <label className="text-sm font-medium text-slate-700">
+        Receipt WhatsApp / phone
+        <input
+          type="tel"
+          value={values.receiptContactPhone}
+          onChange={set("receiptContactPhone")}
+          maxLength={20}
+          className={input}
         />
       </label>
       <label className="text-sm font-medium text-slate-700">

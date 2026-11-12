@@ -11,6 +11,8 @@ type Instructions = {
   raastId: string | null;
   currency: string;
   paymentInstructions: string | null;
+  receiptContactEmail: string | null;
+  receiptContactPhone: string | null;
 };
 
 type InvoiceState =
@@ -76,6 +78,12 @@ const STATE_COPY: Record<InvoiceState, { title: string; body: string }> = {
     body: "Do not send money for this invoice. You can start a new order from the plans page.",
   },
 };
+
+/** wa.me wants digits only with the country code: 0332... -> 92332... */
+function whatsappDigits(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return digits.startsWith("0") ? `92${digits.slice(1)}` : digits;
+}
 
 function formatMoney(amount: string, currency: string) {
   const value = Number(amount);
@@ -365,6 +373,41 @@ export function BankTransferPanel({ onboardingId }: { onboardingId: string }) {
             {formatMoney(invoice.amount, invoice.currency)}.
             {bank.paymentInstructions ? ` ${bank.paymentInstructions}` : ""}
           </p>
+          {bank.receiptContactEmail || bank.receiptContactPhone ? (
+            <div className="mt-3 rounded-2xl border border-border p-4 text-sm">
+              <p className="font-semibold text-foreground">
+                Send your payment receipt
+              </p>
+              <p className="mt-1 text-muted">
+                After paying, send the receipt and quote{" "}
+                <span className="font-mono text-foreground">
+                  {invoice.reference}
+                </span>
+                . We confirm the funds in our account, then activate your
+                subscription.
+              </p>
+              <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                {bank.receiptContactEmail ? (
+                  <a
+                    className="font-medium text-accent underline"
+                    href={`mailto:${bank.receiptContactEmail}?subject=${encodeURIComponent(`Payment receipt ${invoice.reference}`)}`}
+                  >
+                    {bank.receiptContactEmail}
+                  </a>
+                ) : null}
+                {bank.receiptContactPhone ? (
+                  <a
+                    className="font-medium text-accent underline"
+                    href={`https://wa.me/${whatsappDigits(bank.receiptContactPhone)}?text=${encodeURIComponent(`Payment receipt ${invoice.reference}`)}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    WhatsApp {bank.receiptContactPhone}
+                  </a>
+                ) : null}
+              </p>
+            </div>
+          ) : null}
           <details className="mt-3 text-sm text-muted">
             <summary className="cursor-pointer font-medium text-foreground">
               Price breakdown

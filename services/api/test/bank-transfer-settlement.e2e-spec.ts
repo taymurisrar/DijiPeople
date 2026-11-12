@@ -314,6 +314,8 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
         iban: 'GB82 WEST 1234 5698 7654 32',
         raastId: '03001234567',
         paymentInstructions: 'Quote the reference in the narration.',
+        receiptContactEmail: 'receipts@example.test',
+        receiptContactPhone: '0300 1234567',
       },
       alice,
     );
@@ -344,6 +346,79 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
     ).toBeNull();
   });
 
+  it('lets a sole active owner approve their own account entry, and nobody else', async () => {
+    const created = await registry.createConfiguration(
+      {
+        marketId,
+        currency: 'USD',
+        methodKey: 'BANK_TRANSFER',
+        displayName: 'Sole owner test',
+      },
+      alice,
+    );
+    const account = await registry.createAccount(
+      created.id,
+      {
+        bankName: 'Test Bank',
+        accountTitle: 'Owner',
+        accountNumber: '1234567890',
+      },
+      alice,
+    );
+    // Two active owners: the rule applies in full.
+    const two = new PaymentMethodRegistryService(
+      new Proxy(db, {
+        get: (target, prop) =>
+          prop === 'platformUser'
+            ? {
+                findMany: async () => [
+                  { id: 'a' },
+                  { id: alice.platformUserId },
+                ],
+              }
+            : (target as never)[prop as never],
+      }),
+      config,
+      secrets,
+      audit as never,
+    );
+    await expect(
+      two.decideAccount(account.id, 'APPROVE', undefined, alice),
+    ).rejects.toMatchObject({ response: { code: 'SEPARATION_OF_DUTIES' } });
+    // Exactly one active owner, and it is the actor: allowed (and audited).
+    const sole = new PaymentMethodRegistryService(
+      new Proxy(db, {
+        get: (target, prop) =>
+          prop === 'platformUser'
+            ? { findMany: async () => [{ id: alice.platformUserId }] }
+            : (target as never)[prop as never],
+      }),
+      config,
+      secrets,
+      audit as never,
+    );
+    const approved = await sole.decideAccount(
+      account.id,
+      'APPROVE',
+      undefined,
+      alice,
+    );
+    expect(approved.status).toBe('APPROVED');
+    // The exemption belongs to the one owner only: another operator approving their own entry is still refused.
+    const other = await registry.createAccount(
+      created.id,
+      {
+        bankName: 'Test Bank',
+        accountTitle: 'Owner',
+        accountNumber: '9999999999',
+      },
+      bob,
+    );
+    await expect(
+      sole.decideAccount(other.id, 'APPROVE', undefined, bob),
+    ).rejects.toMatchObject({ response: { code: 'SEPARATION_OF_DUTIES' } });
+  });
+
   it('refuses an invoice before the owner email is verified', async () => {
     const orderId = await makeOrder('unverified', {
       ownerEmailVerifiedAt: null,
@@ -362,6 +437,11 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
     expect(results[0].reference).toMatch(/^DP-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
     expect(results[0].amount).toBe('25000.00');
     expect(results[0].instructions.iban).toBe('GB82WEST12345698765432');
+    // Where the payer sends proof is configured with the account.
+    expect(results[0].instructions.receiptContactEmail).toBe(
+      'receipts@example.test',
+    );
+    expect(results[0].instructions.receiptContactPhone).toBe('0300 1234567');
     const order = await prisma.subscriptionOrder.findUniqueOrThrow({
       where: { id: orderId },
     });
