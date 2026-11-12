@@ -901,6 +901,7 @@ export class SuperAdminController {
       reasonCode: dto.reasonCode,
       reason: dto.reason,
       platformUserId: user.platform?.id ?? null,
+      bankRefundReference: dto.bankRefundReference,
     });
   }
 

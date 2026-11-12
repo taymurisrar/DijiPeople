@@ -679,6 +679,7 @@ export class BillingService {
     // if its gateway is configured.
     if (
       provider &&
+      provider !== PaymentProvider.BANK_TRANSFER &&
       this.paymentMethods &&
       !(await this.paymentMethods.isCardMethodPermitted({
         provider,

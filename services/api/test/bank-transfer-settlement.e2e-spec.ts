@@ -9,6 +9,7 @@ import { OutboxService } from '../src/modules/outbox/outbox.service';
 import { BankTransferService } from '../src/modules/billing/services/bank-transfer.service';
 import { OrderActivationService } from '../src/modules/billing/services/order-activation.service';
 import { PaymentMethodRegistryService } from '../src/modules/billing/services/payment-method-registry.service';
+import { ManagedRenewalService } from '../src/modules/billing/services/managed-renewal.service';
 import { SubscriptionOrderService } from '../src/modules/billing/services/subscription-order.service';
 import { CustomerIdentityService } from '../src/modules/billing/services/customer-identity.service';
 import { TaxBasisService } from '../src/modules/billing/services/tax-basis.service';
@@ -99,6 +100,12 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
     audit as never,
     activation,
     communications as never,
+    new PaymentSettlementService(
+      db,
+      { isManaged: () => false } as never,
+      activation,
+      audit as never,
+    ),
   );
   const orders = new SubscriptionOrderService(
     db,
@@ -650,7 +657,7 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
       expect(payments[0]).toMatchObject({
         paymentMethod: 'BANK',
         status: 'SUCCEEDED',
-        paymentProvider: null,
+        paymentProvider: 'BANK_TRANSFER',
       });
       expect(payments[0].amount.toString()).toBe('25000');
       expect(invoices[0].status).toBe('PAID');
@@ -738,6 +745,256 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
     await bank.submitClaim(orderId, { transactionReference: 'TXN-NOCANCEL' });
     await expect(bank.cancelInvoice(orderId)).rejects.toMatchObject({
       response: { code: 'CLAIM_EXISTS' },
+    });
+  });
+
+  describe('a bank-transfer subscription over time', () => {
+    const fixtures = new DbFixtures(prisma, 'bank-renewal');
+    let tenantId: string;
+    let subscriptionId: string;
+    const periodEnd = new Date(Date.now() + 5 * 86_400_000);
+
+    const settlement = () =>
+      new PaymentSettlementService(
+        db,
+        { isManaged: () => false } as never,
+        activation,
+        audit as never,
+      );
+
+    async function renewalInvoice(suffix: string, status = 'ISSUED') {
+      return prisma.invoice.create({
+        data: {
+          tenantId,
+          subscriptionId,
+          invoiceNumber: `INV-REN-${suffix}-${runId}`,
+          amount: 25000,
+          currency: 'PKR',
+          issueDate: new Date(),
+          dueDate: periodEnd,
+          status: status as never,
+          subtotal: 25000,
+          total: 25000,
+          amountPaid: 0,
+          amountDue: 25000,
+          periodStart: periodEnd,
+          periodEnd: new Date(periodEnd.getTime() + 30 * 86_400_000),
+          bankReference: `DP-REN-${suffix}${runId.slice(-4).toUpperCase()}`,
+          metadataJson: {
+            kind: 'RENEWAL',
+            planId,
+            planPriceId,
+            seats: 5,
+            promotionId: null,
+          },
+        },
+      });
+    }
+
+    beforeAll(async () => {
+      tenantId = (await fixtures.createTenant('bank-renewal')).id;
+      subscriptionId = (
+        await prisma.subscription.create({
+          data: {
+            tenantId,
+            planId,
+            planPriceId,
+            startDate: new Date(Date.now() - 25 * 86_400_000),
+            currentPeriodStart: new Date(Date.now() - 25 * 86_400_000),
+            currentPeriodEnd: periodEnd,
+            status: 'ACTIVE',
+            paymentProvider: 'BANK_TRANSFER',
+            purchasedSeats: 5,
+            autoRenew: true,
+          },
+          select: { id: true },
+        })
+      ).id;
+      // The order that originally told this subscription where to pay.
+      const ready = await registry.findReadyBankTransfer({
+        marketId,
+        currency: 'PKR',
+      });
+      await makeOrder('renew-origin', {
+        status: SubscriptionOrderStatus.ACTIVATED,
+        tenantId,
+        subscriptionId,
+        paymentMethodConfigId: ready!.config.id,
+        receivingAccountId: ready!.account.id,
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.bankTransferEvidence.deleteMany({
+        where: { claim: { invoice: { tenantId } } },
+      });
+      await prisma.bankTransferClaim.deleteMany({
+        where: { invoice: { tenantId } },
+      });
+      await prisma.refundRequest.deleteMany({ where: { tenantId } });
+      await prisma.payment.deleteMany({ where: { tenantId } });
+      await prisma.invoice.deleteMany({ where: { tenantId } });
+      await prisma.subscriptionOrder.updateMany({
+        where: { tenantId },
+        data: { tenantId: null, subscriptionId: null },
+      });
+      await prisma.subscription.deleteMany({ where: { tenantId } });
+      await fixtures.cleanup();
+    });
+
+    it('issues a renewal invoice with its own payment reference', async () => {
+      const renewals = new ManagedRenewalService(
+        db,
+        { get: () => undefined } as never,
+        new TaxBasisService(),
+        settlement(),
+        audit as never,
+      );
+      expect(await renewals.issueRenewalInvoices()).toBeGreaterThanOrEqual(1);
+      const invoice = await prisma.invoice.findFirstOrThrow({
+        where: {
+          subscriptionId,
+          metadataJson: { path: ['kind'], equals: 'RENEWAL' },
+        },
+      });
+      expect(invoice.bankReference).toMatch(/^DP-[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+      expect(invoice.status).toBe('ISSUED');
+      // Not issued twice for the same period.
+      expect(await renewals.issueRenewalInvoices()).toBe(0);
+      await prisma.invoice.delete({ where: { id: invoice.id } });
+    });
+
+    it('rejects a part payment and credits an exact one once, extending the period', async () => {
+      const invoice = await renewalInvoice('pay');
+      const record = (receivedAmount: string, ref: string) =>
+        bank.recordInvoicePayment(
+          invoice.id,
+          { bankStatementReference: ref, receivedAmount, currency: 'PKR' },
+          bob,
+        );
+      await expect(record('20000.00', `REN-A-${runId}`)).rejects.toMatchObject({
+        response: { code: 'PAYMENT_UNDERPAID' },
+      });
+
+      const outcomes = await Promise.allSettled(
+        Array.from({ length: 4 }, () => record('25000.00', `REN-OK-${runId}`)),
+      );
+      expect(outcomes.some((o) => o.status === 'fulfilled')).toBe(true);
+
+      const [payments, paid, subscription] = await Promise.all([
+        prisma.payment.findMany({ where: { invoiceId: invoice.id } }),
+        prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } }),
+        prisma.subscription.findUniqueOrThrow({
+          where: { id: subscriptionId },
+        }),
+      ]);
+      expect(payments).toHaveLength(1);
+      expect(payments[0]).toMatchObject({
+        status: 'SUCCEEDED',
+        paymentProvider: 'BANK_TRANSFER',
+      });
+      expect(paid.status).toBe('PAID');
+      expect(subscription.currentPeriodEnd!.getTime()).toBeGreaterThan(
+        periodEnd.getTime(),
+      );
+
+      // The same bank credit cannot settle a second invoice.
+      const other = await renewalInvoice('other');
+      await expect(
+        bank.recordInvoicePayment(
+          other.id,
+          {
+            bankStatementReference: `REN-OK-${runId}`,
+            receivedAmount: '25000.00',
+            currency: 'PKR',
+          },
+          bob,
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'DUPLICATE_BANK_REFERENCE' },
+      });
+      expect(
+        (await prisma.invoice.findUniqueOrThrow({ where: { id: other.id } }))
+          .status,
+      ).toBe('ISSUED');
+      await prisma.invoice.update({
+        where: { id: other.id },
+        data: { status: 'VOIDED' },
+      });
+    });
+
+    it('refunds a bank payment only with the bank reference of the money returned', async () => {
+      const payment = await prisma.payment.findFirstOrThrow({
+        where: {
+          tenantId,
+          paymentProvider: 'BANK_TRANSFER',
+          status: 'SUCCEEDED',
+        },
+      });
+      await expect(
+        settlement().refundPayment({
+          paymentId: payment.id,
+          reasonCode: 'BILLING_ERROR',
+          reason: 'Paid in error',
+          platformUserId: null,
+        }),
+      ).rejects.toBeDefined();
+      const refunded = await settlement().refundPayment({
+        paymentId: payment.id,
+        reasonCode: 'BILLING_ERROR',
+        reason: 'Paid in error',
+        platformUserId: null,
+        bankRefundReference: `RET-${runId}`,
+      });
+      expect(refunded.status).toBe('PROCESSED');
+      expect(
+        (await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }))
+          .status,
+      ).toBe('REFUNDED');
+      // Only once.
+      await expect(
+        settlement().refundPayment({
+          paymentId: payment.id,
+          reasonCode: 'BILLING_ERROR',
+          reason: 'again',
+          platformUserId: null,
+          bankRefundReference: `RET2-${runId}`,
+        }),
+      ).rejects.toBeDefined();
+    });
+
+    it('moves an unpaid bank subscription to PAST_DUE at period end, like any other managed one', async () => {
+      const lapsed = await prisma.subscription.create({
+        data: {
+          tenantId: (await fixtures.createTenant('bank-lapsed')).id,
+          planId,
+          planPriceId,
+          startDate: new Date(Date.now() - 40 * 86_400_000),
+          currentPeriodStart: new Date(Date.now() - 40 * 86_400_000),
+          currentPeriodEnd: new Date(Date.now() - 86_400_000),
+          status: 'ACTIVE',
+          paymentProvider: 'BANK_TRANSFER',
+          purchasedSeats: 5,
+        },
+        select: { id: true, tenantId: true },
+      });
+      try {
+        const renewals = new ManagedRenewalService(
+          db,
+          { get: () => undefined } as never,
+          new TaxBasisService(),
+          settlement(),
+          audit as never,
+        );
+        await renewals.applyPeriodBoundaries();
+        const after = await prisma.subscription.findUniqueOrThrow({
+          where: { id: lapsed.id },
+        });
+        expect(after.status).toBe('PAST_DUE');
+        expect(after.gracePeriodEndsAt).not.toBeNull();
+      } finally {
+        await prisma.subscription.deleteMany({ where: { id: lapsed.id } });
+      }
     });
   });
 

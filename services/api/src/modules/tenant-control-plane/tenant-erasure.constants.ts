@@ -129,6 +129,19 @@ export const TENANT_ERASURE_LINK_CLEANUPS: Array<{
     relation: 'errorLog',
     note: 'Links a retained support case to a tenant error log that is being erased.',
   },
+  {
+    /*
+     * A renewal payment an operator recorded against one of the tenant's
+     * invoices. It cannot be detached like an order: a claim must target an
+     * order or an invoice (a CHECK constraint), so clearing the invoice would
+     * leave it pointing at nothing. The invoice and the payment it describes go
+     * with the tenant, so the record of that one transfer goes with them. The
+     * first-purchase claims hang off the SubscriptionOrder, which is retained.
+     */
+    model: 'bankTransferClaim',
+    relation: 'invoice',
+    note: 'A renewal bank-transfer record points at a tenant invoice that is being erased.',
+  },
 ];
 
 /**

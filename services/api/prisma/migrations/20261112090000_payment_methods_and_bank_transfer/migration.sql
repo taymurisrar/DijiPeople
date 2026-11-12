@@ -16,6 +16,12 @@ CREATE TYPE "BankTransferClaimStatus" AS ENUM ('PENDING_VERIFICATION', 'CLARIFIC
 -- CreateEnum
 CREATE TYPE "PaymentEvidenceScanStatus" AS ENUM ('QUARANTINED', 'CLEAN', 'REJECTED');
 
+-- AlterEnum
+ALTER TYPE "PaymentProvider" ADD VALUE 'BANK_TRANSFER';
+
+-- AlterTable
+ALTER TABLE "Invoice" ADD COLUMN     "bankReference" TEXT;
+
 -- AlterTable
 ALTER TABLE "SubscriptionOrder" ADD COLUMN     "bankInvoiceIssuedAt" TIMESTAMP(3),
 ADD COLUMN     "bankReference" TEXT,
@@ -74,7 +80,8 @@ CREATE TABLE "BankReceivingAccount" (
 -- CreateTable
 CREATE TABLE "BankTransferClaim" (
     "id" TEXT NOT NULL,
-    "subscriptionOrderId" TEXT NOT NULL,
+    "subscriptionOrderId" TEXT,
+    "invoiceId" TEXT,
     "paymentMethodConfigId" TEXT NOT NULL,
     "receivingAccountId" TEXT NOT NULL,
     "status" "BankTransferClaimStatus" NOT NULL DEFAULT 'PENDING_VERIFICATION',
@@ -133,6 +140,9 @@ CREATE INDEX "BankTransferClaim_status_submittedAt_idx" ON "BankTransferClaim"("
 CREATE INDEX "BankTransferClaim_subscriptionOrderId_status_idx" ON "BankTransferClaim"("subscriptionOrderId", "status");
 
 -- CreateIndex
+CREATE INDEX "BankTransferClaim_invoiceId_status_idx" ON "BankTransferClaim"("invoiceId", "status");
+
+-- CreateIndex
 CREATE INDEX "BankTransferClaim_customerReferenceHash_idx" ON "BankTransferClaim"("customerReferenceHash");
 
 -- CreateIndex
@@ -143,6 +153,9 @@ CREATE INDEX "BankTransferEvidence_claimId_scanStatus_idx" ON "BankTransferEvide
 
 -- CreateIndex
 CREATE INDEX "BankTransferEvidence_checksumSha256_idx" ON "BankTransferEvidence"("checksumSha256");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Invoice_bankReference_key" ON "Invoice"("bankReference");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SubscriptionOrder_bankReference_key" ON "SubscriptionOrder"("bankReference");
@@ -166,6 +179,9 @@ ALTER TABLE "BankReceivingAccount" ADD CONSTRAINT "BankReceivingAccount_paymentM
 ALTER TABLE "BankTransferClaim" ADD CONSTRAINT "BankTransferClaim_subscriptionOrderId_fkey" FOREIGN KEY ("subscriptionOrderId") REFERENCES "SubscriptionOrder"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "BankTransferClaim" ADD CONSTRAINT "BankTransferClaim_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "Invoice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "BankTransferClaim" ADD CONSTRAINT "BankTransferClaim_paymentMethodConfigId_fkey" FOREIGN KEY ("paymentMethodConfigId") REFERENCES "PaymentMethodConfiguration"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -177,3 +193,6 @@ ALTER TABLE "BankTransferEvidence" ADD CONSTRAINT "BankTransferEvidence_claimId_
 -- At most one active receiving account per method configuration. Prisma cannot
 -- express a partial unique index; this is the database-level guard.
 CREATE UNIQUE INDEX "BankReceivingAccount_one_active_per_method" ON "BankReceivingAccount" ("paymentMethodConfigId") WHERE "isActive" = true;
+
+-- A claim targets exactly one thing: a first-purchase order or a renewal invoice.
+ALTER TABLE "BankTransferClaim" ADD CONSTRAINT "BankTransferClaim_exactly_one_target" CHECK (("subscriptionOrderId" IS NOT NULL) <> ("invoiceId" IS NOT NULL));

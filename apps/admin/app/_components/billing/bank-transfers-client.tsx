@@ -5,6 +5,10 @@ import { Download, Loader2, RefreshCw, Search } from "lucide-react";
 import { AdminKeyValueGrid } from "@/app/_components/admin-ui";
 import { ProDataTable } from "@/app/_components/crm/data-table";
 import {
+  RenewalInvoicesPanel,
+  type RenewalInvoice,
+} from "./renewal-invoices-panel";
+import {
   Notice,
   StatusChip,
   errorText,
@@ -117,9 +121,11 @@ type Decision = "approve" | "clarify" | "reject" | "duplicate";
 export function BankTransfersClient({
   initialList,
   initialSummary,
+  initialRenewalInvoices,
 }: {
   initialList: ListResponse;
   initialSummary: Summary;
+  initialRenewalInvoices: RenewalInvoice[];
 }) {
   const [list, setList] = useState(initialList);
   const [summary, setSummary] = useState(initialSummary);
@@ -387,6 +393,14 @@ export function BankTransfersClient({
           }
         />
       </section>
+
+      <RenewalInvoicesPanel
+        initial={initialRenewalInvoices}
+        onRecorded={(text) => {
+          setMessage({ tone: "info", text });
+          void reload();
+        }}
+      />
 
       {openClaimId ? (
         <ClaimDialog

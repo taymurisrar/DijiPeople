@@ -53,15 +53,21 @@ export type BankInstructions = {
 
 type Actor = { platformUserId: string | null };
 
-const CARD_METHOD_BY_PROVIDER: Record<
+/** A gateway-executed card provider. A bank transfer has no gateway. */
+export type CardProvider = Exclude<
   PaymentProvider,
-  BillingPaymentMethodKey
-> = {
+  typeof PaymentProvider.BANK_TRANSFER
+>;
+
+const CARD_METHOD_BY_PROVIDER: Record<CardProvider, BillingPaymentMethodKey> = {
   [PaymentProvider.STRIPE]: BillingPaymentMethodKey.STRIPE_CARD,
   [PaymentProvider.SAFEPAY]: BillingPaymentMethodKey.SAFEPAY_CARD,
 };
 
-export const CARD_PROVIDER_LABELS: Record<PaymentProvider, string> = {
+const isCardProvider = (provider: PaymentProvider): provider is CardProvider =>
+  provider !== PaymentProvider.BANK_TRANSFER;
+
+export const CARD_PROVIDER_LABELS: Record<CardProvider, string> = {
   [PaymentProvider.STRIPE]: 'Card (Stripe)',
   [PaymentProvider.SAFEPAY]: 'Card (Safepay)',
 };
@@ -135,7 +141,7 @@ export class PaymentMethodRegistryService {
    * and in the right environment.
    */
   async isCardMethodPermitted(input: {
-    provider: PaymentProvider;
+    provider: CardProvider;
     marketId: string | null;
     currency: string;
   }): Promise<boolean> {
@@ -183,7 +189,7 @@ export class PaymentMethodRegistryService {
       });
     }
 
-    for (const provider of input.cardProviders) {
+    for (const provider of input.cardProviders.filter(isCardProvider)) {
       if (
         await this.isCardMethodPermitted({
           provider,

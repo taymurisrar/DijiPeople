@@ -444,6 +444,125 @@ export class PaymentSettlementService {
   }
 
   /**
+   * Credit an operator-verified bank transfer against a renewal invoice, through
+   * the same transaction that credits a provider payment: payment, invoice and
+   * subscription period move together or not at all, and a second credit of the
+   * same payment finds it already SUCCEEDED.
+   */
+  async creditBankPayment(input: {
+    paymentId: string;
+    bankReference: string;
+    amount: string;
+    currency: string;
+    claimId: string;
+  }): Promise<void> {
+    await this.credit(
+      input.paymentId,
+      PaymentProvider.BANK_TRANSFER,
+      {
+        status: 'PAID',
+        providerPaymentId: input.bankReference,
+        amount: input.amount,
+        currency: input.currency,
+        providerReference: `claim:${input.claimId}`,
+        reference: input.bankReference,
+        failureCode: null,
+        failureMessage: null,
+      },
+      'OPERATOR',
+    );
+  }
+
+  /**
+   * Refund a bank-transfer payment. DijiPeople cannot move the money itself:
+   * finance returns it from the bank account and records the bank's reference
+   * here, so the refund has a row, an actor and an audit entry behind it.
+   */
+  private async refundBankPayment(input: {
+    paymentId: string;
+    reasonCode: RefundReasonCode;
+    reason: string;
+    platformUserId: string | null;
+    bankRefundReference?: string;
+  }) {
+    if (!input.bankRefundReference?.trim()) {
+      throw new AppError('BILLING_INVOICE_NOT_PAYABLE', {
+        message:
+          'Return the money from the bank account first, then record the bank reference of that transfer.',
+      });
+    }
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: input.paymentId },
+      select: {
+        id: true,
+        tenantId: true,
+        invoiceId: true,
+        status: true,
+        amount: true,
+        currency: true,
+        tenant: { select: { customerAccountId: true } },
+      },
+    });
+    if (!payment) throw new AppError('PAYMENT_NOT_FOUND');
+
+    const request = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(
+        Prisma.sql`SELECT pg_advisory_xact_lock(hashtext(${`billing-refund:${payment.id}`}))`,
+      );
+      const moved = await tx.payment.updateMany({
+        where: { id: payment.id, status: PaymentStatus.SUCCEEDED },
+        data: { status: PaymentStatus.REFUNDED },
+      });
+      if (moved.count === 0) {
+        throw new AppError('BILLING_INVOICE_NOT_PAYABLE', {
+          message: 'Only a captured payment can be refunded, and only once.',
+        });
+      }
+      const created = await tx.refundRequest.create({
+        data: {
+          tenantId: payment.tenantId,
+          customerAccountId: payment.tenant.customerAccountId,
+          paymentId: payment.id,
+          invoiceId: payment.invoiceId,
+          amount: payment.amount,
+          currency: payment.currency,
+          reasonCode: input.reasonCode,
+          reason: input.reason,
+          status: RefundStatus.PROCESSED,
+          requestedByPlatformUser: input.platformUserId,
+          approvedByPlatformUser: input.platformUserId,
+          approvedAt: new Date(),
+          processedAt: new Date(),
+          providerRefundId: input.bankRefundReference!.trim(),
+        },
+        select: { id: true },
+      });
+      await this.audit.log(
+        {
+          tenantId: payment.tenantId,
+          action: 'BANK_PAYMENT_REFUNDED',
+          entityType: 'Payment',
+          entityId: payment.id,
+          sourceModule: 'billing',
+          beforeSnapshot: { status: payment.status },
+          afterSnapshot: {
+            refundRequestId: created.id,
+            bankRefundReference: input.bankRefundReference!.trim(),
+            platformUserId: input.platformUserId,
+          },
+        },
+        tx,
+      );
+      return created;
+    });
+    return {
+      refundRequestId: request.id,
+      status: RefundStatus.PROCESSED,
+      failureReason: null,
+    };
+  }
+
+  /**
    * The bank-transfer twin of the provider path above: once provisioning has
    * created the tenant, write the PAID invoice and the SUCCEEDED payment for a
    * transfer an operator verified. Keyed on the bank reference, which is unique
@@ -466,10 +585,12 @@ export class PaymentSettlementService {
     promotionId: string | null;
   }): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.payment.findFirst({
+      const existing = await tx.payment.findUnique({
         where: {
-          tenantId: order.tenantId,
-          providerReference: order.bankReference,
+          paymentProvider_providerPaymentId: {
+            paymentProvider: PaymentProvider.BANK_TRANSFER,
+            providerPaymentId: order.bankReference,
+          },
         },
         select: { id: true },
       });
@@ -522,7 +643,10 @@ export class PaymentSettlementService {
           currency: order.currency,
           paymentMethod: 'BANK',
           status: PaymentStatus.SUCCEEDED,
-          providerReference: order.bankReference,
+          // (provider, providerPaymentId) is unique, so a replayed provisioning
+          // can never record the same transfer twice.
+          paymentProvider: PaymentProvider.BANK_TRANSFER,
+          providerPaymentId: order.bankReference,
           paidAt,
         },
       });
@@ -539,6 +663,8 @@ export class PaymentSettlementService {
     reasonCode: RefundReasonCode;
     reason: string;
     platformUserId: string | null;
+    /** Required for a bank-transfer payment: the bank's reference for the money returned. */
+    bankRefundReference?: string;
   }) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: input.paymentId },
@@ -555,6 +681,9 @@ export class PaymentSettlementService {
       },
     });
     if (!payment) throw new AppError('PAYMENT_NOT_FOUND');
+    if (payment.paymentProvider === PaymentProvider.BANK_TRANSFER) {
+      return this.refundBankPayment(input);
+    }
     if (
       payment.status !== PaymentStatus.SUCCEEDED ||
       !payment.paymentProvider ||

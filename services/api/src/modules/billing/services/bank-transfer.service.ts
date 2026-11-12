@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import {
   BankTransferClaimStatus,
+  InvoiceStatus,
   PaymentEvidenceScanStatus,
+  PaymentProvider,
+  PaymentStatus,
   Prisma,
   SubscriptionOrderStatus,
 } from '@prisma/client';
@@ -30,6 +33,7 @@ import {
   sniffEvidenceKind,
 } from '../bank-transfer/bank-transfer.rules';
 import { OrderActivationService } from './order-activation.service';
+import { PaymentSettlementService } from './payment-settlement.service';
 import {
   PaymentMethodRegistryService,
   isUniqueViolation,
@@ -72,6 +76,7 @@ export class BankTransferService {
     private readonly audit: AuditService,
     private readonly orderActivation: OrderActivationService,
     private readonly communications: PlatformCommunicationsService,
+    private readonly settlement: PaymentSettlementService,
   ) {}
 
   // ---- customer side ----------------------------------------------------------
@@ -136,6 +141,9 @@ export class BankTransferService {
           },
           data: {
             bankReference: generateBankReference(),
+            // Recorded on the order so provisioning stamps it on the
+            // subscription, which is what makes it renew and expire.
+            paymentProvider: PaymentProvider.BANK_TRANSFER,
             paymentMethodConfigId: ready.config.id,
             receivingAccountId: ready.account.id,
             bankInvoiceIssuedAt: now,
@@ -463,6 +471,21 @@ export class BankTransferService {
                   ],
                 },
               },
+              {
+                invoice: {
+                  OR: [
+                    {
+                      invoiceNumber: { contains: search, mode: 'insensitive' },
+                    },
+                    { bankReference: { contains: search.toUpperCase() } },
+                    {
+                      tenant: {
+                        name: { contains: search, mode: 'insensitive' },
+                      },
+                    },
+                  ],
+                },
+              },
             ],
           }
         : {}),
@@ -487,26 +510,45 @@ export class BankTransferService {
               customer: { select: { companyName: true } },
             },
           },
+          invoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              bankReference: true,
+              amount: true,
+              currency: true,
+              status: true,
+              dueDate: true,
+              tenant: { select: { name: true } },
+            },
+          },
           _count: { select: { evidence: true } },
         },
       }),
     ]);
     return {
-      items: rows.map((row) => ({
-        id: row.id,
-        status: row.status,
-        submittedAt: row.submittedAt,
-        claimedAmount: row.claimedAmount.toFixed(2),
-        currency: row.currency,
-        orderId: row.subscriptionOrder.id,
-        orderNumber: row.subscriptionOrder.orderNumber,
-        reference: row.subscriptionOrder.bankReference,
-        expectedAmount: row.subscriptionOrder.totalAmount.toFixed(2),
-        orderStatus: row.subscriptionOrder.status,
-        orderExpiresAt: row.subscriptionOrder.expiresAt,
-        company: row.subscriptionOrder.customer?.companyName ?? null,
-        evidenceCount: row._count.evidence,
-      })),
+      items: rows.map((row) => {
+        const order = row.subscriptionOrder;
+        const invoice = row.invoice;
+        return {
+          id: row.id,
+          status: row.status,
+          kind: order ? ('ORDER' as const) : ('RENEWAL' as const),
+          submittedAt: row.submittedAt,
+          claimedAmount: row.claimedAmount.toFixed(2),
+          currency: row.currency,
+          orderId: order?.id ?? invoice?.id ?? row.id,
+          orderNumber: order?.orderNumber ?? invoice?.invoiceNumber ?? '-',
+          reference: order?.bankReference ?? invoice?.bankReference ?? null,
+          expectedAmount:
+            (order?.totalAmount ?? invoice?.amount)?.toFixed(2) ?? '0.00',
+          orderStatus: order?.status ?? invoice?.status ?? '-',
+          orderExpiresAt: order?.expiresAt ?? invoice?.dueDate ?? null,
+          company:
+            order?.customer?.companyName ?? invoice?.tenant?.name ?? null,
+          evidenceCount: row._count.evidence,
+        };
+      }),
       meta: {
         page: query.page,
         pageSize: query.pageSize,
@@ -610,6 +652,28 @@ export class BankTransferService {
             plan: { select: { name: true } },
           },
         },
+        invoice: {
+          select: {
+            id: true,
+            invoiceNumber: true,
+            status: true,
+            bankReference: true,
+            amount: true,
+            subtotal: true,
+            tax: true,
+            currency: true,
+            dueDate: true,
+            paidAt: true,
+            tenantId: true,
+            tenant: { select: { name: true } },
+            subscription: {
+              select: {
+                purchasedSeats: true,
+                plan: { select: { name: true } },
+              },
+            },
+          },
+        },
       },
     });
     if (!claim) throw new NotFoundException('Claim not found.');
@@ -633,9 +697,42 @@ export class BankTransferService {
       select: { action: true, createdAt: true, platformActorUserId: true },
     });
 
+    // One shape for both kinds so the console renders them alike.
+    const order = claim.subscriptionOrder;
+    const invoice = claim.invoice;
+    const target = order
+      ? {
+          ...order,
+          totalAmount: order.totalAmount.toFixed(2),
+          subtotalAmount: order.subtotalAmount.toFixed(2),
+          discountAmount: order.discountAmount.toFixed(2),
+          taxAmount: order.taxAmount.toFixed(2),
+        }
+      : {
+          id: invoice!.id,
+          orderNumber: invoice!.invoiceNumber,
+          status: invoice!.status,
+          bankReference: invoice!.bankReference,
+          totalAmount: invoice!.amount.toFixed(2),
+          subtotalAmount: invoice!.subtotal?.toFixed(2) ?? '0.00',
+          discountAmount: '0.00',
+          taxAmount: invoice!.tax?.toFixed(2) ?? '0.00',
+          currency: invoice!.currency,
+          requestedSeats: invoice!.subscription?.purchasedSeats ?? 0,
+          billingCycle: 'RENEWAL',
+          expiresAt: invoice!.dueDate,
+          paidAt: invoice!.paidAt,
+          tenantId: invoice!.tenantId,
+          customer: invoice!.tenant
+            ? { companyName: invoice!.tenant.name, contactEmail: null }
+            : null,
+          plan: invoice!.subscription?.plan ?? null,
+        };
+
     return {
       id: claim.id,
       status: claim.status,
+      kind: order ? ('ORDER' as const) : ('RENEWAL' as const),
       claimedAmount: claim.claimedAmount.toFixed(2),
       currency: claim.currency,
       transferredAt: claim.transferredAt,
@@ -652,13 +749,7 @@ export class BankTransferService {
       reviewedById: claim.reviewedById,
       evidence: claim.evidence,
       receivingAccount: claim.receivingAccount,
-      order: {
-        ...claim.subscriptionOrder,
-        totalAmount: claim.subscriptionOrder.totalAmount.toFixed(2),
-        subtotalAmount: claim.subscriptionOrder.subtotalAmount.toFixed(2),
-        discountAmount: claim.subscriptionOrder.discountAmount.toFixed(2),
-        taxAmount: claim.subscriptionOrder.taxAmount.toFixed(2),
-      },
+      order: target,
       duplicates,
       history,
     };
@@ -712,6 +803,13 @@ export class BankTransferService {
     });
     if (!claim) throw new NotFoundException('Claim not found.');
     const order = claim.subscriptionOrder;
+    if (!order) {
+      // A renewal payment is recorded already-approved; there is nothing to decide.
+      throw new ConflictException({
+        code: 'CLAIM_NOT_DECIDABLE',
+        message: 'A recorded renewal payment cannot be decided again.',
+      });
+    }
 
     if (claim.status === BankTransferClaimStatus.APPROVED) {
       await this.confirm(order.id, claim.id);
@@ -864,6 +962,309 @@ export class BankTransferService {
     return stale.count;
   }
 
+  // ---- renewals ---------------------------------------------------------------
+
+  /** Open renewal invoices of bank-transfer subscriptions, oldest due first. */
+  async listOpenRenewalInvoices(search?: string) {
+    const term = search?.trim();
+    const rows = await this.prisma.invoice.findMany({
+      where: {
+        bankReference: { not: null },
+        status: {
+          in: [
+            InvoiceStatus.ISSUED,
+            InvoiceStatus.OVERDUE,
+            InvoiceStatus.PAYMENT_FAILED,
+          ],
+        },
+        ...(term
+          ? {
+              OR: [
+                { invoiceNumber: { contains: term, mode: 'insensitive' } },
+                { bankReference: { contains: term.toUpperCase() } },
+                { tenant: { name: { contains: term, mode: 'insensitive' } } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 100,
+      select: {
+        id: true,
+        invoiceNumber: true,
+        bankReference: true,
+        amount: true,
+        currency: true,
+        status: true,
+        dueDate: true,
+        tenant: { select: { name: true } },
+      },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      invoiceNumber: row.invoiceNumber,
+      reference: row.bankReference,
+      amount: row.amount.toFixed(2),
+      currency: row.currency,
+      status: row.status,
+      dueDate: row.dueDate,
+      tenant: row.tenant?.name ?? null,
+    }));
+  }
+
+  /**
+   * Record a bank transfer an operator has found in the receiving account
+   * against a renewal invoice. The same discipline as an order approval: exact
+   * amount, a bank statement reference that has never settled anything else,
+   * and one idempotent credit through the shared settlement transaction.
+   */
+  async recordInvoicePayment(
+    invoiceId: string,
+    input: {
+      bankStatementReference: string;
+      receivedAmount: string;
+      currency: string;
+      note?: string;
+    },
+    actor: Actor,
+  ) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        tenantId: true,
+        subscriptionId: true,
+        status: true,
+        amount: true,
+        currency: true,
+        bankReference: true,
+        subscription: { select: { paymentProvider: true } },
+      },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found.');
+    if (
+      !invoice.bankReference ||
+      !invoice.tenantId ||
+      !invoice.subscriptionId ||
+      invoice.subscription?.paymentProvider !== PaymentProvider.BANK_TRANSFER
+    ) {
+      throw new ConflictException({
+        code: 'NOT_A_BANK_INVOICE',
+        message: 'This invoice is not a bank-transfer renewal invoice.',
+      });
+    }
+    const { tenantId, subscriptionId, bankReference } = invoice;
+
+    // One invoice, one payment: (provider, providerPaymentId) is unique, so a
+    // second recording finds the first and resumes rather than duplicating.
+    const existing = await this.prisma.payment.findUnique({
+      where: {
+        paymentProvider_providerPaymentId: {
+          paymentProvider: PaymentProvider.BANK_TRANSFER,
+          providerPaymentId: bankReference,
+        },
+      },
+      select: { id: true, status: true },
+    });
+    if (existing?.status === PaymentStatus.SUCCEEDED) {
+      return { invoiceId, alreadyRecorded: true };
+    }
+
+    if (
+      !existing &&
+      invoice.status !== InvoiceStatus.ISSUED &&
+      invoice.status !== InvoiceStatus.OVERDUE &&
+      invoice.status !== InvoiceStatus.PAYMENT_FAILED
+    ) {
+      throw new ConflictException({
+        code: 'INVOICE_NOT_PAYABLE',
+        message: `The invoice is ${invoice.status}; a payment cannot be recorded against it.`,
+      });
+    }
+
+    const amount = checkReceivedAmount(
+      { amount: invoice.amount.toString(), currency: invoice.currency },
+      { amount: input.receivedAmount, currency: input.currency },
+    );
+    if (!amount.ok) {
+      throw new ConflictException({
+        code: `PAYMENT_${amount.reason}`,
+        message:
+          'The received amount does not match the invoice. A part or excess payment is never credited automatically.',
+      });
+    }
+
+    let paymentId = existing?.id ?? null;
+    let claimId: string | null = null;
+    if (!paymentId) {
+      // The account the subscription was originally told to pay into.
+      const origin = await this.prisma.subscriptionOrder.findFirst({
+        where: { subscriptionId },
+        select: { paymentMethodConfigId: true, receivingAccountId: true },
+      });
+      if (!origin?.paymentMethodConfigId || !origin.receivingAccountId) {
+        throw new ConflictException({
+          code: 'BANK_ACCOUNT_UNKNOWN',
+          message:
+            'The receiving account for this subscription cannot be determined.',
+        });
+      }
+      const statementRef = normalizeBankReference(input.bankStatementReference);
+      try {
+        const created = await this.prisma.$transaction(async (tx) => {
+          const claim = await tx.bankTransferClaim.create({
+            data: {
+              invoiceId,
+              paymentMethodConfigId: origin.paymentMethodConfigId!,
+              receivingAccountId: origin.receivingAccountId!,
+              status: BankTransferClaimStatus.APPROVED,
+              claimedAmount: input.receivedAmount,
+              currency: invoice.currency,
+              decisionReason: input.note?.trim() || null,
+              verifiedAmount: input.receivedAmount,
+              reviewedAt: new Date(),
+              reviewedById: actor.platformUserId,
+              // Unique: one bank credit settles one thing, ever.
+              bankStatementReferenceHash: this.hash(statementRef),
+              bankStatementReferenceEncrypted: this.encrypt(statementRef),
+            },
+            select: { id: true },
+          });
+          const payment = await tx.payment.create({
+            data: {
+              tenantId,
+              subscriptionId,
+              invoiceId,
+              amount: invoice.amount,
+              currency: invoice.currency,
+              paymentMethod: 'BANK',
+              status: PaymentStatus.PENDING,
+              paymentProvider: PaymentProvider.BANK_TRANSFER,
+              providerPaymentId: bankReference,
+            },
+            select: { id: true },
+          });
+          await this.audit.log(
+            {
+              tenantId: 'platform',
+              actorUserId: actor.platformUserId,
+              action: 'BANK_RENEWAL_PAYMENT_RECORDED',
+              entityType: 'BankTransferClaim',
+              entityId: claim.id,
+              sourceModule: 'billing',
+              afterSnapshot: {
+                invoiceId,
+                verifiedAmount: input.receivedAmount,
+                currency: invoice.currency,
+                bankStatementReference: statementRef,
+              },
+            },
+            tx,
+          );
+          return { claimId: claim.id, paymentId: payment.id };
+        });
+        paymentId = created.paymentId;
+        claimId = created.claimId;
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new ConflictException({
+            code: 'DUPLICATE_BANK_REFERENCE',
+            message:
+              'This bank statement reference has already been used to settle another payment.',
+          });
+        }
+        throw error;
+      }
+    }
+
+    // Credit: payment, invoice and the subscription's next period together.
+    await this.settlement.creditBankPayment({
+      paymentId,
+      bankReference,
+      amount: invoice.amount.toFixed(2),
+      currency: invoice.currency,
+      claimId: claimId ?? 'resumed',
+    });
+    return { invoiceId, alreadyRecorded: false };
+  }
+
+  /**
+   * Remind payers of open bank renewal invoices: when issued, shortly before
+   * the due date, and once overdue. The mail's idempotency key carries the
+   * stage, so running this every tick sends each reminder exactly once.
+   */
+  async sendRenewalReminders(now = new Date()): Promise<number> {
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        bankReference: { not: null },
+        status: { in: [InvoiceStatus.ISSUED, InvoiceStatus.OVERDUE] },
+      },
+      take: 200,
+      select: {
+        id: true,
+        invoiceNumber: true,
+        bankReference: true,
+        amount: true,
+        currency: true,
+        status: true,
+        dueDate: true,
+        subscriptionId: true,
+        tenant: {
+          select: {
+            customerAccount: {
+              select: { primaryContactEmail: true, contactEmail: true },
+            },
+          },
+        },
+      },
+    });
+    let sent = 0;
+    for (const invoice of invoices) {
+      const daysLeft = Math.ceil(
+        (invoice.dueDate.getTime() - now.getTime()) / 86_400_000,
+      );
+      const stage =
+        invoice.status === InvoiceStatus.OVERDUE || daysLeft < 0
+          ? 'OVERDUE'
+          : daysLeft <= 3
+            ? 'DUE_SOON'
+            : 'ISSUED';
+      const origin = invoice.subscriptionId
+        ? await this.prisma.subscriptionOrder.findFirst({
+            where: { subscriptionId: invoice.subscriptionId },
+            select: { receivingAccount: true },
+          })
+        : null;
+      const bank = origin?.receivingAccount
+        ? this.registry.instructionsFor(origin.receivingAccount)
+        : null;
+      const due = invoice.dueDate.toISOString().slice(0, 10);
+      const lines = [
+        stage === 'OVERDUE'
+          ? `Your DijiPeople renewal invoice ${invoice.invoiceNumber} is overdue. Please pay now to avoid losing access.`
+          : stage === 'DUE_SOON'
+            ? `Your DijiPeople renewal invoice ${invoice.invoiceNumber} is due on ${due}.`
+            : `Your DijiPeople renewal invoice ${invoice.invoiceNumber} has been issued and is due on ${due}.`,
+        `Transfer ${invoice.amount.toFixed(2)} ${invoice.currency} and quote the reference ${invoice.bankReference}.`,
+        ...(bank
+          ? [
+              `Bank: ${bank.bankName}. Account title: ${bank.accountTitle}.${bank.iban ? ` IBAN: ${bank.iban}.` : ''}${bank.accountNumber ? ` Account: ${bank.accountNumber}.` : ''}${bank.raastId ? ` Raast ID: ${bank.raastId}.` : ''}`,
+            ]
+          : []),
+        'Your renewal is applied only after we verify the funds in our bank account.',
+      ];
+      await this.mail(invoice.tenant?.customerAccount ?? null, {
+        eventCode: `BANK_RENEWAL_${stage}`,
+        entityId: invoice.id,
+        subject: `Renewal invoice ${invoice.invoiceNumber}`,
+        lines,
+        key: `bank-renewal:${invoice.id}:${stage}`,
+      });
+      sent += 1;
+    }
+    return sent;
+  }
+
   // ---- internals --------------------------------------------------------------
 
   private async decide(
@@ -895,6 +1296,12 @@ export class BankTransferService {
       },
     });
     if (!claim) throw new NotFoundException('Claim not found.');
+    if (!claim.subscriptionOrder || !claim.subscriptionOrderId) {
+      throw new ConflictException({
+        code: 'CLAIM_NOT_DECIDABLE',
+        message: 'A recorded renewal payment cannot be decided again.',
+      });
+    }
     const moved = await this.prisma.bankTransferClaim.updateMany({
       where: { id: claimId, status: { in: [...DECIDABLE_CLAIM_STATUSES] } },
       data: {

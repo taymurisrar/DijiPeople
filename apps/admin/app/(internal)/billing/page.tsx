@@ -173,6 +173,9 @@ export default async function BillingPage({
           apiRequestJson<BankTransfersProps["initialSummary"]>(
             "/super-admin/payments/bank-transfers/summary",
           ),
+          apiRequestJson<BankTransfersProps["initialRenewalInvoices"]>(
+            "/super-admin/payments/bank-transfers/renewal-invoices",
+          ),
         ])
       : Promise.resolve(null),
     activeTab === "payment-methods"
@@ -245,6 +248,7 @@ export default async function BillingPage({
         <BankTransfersClient
           initialList={bankTransfers[0]}
           initialSummary={bankTransfers[1]}
+          initialRenewalInvoices={bankTransfers[2]}
         />
       ) : activeTab === "payment-methods" && paymentMethods ? (
         <PaymentMethodsClient

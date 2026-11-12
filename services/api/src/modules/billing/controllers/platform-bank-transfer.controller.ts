@@ -67,6 +67,32 @@ export class PlatformBankTransferController {
     return this.bankTransfer.listClaims(query);
   }
 
+  /** Open renewal invoices of bank-transfer subscriptions awaiting a payment. */
+  @Get('payments/bank-transfers/renewal-invoices')
+  @RequirePlatformPermission('payments.read')
+  renewalInvoices(@Query('search') search?: string) {
+    return this.bankTransfer.listOpenRenewalInvoices(search);
+  }
+
+  /**
+   * Record a transfer found in the receiving account against a renewal
+   * invoice. Same discipline as an order approval: exact amount, a unique bank
+   * statement reference, one idempotent credit.
+   */
+  @Post('payments/bank-transfers/invoices/:invoiceId/record')
+  @RequirePlatformPermission('payments.verify')
+  recordInvoicePayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
+    @Body() dto: ApproveBankTransferDto,
+  ) {
+    return this.bankTransfer.recordInvoicePayment(
+      invoiceId,
+      dto,
+      actorOf(user),
+    );
+  }
+
   @Get('payments/bank-transfers/:claimId')
   @RequirePlatformPermission('payments.read')
   detail(@Param('claimId', new ParseUUIDPipe()) claimId: string) {

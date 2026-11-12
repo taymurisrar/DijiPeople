@@ -368,6 +368,11 @@ enum WebhookProcessingStatus {
 enum PaymentProvider {
   STRIPE
   SAFEPAY
+  /// A manual bank transfer / Raast payment verified by an operator. Nothing
+  /// executes it, so it has no gateway; it is a provider only so a subscription
+  /// can record how it is paid, and so the renewal and period-boundary sweeps
+  /// that already run every non-Stripe subscription cover it too.
+  BANK_TRANSFER
 }
 
 enum DocumentEntityType {
@@ -8578,7 +8583,11 @@ model Invoice {
   updatedById            String?
   tenant                 Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription           Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  /// Set only on renewal invoices of a bank-transfer subscription: the unique
+  /// reference the payer quotes, exactly as on a first-purchase order.
+  bankReference          String?       @unique
   payments               Payment[]
+  bankTransferClaims     BankTransferClaim[]
   supportCases           SupportCase[]
 
   @@unique([tenantId, invoiceNumber])
@@ -15239,7 +15248,11 @@ model BankReceivingAccount {
 /// the order.
 model BankTransferClaim {
   id                              String                  @id @default(uuid())
-  subscriptionOrderId             String
+  /// Exactly one of subscriptionOrderId / invoiceId is set (CHECK constraint in
+  /// the migration): a first purchase is claimed against its order, a renewal
+  /// payment is recorded against its invoice.
+  subscriptionOrderId             String?
+  invoiceId                       String?
   paymentMethodConfigId           String
   receivingAccountId              String
   status                          BankTransferClaimStatus @default(PENDING_VERIFICATION)
@@ -15264,13 +15277,15 @@ model BankTransferClaim {
   createdAt                       DateTime                @default(now())
   updatedAt                       DateTime                @updatedAt
 
-  subscriptionOrder   SubscriptionOrder          @relation(fields: [subscriptionOrderId], references: [id], onDelete: Restrict)
+  subscriptionOrder   SubscriptionOrder?         @relation(fields: [subscriptionOrderId], references: [id], onDelete: Restrict)
+  invoice             Invoice?                   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
   paymentMethodConfig PaymentMethodConfiguration @relation(fields: [paymentMethodConfigId], references: [id], onDelete: Restrict)
   receivingAccount    BankReceivingAccount       @relation(fields: [receivingAccountId], references: [id], onDelete: Restrict)
   evidence            BankTransferEvidence[]
 
   @@index([status, submittedAt])
   @@index([subscriptionOrderId, status])
+  @@index([invoiceId, status])
   @@index([customerReferenceHash])
 }
 
