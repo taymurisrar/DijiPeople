@@ -12,6 +12,10 @@ import { PaymentMethodRegistryService } from '../src/modules/billing/services/pa
 import { SubscriptionOrderService } from '../src/modules/billing/services/subscription-order.service';
 import { CustomerIdentityService } from '../src/modules/billing/services/customer-identity.service';
 import { TaxBasisService } from '../src/modules/billing/services/tax-basis.service';
+import { BillingService } from '../src/modules/billing/services/billing.service';
+import { OwnerEmailVerificationService } from '../src/modules/billing/services/owner-email-verification.service';
+import { PaymentGateways } from '../src/modules/billing/providers/payment-gateways';
+import { SafepayGateway } from '../src/modules/billing/providers/safepay.gateway';
 import { PartnerReferralResolverService } from '../src/modules/partner-experience/partner-referral-resolver.service';
 
 /**
@@ -104,6 +108,43 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
     new PartnerReferralResolverService(db),
   );
 
+  const sentCodes: string[] = [];
+  const verification = new OwnerEmailVerificationService(db, {
+    sendEmail: async (input: { eventCode: string; text?: string }) => {
+      const match = /\b(\d{6})\b/.exec(input.text ?? '');
+      if (input.eventCode === 'ONBOARDING_EMAIL_VERIFICATION' && match) {
+        sentCodes.push(match[1]);
+      }
+      return { sent: true };
+    },
+  } as never);
+  const landingConfig = {
+    get: (key: string) => {
+      if (key === 'LANDING_APP_URL') return 'https://landing.test';
+      // A sandbox Safepay so the card path is reachable and the lock is what stops it.
+      if (key === 'SAFEPAY_ENABLED') return 'true';
+      if (key === 'SAFEPAY_ENVIRONMENT') return 'sandbox';
+      if (key.startsWith('SAFEPAY_')) return `dummy-${key}`;
+      return config.get(key);
+    },
+  } as unknown as ConfigService;
+  const billing = new BillingService(
+    db,
+    {
+      getRuntimeMode: () => 'test',
+      isSecretKeyConfigured: () => false,
+    } as never,
+    landingConfig,
+    orders,
+    verification,
+    { acknowledgeMany: async () => undefined } as never,
+    { resolveMarketForTenant: async () => null } as never,
+    new PaymentGateways(new SafepayGateway(landingConfig)),
+    {} as never,
+    registry,
+    bank,
+  );
+
   const alice = { platformUserId: `alice-${runId}` };
   const bob = { platformUserId: `bob-${runId}` };
 
@@ -171,7 +212,12 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
     ).id;
     planId = (
       await prisma.plan.create({
-        data: { key: `bt-plan-${runId}`, name: `BT ${runId}`, currency: 'PKR' },
+        data: {
+          key: `bt-plan-${runId}`,
+          name: `BT ${runId}`,
+          currency: 'PKR',
+          publicationStatus: 'PUBLISHED',
+        },
         select: { id: true },
       })
     ).id;
@@ -184,6 +230,7 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
           currency: 'PKR',
           unitAmount: 5000,
           isActive: true,
+          publicationStatus: 'PUBLISHED',
         },
         select: { id: true },
       })
@@ -618,6 +665,80 @@ describeWithDatabase()('Bank-transfer settlement (DB-backed)', () => {
       await prisma.subscription.deleteMany({ where: { tenantId } });
       await fixtures.cleanup();
     }
+  });
+
+  it('runs the public wizard path: verify email, choose bank transfer, receive an invoice, and cannot also open a card checkout', async () => {
+    const submit = () =>
+      billing.createPublicSubscriptionCheckout({
+        planPriceId,
+        seatQuantity: 5,
+        companyName: `Wizard Co ${runId}`,
+        contactName: 'Aisha Khan',
+        email: `aisha@wizard-${runId}.example.test`,
+        country: 'PK',
+        paymentMethod: 'BANK_TRANSFER',
+      } as never) as Promise<Record<string, unknown>>;
+
+    // First call stops at the verification gate: no invoice yet.
+    const first = await submit();
+    expect(first.verificationRequired).toBe(true);
+    const onboardingId = first.onboardingId as string;
+    orderIds.push(onboardingId);
+    const order = await prisma.subscriptionOrder.findUniqueOrThrow({
+      where: { id: onboardingId },
+    });
+    customerIds.push(order.customerAccountId);
+    expect(order.bankReference).toBeNull();
+
+    // After verification the same call issues the invoice and points at its page.
+    await verification.verifyCode(
+      onboardingId,
+      sentCodes[sentCodes.length - 1],
+    );
+    const second = await submit();
+    expect(second.url).toBe(
+      `https://landing.test/subscribe/bank-transfer?onboarding=${onboardingId}`,
+    );
+    expect(second.bankReference).toMatch(/^DP-/);
+    const issued = await prisma.subscriptionOrder.findUniqueOrThrow({
+      where: { id: onboardingId },
+    });
+    expect(issued.status).toBe(SubscriptionOrderStatus.PENDING_PAYMENT);
+
+    // Repeating is idempotent: the same reference comes back.
+    const third = await submit();
+    expect(third.bankReference).toBe(second.bankReference);
+
+    // A card choice on the same order is locked out — no two ways to pay once.
+    await expect(
+      billing.createPublicSubscriptionCheckout({
+        planPriceId,
+        seatQuantity: 5,
+        companyName: `Wizard Co ${runId}`,
+        contactName: 'Aisha Khan',
+        email: `aisha@wizard-${runId}.example.test`,
+        country: 'PK',
+      } as never),
+    ).rejects.toMatchObject({ response: { code: 'PAYMENT_PROVIDER_LOCKED' } });
+
+    // Cancelling an unclaimed invoice frees the buyer; a claimed one cannot be.
+    await bank.cancelInvoice(onboardingId);
+    expect(
+      (
+        await prisma.subscriptionOrder.findUniqueOrThrow({
+          where: { id: onboardingId },
+        })
+      ).status,
+    ).toBe(SubscriptionOrderStatus.CANCELLED);
+  });
+
+  it('refuses to cancel an invoice once a payment has been reported', async () => {
+    const orderId = await makeOrder('nocancel');
+    await bank.issueInvoice(orderId);
+    await bank.submitClaim(orderId, { transactionReference: 'TXN-NOCANCEL' });
+    await expect(bank.cancelInvoice(orderId)).rejects.toMatchObject({
+      response: { code: 'CLAIM_EXISTS' },
+    });
   });
 
   it('a card checkout already open locks the order out of a bank invoice', async () => {

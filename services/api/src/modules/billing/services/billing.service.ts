@@ -53,6 +53,7 @@ import {
 import { parseInvoicePurpose } from '../managed-billing.rules';
 import { PaymentGateways } from '../providers/payment-gateways';
 import { PaymentMethodRegistryService } from './payment-method-registry.service';
+import { BankTransferService } from './bank-transfer.service';
 import { openOrderCheckoutProvider } from '../providers/payment-provider.resolver';
 import {
   ManagedCheckoutService,
@@ -78,6 +79,7 @@ export class BillingService {
     // Optional and last so existing manual constructions keep compiling; absent
     // means "no operator veto", which is the behaviour before the registry.
     @Optional() private readonly paymentMethods?: PaymentMethodRegistryService,
+    @Optional() private readonly bankTransfer?: BankTransferService,
   ) {}
 
   /**
@@ -627,6 +629,8 @@ export class BillingService {
      * for this price. Declared for the same spread reason as `onboardingId`.
      */
     provider?: PaymentProvider | null;
+    /** A bank invoice instead of a card checkout; see PublicSubscribeDto. */
+    paymentMethod?: 'BANK_TRANSFER';
   }) {
     if (input.website?.trim()) {
       return { submitted: true };
@@ -657,14 +661,24 @@ export class BillingService {
     );
     // Decided once. Currency routing unless the buyer picked another provider
     // the server itself offers for this price; never an amount from the request.
-    const provider = this.paymentGateways.chooseProvider(
-      planPrice.currency,
-      input.provider,
-      () => this.stripeFactsFor(planPrice),
-    );
+    const bankTransferRequested = input.paymentMethod === 'BANK_TRANSFER';
+    if (bankTransferRequested && !this.bankTransfer) {
+      throw new BadRequestException({
+        code: 'BANK_TRANSFER_UNAVAILABLE',
+        message: 'Bank transfer is not available for this selection.',
+      });
+    }
+    const provider = bankTransferRequested
+      ? null
+      : this.paymentGateways.chooseProvider(
+          planPrice.currency,
+          input.provider,
+          () => this.stripeFactsFor(planPrice),
+        );
     // An operator's veto: a method withdrawn for this market is refused even
     // if its gateway is configured.
     if (
+      provider &&
       this.paymentMethods &&
       !(await this.paymentMethods.isCardMethodPermitted({
         provider,
@@ -687,7 +701,10 @@ export class BillingService {
           'Online card payments are not yet available for this selection.',
       });
     }
-    if (this.paymentGateways.isManaged(provider)) {
+    if (!provider) {
+      // Bank transfer: no gateway or Stripe Price is involved; availability is
+      // decided by the registry when the invoice is issued.
+    } else if (this.paymentGateways.isManaged(provider)) {
       // Refuse before an order is opened, not after the buyer verified.
       this.paymentGateways.require(provider);
     } else {
@@ -805,6 +822,7 @@ export class BillingService {
         paymentProvider: true,
         providerPaymentId: true,
         stripeCheckoutSessionId: true,
+        bankReference: true,
       },
     });
 
@@ -824,6 +842,43 @@ export class BillingService {
         leadId: null,
         reused: order.reused,
       };
+    }
+
+    /*
+     * Bank transfer: issue (or return) the invoice and send the buyer to the
+     * page that shows it. Nothing is charged and nothing is activated here —
+     * activation waits for an operator to verify the funds.
+     */
+    if (bankTransferRequested) {
+      const invoice = await this.bankTransfer!.issueInvoice(order.orderId);
+      return {
+        submitted: true,
+        checkoutSessionId: null,
+        url: this.resolvePublicCheckoutUrl(
+          `/subscribe/bank-transfer?onboarding=${order.orderId}`,
+        ),
+        tenantId: null,
+        leadId: null,
+        orderNumber: order.orderNumber,
+        reused: order.reused,
+        bankReference: invoice.reference,
+      };
+    }
+    // The reverse lock: a bank invoice that can still be paid and a card
+    // checkout that can still be paid must never coexist on one order.
+    if (verifiedOrder.bankReference) {
+      throw new ConflictException({
+        code: 'PAYMENT_PROVIDER_LOCKED',
+        message:
+          'A bank-transfer invoice is already open for this order. Complete it, or cancel it from the invoice page to choose another payment method.',
+      });
+    }
+    if (!provider) {
+      // Unreachable: a null provider means a bank transfer, which returned above.
+      throw new BadRequestException({
+        code: 'PAYMENT_PROVIDER_UNAVAILABLE',
+        message: 'No payment method was selected.',
+      });
     }
 
     /*

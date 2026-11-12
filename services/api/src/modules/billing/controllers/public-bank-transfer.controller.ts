@@ -73,6 +73,17 @@ export class PublicBankTransferController {
     return this.bankTransfer.view(onboardingId);
   }
 
+  /** Withdraw an unclaimed invoice to start over with another method. */
+  @Public()
+  @Post('onboarding/:onboardingId/bank-transfer/cancel')
+  @HttpCode(200)
+  cancel(
+    @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
+    onboardingId: string,
+  ) {
+    return this.bankTransfer.cancelInvoice(onboardingId);
+  }
+
   /**
    * "I have paid." An untrusted claim with optional evidence — it can never
    * activate a subscription, only queue the order for an operator.

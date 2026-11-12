@@ -247,6 +247,59 @@ export class BankTransferService {
     };
   }
 
+  /**
+   * The buyer withdraws an invoice they have not yet claimed to have paid, so
+   * they can start again with another method. Refused once any claim exists:
+   * from then on funds may be in flight and only an operator can decide.
+   */
+  async cancelInvoice(orderId: string) {
+    const order = await this.loadOrder(orderId);
+    if (!order.bankReference) {
+      throw new NotFoundException({
+        code: 'BANK_INVOICE_NOT_FOUND',
+        message: 'No bank-transfer invoice exists for this order.',
+      });
+    }
+    const claims = await this.prisma.bankTransferClaim.count({
+      where: { subscriptionOrderId: orderId },
+    });
+    if (claims > 0) {
+      throw new ConflictException({
+        code: 'CLAIM_EXISTS',
+        message:
+          'A payment has been reported for this invoice and can only be resolved by our team. Contact support.',
+      });
+    }
+    const moved = await this.prisma.subscriptionOrder.updateMany({
+      where: {
+        id: orderId,
+        status: SubscriptionOrderStatus.PENDING_PAYMENT,
+        bankTransferClaims: { none: {} },
+      },
+      data: {
+        status: SubscriptionOrderStatus.CANCELLED,
+        // Released like an abandoned order: the buyer may start over.
+        submissionHash: null,
+        requestedSlug: null,
+      },
+    });
+    if (moved.count === 0) {
+      throw new ConflictException({
+        code: 'ORDER_NOT_PAYABLE',
+        message: 'This invoice can no longer be cancelled.',
+      });
+    }
+    await this.audit.log({
+      tenantId: 'platform',
+      action: 'BANK_INVOICE_CANCELLED',
+      entityType: 'SubscriptionOrder',
+      entityId: orderId,
+      sourceModule: 'billing',
+      afterSnapshot: { reference: order.bankReference },
+    });
+    return { cancelled: true };
+  }
+
   /** The buyer submits what they say they did. Never activates anything. */
   async submitClaim(
     orderId: string,
