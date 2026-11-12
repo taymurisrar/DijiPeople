@@ -53,6 +53,8 @@ export const PAYMENT_PROVIDER_LABELS: Readonly<
 > = {
   [PaymentProvider.STRIPE]: 'Card (Stripe)',
   [PaymentProvider.SAFEPAY]: 'Card (Safepay)',
+  // Never offered as a gateway option; present because the map is exhaustive.
+  [PaymentProvider.BANK_TRANSFER]: 'Bank transfer',
 };
 
 export type PaymentProviderOption = {

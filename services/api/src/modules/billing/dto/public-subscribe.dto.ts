@@ -283,4 +283,13 @@ export class PublicSubscribeDto {
   @IsOptional()
   @IsIn(Object.values(PaymentProvider))
   provider?: PaymentProvider;
+
+  /**
+   * "BANK_TRANSFER" asks for a bank invoice instead of a card checkout. It is a
+   * request only: the server issues one only if an approved receiving account
+   * exists for this order's market and currency, and answers 409 otherwise.
+   */
+  @IsOptional()
+  @IsIn(['BANK_TRANSFER'])
+  paymentMethod?: 'BANK_TRANSFER';
 }

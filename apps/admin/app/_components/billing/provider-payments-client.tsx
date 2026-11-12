@@ -75,6 +75,9 @@ export function ProviderPaymentsClient({
   const [actionId, setActionId] = useState<string | null>(null);
   const [refundReason, setRefundReason] = useState<Record<string, string>>({});
   const [refundCode, setRefundCode] = useState<Record<string, string>>({});
+  // Bank-transfer payments are returned from the bank account by finance; the
+  // bank's reference for that transfer is what makes the refund auditable.
+  const [bankRefundRef, setBankRefundRef] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
 
   function reload() {
@@ -137,6 +140,9 @@ export function ProviderPaymentsClient({
           body: JSON.stringify({
             reasonCode: refundCode[paymentId] ?? "BILLING_ERROR",
             reason,
+            ...(bankRefundRef[paymentId]?.trim()
+              ? { bankRefundReference: bankRefundRef[paymentId].trim() }
+              : {}),
           }),
         });
         await reload();
@@ -338,6 +344,22 @@ export function ProviderPaymentsClient({
                       className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
                     />
                   </label>
+                  {p.paymentProvider === "BANK_TRANSFER" ? (
+                    <label className="text-sm font-medium text-slate-700">
+                      Bank reference of the money returned
+                      <input
+                        value={bankRefundRef[p.id] ?? ""}
+                        maxLength={64}
+                        onChange={(event) =>
+                          setBankRefundRef((current) => ({
+                            ...current,
+                            [p.id]: event.target.value,
+                          }))
+                        }
+                        className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                      />
+                    </label>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => refund(p.id)}
