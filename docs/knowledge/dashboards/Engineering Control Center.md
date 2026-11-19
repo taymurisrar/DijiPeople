@@ -15,10 +15,10 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 122 |
+| Open HIGH | 123 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 15 |
-| QA coverage gaps | 168 |
+| QA coverage gaps | 167 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 300 |
-| No next action | 300 |
+| No acceptance criteria | 304 |
+| No next action | 304 |
 | Aging — 7d / 30d / 90d | 297 / 295 / 9 |
 | Architecture and technical debt | 8 |
-| Security gaps | 48 |
+| Security gaps | 49 |
 | Database gaps | 29 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -304,7 +304,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-057-growth-demo|growth-demo]] | API |
 | [[PLAN-057-growth-demo|growth-demo]] | DATABASE |
 | [[PLAN-057-growth-demo|growth-demo]] | INTEGRATION |
-| [[PLAN-057-growth-demo|growth-demo]] | E2E |
 | [[PLAN-057-growth-demo|growth-demo]] | BROWSER |
 | [[PLAN-057-growth-demo|growth-demo]] | SECURITY |
 | [[PLAN-057-growth-demo|growth-demo]] | PERFORMANCE |
@@ -313,7 +312,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 300 |
+| Open total | 304 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |

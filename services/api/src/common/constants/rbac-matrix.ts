@@ -1055,6 +1055,7 @@ const DATA_MANAGEMENT_PERMISSION_KEYS: string[] = [
 export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   [ROLE_KEYS.GLOBAL_ADMIN]: [
     ...DATA_MANAGEMENT_PERMISSION_KEYS,
+    'recruitment.advance',
     ...MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key),
     'approvals.read',
     'timeline.read',
@@ -1066,6 +1067,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.SYSTEM_ADMIN]: [
     ...DATA_MANAGEMENT_PERMISSION_KEYS,
+    'recruitment.advance',
     ...MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
       (key) => key !== MISC_PERMISSION_KEYS.SUPPORT_IMPERSONATE,
     ),
@@ -1268,6 +1270,12 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.RECRUITER]: [
     'dashboard.view',
+    // `PATCH /applications/:id/stage` demands this, and it was granted to no
+    // role at all (it sat on the wiring invariant's admin-only list), so a
+    // recruiter could create candidates and applications but never move one
+    // from Screening to Interview — the core act of the role. It rides with
+    // `candidates:WRITE`, which the recruiter already holds.
+    'recruitment.advance',
     'inbox.archive',
     'inbox.dismiss',
     'inbox.markRead',

@@ -108,7 +108,6 @@ const ADMIN_ONLY_PERMISSIONS = new Set<string>([
   'sla.read',
   'tenant.read',
   'onboarding.update',
-  'recruitment.advance',
   'projects.update',
   'claims.cancel',
   'claims.read-own',

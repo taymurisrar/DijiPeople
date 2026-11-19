@@ -2,7 +2,7 @@
 ID: BUG-4429
 aliases: [BUG-4429]
 Title: Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -13,13 +13,13 @@ AffectedModules: [error-logs, platform-monitoring, contracts]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-688
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
 UpdatedAt: 2026-11-19
-ResolvedAt:
+ResolvedAt: 2026-11-19
 ---
 
 # BUG-4429 — Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents
@@ -93,5 +93,6 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[contracts-and-agreements]]
+- Regression — REG-688 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -1,7 +1,11 @@
 import { createHmac } from 'node:crypto';
 import { AppError } from '../../../common/errors/app-error';
 import { InvalidWebhookError } from './payment-gateway';
-import { SafepayGateway, toMinorUnits } from './safepay.gateway';
+import {
+  SafepayGateway,
+  toMinorUnits,
+  withTrailingQuerySeparator,
+} from './safepay.gateway';
 
 const CONFIG: Record<string, string> = {
   SAFEPAY_ENABLED: 'true',
@@ -366,5 +370,24 @@ describe('SafepayGateway', () => {
   it('never rounds an amount it cannot represent', () => {
     expect(toMinorUnits('25000.00')).toBe(2_500_000);
     expect(() => toMinorUnits('10.005')).toThrow();
+  });
+});
+
+describe('withTrailingQuerySeparator (BUG-4427)', () => {
+  it('ends a URL that already has a query so a blind ?order_id append cannot corrupt it', () => {
+    const fixed = withTrailingQuerySeparator(
+      'https://x.test/subscribe/success?onboarding=abc',
+    );
+    expect(fixed).toBe('https://x.test/subscribe/success?onboarding=abc&');
+    const appended = new URL(`${fixed}?order_id=ORD-1`);
+    expect(appended.searchParams.get('onboarding')).toBe('abc');
+  });
+  it('leaves a query-less URL, and an already-terminated one, alone', () => {
+    expect(withTrailingQuerySeparator('https://x.test/ok')).toBe(
+      'https://x.test/ok',
+    );
+    expect(withTrailingQuerySeparator('https://x.test/a?b=1&')).toBe(
+      'https://x.test/a?b=1&',
+    );
   });
 });

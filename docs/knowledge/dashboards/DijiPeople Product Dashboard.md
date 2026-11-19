@@ -185,7 +185,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-4057-account-activation-reports-a-password-mismatch-after-autofil|BUG-4057]] | Account activation reports a password mismatch after autofill and has no reveal toggle | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with|BUG-4192]] | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla|BUG-4218]] | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | FIXED | contracts | FIX_NOW |
-| [[BUG-4428-activate-account-agreement-party-and-signature-recipient-for|BUG-4428]] | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | OPEN | auth, contracts, apps/web, apps/admin | FIX_NOW |
+| [[BUG-4428-activate-account-agreement-party-and-signature-recipient-for|BUG-4428]] | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | FIXED | auth, contracts, apps/web, apps/admin | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
@@ -204,6 +204,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
+| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | OPEN | apps/admin | PLAN_REQUIRED |
 
 ## How to read this
 

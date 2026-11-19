@@ -2,7 +2,7 @@
 ID: BUG-4427
 aliases: [BUG-4427]
 Title: Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected)
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -13,13 +13,13 @@ AffectedModules: [landing, billing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-686
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
 UpdatedAt: 2026-11-19
-ResolvedAt:
+ResolvedAt: 2026-11-19
 ---
 
 # BUG-4427 — Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected)
@@ -95,5 +95,8 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[landing-architecture]], [[billing]]
+- Regression — REG-686 (see the regression register)
 
 <!-- GRAPH:END -->
+
+Source-side hardening (2026-11-19): `withTrailingQuerySeparator` in `safepay.gateway.ts` ends a success URL that already has a query with `&` so a blind `?order_id` append cannot corrupt the first parameter; covered by `safepay.gateway.spec.ts`. The landing page still extracts the leading UUID, so either side alone is sufficient.
