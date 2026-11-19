@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **121** |
-| Open total | 297 |
+| Open HIGH | **122** |
+| Open total | 300 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -150,6 +150,7 @@
 | [[BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as|BUG-4174]] | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | FIXED | contracts | FIX_NOW |
 | [[BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat|BUG-4191]] | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | FIXED | contracts | FIX_NOW |
 | [[BUG-4217-fully-executed-agreement-cannot-be-activated|BUG-4217]] | Fully executed agreement cannot be activated | STATE_MACHINE | HIGH | FIXED | contracts | FIX_NOW |
+| [[BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a|BUG-4427]] | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | OPEN | landing, billing | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -812,6 +813,8 @@
 | [[BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner|BUG-4111]] | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
 | [[BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with|BUG-4192]] | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla|BUG-4218]] | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | FIXED | contracts | FIX_NOW |
+| [[BUG-4428-activate-account-agreement-party-and-signature-recipient-for|BUG-4428]] | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | OPEN | auth, contracts, apps/web, apps/admin | FIX_NOW |
+| [[BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem|BUG-4429]] | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | OPEN | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -903,7 +906,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 565 |
+| Bug records | 568 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 39 |

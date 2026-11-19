@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 494** · automated: 406 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 495** · automated: 407 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -508,3 +508,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-067](../../../docs/qa/scenarios/QA-TENANT-067-claims-run-on-the-module-runtime-with-every-original-permiss.md) | Claims run on the module runtime with every original permission and status gate | runtime-modules | UNIT | HIGH | PARTIAL | `apps/web/lib/runtime/modules/claims-runtime.spec.ts` | — | — |
 | [QA-TENANT-068](../../../docs/qa/scenarios/QA-TENANT-068-employee-responses-never-carry-login-secrets-and-load-for-mf.md) | Employee responses never carry login secrets and load for MFA-enrolled users | employees | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/employees/employee-user-summary.spec.ts` | BUG-3883 | REG-647 |
 | [QA-UI-001](../../../docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md) | Admin lookup controls are keyboard-operable and expose no nested-interactive listbox | platform-admin | MANUAL_VISUAL | MEDIUM | MANUAL | `apps/admin/lib/a11y/listbox-navigation.spec.ts` | BUG-3377 | REG-418 |
+| [QA-UNIT-001](../../../docs/qa/scenarios/QA-UNIT-001-growth-demo-user-correctable-failures-are-prevented-client-s.md) | Growth demo: user-correctable failures are prevented client-side and not queued as incidents | growth-demo | UNIT | HIGH | AUTOMATED | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` | BUG-4427, BUG-4428, BUG-4429 | — |

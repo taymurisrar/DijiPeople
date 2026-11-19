@@ -113,8 +113,14 @@ export function headlineFor(status: OnboardingStatusView | null) {
  * us with the order number.
  */
 export function timedOutMessage(status: OnboardingStatusView | null) {
-  const order = status?.orderNumber ? ` quoting order ${status.orderNumber}` : "";
-  if (!status || status.state === "AWAITING_PAYMENT" || status.state === "EXPIRED") {
+  const order = status?.orderNumber
+    ? ` quoting order ${status.orderNumber}`
+    : "";
+  if (
+    !status ||
+    status.state === "AWAITING_PAYMENT" ||
+    status.state === "EXPIRED"
+  ) {
     return `We have not received confirmation of this payment yet. If you were charged, please do not pay again — check again in a few minutes, or contact us${order} and we will sort it out.`;
   }
   return `This is taking longer than usual. Your payment is confirmed and your workspace is still being prepared — we will email you the moment it is ready, and you can close this page. If you need us, contact us${order}.`;
@@ -134,6 +140,25 @@ export function statusPollUrl(onboardingId: string, sessionId?: string | null) {
   return sessionId && STRIPE_SESSION_ID_PATTERN.test(sessionId)
     ? `${base}?session_id=${encodeURIComponent(sessionId)}`
     : base;
+}
+
+/**
+ * The onboarding id from the `onboarding` return parameter.
+ *
+ * Safepay appends its own `?order_id=...` to the success URL without checking
+ * whether the URL already has a query string, so the buyer lands on
+ * `/subscribe/success?onboarding=<uuid>?order_id=<ref>` and the parameter's
+ * value is `<uuid>?order_id=<ref>`. Forwarded verbatim it became a path segment
+ * the API rejected with "uuid v4 is expected" (22 production incidents) and the
+ * buyer saw a failed status poll right after paying. Take the leading UUID and
+ * nothing else; anything that does not start with one is "no order".
+ */
+export function parseOnboardingId(value: string | null | undefined) {
+  const match =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.exec(
+      (value ?? "").trim(),
+    );
+  return match ? match[0].toLowerCase() : null;
 }
 
 /** Mirrors the API's own check; a mismatch only costs the early reconcile. */
@@ -199,7 +224,5 @@ export function pollDelayMs(elapsedMs: number) {
 export const RATE_LIMITED_DELAY_MS = 30_000;
 
 export function nextDelayMs(elapsedMs: number, httpStatus: number | null) {
-  return httpStatus === 429
-    ? RATE_LIMITED_DELAY_MS
-    : pollDelayMs(elapsedMs);
+  return httpStatus === 429 ? RATE_LIMITED_DELAY_MS : pollDelayMs(elapsedMs);
 }

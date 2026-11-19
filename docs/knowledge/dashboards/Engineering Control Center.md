@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 5 |
 | Active work packages | 5 |
 | Blocked work packages | 0 |
@@ -15,10 +15,10 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 121 |
+| Open HIGH | 122 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 15 |
-| QA coverage gaps | 161 |
+| QA coverage gaps | 168 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,9 +30,9 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 297 |
-| No next action | 297 |
-| Aging — 7d / 30d / 90d | 295 / 295 / 0 |
+| No acceptance criteria | 300 |
+| No next action | 300 |
+| Aging — 7d / 30d / 90d | 297 / 295 / 9 |
 | Architecture and technical debt | 8 |
 | Security gaps | 48 |
 | Database gaps | 29 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0134-growth-demo-readiness-qa-and-monitoring-remediation|SESSION-0134]] | — | Growth demo readiness QA and monitoring remediation | ACTIVE | `agent/growth-demo-monitoring` | `develop` | — | NO |
 | [[SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2|SESSION-0130]] | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -301,12 +302,19 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-040-employees|employees]] | BROWSER |
 | [[PLAN-040-employees|employees]] | SECURITY |
 | [[PLAN-040-employees|employees]] | PERFORMANCE |
+| [[PLAN-057-growth-demo|growth-demo]] | API |
+| [[PLAN-057-growth-demo|growth-demo]] | DATABASE |
+| [[PLAN-057-growth-demo|growth-demo]] | INTEGRATION |
+| [[PLAN-057-growth-demo|growth-demo]] | E2E |
+| [[PLAN-057-growth-demo|growth-demo]] | BROWSER |
+| [[PLAN-057-growth-demo|growth-demo]] | SECURITY |
+| [[PLAN-057-growth-demo|growth-demo]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 297 |
+| Open total | 300 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |

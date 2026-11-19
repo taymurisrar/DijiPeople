@@ -94,7 +94,54 @@ const EXPECTED_DOMAIN_REFUSAL_CODES = new Set([
   'SUPPORT_CASE_MERGED_READ_ONLY',
   'SUPPORT_CASE_ESCALATION_LIMIT',
   'SUPPORT_CASE_RELATION_EXISTS',
+  // An active agreement already exists for the counterparty. The refusal names
+  // the existing agreement and the way forward (amendment/renewal); it is the
+  // duplicate guard working, on a well-formed request (409).
+  'CONTRACT_DUPLICATE_AGREEMENT',
 ]);
+
+/**
+ * Messages that are the feature telling a person what to fix, matched only on
+ * the exact paths that produce them. Each pattern is anchored on both the path
+ * and the wording, so an unrelated 400 on the same route, or the same wording
+ * elsewhere, still queues.
+ */
+const USER_CORRECTABLE_MESSAGES: Array<{ path: RegExp; message: RegExp }> = [
+  // A signer opening a link that was already used or has lapsed. The page
+  // tells them; nothing is broken.
+  {
+    path: /\/public\/signatures\//,
+    message:
+      /^(This signature link has already been completed|Signature link has expired)\.$/,
+  },
+  // Choosing a password that fails the published policy.
+  {
+    path: /\/auth\/(activate-account|reset-password|change-password)$/,
+    message: /^Password must /,
+  },
+  // Required agreement fields still blank at submit/send time.
+  {
+    path: /\/contracts\/[^/]+\/(submit-approval|signature-requests)$/,
+    message:
+      /^(Resolve required document fields before signature:|[A-Z][A-Za-z ]+ is required\.)/,
+  },
+];
+
+/**
+ * Format constraints on text a person typed. Every segment of the message must
+ * be one of these for the 400 to count as user-correctable: a single segment
+ * outside the list (a UUID, an enum, "should not exist") keeps the whole row in
+ * the queue, because those mean our own client sent something it should not.
+ */
+const TYPED_TEXT_CONSTRAINT =
+  /^(?:[A-Za-z0-9_.]+ must be an email|[A-Za-z0-9_.]+ must be (?:longer|shorter) than or equal to \d+ characters|[A-Za-z0-9_.]+ should not be empty)$/;
+
+function isTypedTextValidation(message: string): boolean {
+  const segments = message.split(', ').map((part) => part.trim());
+  return (
+    segments.length > 0 && segments.every((s) => TYPED_TEXT_CONSTRAINT.test(s))
+  );
+}
 
 export type ProtocolOutcomeInput = {
   statusCode?: number | null;
@@ -103,6 +150,8 @@ export type ProtocolOutcomeInput = {
   unmatchedRoute?: boolean;
   /** Request path, used to recognise routes whose 404 is a legitimate answer. */
   path?: string | null;
+  /** Recorded message, used only for the narrow user-correctable rules. */
+  message?: string | null;
 };
 
 /**
@@ -133,10 +182,48 @@ export function isExpectedProtocolOutcome(
 
   // A record that cannot fill the template chosen for it. Recorded, not
   // queued: the operator was told exactly which fields to supply.
-  if (status === 400 && EXPECTED_DOMAIN_REFUSAL_CODES.has(code)) return true;
+  if (
+    (status === 400 || status === 409) &&
+    EXPECTED_DOMAIN_REFUSAL_CODES.has(code)
+  )
+    return true;
+
+  // A stale or probed price id on the anonymous checkout surface.
+  if (
+    status === 404 &&
+    code === 'BILLING_PLAN_PRICE_UNAVAILABLE' &&
+    (input.path ?? '').split('?')[0].includes('/public/')
+  )
+    return true;
+
+  if (status === 400) {
+    const message = input.message ?? '';
+    const path = (input.path ?? '').split('?')[0];
+    if (
+      USER_CORRECTABLE_MESSAGES.some(
+        (rule) => rule.path.test(path) && rule.message.test(message),
+      )
+    )
+      return true;
+    // Typed-text format failures (an email, a length) on a *named* user-facing
+    // route only; the same text on any other route could be our own client.
+    if (
+      code === 'VALIDATION_FAILED' &&
+      USER_TYPED_TEXT_PATHS.some((rx) => rx.test(path)) &&
+      isTypedTextValidation(message)
+    )
+      return true;
+  }
 
   return false;
 }
+
+const USER_TYPED_TEXT_PATHS = [
+  /\/contracts\/[^/]+\/parties(\/[^/]+)?$/,
+  /\/contracts\/[^/]+\/signature-requests$/,
+  /\/auth\/(login|admin\/login|forgot-password|activate-account)$/,
+  /\/admin\/auth\/login$/,
+];
 
 function isHostResolution(input: ProtocolOutcomeInput): boolean {
   const path = input.path ?? '';

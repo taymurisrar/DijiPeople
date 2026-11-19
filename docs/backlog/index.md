@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**798 records** — 565 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**801 records** — 568 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 297 |
+| Open (active work) | 300 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **121** |
+| **Open HIGH** | **122** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 121 |
-| MEDIUM | 135 |
+| HIGH | 122 |
+| MEDIUM | 137 |
 | LOW | 30 |
 
 ## Open by type
@@ -36,13 +36,13 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 17 |
-| BUG | 92 |
+| BUG | 93 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
-| INTEGRATION | 7 |
+| INTEGRATION | 8 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
 | SECURITY | 28 |
@@ -50,13 +50,13 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 10 |
-| UX | 66 |
+| UX | 67 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 55 |
+| OPEN | 58 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
@@ -333,6 +333,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4174](../../docs/bugs/BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as.md) | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [BUG-4191](../../docs/bugs/BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat.md) | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [BUG-4217](../../docs/bugs/BUG-4217-fully-executed-agreement-cannot-be-activated.md) | Fully executed agreement cannot be activated | STATE_MACHINE | HIGH | P1 | FIXED | contracts | FIX_NOW |
+| [BUG-4427](../../docs/bugs/BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a.md) | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | P1 | OPEN | landing, billing | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -608,6 +609,8 @@ see [`README.md`](README.md) for why.
 | [BUG-4111](../../docs/bugs/BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner.md) | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | P2 | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
 | [BUG-4192](../../docs/bugs/BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with.md) | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | P2 | FIXED | contracts | FIX_NOW |
 | [BUG-4218](../../docs/bugs/BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla.md) | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | P2 | FIXED | contracts | FIX_NOW |
+| [BUG-4428](../../docs/bugs/BUG-4428-activate-account-agreement-party-and-signature-recipient-for.md) | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | P2 | OPEN | auth, contracts, apps/web, apps/admin | FIX_NOW |
+| [BUG-4429](../../docs/bugs/BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem.md) | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | P2 | OPEN | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

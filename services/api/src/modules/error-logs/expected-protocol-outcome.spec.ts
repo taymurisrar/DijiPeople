@@ -205,3 +205,95 @@ describe('BUG-1754 — expected protocol outcomes are not incidents', () => {
     });
   });
 });
+
+/**
+ * Growth demo-readiness remediation: production monitoring held 209 open rows,
+ * and the newest were people being told what to fix (a blank agreement field, a
+ * weak password, a used signature link). Each case below is paired with the
+ * nearby one that must still queue, so the rules stay narrow.
+ */
+describe('user-correctable outcomes', () => {
+  const base = { statusCode: 400, errorCode: 'VALIDATION_FAILED' };
+
+  it.each([
+    ['/api/contracts/c1/parties/p1', 'email must be an email'],
+    [
+      '/api/contracts/c1/signature-requests',
+      'recipients.0.email must be an email',
+    ],
+    [
+      '/api/auth/activate-account',
+      'Password must be at least 12 characters long, include a number.',
+    ],
+    [
+      '/api/public/signatures/TOKEN',
+      'This signature link has already been completed.',
+    ],
+    ['/api/contracts/c1/submit-approval', 'Effective date is required.'],
+    [
+      '/api/contracts/c1/submit-approval',
+      'Effective date is required., Expiry date is required.'.split(', ')[0],
+    ],
+    [
+      '/api/contracts/c1/signature-requests',
+      'Resolve required document fields before signature: a.b.',
+    ],
+  ])('%s "%s" is not an incident', (path, message) => {
+    expect(isExpectedProtocolOutcome({ ...base, path, message })).toBe(true);
+  });
+
+  it('an active-agreement conflict is the duplicate guard working', () => {
+    expect(
+      isExpectedProtocolOutcome({
+        statusCode: 409,
+        errorCode: 'CONTRACT_DUPLICATE_AGREEMENT',
+        path: '/api/contracts/from-source',
+      }),
+    ).toBe(true);
+  });
+
+  it('a stale price id on the public surface is not an incident, an authenticated one is', () => {
+    const input = {
+      statusCode: 404,
+      errorCode: 'BILLING_PLAN_PRICE_UNAVAILABLE',
+    };
+    expect(
+      isExpectedProtocolOutcome({
+        ...input,
+        path: '/api/public/payment-methods?planPriceId=x',
+      }),
+    ).toBe(true);
+    expect(
+      isExpectedProtocolOutcome({ ...input, path: '/api/billing/checkout' }),
+    ).toBe(false);
+  });
+
+  it.each([
+    // BUG-1742: a UUID rejection is our own client's fault and must queue.
+    ['/api/contracts/c1/parties/p1', 'partnerId must be a UUID'],
+    // One foreign segment keeps the whole row queued.
+    [
+      '/api/contracts/c1/parties/p1',
+      'email must be an email, partyId must be a UUID',
+    ],
+    // Same wording, route that is not user-typed.
+    ['/api/employees/import', 'email must be an email'],
+    // Same route, unrelated wording.
+    ['/api/auth/activate-account', 'property tenantId should not exist'],
+    ['/api/public/signatures/TOKEN', 'Signature is invalid.'],
+    ['/api/contracts/c1/generate', 'Effective date is required.'],
+  ])('%s "%s" still asks for a human', (path, message) => {
+    expect(isExpectedProtocolOutcome({ ...base, path, message })).toBe(false);
+  });
+
+  it('a server fault is never reclassified by message', () => {
+    expect(
+      isExpectedProtocolOutcome({
+        statusCode: 500,
+        errorCode: 'SYSTEM_UNEXPECTED_ERROR',
+        path: '/api/contracts/c1/submit-approval',
+        message: 'Effective date is required.',
+      }),
+    ).toBe(false);
+  });
+});
