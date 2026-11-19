@@ -12,9 +12,9 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 31** · scenarios: 495 · automated: 407 · blocked by infrastructure: 0
+**Areas: 31** · scenarios: 498 · automated: 410 · blocked by infrastructure: 0
 
-**Open gaps: 168** · partial: 30
+**Open gaps: 167** · partial: 30
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
@@ -29,7 +29,7 @@ item. See [`README.md`](README.md).
 | [employees](../../docs/qa/test-plans/PLAN-040-employees.md) | **GAP** | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [entitlement-enforcement](../../docs/qa/test-plans/PLAN-039-entitlement-enforcement.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [framework](../../docs/qa/test-plans/PLAN-029-framework.md) | PARTIAL | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| [growth-demo](../../docs/qa/test-plans/PLAN-057-growth-demo.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
+| [growth-demo](../../docs/qa/test-plans/PLAN-057-growth-demo.md) | GOOD | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | **GAP** | **GAP** |
 | [landing](../../docs/qa/test-plans/PLAN-013-landing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | **GAP** |
 | [lead-management](../../docs/qa/test-plans/PLAN-005-lead-management.md) | GOOD | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | n/a |
 | [leave](../../docs/qa/test-plans/PLAN-023-leave.md) | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |

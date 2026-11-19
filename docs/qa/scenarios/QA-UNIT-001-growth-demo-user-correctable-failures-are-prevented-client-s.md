@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts
 RELATED_BUGS: [BUG-4427, BUG-4428, BUG-4429]
-RELATED_REGRESSIONS: []
+RELATED_REGRESSIONS: [REG-686, REG-687, REG-688]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-11-19
@@ -46,5 +46,6 @@ Created 2026-11-19 at `92eba463`.
 
 - Test plan — [[PLAN-057]]
 - Bugs — [[BUG-4427]], [[BUG-4428]], [[BUG-4429]]
+- Regressions — REG-686, REG-687, REG-688 (see the regression register)
 
 <!-- GRAPH:END -->

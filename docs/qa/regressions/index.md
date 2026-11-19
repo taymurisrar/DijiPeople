@@ -7468,3 +7468,59 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without FULLY_EXECUTED in the forward map the FULLY_EXECUTED case throws. |
 | **Fixed** | 2026-10-13, branch `agent/contract-activation-documents` |
 | **Active** | yes |
+
+### REG-685 — A route required `recruitment
+
+| | |
+|---|---|
+| **Bug class** | `permission-never-granted` |
+| **Module** | `services/api/src/modules/recruitment` |
+| **Bug record** | BUG-4438 |
+| **Root cause** | A route required `recruitment.advance`, which no role was granted. |
+| **Regression test** | `e2e/tests/flow-m-growth-hiring-workflows.spec.ts` |
+| **Scenario** | QA-E2E-001 |
+| **Fails without the fix** | Yes - without the grant the recruiter gets 403 on the stage move (GM-R3). |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
+| **Active** | yes |
+
+### REG-686 — Safepay appended ?order_id to a success URL that already had a query string
+
+| | |
+|---|---|
+| **Bug class** | `url-composition` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-4427 |
+| **Root cause** | Safepay appended ?order_id to a success URL that already had a query string. |
+| **Regression test** | `apps/landing/lib/provisioning-view.spec.ts` |
+| **Scenario** | QA-UNIT-001 |
+| **Fails without the fix** | Yes - the bare-UUID assertion fails without parseOnboardingId. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
+| **Active** | yes |
+
+### REG-687 — Forms sent input the API certainly refuses
+
+| | |
+|---|---|
+| **Bug class** | `missing-client-validation` |
+| **Module** | `apps/web, apps/admin` |
+| **Bug record** | BUG-4428 |
+| **Root cause** | Forms sent input the API certainly refuses. |
+| **Regression test** | `apps/admin/lib/email-format.spec.ts` |
+| **Scenario** | QA-UNIT-001 |
+| **Fails without the fix** | Yes - malformed addresses pass without the helper. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
+| **Active** | yes |
+
+### REG-688 — User-correctable 4xx outcomes were queued as incidents
+
+| | |
+|---|---|
+| **Bug class** | `monitoring-misclassification` |
+| **Module** | `services/api/src/modules/error-logs` |
+| **Bug record** | BUG-4429 |
+| **Root cause** | User-correctable 4xx outcomes were queued as incidents. |
+| **Regression test** | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` |
+| **Scenario** | QA-UNIT-001 |
+| **Fails without the fix** | Yes - the named outcomes classify as NEW without the rules. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
+| **Active** | yes |

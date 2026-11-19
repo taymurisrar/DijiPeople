@@ -10,12 +10,12 @@ COVERAGE_UNIT: GOOD
 COVERAGE_API: GAP
 COVERAGE_DATABASE: GAP
 COVERAGE_INTEGRATION: GAP
-COVERAGE_E2E: GAP
+COVERAGE_E2E: GOOD
 COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: GAP
-RELATED_BUGS: [BUG-4427, BUG-4428, BUG-4429]
-RELATED_REGRESSIONS: []
+RELATED_BUGS: [BUG-4427, BUG-4428, BUG-4429, BUG-4438]
+RELATED_REGRESSIONS: [REG-685, REG-686, REG-687, REG-688]
 CREATED_AT: 2026-11-19
 UPDATED_AT: 2026-11-19
 VERIFIED_AGAINST_SHA: 92eba463
@@ -116,7 +116,18 @@ BUG-4427, BUG-4428, BUG-4429 (this plan). Related: BUG-1742, BUG-1754, BUG-2465.
 
 ## Related
 
-- Scenarios — [[QA-UNIT-001]]
-- Bugs — [[BUG-4427]], [[BUG-4428]], [[BUG-4429]]
+- Scenarios — [[QA-E2E-001]], [[QA-E2E-002]], [[QA-UNIT-001]], [[QA-UNIT-002]]
+- Bugs — [[BUG-4427]], [[BUG-4428]], [[BUG-4429]], [[BUG-4438]]
+- Regressions — REG-685, REG-686, REG-687, REG-688 (see the regression register)
 
 <!-- GRAPH:END -->
+
+## Executable workflow suites (added by SESSION-0134)
+
+| Suite | File | Tests | What it proves |
+|---|---|---|---|
+| Flow M | `e2e/tests/flow-m-growth-hiring-workflows.spec.ts` | 5 | recruiter pipeline end to end, rejection rule, who may reach recruitment |
+| Flow N | `e2e/tests/flow-n-growth-people-workflows.spec.ts` | 7 | leave (approve/reject/refusals), projects + assignment, documents, entitlement boundary |
+| Fixture | `e2e/tools/prepare-growth-tenant.mjs` | - | Growth subscription + ENFORCE on a disposable tenant |
+
+Both run in the required `browser-e2e` CI job (fail-closed) and **throw rather than skip** when the environment is missing.

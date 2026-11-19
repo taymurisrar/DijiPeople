@@ -48,7 +48,7 @@ import {
 const GROWTH_MODULES = [
   { feature: 'employees', path: '/employees', marker: /all employees/i },
   { feature: 'leave', path: '/leaves', marker: /my leave requests/i },
-  { feature: 'attendance', path: '/attendance', marker: /today's attendance/i },
+  { feature: 'attendance', path: '/attendance', marker: /my attendance|today's attendance/i },
   { feature: 'timesheets', path: '/timesheets', marker: /timesheet/i },
   { feature: 'projects', path: '/projects', marker: /project/i },
   { feature: 'recruitment', path: '/recruitment', marker: /recruit/i },

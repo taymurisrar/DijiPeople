@@ -218,7 +218,7 @@ export class SafepayGateway implements PaymentGateway, OnModuleInit {
       tbt: passport.data,
       source: 'hosted',
       order_id: input.reference,
-      redirect_url: input.successUrl,
+      redirect_url: withTrailingQuerySeparator(input.successUrl),
       cancel_url: input.cancelUrl,
     });
 
@@ -527,4 +527,22 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 /** Logs name the endpoint, not the tracker a customer is paying on. */
 function redactTracker(path: string) {
   return path.replace(/track_[A-Za-z0-9-]+/g, 'track_…');
+}
+
+/**
+ * Safepay's hosted checkout appends its own `?order_id=...` to `redirect_url`
+ * without checking whether the URL already carries a query string. Production
+ * recorded 22 `uuid v4 is expected` rejections of
+ * `/subscribe/success?onboarding=<uuid>?order_id=<ref>`: the second `?` became
+ * part of the `onboarding` value and reached the API as a path segment.
+ *
+ * Ending a URL that already has a query with `&` means a blind `?` append lands
+ * as `...&?order_id=...`, which parses as two parameters (`onboarding`, and a
+ * harmless `?order_id`) instead of corrupting the first. The landing success
+ * page also extracts the leading UUID (`parseOnboardingId`), so either side
+ * alone is enough; this is the source-side half. A URL with no query is left
+ * alone, since a `?` append is then correct.
+ */
+export function withTrailingQuerySeparator(url: string): string {
+  return url.includes('?') && !/[?&]$/.test(url) ? `${url}&` : url;
 }

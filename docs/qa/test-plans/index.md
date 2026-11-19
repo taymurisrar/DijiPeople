@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 31** · scenarios across them: 495
+**Plans: 31** · scenarios across them: 498
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -21,7 +21,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-040](../../../docs/qa/test-plans/PLAN-040-employees.md) | employees | MEDIUM | DRAFT | 9 | BUG-3450 | `c8d97a3d` |
 | [PLAN-039](../../../docs/qa/test-plans/PLAN-039-entitlement-enforcement.md) | entitlement-enforcement | CRITICAL | CURRENT | 1 | BUG-1952, BUG-3350 | `7e4d6cd1` |
 | [PLAN-029](../../../docs/qa/test-plans/PLAN-029-framework.md) | framework | MEDIUM | CURRENT | 1 | BUG-2413 | `39d8ddc4` |
-| [PLAN-057](../../../docs/qa/test-plans/PLAN-057-growth-demo.md) | growth-demo | HIGH | CURRENT | 1 | BUG-4427, BUG-4428, BUG-4429 | `92eba463` |
+| [PLAN-057](../../../docs/qa/test-plans/PLAN-057-growth-demo.md) | growth-demo | HIGH | CURRENT | 4 | BUG-4427, BUG-4428, BUG-4429, BUG-4438 | `92eba463` |
 | [PLAN-013](../../../docs/qa/test-plans/PLAN-013-landing.md) | landing | HIGH | CURRENT | 26 | BUG-0061, BUG-0062, BUG-0063, BUG-0064, BUG-0065, BUG-0066 | `c332992` |
 | [PLAN-005](../../../docs/qa/test-plans/PLAN-005-lead-management.md) | lead-management | HIGH | CURRENT | 7 | BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032 | `287612d` |
 | [PLAN-023](../../../docs/qa/test-plans/PLAN-023-leave.md) | leave | HIGH | CURRENT | 3 | BUG-1967, BUG-1966, BUG-1962, BUG-1970 | `9def9971` |

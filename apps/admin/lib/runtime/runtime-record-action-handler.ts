@@ -2,6 +2,11 @@
 
 import type { createHttpModuleRuntimeAdapter } from "./http-module-runtime-adapter";
 import {
+  contractReadinessMessage,
+  missingContractFields,
+  type ReadinessField,
+} from "@/lib/contract-readiness";
+import {
   describeRecordActionOutcome,
   readDeleteOutcome,
 } from "./runtime-action-outcome";
@@ -200,6 +205,20 @@ export async function executeRuntimeRecordAction(input: {
   }
 
   if (moduleKey === "contracts" && action.key === "submit") {
+    // Stop here what the API would refuse, naming every gap at once. If the
+    // readiness read itself fails, fall through: the server still decides.
+    const fieldsResponse = await fetch(
+      `/api/contracts/${record.id}/document-fields`,
+    ).catch(() => null);
+    if (fieldsResponse?.ok) {
+      const fieldsPayload = (await fieldsResponse.json().catch(() => null)) as {
+        items?: ReadinessField[];
+      } | null;
+      const blocked = contractReadinessMessage(
+        missingContractFields(fieldsPayload?.items ?? []),
+      );
+      if (blocked) throw new Error(blocked);
+    }
     await postContractAction(record.id, "submit-approval", {});
     await reloadRecord();
     return { success: true, message: "Contract submitted for approval." };

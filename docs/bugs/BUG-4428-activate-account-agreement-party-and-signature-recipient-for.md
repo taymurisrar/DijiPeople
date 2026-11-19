@@ -2,7 +2,7 @@
 ID: BUG-4428
 aliases: [BUG-4428]
 Title: Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email)
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -13,13 +13,13 @@ AffectedModules: [auth, contracts, apps/web, apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-687
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
 UpdatedAt: 2026-11-19
-ResolvedAt:
+ResolvedAt: 2026-11-19
 ---
 
 # BUG-4428 — Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email)
@@ -94,5 +94,6 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[auth]], [[contracts-and-agreements]], [[tenant-application]], [[platform-admin]]
+- Regression — REG-687 (see the regression register)
 
 <!-- GRAPH:END -->

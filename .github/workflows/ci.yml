@@ -1085,6 +1085,13 @@ jobs:
       PLATFORM_SUPER_ADMIN_PASSWORD: ci-browser-e2e-only-not-a-secret
       E2E_PLATFORM_ADMIN_EMAIL: e2e-admin@dijipeople.test
       E2E_PLATFORM_ADMIN_PASSWORD: ci-browser-e2e-only-not-a-secret
+      # The tenant-product flows (H-N) sign in as a seeded role user. They used
+      # to SKIP when these were unset, which on CI meant five flows quietly ran
+      # nothing and the job still reported green. seed-demo's documented default
+      # password is public by design; the database is destroyed with the runner.
+      E2E_TENANT_SLUG: dijipeople-demo
+      E2E_TENANT_USER_EMAIL: system-admin@dijipeople.local
+      E2E_TENANT_USER_PASSWORD: DemoUser@12345
       NEXT_PUBLIC_API_BASE_URL: http://localhost:4000/api
       API_BASE_URL: http://localhost:4000/api
       API_ORIGIN: http://localhost:4000
@@ -1098,6 +1105,13 @@ jobs:
         run: |
           npm --workspace api run seed:demo
           npm --workspace api run seed:admin
+      - name: Seed a second tenant and put the demo tenant on Growth
+        # Flow I's tenant-isolation check cannot detect a leak with one tenant,
+        # and Flow N's "Growth is refused payroll" needs enforcement ON, which is
+        # how production runs. Both used to be silent skips or accidents.
+        run: |
+          DEMO_TENANT_SLUG=uat-demo DEMO_TENANT_NAME="UAT Demo Company" DEMO_TENANT_CONTACT_EMAIL=uat@example.test npm --workspace api run seed:demo
+          node e2e/tools/prepare-growth-tenant.mjs
       - name: Install the browser
         # Instrumented deliberately: this step is measured, not merely timed.
         # `scripts/install-browser.mjs` reports PLAYWRIGHT_COMMAND,
