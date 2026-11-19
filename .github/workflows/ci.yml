@@ -1171,6 +1171,14 @@ jobs:
         # reintroduce the cache without a measurement showing it helps; the
         # baseline to beat is now the browser download alone.
         run: npm run test:browser:install
+      - name: Build the landing, admin and tenant apps
+        # NODE_ENV is forced for the build only: the job's NODE_ENV=test is
+        # what the API needs (test-stack rate limit), and next build rejects it.
+        # NEXT_PUBLIC_* values are inlined here, from the job env.
+        run: |
+          NODE_ENV=production npm --workspace landing run build
+          NODE_ENV=production npm --workspace admin run build
+          NODE_ENV=production npm --workspace web run build
       - name: Start the API, landing, admin and the tenant product
         # Backgrounded with logs to files. The readiness loop is what makes this
         # deterministic — a fixed sleep would be exactly the flakiness this job
@@ -1183,10 +1191,17 @@ jobs:
         # Its absence could not even produce a skip: it was invisible rather
         # than missing.
         run: |
+          # The three Next apps run as PRODUCTION builds (built in the step above),
+          # not `next dev`. Run 44563006487: 118 tests passed, then the runner
+          # received a shutdown signal 10m25s into the test step, mid-way through
+          # the first heavy tenant page (Flow O GO-2) — with API plus three dev
+          # servers compiling on demand. The kill was the runner, not a test, so
+          # nothing was uploaded. Production servers hold a fraction of the memory
+          # and compile nothing at request time.
           npm run dev:api      > api.log     2>&1 &
-          npm run dev:landing  > landing.log 2>&1 &
-          npm run dev:admin    > admin.log   2>&1 &
-          npm run dev:web      > web.log     2>&1 &
+          NODE_ENV=production npm --workspace landing run start > landing.log 2>&1 &
+          NODE_ENV=production npm --workspace admin   run start > admin.log   2>&1 &
+          NODE_ENV=production npm --workspace web     run start > web.log     2>&1 &
           for url in http://localhost:4000/api/health http://localhost:3000 http://localhost:3002/login http://localhost:3001/login; do
             for i in $(seq 1 60); do
               if curl -sf -o /dev/null "$url"; then echo "ready: $url"; break; fi
@@ -1195,7 +1210,12 @@ jobs:
             done
           done
       - name: Run the browser journeys
-        run: npm run test:browser
+        # The sampler turns "the runner died" into a measurement: memory and the
+        # heaviest processes every 20s, printed into this step's own log, which
+        # is the only place that survives a runner shutdown.
+        run: |
+          ( while true; do echo "[mem] $(date +%T) $(free -m | awk 'NR==2{print "used="$3"MB free="$4"MB avail="$7"MB"}') load=$(cut -d' ' -f1 /proc/loadavg) top=$(ps -eo rss,comm --sort=-rss | awk 'NR>1&&NR<=4{printf "%s:%dMB ",$2,$1/1024}')"; sleep 20; done ) &
+          npm run test:browser
       - name: Upload the report, traces and screenshots
         if: always()
         uses: actions/upload-artifact@v4
