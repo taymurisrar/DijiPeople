@@ -20,6 +20,7 @@ import {
 } from "@/app/components/errors/client-error-log";
 import {
   classifyDashboardError,
+  clientReportFor,
   getDashboardErrorStatus,
   type DashboardErrorVariant,
 } from "./_lib/classify-dashboard-error";
@@ -80,8 +81,7 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
         success: false,
         traceId: clientTraceId,
         timestamp: new Date().toISOString(),
-        statusCode: status ?? 500,
-        errorCode: error.code ?? "SYSTEM_UNEXPECTED_ERROR",
+        ...clientReportFor(error, config.variant),
         message: error.message || config.title,
         description: config.description,
         stack: error.stack,
@@ -90,7 +90,14 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
         method: "CLIENT",
       }),
     );
-  }, [clientTraceId, config.description, config.title, error, status]);
+  }, [
+    clientTraceId,
+    config.description,
+    config.title,
+    config.variant,
+    error,
+    status,
+  ]);
 
   const loginHref = `/api/auth/logout?reason=${config.variant}&next=${encodeURIComponent(
     getCurrentPath(),

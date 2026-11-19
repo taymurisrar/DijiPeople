@@ -7,6 +7,7 @@
  */
 import {
   classifyDashboardError,
+  clientReportFor,
   isServerComponentPlaceholder,
 } from "./classify-dashboard-error";
 
@@ -169,5 +170,41 @@ describe("rate limiting (DP-QA-024)", () => {
         digest: "12345",
       }).variant,
     ).toBe("server-error");
+  });
+});
+
+/*
+ * BUG-4440. A server-component throw carries no status; the boundary used to
+ * file it as 500 SYSTEM_UNEXPECTED_ERROR at ERROR level, so a handled 400 read
+ * as a system fault. The server already holds the real row under the digest.
+ */
+describe("clientReportFor", () => {
+  const placeholder = { message: REACT_441_MESSAGE, digest: "1234" };
+
+  it("reports a stripped server-component failure as a WARNING pointer, not a 500 fault", () => {
+    const variant = classifyDashboardError(placeholder).variant;
+    expect(clientReportFor(placeholder, variant)).toEqual({
+      statusCode: 500,
+      errorCode: "SERVER_COMPONENT_RENDER_ERROR",
+      severity: "WARNING",
+    });
+  });
+
+  it("keeps a client-component crash an ERROR with its own code", () => {
+    const crash = { message: "x is undefined" };
+    const variant = classifyDashboardError(crash).variant;
+    expect(clientReportFor(crash, variant)).toEqual({
+      statusCode: 500,
+      errorCode: "SYSTEM_UNEXPECTED_ERROR",
+      severity: "ERROR",
+    });
+  });
+
+  it("keeps a real upstream status and its natural severity", () => {
+    const refused = { message: "bad", status: 400 };
+    expect(clientReportFor(refused, "api-error")).toMatchObject({
+      statusCode: 400,
+      severity: "WARNING",
+    });
   });
 });

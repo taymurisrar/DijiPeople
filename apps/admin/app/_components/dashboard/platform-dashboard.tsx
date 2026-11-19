@@ -477,7 +477,7 @@ export function PlatformDashboard({
               "when was this refreshed" is the viewer's own clock, not the
               server's, so the difference is declared rather than removed.
             */}
-            <span className="text-slate-400" suppressHydrationWarning>
+            <span className="text-slate-500" suppressHydrationWarning>
               {" · "}Refreshed {new Date(summary.refreshedAt).toLocaleString()}
             </span>
           </p>
@@ -1954,7 +1954,7 @@ function MetricCard({ metric }: { metric: Metric }) {
           <Icon className="h-5 w-5" />
         </span>
         {metric.href ? (
-          <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5" />
+          <ArrowRight className="h-4 w-4 text-slate-500 transition group-hover:translate-x-0.5" />
         ) : null}
       </div>
       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -2049,7 +2049,7 @@ function BreakdownChart({
       </div>
       {/* The scale every bar's width is relative to — colour and length both carry the value, but neither states the axis. */}
       {entries.length ? (
-        <div className="mt-3 flex justify-between text-[10px] font-medium text-slate-400">
+        <div className="mt-3 flex justify-between text-[10px] font-medium text-slate-500">
           <span>0</span>
           <span>{max.toLocaleString()}</span>
         </div>
@@ -2100,7 +2100,7 @@ function TrendChart({
         </div>
       </div>
       <div className="mt-6 flex items-stretch gap-2">
-        <div className="flex h-52 flex-col justify-between py-0.5 text-[10px] font-medium text-slate-400">
+        <div className="flex h-52 flex-col justify-between py-0.5 text-[10px] font-medium text-slate-500">
           <span>{formatter(max)}</span>
           <span>0</span>
         </div>
@@ -2183,7 +2183,7 @@ function UnavailableNotice({ title, reason }: { title: string; reason: string })
     <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
       <h2 className="text-base font-semibold text-slate-700">{title}</h2>
       <p className="mt-2 text-sm text-slate-500">Not available right now.</p>
-      <p className="mt-1 text-xs text-slate-400">{reason}</p>
+      <p className="mt-1 text-xs text-slate-500">{reason}</p>
     </section>
   );
 }
@@ -2248,7 +2248,7 @@ function OperationsQueue({
                     {detail}
                   </span>
                 </span>
-                <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-slate-500" />
               </Link>
             );
           })
@@ -2299,7 +2299,7 @@ function QuickActions({
             className="flex items-center justify-between rounded-xl border border-slate-200 px-3.5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
             {label}
-            <ArrowRight className="h-4 w-4 text-slate-400" />
+            <ArrowRight className="h-4 w-4 text-slate-500" />
           </Link>
         ))}
       </div>

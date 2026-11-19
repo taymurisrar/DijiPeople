@@ -723,7 +723,7 @@ function friendlyEnum(value: unknown) {
 function formatMoney(value: unknown, currencyCode?: string) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount)) return "—";
-  return `${currencyCode || ""} ${amount.toLocaleString(undefined, {
+  return `${currencyCode || ""} ${amount.toLocaleString("en-US", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
   })}`.trim();

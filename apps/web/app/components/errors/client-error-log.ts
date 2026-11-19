@@ -41,7 +41,8 @@ export async function persistClientError(error: DisplayableError) {
       body: JSON.stringify({
         traceId: error.traceId,
         timestamp: error.timestamp,
-        severity: error.statusCode >= 500 ? "ERROR" : "WARNING",
+        severity:
+          error.severity ?? (error.statusCode >= 500 ? "ERROR" : "WARNING"),
         errorCode: error.errorCode,
         statusCode: error.statusCode,
         message: error.message,
