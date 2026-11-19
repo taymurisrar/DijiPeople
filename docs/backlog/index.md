@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**810 records** — 577 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**811 records** — 578 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 308 |
+| Open (active work) | 309 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **124** |
+| **Open HIGH** | **125** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 124 |
+| HIGH | 125 |
 | MEDIUM | 141 |
 | LOW | 32 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 18 |
-| BUG | 98 |
+| BUG | 99 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 57 |
+| OPEN | 58 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
@@ -336,6 +336,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4427](../../docs/bugs/BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a.md) | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | P1 | FIXED | landing, billing | FIX_NOW |
 | [BUG-4438](../../docs/bugs/BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-.md) | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | P1 | FIXED | recruitment, permissions | FIX_NOW |
 | [BUG-4446](../../docs/bugs/BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the.md) | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | P1 | FIXED | onboarding, apps/web | FIX_NOW |
+| [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | OPEN | — | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

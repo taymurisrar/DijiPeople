@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **124** |
-| Open total | 308 |
+| Open HIGH | **125** |
+| Open total | 309 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 125 |
@@ -153,6 +153,7 @@
 | [[BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a|BUG-4427]] | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | FIXED | landing, billing | FIX_NOW |
 | [[BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-|BUG-4438]] | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | FIXED | recruitment, permissions | FIX_NOW |
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
+| [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | OPEN | — | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -925,7 +926,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 577 |
+| Bug records | 578 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |

@@ -1104,6 +1104,9 @@ jobs:
       # Public checkout builds return and activation links from these; without them
       # the API refuses to create the invoice ("LANDING_APP_URL or WEB_APP_URL must
       # be configured for public checkout") and Flow Q stops after the email code.
+      # Provisioning issues a workspace hostname under this domain; without it the
+      # handler throws after creating the tenant and the outbox retries (BUG-4467).
+      TENANT_BASE_DOMAIN: dijipeople.com
       LANDING_APP_URL: http://localhost:3000
       WEB_APP_URL: http://localhost:3001
       EXPOSE_DEV_AUTH_LINKS: 'true'
