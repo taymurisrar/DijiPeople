@@ -446,15 +446,16 @@ export async function awaitProvisioned(orderId: string) {
       const why = await withDatabase(async (client) =>
         (
           await client.query(
-            `select c."consumerKey", c."attemptCount", c."succeeded", left(c."errorMessage", 600) as error
-               from "OutboxEventConsumption" c join "OutboxEvent" e on e.id = c."outboxEventId"
-              where e."aggregateId" = $1 order by c."processedAt"`,
-            [orderId],
+            `select e."eventType", e.status, e."attemptCount", left(e."lastError", 700) as "lastError"
+               from "OutboxEvent" e
+              where e."aggregateId" = $1 or e.payload::text like $2
+              order by e."createdAt"`,
+            [orderId, `%${orderId}%`],
           )
         ).rows,
       );
       throw new Error(`${(error as Error).message}
-outbox consumptions: ${JSON.stringify(why)}`);
+outbox events: ${JSON.stringify(why)}`);
     });
   return orderState(orderId);
 }
