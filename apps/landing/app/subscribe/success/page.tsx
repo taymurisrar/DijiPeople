@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../../_components/site-shell";
 import { ProvisioningProgress } from "./provisioning-progress";
+import { parseOnboardingId } from "../../../lib/provisioning-view";
 
 export const metadata: Metadata = {
   title: "Setting up your workspace",
@@ -33,7 +34,9 @@ export default async function SubscribeSuccessPage({
   // `session_id` is forwarded to the poll as a cross-check only; the API
   // confirms nothing on it — see `statusPollUrl`. A refresh keeps both
   // parameters, and the state is the server's, so reloading simply resumes.
-  const { onboarding, session_id: sessionId } = await searchParams;
+  const { onboarding: rawOnboarding, session_id: sessionId } =
+    await searchParams;
+  const onboarding = parseOnboardingId(rawOnboarding);
 
   /*
    * No onboarding id means somebody reached this URL without going through

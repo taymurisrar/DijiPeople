@@ -8,6 +8,7 @@ import {
   RATE_LIMITED_DELAY_MS,
   pollErrorMessage,
   statusPollUrl,
+  parseOnboardingId,
   timedOutMessage,
   type OnboardingStatusView,
 } from "./provisioning-view";
@@ -19,9 +20,17 @@ function status(
     orderNumber: "SO-2026-000123",
     state: "PROVISIONING",
     steps: [
-      { key: "customer-account", label: "Customer account created", state: "DONE" },
+      {
+        key: "customer-account",
+        label: "Customer account created",
+        state: "DONE",
+      },
       { key: "payment-confirmed", label: "Payment confirmed", state: "DONE" },
-      { key: "workspace-created", label: "Workspace created", state: "PENDING" },
+      {
+        key: "workspace-created",
+        label: "Workspace created",
+        state: "PENDING",
+      },
       { key: "workspace-ready", label: "Finishing setup", state: "PENDING" },
     ],
     workspace: null,
@@ -89,7 +98,9 @@ describe("canOpenWorkspace", () => {
 
 describe("headlineFor", () => {
   it("claims nothing before the first status arrives", () => {
-    expect(headlineFor(null)).toBe("We're preparing your DijiPeople workspace.");
+    expect(headlineFor(null)).toBe(
+      "We're preparing your DijiPeople workspace.",
+    );
   });
 
   it("announces readiness only when the workspace is openable", () => {
@@ -175,9 +186,9 @@ describe("statusPollUrl", () => {
 
 describe("eyebrowFor", () => {
   it("only reads 'ready' when the workspace can be opened", () => {
-    expect(eyebrowFor(status({ state: "READY", workspace: READY_WORKSPACE }))).toBe(
-      "Workspace ready",
-    );
+    expect(
+      eyebrowFor(status({ state: "READY", workspace: READY_WORKSPACE })),
+    ).toBe("Workspace ready");
     expect(eyebrowFor(status({ state: "READY", workspace: null }))).toBe(
       "Setting up",
     );
@@ -246,5 +257,20 @@ describe("nextDelayMs", () => {
   it("waits out a slice of the window after a 429, however early it arrives", () => {
     expect(nextDelayMs(0, 429)).toBe(RATE_LIMITED_DELAY_MS);
     expect(nextDelayMs(9 * 60_000, 429)).toBe(RATE_LIMITED_DELAY_MS);
+  });
+});
+
+describe("parseOnboardingId", () => {
+  const id = "ed47cfb0-96f4-4ab0-8062-d1b2b8b88425";
+  it("returns a clean id unchanged", () => {
+    expect(parseOnboardingId(id)).toBe(id);
+  });
+  it("drops the second query string Safepay appends (BUG: 22 incidents)", () => {
+    expect(parseOnboardingId(`${id}?order_id=ORD-1`)).toBe(id);
+  });
+  it("rejects values that do not start with a UUID", () => {
+    expect(parseOnboardingId("../../etc")).toBeNull();
+    expect(parseOnboardingId("")).toBeNull();
+    expect(parseOnboardingId(undefined)).toBeNull();
   });
 });

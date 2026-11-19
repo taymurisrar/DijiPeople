@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { emailFormatError } from "@/lib/email-format";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import {
   createHttpModuleRuntimeAdapter,
@@ -1748,7 +1749,10 @@ function NewPartyForm({
       </label>
       <button
         disabled={
-          disabled || !party.name || (party.isSignatory && !party.email)
+          disabled ||
+          !party.name ||
+          (party.isSignatory && !party.email) ||
+          Boolean(emailFormatError(party.email))
         }
         type="button"
         onClick={() => void onSubmit(party)}
@@ -3008,7 +3012,12 @@ function SignatureRequestDialog({
                 busy ||
                 !subject ||
                 !recipients.length ||
-                recipients.some((item) => !item.name || !item.email)
+                recipients.some(
+                  (item) =>
+                    !item.name ||
+                    !item.email ||
+                    Boolean(emailFormatError(item.email)),
+                )
               }
               onClick={() => void send()}
               className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
@@ -3033,6 +3042,9 @@ function DialogField({
   onChange: (value: string) => void;
   type?: string;
 }) {
+  // Inline, immediate feedback for email fields, so a malformed address is
+  // fixed where it was typed instead of coming back as a 400 from the API.
+  const error = type === "email" ? emailFormatError(value) : null;
   return (
     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
       <span>{label}</span>
@@ -3040,8 +3052,17 @@ function DialogField({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-invalid={error ? true : undefined}
         className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal text-slate-900"
       />
+      {error ? (
+        <span
+          className="text-xs font-normal normal-case tracking-normal text-red-700"
+          role="alert"
+        >
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

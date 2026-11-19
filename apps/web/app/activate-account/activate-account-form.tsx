@@ -132,6 +132,25 @@ export function ActivateAccountForm() {
       return;
     }
 
+    /*
+     * The checklist above is live, but it used to be advisory: a weak password
+     * still went to the server, came back as a 400 and was recorded as an
+     * incident each time. Stop it here and say which rules are unmet, using the
+     * policy the server published rather than a client guess. The server stays
+     * the authority; this only avoids sending what it will certainly refuse.
+     */
+    const unmet = status?.passwordPolicy
+      ? evaluatePasswordPolicy(current.password, status.passwordPolicy).filter(
+          (rule) => !rule.met,
+        )
+      : [];
+    if (unmet.length > 0) {
+      setError(
+        `Password is missing: ${unmet.map((rule) => rule.label.toLowerCase()).join(", ")}.`,
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -239,11 +258,11 @@ export function ActivateAccountForm() {
       />
 
       {/*
-        * Always rendered, with its height reserved. Leaving the confirmation
-        * field (mousedown on the button) sets confirmTouched; if this line only
-        * appeared then, it pushed the button down before mouseup and the click
-        * was never dispatched (DP-QA-032). Enter worked, which hid it.
-        */}
+       * Always rendered, with its height reserved. Leaving the confirmation
+       * field (mousedown on the button) sets confirmTouched; if this line only
+       * appeared then, it pushed the button down before mouseup and the click
+       * was never dispatched (DP-QA-032). Enter worked, which hid it.
+       */}
       <p className="min-h-5 text-sm text-emerald-700" role="status">
         {confirmTouched && confirmPassword && liveComparison.ok
           ? "Passwords match."
