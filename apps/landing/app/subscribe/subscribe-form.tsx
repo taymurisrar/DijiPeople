@@ -175,23 +175,35 @@ export function SubscribeForm({
   // is read, never assumed: market, currency and an approved receiving account
   // all live server-side.
   const [bankTransferLive, setBankTransferLive] = useState(false);
+  const [paymentLookupStatus, setPaymentLookupStatus] = useState<"checking" | "ready" | "error">("checking");
   const selectedPriceId = selectedPrice?.id ?? null;
   useEffect(() => {
     setBankTransferLive(false);
+    setPaymentLookupStatus("checking");
     if (!selectedPriceId) return;
     const controller = new AbortController();
     void fetch(
       `/api/public/payment-methods?planPriceId=${encodeURIComponent(selectedPriceId)}`,
       { signal: controller.signal, cache: "no-store" },
     )
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { options?: Array<{ kind?: string }> } | null) => {
-        setBankTransferLive(
-          Boolean(payload?.options?.some((o) => o.kind === "bank_transfer")),
-        );
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Payment methods could not be loaded.");
+        return response.json();
       })
-      // A failed lookup leaves the existing (assisted) behaviour in place.
-      .catch(() => undefined);
+      .then((payload: { options?: Array<{ kind?: string }> }) => {
+        if (controller.signal.aborted) return;
+        if (!Array.isArray(payload?.options)) {
+          setPaymentLookupStatus("error");
+          return;
+        }
+        setBankTransferLive(
+          payload.options.some((option) => option.kind === "bank_transfer"),
+        );
+        setPaymentLookupStatus("ready");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setPaymentLookupStatus("error");
+      });
     return () => controller.abort();
   }, [selectedPriceId]);
   const paymentProvider = chosenPaymentProvider(
@@ -215,11 +227,12 @@ export function SubscribeForm({
     bankTransferLive,
   });
   const bankTransferSelected =
-    bankTransferMarket && paymentFlow === "BANK_TRANSFER_REQUEST";
+    bankTransferMarket && paymentLookupStatus === "ready" && paymentFlow === "BANK_TRANSFER_REQUEST";
   const bankInvoiceSelected =
     bankTransferLive && paymentFlow === "BANK_TRANSFER";
   const canCheckout =
     Boolean(selectedPrice) &&
+    paymentLookupStatus === "ready" &&
     (bankTransferSelected || bankInvoiceSelected || onlineCheckoutAvailable);
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
@@ -1067,7 +1080,12 @@ export function SubscribeForm({
         {/* The bank-transfer request is available for published PKR prices
             even before a live gateway is approved. It creates a sales inquiry,
             never a paid invoice or an activated subscription. */}
-        {(bankTransferMarket || bankTransferLive) && selectedPrice ? (
+        {paymentLookupStatus === "error" && selectedPrice ? (
+          <p className="mt-4 rounded-xl border border-danger p-3 text-sm text-danger" role="alert">
+            We could not confirm available payment methods. Checkout is temporarily unavailable; please try again later.
+          </p>
+        ) : null}
+        {(bankTransferMarket || bankTransferLive) && selectedPrice && paymentLookupStatus === "ready" ? (
           <fieldset className="mt-4 grid gap-2 rounded-2xl border border-border p-4">
             <legend className="px-1 text-sm font-semibold text-foreground">
               Payment method
@@ -1130,10 +1148,10 @@ export function SubscribeForm({
                       })
                     }
                   />
-                  Request bank transfer / Raast payment instructions
+                  Contact sales for bank transfer instructions (not checkout)
                 </label>
                 <p className="text-xs leading-5 text-muted">
-                  Bank transfers are arranged with our team. We will confirm the
+                  This is a sales enquiry, not a subscription order. We will confirm the
                   amount and bank details before you pay. Activation follows
                   independent payment verification, not a receipt screenshot.
                 </p>
@@ -1299,7 +1317,7 @@ export function SubscribeForm({
               {isSubmitting
                 ? "Submitting…"
                 : bankTransferSelected
-                  ? "Request bank transfer invoice"
+                  ? "Send payment enquiry"
                   : "Confirm and verify email"}
             </button>
           ) : (
