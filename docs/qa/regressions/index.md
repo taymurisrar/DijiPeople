@@ -7538,3 +7538,59 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — GO-8 clicks the button with no API fallback and the button was absent. |
 | **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
 | **Active** | yes |
+
+### REG-690 — Admin dashboard secondary text failed WCAG contrast
+
+| | |
+|---|---|
+| **Bug class** | `accessibility` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-4439 |
+| **Root cause** | slate-400 text on a light surface. |
+| **Regression test** | `e2e/tests/flow-e-accessibility-and-layout.spec.ts` |
+| **Scenario** | QA-GROWTH-003 — Growth: tenant and platform browser accessibility sweep |
+| **Fails without the fix** | Yes — E3 failed on the dashboard card nodes. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-closure` |
+| **Active** | yes |
+
+### REG-691 — A handled server-component refusal was stored as a 500 system fault
+
+| | |
+|---|---|
+| **Bug class** | `misclassified-outcome` |
+| **Module** | `apps/web/app/(authenticated)` |
+| **Bug record** | BUG-4440 |
+| **Root cause** | The boundary filed a status-stripped failure as 500 SYSTEM_UNEXPECTED_ERROR at ERROR. |
+| **Regression test** | `apps/web/app/(authenticated)/_lib/classify-dashboard-error.spec.ts` |
+| **Scenario** | QA-GROWTH-004 — Growth: boundary reports and hydration determinism |
+| **Fails without the fix** | Yes — clientReportFor did not exist; the report was a 500 ERROR. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-closure` |
+| **Active** | yes |
+
+### REG-692 — A late timesheet week could not be submitted after Save draft
+
+| | |
+|---|---|
+| **Bug class** | `state-dependent-ui` |
+| **Module** | `apps/web/app/(authenticated)/timesheets` |
+| **Bug record** | BUG-4457 |
+| **Root cause** | Lateness was keyed on status OVERDUE, not the deadline. |
+| **Regression test** | `e2e/tests/flow-p-growth-hr-browser.spec.ts` |
+| **Scenario** | QA-GROWTH-001 — Growth: HR workflows in the browser |
+| **Fails without the fix** | Yes — GP-T1 was refused with a late-reason error. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-closure` |
+| **Active** | yes |
+
+### REG-693 — A project assignment with no end date could not be saved
+
+| | |
+|---|---|
+| **Bug class** | `payload-shape` |
+| **Module** | `apps/web/lib/runtime/modules` |
+| **Bug record** | BUG-4458 |
+| **Root cause** | An empty date input was forwarded as an empty string. |
+| **Regression test** | `e2e/tests/flow-p-growth-hr-browser.spec.ts` |
+| **Scenario** | QA-GROWTH-001 — Growth: HR workflows in the browser |
+| **Fails without the fix** | Yes — GP-P1 got 400 on the assignment. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-closure` |
+| **Active** | yes |

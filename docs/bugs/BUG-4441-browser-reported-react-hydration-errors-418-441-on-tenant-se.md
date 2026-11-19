@@ -11,7 +11,7 @@ DetectedDate: 2026-11-19
 DetectedInSha: 3a705545
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -46,6 +46,9 @@ ErrorLog rows with `Minified React error #418/#441`.
 
 ## Root Cause
 
+Not proven. Argument-less locale formatting (toLocaleDateString(), toLocaleString(undefined, ...)) rendered a server/browser difference in settings client components; it is the only nondeterminism found in the affected pages.
+
+
 Not established. A server/client formatting mismatch is a candidate (see the SSR formatting-context note).
 
 ## Impact
@@ -57,6 +60,9 @@ Unknown; user-visible effect not confirmed.
 apps/web settings, profile and approval pages.
 
 ## Proposed Resolution
+
+Verify against monitoring after release; close only if no new #418 rows appear.
+
 
 Reproduce on a production build, then fix or close.
 
@@ -77,6 +83,9 @@ Other records, decisions or infrastructure this waits on.
 Wikilinks to related bugs, items, modules and decisions — for the Obsidian graph.
 
 ## Resolution
+
+Removed the nondeterministic calls in settings (gateway credentials, payroll tools) and added hydration-determinism.spec.ts so they cannot return. Status stays OPEN: the 12 production rows (last seen 2026-10-06) must stop recurring after release before this is closed.
+
 
 What was actually changed, with the commit or branch. Filled at fix time.
 

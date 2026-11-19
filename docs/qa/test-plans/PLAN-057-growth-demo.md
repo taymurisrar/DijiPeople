@@ -116,7 +116,7 @@ BUG-4427, BUG-4428, BUG-4429 (this plan). Related: BUG-1742, BUG-1754, BUG-2465.
 
 ## Related
 
-- Scenarios — [[QA-E2E-001]], [[QA-E2E-002]], [[QA-E2E-003]], [[QA-UNIT-001]], [[QA-UNIT-002]]
+- Scenarios — [[QA-E2E-001]], [[QA-E2E-002]], [[QA-E2E-003]], [[QA-GROWTH-001]], [[QA-GROWTH-002]], [[QA-GROWTH-003]], [[QA-GROWTH-004]], [[QA-UNIT-001]], [[QA-UNIT-002]]
 - Bugs — [[BUG-4427]], [[BUG-4428]], [[BUG-4429]], [[BUG-4438]], [[BUG-4446]], [[BUG-4447]]
 - Regressions — REG-685, REG-686, REG-687, REG-688, REG-689 (see the regression register)
 

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 499** · automated: 410 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 503** · automated: 414 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -204,6 +204,10 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-EMPLOYEE-007](../../../docs/qa/scenarios/QA-EMPLOYEE-007-existing-employee-records-hide-create-time-fields-and-lay-se.md) | Existing employee records hide create-time fields and lay sections out two across at tablet width | employees | BROWSER_E2E | LOW | PARTIAL | `apps/web/lib/runtime/modules/employee-metadata.work-sites.spec.ts` | ITEM-0184 | REG-502, REG-503 |
 | [QA-EMPLOYEES-001](../../../docs/qa/scenarios/QA-EMPLOYEES-001-a-published-custom-field-on-employees-stores-validates-and-s.md) | A published custom field on Employees stores, validates and shows a value per employee | employees | DATABASE | HIGH | AUTOMATED | `services/api/test/custom-field-values.e2e-spec.ts` | BUG-3697 | REG-638 |
 | [QA-FRAMEWORK-001](../../../docs/qa/scenarios/QA-FRAMEWORK-001-the-id-allocator-never-returns-a-plan-number-an-execplan-alr.md) | The id allocator never returns a PLAN number an ExecPlan already holds | framework | UNIT | MEDIUM | AUTOMATED | `scripts/id-allocator.test.mjs` | BUG-2413 | REG-365 |
+| [QA-GROWTH-001](../../../docs/qa/scenarios/QA-GROWTH-001-growth-hr-workflows-in-the-browser-leave-approvals-notificat.md) | Growth: HR workflows in the browser (leave, approvals, notifications, projects, timesheets, attendance, documents, settings) | growth-demo | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-p-growth-hr-browser.spec.ts` | BUG-4457, BUG-4458, BUG-4456 | REG-692, REG-693 |
+| [QA-GROWTH-002](../../../docs/qa/scenarios/QA-GROWTH-002-growth-bank-transfer-purchase-in-the-browser-pricing-to-tena.md) | Growth: bank-transfer purchase in the browser (pricing to tenant login, two-person rule, duplicates, retries) | growth-demo | BROWSER_E2E | CRITICAL | AUTOMATED | `e2e/tests/flow-q-growth-bank-transfer-browser.spec.ts` | — | — |
+| [QA-GROWTH-003](../../../docs/qa/scenarios/QA-GROWTH-003-growth-browser-accessibility-sweep-of-the-platform-admin-das.md) | Growth: browser accessibility sweep of the platform admin dashboard | growth-demo | BROWSER_E2E | LOW | AUTOMATED | `e2e/tests/flow-e-accessibility-and-layout.spec.ts` | BUG-4439 | REG-690 |
+| [QA-GROWTH-004](../../../docs/qa/scenarios/QA-GROWTH-004-growth-boundary-reports-and-hydration-determinism.md) | Growth: boundary reports and hydration determinism | growth-demo | UNIT | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/_lib/classify-dashboard-error.spec.ts` | BUG-4440, BUG-4441 | REG-691 |
 | [QA-INFRA-002](../../../docs/qa/scenarios/QA-INFRA-002-repo-health-attributes-main-changes-to-the-right-task.md) | repo-health attributes main changes to the right task | deployment-release | API | HIGH | AUTOMATED | `scripts/task-sha-ref.test.mjs` | BUG-1203 | REG-249 |
 | [QA-INFRA-003](../../../docs/qa/scenarios/QA-INFRA-003-the-component-index-drift-check-is-platform-independent.md) | the component index drift check is platform-independent | deployment-release | API | MEDIUM | AUTOMATED | `scripts/index-drift.test.mjs` | BUG-1208 | REG-250 |
 | [QA-INTEGRATION-001](../../../docs/qa/scenarios/QA-INTEGRATION-001-a-stale-stripe-product-id-is-replaced-rather-than-fatal.md) | A stale Stripe product id is replaced rather than fatal | billing | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/billing/stripe-product-resolution.spec.ts` | BUG-0995 | REG-242 |

@@ -2,7 +2,7 @@
 ID: BUG-4439
 aliases: [BUG-4439]
 Title: Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep
-Status: OPEN
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-19
 DetectedInSha: 3a705545
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-690
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
 UpdatedAt: 2026-11-19
-ResolvedAt:
+ResolvedAt: 2026-11-19
 ---
 
 # BUG-4439 — Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep
@@ -58,13 +58,22 @@ apps/admin dashboard cards.
 
 ## Proposed Resolution
 
+Raise the text contrast on the dashboard cards.
+
+
 Raise the text colour to a token that meets 4.5:1.
 
 ## Acceptance Criteria
 
+Flow E E3 reports no serious or critical violations on the admin dashboard.
+
+
 Verifiable statements QA can retest against.
 
 ## Regression Coverage
+
+REG-690 — e2e/tests/flow-e-accessibility-and-layout.spec.ts E3 (axe serious/critical).
+
 
 The test that must fail without the fix, and its `REG-nnn` entry once it exists.
 
@@ -78,9 +87,15 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
+Dashboard secondary text moved from slate-400 to slate-500 (4.5:1 on white) in apps/admin platform-dashboard.tsx.
+
+
 What was actually changed, with the commit or branch. Filled at fix time.
 
 ## QA Retest
+
+Flow E E3 runs in the required browser-e2e job on this branch.
+
 
 Which QA run verified the fix, and the scenario ids.
 
@@ -93,5 +108,6 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[platform-admin]]
+- Regression — REG-690 (see the regression register)
 
 <!-- GRAPH:END -->
