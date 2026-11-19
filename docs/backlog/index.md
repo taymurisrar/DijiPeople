@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**807 records** — 574 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**808 records** — 575 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 306 |
+| Open (active work) | 307 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **124** |
-| **Awaiting Architect triage** | **0** |
+| **Awaiting Architect triage** | **1** |
 
 ## Open by severity
 
@@ -28,14 +28,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 124 |
-| MEDIUM | 139 |
+| MEDIUM | 140 |
 | LOW | 32 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 18 |
+| AUTHORIZATION | 19 |
 | BUG | 96 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 59 |
+| OPEN | 60 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
@@ -615,6 +615,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4429](../../docs/bugs/BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem.md) | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | P2 | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [BUG-4440](../../docs/bugs/BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy.md) | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | P2 | OPEN | error-logs, apps/web | PLAN_REQUIRED |
 | [BUG-4441](../../docs/bugs/BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se.md) | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
+| [BUG-4456](../../docs/bugs/BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do.md) | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | P2 | OPEN | api:employees, services/api/src/common/constants/rbac-matrix.ts | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

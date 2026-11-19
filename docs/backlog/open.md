@@ -11,7 +11,9 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [BUG-4456](../../docs/bugs/BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do.md) | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | P2 | OPEN | api:employees, services/api/src/common/constants/rbac-matrix.ts | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
@@ -281,6 +283,7 @@ _None._
 | [BUG-4429](../../docs/bugs/BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem.md) | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | P2 | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [BUG-4440](../../docs/bugs/BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy.md) | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | P2 | OPEN | error-logs, apps/web | PLAN_REQUIRED |
 | [BUG-4441](../../docs/bugs/BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se.md) | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
+| [BUG-4456](../../docs/bugs/BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do.md) | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | P2 | OPEN | api:employees, services/api/src/common/constants/rbac-matrix.ts | TRIAGE_REQUIRED |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
