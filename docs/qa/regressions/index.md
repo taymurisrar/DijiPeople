@@ -7524,3 +7524,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes - the named outcomes classify as NEW without the rules. |
 | **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
 | **Active** | yes |
+
+### REG-689 — The onboarding screen did not offer Convert to employee for a draft profile
+
+| | |
+|---|---|
+| **Bug class** | `unreachable-capability` |
+| **Module** | `apps/web/app/(authenticated)/onboarding` |
+| **Bug record** | BUG-4446 |
+| **Root cause** | The Convert button was gated on there being no linked employee, but Start onboarding always creates a draft employee. |
+| **Regression test** | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` |
+| **Scenario** | QA-E2E-003 — Growth: recruiter to employee in the browser |
+| **Fails without the fix** | Yes — GO-8 clicks the button with no API fallback and the button was absent. |
+| **Fixed** | 2026-11-19, branch `agent/growth-demo-monitoring` |
+| **Active** | yes |

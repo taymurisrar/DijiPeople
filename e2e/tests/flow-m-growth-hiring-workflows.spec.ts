@@ -3,10 +3,12 @@ import {
   actor,
   isoDay,
   requireGrowthEnvironment,
+  RUN_TAG,
   rows,
   unique,
   type Actor,
 } from '../fixtures/growth-api';
+import { deleteTaggedJobOpenings, residue } from '../fixtures/residue';
 
 /**
  * Flow M — Growth plan, hiring workflows (recruitment -> onboarding -> employee).
@@ -57,7 +59,10 @@ test.afterAll(async () => {
     if (![200, 204, 404].includes(r.status))
       cleanupFailures.push(`candidate ${id}: ${r.status} ${r.message}`);
   }
+  // No API route deletes a job opening; remove this run's by tag, then prove it.
+  await deleteTaggedJobOpenings(RUN_TAG);
   expect(cleanupFailures, 'cleanup must not fail silently').toEqual([]);
+  expect(await residue(RUN_TAG), 'this run left rows behind').toEqual({});
 });
 
 type Pipeline = { id: string; stages: Array<{ stageKey: string }> };

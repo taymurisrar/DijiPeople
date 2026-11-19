@@ -180,12 +180,21 @@ export default async function OnboardingDetailPage({
                   Candidate
                 </Button>
               ) : null}
-              {!onboarding.employee ? (
+              {/*
+               * Offer conversion while there is no employee OR the linked one
+               * is still a draft profile. "Start onboarding" always creates the
+               * draft (createEmployee defaults to true), so gating the button
+               * on `!employee` hid it in exactly the flow the product itself
+               * starts: the API converts a draft (it refuses only a non-draft
+               * employee) but nobody could reach it from this screen.
+               */}
+              {!onboarding.employee || onboarding.employee.isDraftProfile ? (
                 <ConvertToEmployeeButton
                   canConvert={onboarding.readiness.isReadyForConversion}
                   onboardingId={onboarding.id}
                 />
-              ) : (
+              ) : null}
+              {onboarding.employee ? (
                 <Button
                   href={`/employees/${onboarding.employee.id}`}
                   variant="success-soft"
@@ -193,7 +202,7 @@ export default async function OnboardingDetailPage({
                 >
                   Open employee record
                 </Button>
-              )}
+              ) : null}
             </div>
           </aside>
         </div>

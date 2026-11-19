@@ -563,3 +563,9 @@ variable — not that the deploy failed.
 - `AUTH_REQUIRED` after admin onboarding: verify admin cookies are `admin_access_token` and `admin_refresh_token`, host-only, Secure on HTTPS, and API requests include `X-DijiPeople-App: admin`.
 - CORS failure: `CORS_ALLOWED_ORIGINS` must contain origins only, no `/api`, and never `*` when credentials are enabled.
 - Cookie missing in browser devtools: Vercel apps on separate domains should use host-only cookies with empty `COOKIE_DOMAIN`.
+
+## Test-stack write rate limit
+
+| Variable | Where | Meaning |
+|---|---|---|
+| `PUBLIC_RATE_LIMIT_WRITE_MAX` | API, **test and development only** | Raises the per-address write limit (default 20 per ten minutes) so the browser suite, which signs in as many roles from one address, does not fail on `429`. Ignored when `NODE_ENV` is `production`; never lowers the default; does not affect the stricter MFA and refresh limits. Not set on Render. |

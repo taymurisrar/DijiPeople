@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**805 records** — 572 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**807 records** — 574 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 304 |
+| Open (active work) | 306 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **123** |
+| **Open HIGH** | **124** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 123 |
+| HIGH | 124 |
 | MEDIUM | 139 |
-| LOW | 31 |
+| LOW | 32 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 18 |
-| BUG | 95 |
+| BUG | 96 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
@@ -49,19 +49,19 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 7 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
-| TEST_GAP | 10 |
+| TEST_GAP | 11 |
 | UX | 68 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 58 |
+| OPEN | 59 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 217 |
+| FIXED | 218 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -335,6 +335,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4217](../../docs/bugs/BUG-4217-fully-executed-agreement-cannot-be-activated.md) | Fully executed agreement cannot be activated | STATE_MACHINE | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [BUG-4427](../../docs/bugs/BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a.md) | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | P1 | FIXED | landing, billing | FIX_NOW |
 | [BUG-4438](../../docs/bugs/BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-.md) | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | P1 | FIXED | recruitment, permissions | FIX_NOW |
+| [BUG-4446](../../docs/bugs/BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the.md) | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | P1 | FIXED | onboarding, apps/web | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -791,6 +792,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4019](../../docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md) | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | P3 | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [BUG-4034](../../docs/bugs/BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then.md) | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | P3 | FIXED | app:admin | FIX_NOW |
 | [BUG-4439](../../docs/bugs/BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th.md) | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | P3 | OPEN | apps/admin | PLAN_REQUIRED |
+| [BUG-4447](../../docs/bugs/BUG-4447-employee-record-lookup-editor-department-designation-reporti.md) | Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API | TEST_GAP | LOW | P3 | OPEN | employees, apps/web | PLAN_REQUIRED |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
