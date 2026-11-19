@@ -26,7 +26,19 @@ function trimUrl(value: string): string {
 }
 
 const landing = trimUrl(process.env.E2E_LANDING_URL ?? 'http://localhost:3010');
-const api = trimUrl(process.env.E2E_API_URL ?? 'http://localhost:4001/api');
+/*
+ * `E2E_API_URL` means two different things in this suite: `playwright.config.ts`
+ * reads it as an origin WITHOUT `/api`, while this file used to read it WITH it.
+ * Setting it for one broke the other, so CI could not point the landing flows at
+ * its own stack and 38 of them skipped as "landing not reachable at :3010".
+ * A dedicated variable removes the conflict; the old one still works as a
+ * fallback so existing local recipes are unaffected.
+ */
+const api = trimUrl(
+  process.env.E2E_LANDING_API_URL ??
+    process.env.E2E_API_URL ??
+    'http://localhost:4001/api',
+);
 
 /**
  * Production is recognised from the URL, not from a flag the caller sets.

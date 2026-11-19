@@ -14,8 +14,8 @@ COVERAGE_E2E: GOOD
 COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: GAP
-RELATED_BUGS: [BUG-4427, BUG-4428, BUG-4429, BUG-4438]
-RELATED_REGRESSIONS: [REG-685, REG-686, REG-687, REG-688]
+RELATED_BUGS: [BUG-4427, BUG-4428, BUG-4429, BUG-4438, BUG-4446, BUG-4447]
+RELATED_REGRESSIONS: [REG-685, REG-686, REG-687, REG-688, REG-689]
 CREATED_AT: 2026-11-19
 UPDATED_AT: 2026-11-19
 VERIFIED_AGAINST_SHA: 92eba463
@@ -116,9 +116,9 @@ BUG-4427, BUG-4428, BUG-4429 (this plan). Related: BUG-1742, BUG-1754, BUG-2465.
 
 ## Related
 
-- Scenarios — [[QA-E2E-001]], [[QA-E2E-002]], [[QA-UNIT-001]], [[QA-UNIT-002]]
-- Bugs — [[BUG-4427]], [[BUG-4428]], [[BUG-4429]], [[BUG-4438]]
-- Regressions — REG-685, REG-686, REG-687, REG-688 (see the regression register)
+- Scenarios — [[QA-E2E-001]], [[QA-E2E-002]], [[QA-E2E-003]], [[QA-UNIT-001]], [[QA-UNIT-002]]
+- Bugs — [[BUG-4427]], [[BUG-4428]], [[BUG-4429]], [[BUG-4438]], [[BUG-4446]], [[BUG-4447]]
+- Regressions — REG-685, REG-686, REG-687, REG-688, REG-689 (see the regression register)
 
 <!-- GRAPH:END -->
 
@@ -128,6 +128,9 @@ BUG-4427, BUG-4428, BUG-4429 (this plan). Related: BUG-1742, BUG-1754, BUG-2465.
 |---|---|---|---|
 | Flow M | `e2e/tests/flow-m-growth-hiring-workflows.spec.ts` | 5 | recruiter pipeline end to end, rejection rule, who may reach recruitment |
 | Flow N | `e2e/tests/flow-n-growth-people-workflows.spec.ts` | 7 | leave (approve/reject/refusals), projects + assignment, documents, entitlement boundary |
+| Flow O | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` | 8 | the hiring journey through the browser: recruiter job, candidate, application, stages to HIRED, onboarding; admin completes 11 tasks and converts (one API-assisted step, BUG-4447) |
+| Safety | `e2e/tests/safety.spec.ts` | 12 | writing flows refuse production URLs, non-loopback hosts, non-test databases and a production API |
 | Fixture | `e2e/tools/prepare-growth-tenant.mjs` | - | Growth subscription + ENFORCE on a disposable tenant |
+| Fixture | `e2e/fixtures/safety.ts`, `residue.ts` | - | the guard, and a by-tag residue measurement |
 
 Both run in the required `browser-e2e` CI job (fail-closed) and **throw rather than skip** when the environment is missing.

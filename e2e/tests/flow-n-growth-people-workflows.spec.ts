@@ -2,11 +2,13 @@ import { expect, test } from '@playwright/test';
 import {
   actor,
   isoDay,
+  RUN_TAG,
   requireGrowthEnvironment,
   rows,
   unique,
   type Actor,
 } from '../fixtures/growth-api';
+import { residue } from '../fixtures/residue';
 
 /**
  * Flow N — Growth plan, people workflows: leave, attendance, timesheets,
@@ -46,6 +48,7 @@ test.afterAll(async () => {
     if (failure) failures.push(failure);
   }
   expect(failures, 'cleanup must not fail silently').toEqual([]);
+  expect(await residue(RUN_TAG), 'this run left rows behind').toEqual({});
 });
 
 /**

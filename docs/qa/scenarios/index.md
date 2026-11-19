@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 498** · automated: 410 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 499** · automated: 410 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -194,6 +194,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-024](../../../docs/qa/scenarios/QA-DEPLOY-024-an-externally-hosted-agent-desktop-release-serves-the-update.md) | An externally hosted AGENT_DESKTOP release serves the update feed | deployment-release | API | MEDIUM | AUTOMATED | `services/api/src/modules/app-releases/app-release.service.spec.ts` | BUG-2888 | REG-397 |
 | [QA-E2E-001](../../../docs/qa/scenarios/QA-E2E-001-growth-recruiter-moves-a-candidate-through-the-hiring-pipeli.md) | Growth: recruiter moves a candidate through the hiring pipeline; authorization boundaries hold | growth-demo | E2E | HIGH | AUTOMATED | `e2e/tests/flow-m-growth-hiring-workflows.spec.ts` | BUG-4438 | REG-685 |
 | [QA-E2E-002](../../../docs/qa/scenarios/QA-E2E-002-growth-leave-projects-documents-and-entitlement-workflows-ac.md) | Growth: leave, projects, documents and entitlement workflows across two people | growth-demo | E2E | HIGH | AUTOMATED | `e2e/tests/flow-n-growth-people-workflows.spec.ts` | — | — |
+| [QA-E2E-003](../../../docs/qa/scenarios/QA-E2E-003-growth-recruiter-to-employee-in-the-browser-job-candidate-ap.md) | Growth: recruiter to employee in the browser (job, candidate, application, stages, onboarding, conversion) | growth-demo | BROWSER_E2E | HIGH | PARTIAL | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` | BUG-4446 | REG-689 |
 | [QA-EMPLOYEE-001](../../../docs/qa/scenarios/QA-EMPLOYEE-001-employee-reporting-structure-tree-stays-scoped-and-bounded-t.md) | Employee reporting-structure tree stays scoped and bounded to the queried employee | employees | API | MEDIUM | AUTOMATED | `services/api/src/modules/employees/employees.service.spec.ts` | BUG-3450 | REG-480 |
 | [QA-EMPLOYEE-002](../../../docs/qa/scenarios/QA-EMPLOYEE-002-employee-reset-password-confirms-is-hidden-without-a-linked-.md) | Employee Reset Password confirms, is hidden without a linked user and reports a refusal in place | employees | BROWSER_E2E | MEDIUM | PARTIAL | `apps/web/lib/runtime/modules/employee-account-actions.spec.ts` | BUG-3497 | REG-495, REG-496 |
 | [QA-EMPLOYEE-003](../../../docs/qa/scenarios/QA-EMPLOYEE-003-the-employee-record-export-writes-lookup-display-names-never.md) | The employee record export writes lookup display names, never ids | employees | BROWSER_E2E | MEDIUM | PARTIAL | `apps/web/lib/runtime/module-adapter-command-handlers.export.spec.ts` | BUG-3498 | REG-497 |

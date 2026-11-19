@@ -1,5 +1,6 @@
 import { request, type APIRequestContext } from '@playwright/test';
 import { BASE_URLS } from '../playwright.config';
+import { assessSafety } from './safety';
 
 /**
  * Role-scoped API access to a Growth-plan tenant, for workflow tests.
@@ -57,7 +58,17 @@ export function growthConfig() {
   return { slug, password, domain, api: `${BASE_URLS.api}/api` };
 }
 
-/** Throws (never skips) when the Growth workflow environment is not usable. */
+/**
+ * One tag for the whole run. Every row a flow creates carries it, so residue can
+ * be counted and, where the API has no delete route, removed by tag.
+ */
+export const RUN_TAG = `qa${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+
+/**
+ * Throws (never skips) when the Growth workflow environment is not usable, and
+ * refuses outright when it is not a disposable local stack. The safety check
+ * runs before the first sign-in, so a wrong URL costs nothing.
+ */
 export async function requireGrowthEnvironment(): Promise<void> {
   const { password, api } = growthConfig();
   if (!password) {
@@ -65,14 +76,39 @@ export async function requireGrowthEnvironment(): Promise<void> {
       'E2E_TENANT_USER_PASSWORD is unset. The Growth workflow suite does not skip: set it to the seeded role-user password.',
     );
   }
+
+  // Cheap, side-effect-free: the health endpoint says what the API is.
   const probe = await request.newContext();
+  let apiEnvironment: string | null = null;
   try {
     const response = await probe.get(`${api}/health`).catch(() => null);
     if (!response?.ok()) {
       throw new Error(`API not reachable at ${api}/health`);
     }
+    apiEnvironment =
+      ((await response.json().catch(() => null)) as { environment?: string } | null)
+        ?.environment ?? null;
   } finally {
     await probe.dispose();
+  }
+
+  const verdict = assessSafety({
+    urls: {
+      api: BASE_URLS.api,
+      web: BASE_URLS.web,
+      admin: BASE_URLS.admin,
+      landing: BASE_URLS.landing,
+    },
+    databaseUrl: process.env.E2E_DATABASE_URL,
+    apiEnvironment,
+  });
+  if (!verdict.safe) {
+    throw new Error(
+      [
+        'REFUSING TO RUN: these flows write and delete data and must only run against a disposable local stack.',
+        ...verdict.reasons.map((reason) => `  - ${reason}`),
+      ].join(String.fromCharCode(10)),
+    );
   }
 }
 
@@ -157,7 +193,7 @@ export function rows<T = Record<string, unknown>>(body: unknown): T[] {
 
 /** A short unique suffix so a run never collides with its own earlier data. */
 export function unique(): string {
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+  return `${RUN_TAG}${Math.random().toString(36).slice(2, 4)}`;
 }
 
 /** An ISO date `days` from today. */
