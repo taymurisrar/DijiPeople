@@ -438,7 +438,24 @@ export async function awaitProvisioned(orderId: string) {
       },
       { message: 'provisioning should finish: order ACTIVATED, tenant ACTIVE and READY', timeout: 120_000, intervals: [2_000] },
     )
-    .toBe('ACTIVATED/ACTIVE/READY');
+    .toBe('ACTIVATED/ACTIVE/READY')
+    .catch(async (error: unknown) => {
+      // The status string alone cannot say why a handler kept retrying. The
+      // consumption row holds the exception, so a CI-only failure is diagnosable
+      // from the log instead of needing a second run.
+      const why = await withDatabase(async (client) =>
+        (
+          await client.query(
+            `select c."consumerKey", c."attemptCount", c."succeeded", left(c."errorMessage", 600) as error
+               from "OutboxEventConsumption" c join "OutboxEvent" e on e.id = c."outboxEventId"
+              where e."aggregateId" = $1 order by c."processedAt"`,
+            [orderId],
+          )
+        ).rows,
+      );
+      throw new Error(`${(error as Error).message}
+outbox consumptions: ${JSON.stringify(why)}`);
+    });
   return orderState(orderId);
 }
 
