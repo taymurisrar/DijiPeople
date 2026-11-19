@@ -29,6 +29,8 @@ const groups: Group[] = [
     { title: "Plans & pricing", description: "Plan visibility and commercial defaults.", href: "/settings/plans", icon: Tags },
     { title: "Promotions", description: "Versioned discounts and eligibility scopes.", href: "/promotions", icon: Tags },
     { title: "Billing defaults", description: "Billing cycles, taxes, and payment terms.", href: "/settings/billing", icon: CreditCard },
+    { title: "Payment methods & bank accounts", description: "Configure and approve bank transfer / Raast, receiving accounts, and checkout availability.", href: "/billing?tab=payment-methods", icon: CreditCard },
+    { title: "Bank transfer verification", description: "Review customer transfer reports and verify received bank payments.", href: "/billing?tab=bank-transfers", icon: CreditCard },
     { title: "Exchange rates", description: "Rates used to report money collected in other currencies, live or set by hand.", href: "/settings/exchange-rates", icon: Tags },
     { title: "Invoice defaults", description: "Numbering, due dates, and invoice notes.", href: "/settings/invoices", icon: CreditCard },
   ]},
