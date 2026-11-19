@@ -1097,6 +1097,11 @@ jobs:
       # the default write limit (20) makes the later flows fail on 429. Honoured
       # only for NODE_ENV=test or development, never in production.
       PUBLIC_RATE_LIMIT_WRITE_MAX: '2000'
+      # Flow Q buys Growth by bank transfer end to end. Provisioning runs in the
+      # outbox worker, and the activation link is only readable from the API when
+      # mail goes to the console sink; user-invitations refuses it in production.
+      OUTBOX_WORKER_ENABLED: 'true'
+      EXPOSE_DEV_AUTH_LINKS: 'true'
       E2E_TENANT_SLUG: dijipeople-demo
       E2E_TENANT_USER_EMAIL: system-admin@dijipeople.local
       E2E_TENANT_USER_PASSWORD: DemoUser@12345
