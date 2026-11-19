@@ -81,6 +81,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
 - [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing** (MEDIUM)
+- [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] — **HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted)** (MEDIUM)
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events** (unrated)
 - [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint** (unrated)
 - [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream** (unrated)
@@ -204,7 +205,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
-| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | OPEN | apps/admin | PLAN_REQUIRED |
+| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | FIXED | apps/admin | FIX_NOW |
 
 ## How to read this
 

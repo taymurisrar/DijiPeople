@@ -9,9 +9,9 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **124** |
-| Open total | 306 |
+| Open total | 308 |
 | Blocked | 4 |
-| Awaiting a product decision | 15 |
+| Awaiting a product decision | 16 |
 | Deferred | 125 |
 | Completed | 357 |
 | Awaiting Architect triage | 0 |
@@ -170,6 +170,7 @@
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
+| [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | PRODUCT_DECISION | api:employees, services/api/src/common/constants/rbac-matrix.ts | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
 | [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
@@ -617,6 +618,9 @@
 | [[BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla|BUG-4218]] | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[BUG-4428-activate-account-agreement-party-and-signature-recipient-for|BUG-4428]] | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | FIXED | auth, contracts, apps/web, apps/admin | FIX_NOW |
 | [[BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem|BUG-4429]] | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
+| [[BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy|BUG-4440]] | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | FIXED | error-logs, apps/web | FIX_NOW |
+| [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
+| [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -658,6 +662,7 @@
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
+| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | FIXED | apps/admin | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -823,8 +828,10 @@
 | [[BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla|BUG-4218]] | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[BUG-4428-activate-account-agreement-party-and-signature-recipient-for|BUG-4428]] | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | FIXED | auth, contracts, apps/web, apps/admin | FIX_NOW |
 | [[BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem|BUG-4429]] | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
-| [[BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy|BUG-4440]] | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | OPEN | error-logs, apps/web | PLAN_REQUIRED |
-| [[BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se|BUG-4441]] | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy|BUG-4440]] | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | FIXED | error-logs, apps/web | FIX_NOW |
+| [[BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se|BUG-4441]] | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
+| [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -871,7 +878,7 @@
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
-| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | OPEN | apps/admin | PLAN_REQUIRED |
+| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API | TEST_GAP | LOW | OPEN | employees, apps/web | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
@@ -918,7 +925,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 574 |
+| Bug records | 577 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
