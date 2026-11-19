@@ -1093,6 +1093,10 @@ jobs:
       # these they default to :3010 and skip 38 tests as "landing not reachable".
       E2E_LANDING_URL: http://localhost:3000
       E2E_LANDING_API_URL: http://localhost:4000/api
+      # Flows H-O sign in many times from one address inside one ten-minute window;
+      # the default write limit (20) makes the later flows fail on 429. Honoured
+      # only for NODE_ENV=test or development, never in production.
+      PUBLIC_RATE_LIMIT_WRITE_MAX: '2000'
       E2E_TENANT_SLUG: dijipeople-demo
       E2E_TENANT_USER_EMAIL: system-admin@dijipeople.local
       E2E_TENANT_USER_PASSWORD: DemoUser@12345

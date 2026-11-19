@@ -1,6 +1,9 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { HttpException } from '@nestjs/common';
-import { PublicRateLimitGuard } from './public-rate-limit.guard';
+import {
+  PublicRateLimitGuard,
+  __rateLimitInternals,
+} from './public-rate-limit.guard';
 
 function context(path: string, method = 'POST', forwardedFor?: string) {
   return {
@@ -154,5 +157,44 @@ describe('public workflow rate limiting', () => {
         expect(guard.canActivate(request)).toBe(true);
       expect(() => guard.canActivate(request)).toThrow(HttpException);
     });
+  });
+});
+
+describe('PUBLIC_RATE_LIMIT_WRITE_MAX (test-stack ceiling)', () => {
+  const { resolveLimit, DEFAULT_WRITE_LIMIT } = __rateLimitInternals;
+  const saved = {
+    env: process.env.NODE_ENV,
+    max: process.env.PUBLIC_RATE_LIMIT_WRITE_MAX,
+  };
+  afterEach(() => {
+    process.env.NODE_ENV = saved.env;
+    if (saved.max === undefined) delete process.env.PUBLIC_RATE_LIMIT_WRITE_MAX;
+    else process.env.PUBLIC_RATE_LIMIT_WRITE_MAX = saved.max;
+  });
+
+  it('is honoured on a test stack', () => {
+    process.env.NODE_ENV = 'test';
+    process.env.PUBLIC_RATE_LIMIT_WRITE_MAX = '500';
+    expect(resolveLimit('POST', '/api/auth/login')).toBe(500);
+  });
+
+  it('is ignored in production, so it cannot weaken the real control', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.PUBLIC_RATE_LIMIT_WRITE_MAX = '500';
+    expect(resolveLimit('POST', '/api/auth/login')).toBe(DEFAULT_WRITE_LIMIT);
+  });
+
+  it('never lowers the default and ignores junk', () => {
+    process.env.NODE_ENV = 'test';
+    for (const junk of ['5', 'abc', '', '-1', '20.5']) {
+      process.env.PUBLIC_RATE_LIMIT_WRITE_MAX = junk;
+      expect(resolveLimit('POST', '/api/auth/login')).toBe(DEFAULT_WRITE_LIMIT);
+    }
+  });
+
+  it('does not touch the stricter per-route limits', () => {
+    process.env.NODE_ENV = 'test';
+    process.env.PUBLIC_RATE_LIMIT_WRITE_MAX = '500';
+    expect(resolveLimit('POST', '/api/auth/mfa/verify')).toBe(10);
   });
 });

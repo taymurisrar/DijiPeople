@@ -99,7 +99,25 @@ export class PublicRateLimitGuard implements CanActivate {
 function resolveLimit(method: string, path: string): number {
   const override = ROUTE_LIMITS.find((route) => path.endsWith(route.suffix));
   if (override) return override.limit;
-  return method === 'GET' ? DEFAULT_READ_LIMIT : DEFAULT_WRITE_LIMIT;
+  if (method !== 'GET') return testWriteLimit() ?? DEFAULT_WRITE_LIMIT;
+  return DEFAULT_READ_LIMIT;
+}
+
+/**
+ * A higher write limit for a disposable test stack, and only there.
+ *
+ * The browser suite signs in as seven roles and through the UI, all from one
+ * address, inside one ten-minute window; with the default of 20 the later flows
+ * fail on `429` and read as a broken login. `PUBLIC_RATE_LIMIT_WRITE_MAX` raises
+ * the ceiling for `NODE_ENV=test` (CI) and `development` only. It is ignored in
+ * production, so it cannot weaken the real control, and the per-route limits on
+ * MFA and refresh are untouched.
+ */
+function testWriteLimit(): number | null {
+  const environment = process.env.NODE_ENV;
+  if (environment !== 'test' && environment !== 'development') return null;
+  const raw = Number(process.env.PUBLIC_RATE_LIMIT_WRITE_MAX);
+  return Number.isInteger(raw) && raw > DEFAULT_WRITE_LIMIT ? raw : null;
 }
 
 /** Exported for the regression spec; not part of the guard's runtime API. */
