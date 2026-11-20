@@ -131,6 +131,8 @@ Open. CI now sets TENANT_BASE_DOMAIN so Flow Q tests the happy path.
 
 What was actually changed, with the commit or branch. Filled at fix time.
 
+Follow-up (2026-11-20, BUG-4484): failure-injection coverage exposed that the retry path was still incomplete. A retry that found order.tenantId ran only finalize(), so a failed owner invitation or a missing system hostname was never recovered (the retry reported PROCESSED with no invitation and no hostname). Provisioning is now split into createWorkspace (atomic, order linked in the same transaction) plus idempotent ensureOwnerInvitations (only when the account is INVITED and has no live invitation, so no duplicate email and never a second user) and ensureSystemDomain (skips an existing primary system domain), run by the handler on every attempt. The creating transaction also expired at Prisma default 5s under load (P2028) and is now given a 60s timeout.
+
 ## QA Retest
 
 provisioning-requested.handler.spec.ts (2 cases); Flow Q in CI.
@@ -140,6 +142,8 @@ Not yet.
 
 
 Which QA run verified the fix, and the scenario ids.
+
+provisioning-requested.handler.spec.ts (9 cases), platform-onboarding.recovery.spec.ts (4), and the DB-backed services/api/test/provisioning-recovery.e2e-spec.ts (5): invitation step failing 3x, invitation created then throwing, hostname unconfigured 3x (TENANT_BASE_DOMAIN_NOT_CONFIGURED), markTenantReady failing 3x, recordOrderPayment failing 3x; each ends with one tenant, one subscription, one owner, one email, one hostname, order ACTIVATED, tenant READY. Covered by REG-696.
 
 ## History
 

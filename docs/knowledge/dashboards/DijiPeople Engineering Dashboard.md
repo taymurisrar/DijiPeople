@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **125** |
-| Open total | 310 |
+| Open HIGH | **126** |
+| Open total | 311 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -153,6 +153,7 @@
 | [[BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a|BUG-4427]] | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | FIXED | landing, billing | FIX_NOW |
 | [[BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-|BUG-4438]] | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | FIXED | recruitment, permissions | FIX_NOW |
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
+| [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
@@ -201,7 +202,6 @@
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
-| [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API | TEST_GAP | LOW | OPEN | employees, apps/web | PLAN_REQUIRED |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
 
 ## Current Infrastructure Gaps
@@ -427,6 +427,7 @@
 | [[BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a|BUG-4427]] | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | FIXED | landing, billing | FIX_NOW |
 | [[BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-|BUG-4438]] | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | FIXED | recruitment, permissions | FIX_NOW |
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
+| [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
@@ -623,6 +624,7 @@
 | [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | FIXED | api:employees, services/api/src/common/constants/rbac-matrix.ts | FIX_NOW |
 | [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
+| [[BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so|BUG-4484]] | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -835,6 +837,7 @@
 | [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | FIXED | api:employees, services/api/src/common/constants/rbac-matrix.ts | FIX_NOW |
 | [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
+| [[BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so|BUG-4484]] | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -882,7 +885,6 @@
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
 | [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | FIXED | apps/admin | FIX_NOW |
-| [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API | TEST_GAP | LOW | OPEN | employees, apps/web | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 | [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
@@ -928,7 +930,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 578 |
+| Bug records | 579 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |

@@ -70,6 +70,17 @@ async function fillStable(field: Locator, value: string) {
   }).toPass({ timeout: 20_000 });
 }
 
+/** Open a runtime lookup (a combobox) and choose the first option matching `option`. */
+async function pickLookup(page: Page, label: RegExp, option: RegExp) {
+  const field = page.getByRole('combobox', { name: label }).first();
+  await expect(async () => {
+    await field.click();
+    // The record's Form switcher is a <select> whose hidden <option>s also match
+    // a bare role query, so only the visible options of the open popup count.
+    await page.locator('[role="option"]:visible').filter({ hasText: option }).first().click({ timeout: 3_000 });
+  }).toPass({ timeout: 20_000 });
+}
+
 test.beforeAll(async ({ browser }) => {
   await requireGrowthEnvironment();
   const found = await resolveTenant();
@@ -204,32 +215,37 @@ test.describe('Flow O — recruiter to employee, in the browser', () => {
     }
   });
 
-  test('GO-7 (API-assisted) department, designation and manager are assigned, which unblocks conversion', async () => {
-    /*
-     * HONEST SCOPE: this one step is not driven through the browser. The
-     * employee record's lookup editor (Department, Designation, Reporting
-     * manager) is a runtime lookup field whose popup is not yet automated, and
-     * every attempt at a generic option click hit the Form switcher's hidden
-     * <option>s instead. Rather than skip the rest of the journey, the
-     * assignment is made through the API and GO-8 proves the part the prospect
-     * actually sees: the screen unblocks and the Convert button works. Tracked
-     * as BUG-4447 (UI automation gap), not hidden.
-     */
+  test('GO-7 the administrator assigns department, designation and reporting manager on the employee record, which unblocks conversion', async () => {
+    // BUG-4447: this step used to be made through the API because the lookup
+    // editor was thought to be undrivable. It is a standard combobox with a
+    // labelled listbox; what was missing was the approach (see pickLookup).
     await go(adminPage, `/onboarding/${onboardingId}`);
-    const href = await adminPage.getByRole('link', { name: /open employee record/i }).getAttribute('href');
-    const draftId = href!.split('/').pop()!;
-    const [departments, designations, managers] = await Promise.all([
-      admin.get('departments'),
-      admin.get('designations'),
-      admin.get('employees?pageSize=5'),
-    ]);
-    const first = (body: unknown) => rows<{ id: string }>(body)[0]?.id;
-    const patch = await admin.patch(`employees/${draftId}`, {
-      departmentId: first(departments.body),
-      designationId: first(designations.body),
-      reportingManagerEmployeeId: first(managers.body),
-    });
-    expect(patch.status, patch.message).toBeLessThan(300);
+    await adminPage.getByRole('link', { name: /open employee record/i }).click();
+    await expect(adminPage).toHaveURL(new RegExp('/employees/[0-9a-f-]{36}'), { timeout: 30_000 });
+    const draftId = adminPage.url().split('/employees/')[1].split(/[/?#]/)[0];
+    await adminPage.waitForLoadState('networkidle').catch(() => undefined);
+
+    // The record opens read-only: the lookups are plain text until Edit is
+    // pressed, and only then do they become comboboxes.
+    await adminPage.getByRole('button', { name: 'Edit', exact: true }).click();
+    await pickLookup(adminPage, /^department/i, /.+/);
+    await pickLookup(adminPage, /^designation/i, /.+/);
+    await pickLookup(adminPage, /reporting manager/i, /.+/);
+    // The form also requires an emergency contact before it will save, so a
+    // person doing this fills it in too.
+    await fillStable(adminPage.getByLabel(/^emergency contact name/i), `Contact ${suffix}`);
+    await pickLookup(adminPage, /emergency contact relation/i, /.+/);
+    await fillStable(adminPage.getByLabel(/^emergency contact phone/i), '+97455500002');
+    await adminPage.getByRole('button', { name: /^save$/i }).click();
+
+    type Draft = { departmentId?: string | null; designationId?: string | null; reportingManagerEmployeeId?: string | null; managerEmployeeId?: string | null };
+    await expect
+      .poll(async () => {
+        const r = await admin.get<Draft>(`employees/${draftId}`);
+        const d = r.body;
+        return Boolean(d.departmentId && d.designationId && (d.reportingManagerEmployeeId ?? d.managerEmployeeId));
+      }, { timeout: 30_000, message: 'department, designation and manager were saved from the screen' })
+      .toBe(true);
   });
 
   test('GO-8 the onboarding converts to an employee and the employee exists', async () => {

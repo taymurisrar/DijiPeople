@@ -7622,3 +7622,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the retry called provisionTenantForCustomer again and finalization did not run. |
 | **Fixed** | 2026-11-20, branch `agent/growth-demo-closure` |
 | **Active** | yes |
+
+### REG-696 — Self-service provisioning left no provisioning run, and a retry never recovered the invitation or hostname
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-4484 |
+| **Root cause** | The self-service handler wrote no TenantProvisioningRun, and its retry guard jumped to the closing steps, so the owner invitation and the hostname were reachable only on the first attempt. |
+| **Regression test** | `services/api/src/modules/super-admin/provisioning-requested.handler.spec.ts` |
+| **Scenario** | QA-GROWTH-002 — Growth: bank-transfer purchase in the browser (pricing to tenant login, two-person rule, duplicates, retries) |
+| **Fails without the fix** | Yes — no run was created and a retry after an invitation or hostname failure completed without issuing either. |
+| **Fixed** | 2026-11-20, branch `agent/growth-closure-records` |
+| **Active** | yes |
+
+### REG-697 — Saving a draft employee profile promoted it to ACTIVE because the profile API omitted its lifecycle, and an unchanged owner was re-validated
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-4447 |
+| **Root cause** | `getProfile` did not publish status, sub status or the draft flag, so the edit form posted its own defaults (ACTIVE / OPEN) back; and `update` re-checked the owner even when it was unchanged, which a recruiter-owned draft fails. |
+| **Regression test** | `services/api/src/modules/employees/employee-lifecycle.constants.spec.ts`; `services/api/src/modules/employees/employees.service.spec.ts`; `e2e/tests/flow-o-growth-hiring-browser.spec.ts` GO-7 and GO-8 |
+| **Scenario** | QA-E2E-003 — Growth: recruiter to employee in the browser (job, candidate, application, stages, onboarding, conversion) |
+| **Fails without the fix** | Yes — the save was refused with "Owner user was not found for this tenant", and once that was removed GO-8 failed with "Employee has already been created". |
+| **Fixed** | 2026-11-20, branch `agent/growth-closure-records` |
+| **Active** | yes |

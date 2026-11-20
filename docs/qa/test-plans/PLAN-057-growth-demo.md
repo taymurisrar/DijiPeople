@@ -128,7 +128,7 @@ BUG-4427, BUG-4428, BUG-4429 (this plan). Related: BUG-1742, BUG-1754, BUG-2465.
 |---|---|---|---|
 | Flow M | `e2e/tests/flow-m-growth-hiring-workflows.spec.ts` | 5 | recruiter pipeline end to end, rejection rule, who may reach recruitment |
 | Flow N | `e2e/tests/flow-n-growth-people-workflows.spec.ts` | 7 | leave (approve/reject/refusals), projects + assignment, documents, entitlement boundary |
-| Flow O | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` | 8 | the hiring journey through the browser: recruiter job, candidate, application, stages to HIRED, onboarding; admin completes 11 tasks and converts (one API-assisted step, BUG-4447) |
+| Flow O | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` | 8 | the hiring journey through the browser: recruiter job, candidate, application, stages to HIRED, onboarding; admin completes 11 tasks, assigns department, designation and manager on the record, and converts (no API-assisted step) |
 | Flow P | `e2e/tests/flow-p-growth-hr-browser.spec.ts` | 10 (1 `fixme`, BUG-4456) | HR workflows through the browser: leave approve/reject/invalid, approvals inbox, notification, projects + assignment, timesheet submit/approve, attendance, document upload/download, setting change and restore |
 | Flow Q | `e2e/tests/flow-q-growth-bank-transfer-browser.spec.ts` | 7 | Growth bought by bank transfer end to end: pricing, wizard, email code, bank details, claim, two-person approval, provisioning, activation, tenant login; duplicate, reject-resubmit, double approval, code failures, login before activation |
 | Safety | `e2e/tests/safety.spec.ts` | 12 | writing flows refuse production URLs, non-loopback hosts, non-test databases and a production API |
@@ -143,3 +143,9 @@ Both run in the required `browser-e2e` CI job (fail-closed) and **throw rather t
 - **CI root causes found on the way:** the runner was memory-starved by `next dev` (production builds now); Flow Q needed `OUTBOX_WORKER_ENABLED`, `EXPOSE_DEV_AUTH_LINKS`, `LANDING_APP_URL`, `WEB_APP_URL` and `TENANT_BASE_DOMAIN`, and without the last the provisioning handler created duplicate tenants (BUG-4467).
 - **Local runs:** Flow P 9 passed + 1 fixme and Flow Q 7/7, each twice in a row, zero tagged residue.
 - **Demo script:** `docs/qa/demo-scripts/ahk-growth-30-minute-demo.md`.
+
+## Final sign-off evidence (2026-11-20)
+
+- **Continuous demo replay**, `e2e/tools/run-growth-demo.mjs`, two consecutive runs on fresh disposable databases: 25 passed, 0 failed, 0 skipped (462 s and 354 s).
+- **Closed in this pass:** GP-S1 (the test asserted a different store from the one the screen writes; BUG-1980 remains open and untouched), the attendance calendar skip (a seeded working schedule, off-day validation untouched), BUG-4447 (browser lookup assignment, plus two draft-save defects it exposed), BUG-4484 (self-service provisioning now records a provisioning run) and BUG-4467 recovery tests (failures after tenant creation retried without duplicates).
+- **Test flakes fixed:** Q4 (two `<main>` elements during a client navigation) and GP-L2 (the rejection reason read once before it was recorded).

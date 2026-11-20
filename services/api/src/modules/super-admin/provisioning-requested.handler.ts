@@ -17,6 +17,8 @@ import { OrderActivationService } from '../billing/services/order-activation.ser
 import { PaymentSettlementService } from '../billing/services/payment-settlement.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { storedPersonName } from '../../common/utils/person-name';
+import { AuditService } from '../audit/audit.service';
+import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
 
 /**
  * Provision the workspace a confirmed payment paid for.
@@ -52,6 +54,8 @@ export class ProvisioningRequestedHandler
     private readonly dispatcher: OutboxDispatcherService,
     private readonly activation: OrderActivationService,
     private readonly settlement: PaymentSettlementService,
+    private readonly runs: TenantProvisioningRunService,
+    private readonly audit: AuditService,
   ) {}
 
   onModuleInit(): void {
@@ -122,7 +126,7 @@ export class ProvisioningRequestedHandler
        * left half-finished. BUG-4467: this used to return here without finishing,
        * and before the link was atomic a retry created a second tenant.
        */
-      await this.finalize(order, order.tenantId);
+      await this.completeProvisioning(order, order.tenantId);
       return {
         status: 'PROCESSED',
         detail: `Order ${order.orderNumber} already has tenant ${order.tenantId}.`,
@@ -162,7 +166,7 @@ export class ProvisioningRequestedHandler
       );
     }
 
-    const result = await this.onboarding.provisionTenantForCustomer({
+    const result = await this.onboarding.createWorkspace({
       customerAccountId: order.customerAccountId,
       subscriptionOrderId: order.id,
       companyName: order.customer.companyName,
@@ -203,7 +207,7 @@ export class ProvisioningRequestedHandler
       note: `Workspace provisioned automatically from order ${order.orderNumber}.`,
     });
 
-    await this.finalize(order, result.tenantId);
+    await this.completeProvisioning(order, result.tenantId);
 
     this.logger.log(
       `Provisioned tenant ${result.tenantId} (${slug}) for order ${order.orderNumber}.`,
@@ -215,8 +219,142 @@ export class ProvisioningRequestedHandler
     };
   }
   /**
-   * Everything that follows the tenant's creation. Each step is idempotent, so a
-   * retry can run it again after a failure part-way through.
+   * Everything that follows the tenant's creation, recorded as a provisioning
+   * run so Platform Admin -> Operations -> Provisioning can show it.
+   *
+   * Self-service provisioning wrote no run at all, so a paid customer whose
+   * workspace was half-built was invisible to operators (BUG-4484). The run is
+   * keyed on the order, so every redelivery of the event resumes the same row
+   * (attempt + 1) rather than adding another. A failure is recorded on the run
+   * and then rethrown, so the outbox still retries.
+   *
+   * A failure before the tenant exists leaves nothing to attach a run to (a run
+   * belongs to a tenant), and the creating transaction has rolled back anyway;
+   * that case stays visible in the outbox, not here.
+   */
+  private async completeProvisioning(
+    order: { id: string; customerAccountId: string },
+    tenantId: string,
+  ) {
+    const run = await this.runs.startOrResumeForOrder({
+      tenantId,
+      subscriptionOrderId: order.id,
+      customerAccountId: order.customerAccountId,
+      correlationId: order.id,
+    });
+    await this.auditTransition(
+      run?.resumed
+        ? 'TENANT_PROVISIONING_RESUMED'
+        : 'TENANT_PROVISIONING_STARTED',
+      tenantId,
+      order.id,
+      run,
+    );
+
+    let step = 'tenant-record';
+    try {
+      if (run && !run.resumed) {
+        // Committed together by createWorkspace's transaction, so by the time a
+        // run exists they are all true.
+        await this.runs.stepSucceeded(
+          run.id,
+          'tenant-record',
+          'Tenant created.',
+        );
+        await this.runs.stepSucceeded(run.id, 'workspace-slug-reserved');
+        await this.runs.stepSucceeded(run.id, 'rbac-defaults');
+        await this.runs.stepSucceeded(run.id, 'identities-and-billing');
+        await this.runs.stepSkipped(
+          run.id,
+          'customization-defaults',
+          'Not performed by self-service provisioning.',
+        );
+      }
+
+      step = 'workspace-domain';
+      await this.runs.stepStarted(run?.id, step);
+      await this.onboarding.ensureSystemDomain(tenantId, null);
+      await this.runs.stepSucceeded(run?.id, step);
+
+      step = 'invitations';
+      await this.runs.stepStarted(run?.id, step);
+      await this.onboarding.ensureOwnerInvitations(tenantId, null);
+      await this.runs.stepSucceeded(run?.id, step);
+
+      // Activation and readiness are the last statement that the workspace is
+      // usable, which is what this step verifies.
+      step = 'workspace-routing-verified';
+      await this.runs.stepStarted(run?.id, step);
+      await this.finalize(order, tenantId);
+      await this.runs.stepSucceeded(run?.id, step);
+
+      await this.runs.finish(run?.id, { status: 'SUCCEEDED' });
+      await this.auditTransition(
+        'TENANT_PROVISIONING_SUCCEEDED',
+        tenantId,
+        order.id,
+        run,
+      );
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : 'Provisioning step failed.';
+      await this.runs.stepFailed(run?.id, step, detail);
+      await this.runs.finish(run?.id, {
+        status: 'FAILED',
+        failedStepKey: step,
+        message: detail,
+      });
+      await this.auditTransition(
+        'TENANT_PROVISIONING_FAILED',
+        tenantId,
+        order.id,
+        run,
+        {
+          failedStepKey: step,
+          message: detail,
+        },
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Audit a lifecycle transition. Routed to the platform log with a null actor:
+   * the system did this, and these are operator-facing facts. Telemetry never
+   * fails the provisioning it describes.
+   */
+  private async auditTransition(
+    action: string,
+    tenantId: string,
+    orderId: string,
+    run: { id: string; attempt: number } | null,
+    extra: Record<string, unknown> = {},
+  ) {
+    try {
+      await this.audit.log({
+        tenantId: 'platform',
+        actorUserId: null,
+        action,
+        entityType: 'TenantProvisioningRun',
+        entityId: run?.id ?? orderId,
+        sourceModule: 'super-admin',
+        afterSnapshot: {
+          tenantId,
+          subscriptionOrderId: orderId,
+          attempt: run?.attempt ?? null,
+          ...extra,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Unable to audit ${action} for order ${orderId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * The closing steps. Each is idempotent, so a retry can run it again after a
+   * failure part-way through.
    */
   private async finalize(
     order: { id: string; customerAccountId: string },

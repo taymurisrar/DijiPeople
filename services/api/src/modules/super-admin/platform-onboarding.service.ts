@@ -13,8 +13,10 @@ import {
   PaymentProvider,
   PlatformUserStatus,
   SubscriptionStatus,
+  TenantDomainType,
   TenantFeatureSource,
   TenantStatus,
+  UserInvitationStatus,
   UserStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
@@ -205,266 +207,373 @@ export class PlatformOnboardingService {
    * would be a second identity to secure.
    */
   async provisionTenantForCustomer(input: ProvisionTenantForCustomerInput) {
+    const created = await this.createWorkspace(input);
+    const invitations = await this.ensureOwnerInvitations(
+      created.tenantId,
+      input.actorUserId,
+    );
+    const domain = await this.ensureSystemDomain(
+      created.tenantId,
+      input.actorUserId,
+    );
+
+    return {
+      customerAccountId: created.customerAccountId,
+      tenantId: created.tenantId,
+      tenant: created.tenant,
+      urls: {
+        loginUrl: buildTenantLoginUrl(this.configService, {
+          slug: created.tenant.slug,
+        }),
+        activationUrl: invitations[0]?.activationLink ?? null,
+        tenantUrl: domain.resolvedUrl,
+      },
+    };
+  }
+
+  /**
+   * The atomic half of provisioning: tenant, roles, owner, subscription and the
+   * order link, all or nothing. Everything that cannot be rolled back (mail, the
+   * hostname) is deliberately NOT here — see `ensureOwnerInvitations` and
+   * `ensureSystemDomain`, which are idempotent so a retry can finish them.
+   *
+   * Public so the self-service handler can record a provisioning run between
+   * this and the recoverable steps: a run belongs to a tenant, so it cannot
+   * exist before this returns.
+   */
+  async createWorkspace(input: ProvisionTenantForCustomerInput) {
     const actorUserId = input.actorUserId;
 
-    const onboardingResult = await this.prisma.$transaction(async (tx) => {
-      const customerAccount = { id: input.customerAccountId };
+    const onboardingResult = await this.prisma.$transaction(
+      async (tx) => {
+        const customerAccount = { id: input.customerAccountId };
 
-      const tenant = await tx.tenant.create({
-        data: {
-          customerAccountId: customerAccount.id,
-          tenantCode: await generateTenantCode(tx),
-          name: input.companyName,
-          displayName: input.companyName,
-          slug: input.slug,
-          status: input.tenantStatus,
-          createdById: actorUserId,
-          updatedById: actorUserId,
-          tenantBranding: {
-            create: buildDefaultTenantBranding(
-              input.companyName,
-              input.contactEmail,
-            ),
+        const tenant = await tx.tenant.create({
+          data: {
+            customerAccountId: customerAccount.id,
+            tenantCode: await generateTenantCode(tx),
+            name: input.companyName,
+            displayName: input.companyName,
+            slug: input.slug,
+            status: input.tenantStatus,
+            createdById: actorUserId,
+            updatedById: actorUserId,
+            tenantBranding: {
+              create: buildDefaultTenantBranding(
+                input.companyName,
+                input.contactEmail,
+              ),
+            },
           },
-        },
-      });
-
-      if (input.subscriptionOrderId) {
-        await tx.subscriptionOrder.update({
-          where: { id: input.subscriptionOrderId },
-          data: { tenantId: tenant.id },
         });
-      }
 
-      await this.permissionsService.bootstrapTenantDefaults(
-        tenant.id,
-        tx,
-        actorUserId ?? undefined,
-      );
+        if (input.subscriptionOrderId) {
+          await tx.subscriptionOrder.update({
+            where: { id: input.subscriptionOrderId },
+            data: { tenantId: tenant.id },
+          });
+        }
 
-      const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
-        tenant.id,
-        ROLE_KEYS.SYSTEM_ADMIN,
-        tx,
-      );
-
-      if (!systemAdminRole) {
-        throw new ConflictException(
-          'Tenant system admin role could not be provisioned.',
+        await this.permissionsService.bootstrapTenantDefaults(
+          tenant.id,
+          tx,
+          actorUserId ?? undefined,
         );
-      }
 
-      const placeholderPasswordHash = await bcrypt.hash(
-        `onboarding-${tenant.id}-${Date.now()}`,
-        12,
-      );
+        const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
+          tenant.id,
+          ROLE_KEYS.SYSTEM_ADMIN,
+          tx,
+        );
 
-      const ownerUser = await this.usersRepository.create(
-        {
-          tenantId: tenant.id,
-          firstName: input.owner.firstName,
-          lastName: input.owner.lastName,
-          email: input.owner.email,
-          passwordHash: placeholderPasswordHash,
-          status: UserStatus.INVITED,
-          createdById: actorUserId ?? undefined,
-          updatedById: actorUserId ?? undefined,
-        },
-        tx,
-      );
+        if (!systemAdminRole) {
+          throw new ConflictException(
+            'Tenant system admin role could not be provisioned.',
+          );
+        }
 
-      await tx.customerAccount.update({
-        where: { id: customerAccount.id },
-        data: {
-          primaryOwnerUserId: ownerUser.id,
-        },
-      });
+        const placeholderPasswordHash = await bcrypt.hash(
+          `onboarding-${tenant.id}-${Date.now()}`,
+          12,
+        );
 
-      await tx.tenant.update({
-        where: { id: tenant.id },
-        data: {
-          ownerUserId: ownerUser.id,
-          updatedById: actorUserId,
-        },
-      });
-
-      const invitedUsers = [
-        {
-          userId: ownerUser.id,
-          email: input.owner.email,
-          fullName: `${input.owner.firstName} ${input.owner.lastName}`,
-        },
-      ];
-      const usersToAssign = [ownerUser.id];
-
-      if (input.serviceAccount) {
-        const serviceAccount = await this.usersRepository.create(
+        const ownerUser = await this.usersRepository.create(
           {
             tenantId: tenant.id,
-            firstName: input.serviceAccount.name,
-            lastName: 'Service Account',
-            email: input.serviceAccount.email,
+            firstName: input.owner.firstName,
+            lastName: input.owner.lastName,
+            email: input.owner.email,
             passwordHash: placeholderPasswordHash,
             status: UserStatus.INVITED,
-            isServiceAccount: true,
             createdById: actorUserId ?? undefined,
             updatedById: actorUserId ?? undefined,
           },
           tx,
         );
-        usersToAssign.push(serviceAccount.id);
-        invitedUsers.push({
-          userId: serviceAccount.id,
-          email: input.serviceAccount.email,
-          fullName: `${input.serviceAccount.name} Service Account`,
+
+        await tx.customerAccount.update({
+          where: { id: customerAccount.id },
+          data: {
+            primaryOwnerUserId: ownerUser.id,
+          },
         });
-      }
 
-      await tx.userRole.createMany({
-        data: usersToAssign.map((userId) => ({
-          tenantId: tenant.id,
-          userId,
-          roleId: systemAdminRole.id,
-          createdById: actorUserId,
-        })),
-        skipDuplicates: true,
-      });
+        await tx.tenant.update({
+          where: { id: tenant.id },
+          data: {
+            ownerUserId: ownerUser.id,
+            updatedById: actorUserId,
+          },
+        });
 
-      const subscription = await this.billingService.createOrUpdateSubscription(
-        tx,
-        {
-          tenantId: tenant.id,
-          planId: input.subscription.planId,
-          planPriceId: input.subscription.planPriceId,
-          billingCycle: input.subscription.billingCycle,
-          status: input.subscription.status,
-          startDate: new Date(),
-          currency: input.subscription.currency,
-          purchasedSeats: input.subscription.purchasedSeats,
-          stripeSubscriptionId: input.subscription.stripeSubscriptionId,
-          paymentProvider: input.subscription.paymentProvider,
-          discountType: input.subscription.discountType,
-          discountValue: input.subscription.discountValue,
-          discountReason: input.subscription.discountReason,
-          manualFinalPrice: input.subscription.manualFinalPrice,
-          autoRenew: input.subscription.autoRenew,
-          actorUserId: actorUserId ?? undefined,
-        },
-      );
+        const invitedUsers = [
+          {
+            userId: ownerUser.id,
+            email: input.owner.email,
+            fullName: `${input.owner.firstName} ${input.owner.lastName}`,
+          },
+        ];
+        const usersToAssign = [ownerUser.id];
 
-      if (input.featureOverrides?.length) {
-        await Promise.all(
-          input.featureOverrides.map((feature) =>
-            tx.tenantFeature.upsert({
-              where: {
-                tenantId_key: {
+        if (input.serviceAccount) {
+          const serviceAccount = await this.usersRepository.create(
+            {
+              tenantId: tenant.id,
+              firstName: input.serviceAccount.name,
+              lastName: 'Service Account',
+              email: input.serviceAccount.email,
+              passwordHash: placeholderPasswordHash,
+              status: UserStatus.INVITED,
+              isServiceAccount: true,
+              createdById: actorUserId ?? undefined,
+              updatedById: actorUserId ?? undefined,
+            },
+            tx,
+          );
+          usersToAssign.push(serviceAccount.id);
+          invitedUsers.push({
+            userId: serviceAccount.id,
+            email: input.serviceAccount.email,
+            fullName: `${input.serviceAccount.name} Service Account`,
+          });
+        }
+
+        await tx.userRole.createMany({
+          data: usersToAssign.map((userId) => ({
+            tenantId: tenant.id,
+            userId,
+            roleId: systemAdminRole.id,
+            createdById: actorUserId,
+          })),
+          skipDuplicates: true,
+        });
+
+        const subscription =
+          await this.billingService.createOrUpdateSubscription(tx, {
+            tenantId: tenant.id,
+            planId: input.subscription.planId,
+            planPriceId: input.subscription.planPriceId,
+            billingCycle: input.subscription.billingCycle,
+            status: input.subscription.status,
+            startDate: new Date(),
+            currency: input.subscription.currency,
+            purchasedSeats: input.subscription.purchasedSeats,
+            stripeSubscriptionId: input.subscription.stripeSubscriptionId,
+            paymentProvider: input.subscription.paymentProvider,
+            discountType: input.subscription.discountType,
+            discountValue: input.subscription.discountValue,
+            discountReason: input.subscription.discountReason,
+            manualFinalPrice: input.subscription.manualFinalPrice,
+            autoRenew: input.subscription.autoRenew,
+            actorUserId: actorUserId ?? undefined,
+          });
+
+        if (input.featureOverrides?.length) {
+          await Promise.all(
+            input.featureOverrides.map((feature) =>
+              tx.tenantFeature.upsert({
+                where: {
+                  tenantId_key: {
+                    tenantId: tenant.id,
+                    key: feature.key,
+                  },
+                },
+                create: {
                   tenantId: tenant.id,
                   key: feature.key,
+                  isEnabled: feature.isEnabled,
+                  source: TenantFeatureSource.MANUAL,
+                  createdById: actorUserId,
+                  updatedById: actorUserId,
                 },
-              },
-              create: {
-                tenantId: tenant.id,
-                key: feature.key,
-                isEnabled: feature.isEnabled,
-                source: TenantFeatureSource.MANUAL,
-                createdById: actorUserId,
-                updatedById: actorUserId,
-              },
-              update: {
-                isEnabled: feature.isEnabled,
-                source: TenantFeatureSource.MANUAL,
-                updatedById: actorUserId,
-              },
-            }),
-          ),
-        );
-      }
+                update: {
+                  isEnabled: feature.isEnabled,
+                  source: TenantFeatureSource.MANUAL,
+                  updatedById: actorUserId,
+                },
+              }),
+            ),
+          );
+        }
 
-      await tx.customerContact.create({
-        data: {
-          customerAccountId: customerAccount.id,
-          name: `${input.owner.firstName} ${input.owner.lastName}`,
-          email: input.owner.email,
-          role: 'Primary Owner',
-          isPrimaryContact: true,
-        },
-      });
-
-      await tx.customerNote.create({
-        data: {
-          customerAccountId: customerAccount.id,
-          note: input.note,
-          createdByUserId: actorUserId,
-        },
-      });
-
-      /*
-       * Skipped on the self-service path. Stripe has already invoiced the buyer
-       * and will keep doing so; issuing a second internal invoice for the same
-       * period would double-count revenue and reach the customer as a bill they
-       * have already paid.
-       */
-      if (input.generateInitialInvoice) {
-        await this.billingService.createInvoice(tx, {
-          tenantId: tenant.id,
-          subscriptionId: subscription.id,
-          amount: Number(subscription.finalPrice),
-          currency: subscription.currency,
-          status: InvoiceStatus.ISSUED,
-          actorUserId: actorUserId ?? undefined,
+        await tx.customerContact.create({
+          data: {
+            customerAccountId: customerAccount.id,
+            name: `${input.owner.firstName} ${input.owner.lastName}`,
+            email: input.owner.email,
+            role: 'Primary Owner',
+            isPrimaryContact: true,
+          },
         });
-      }
 
-      return {
-        customerAccountId: customerAccount.id,
-        invitedUsers,
-        tenantId: tenant.id,
-        tenant: {
-          id: tenant.id,
-          tenantCode: tenant.tenantCode,
-          slug: tenant.slug,
-          displayName: tenant.displayName ?? tenant.name,
-          status: tenant.status,
-        },
-      };
-    });
+        await tx.customerNote.create({
+          data: {
+            customerAccountId: customerAccount.id,
+            note: input.note,
+            createdByUserId: actorUserId,
+          },
+        });
 
-    /*
-     * Outside the transaction on purpose. Issuing an invitation sends mail, and
-     * mail cannot be rolled back — so it must not happen inside a transaction
-     * that might still abort. The cost is that a crash here leaves a provisioned
-     * tenant whose owner has no activation link, which the provisioning retry
-     * path finds through SubscriptionOrder.tenantId rather than duplicating.
-     */
-    const invitations = await Promise.all(
-      onboardingResult.invitedUsers.map((user) =>
-        this.userInvitationsService.issueInvitation({
-          tenantId: onboardingResult.tenantId,
-          userId: user.userId,
-          email: user.email,
-          fullName: user.fullName,
-          createdByUserId: actorUserId ?? undefined,
-        }),
-      ),
+        /*
+         * Skipped on the self-service path. Stripe has already invoiced the buyer
+         * and will keep doing so; issuing a second internal invoice for the same
+         * period would double-count revenue and reach the customer as a bill they
+         * have already paid.
+         */
+        if (input.generateInitialInvoice) {
+          await this.billingService.createInvoice(tx, {
+            tenantId: tenant.id,
+            subscriptionId: subscription.id,
+            amount: Number(subscription.finalPrice),
+            currency: subscription.currency,
+            status: InvoiceStatus.ISSUED,
+            actorUserId: actorUserId ?? undefined,
+          });
+        }
+
+        return {
+          customerAccountId: customerAccount.id,
+          invitedUsers,
+          tenantId: tenant.id,
+          tenant: {
+            id: tenant.id,
+            tenantCode: tenant.tenantCode,
+            slug: tenant.slug,
+            displayName: tenant.displayName ?? tenant.name,
+            status: tenant.status,
+          },
+        };
+      },
+      /*
+       * Tenant, RBAC bootstrap, bcrypt hash, owner and subscription in one
+       * transaction cannot be assumed to fit Prisma's default 5s interactive
+       * window on a loaded database. It expired part-way (P2028), rolled back,
+       * and the outbox retried the same slow work into the same wall; the order
+       * was never provisioned and nothing said why.
+       */
+      { maxWait: 10_000, timeout: 60_000 },
     );
-
-    const domain = await this.tenantProvisioning.provisionSystemDomain({
-      tenantId: onboardingResult.tenantId,
-      slug: onboardingResult.tenant.slug,
-      actorId: actorUserId ?? undefined,
-    });
 
     return {
       customerAccountId: onboardingResult.customerAccountId,
       tenantId: onboardingResult.tenantId,
       tenant: onboardingResult.tenant,
-      urls: {
-        loginUrl: buildTenantLoginUrl(this.configService, {
-          slug: onboardingResult.tenant.slug,
-        }),
-        activationUrl: invitations[0]?.activationLink ?? null,
-        tenantUrl: domain.resolvedUrl,
+    };
+  }
+
+  /**
+   * Make sure each invited account has a live activation invitation.
+   *
+   * Outside the creating transaction on purpose: issuing an invitation sends
+   * mail, and mail cannot be rolled back, so it must not happen inside a
+   * transaction that might still abort.
+   *
+   * **Safe to call again.** `issueInvitation` revokes the live invitation and
+   * mails a new one every time, so simply re-running it on a retry would send
+   * the owner a second email. An account is therefore only invited while it is
+   * still INVITED and holds no pending, unexpired invitation. It never creates
+   * a user, and every read is scoped to the tenant.
+   */
+  async ensureOwnerInvitations(tenantId: string, actorUserId: string | null) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { ownerUserId: true },
+    });
+    const users = await this.prisma.user.findMany({
+      where: {
+        tenantId,
+        status: UserStatus.INVITED,
+        OR: [
+          ...(tenant?.ownerUserId ? [{ id: tenant.ownerUserId }] : []),
+          { isServiceAccount: true },
+        ],
       },
+      select: { id: true, email: true, firstName: true, lastName: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const issued: Array<{ activationLink?: string }> = [];
+    for (const user of users) {
+      const live = await this.prisma.userInvitation.findFirst({
+        where: {
+          tenantId,
+          userId: user.id,
+          status: UserInvitationStatus.PENDING,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        select: { id: true },
+      });
+      if (live) continue;
+      issued.push(
+        await this.userInvitationsService.issueInvitation({
+          tenantId,
+          userId: user.id,
+          email: user.email,
+          fullName: `${user.firstName} ${user.lastName}`.trim(),
+          createdByUserId: actorUserId ?? undefined,
+        }),
+      );
+    }
+    return issued;
+  }
+
+  /**
+   * Make sure the tenant has its system hostname, issuing it at most once.
+   *
+   * `createSystemDomain` is an upsert, so replaying it is harmless, but it also
+   * records a platform event every time; a retry that finds the primary system
+   * domain already issued therefore returns it rather than announcing it again.
+   */
+  async ensureSystemDomain(tenantId: string, actorUserId: string | null) {
+    const existing = await this.prisma.tenantDomain.findFirst({
+      where: {
+        tenantId,
+        isPrimary: true,
+        type: TenantDomainType.SYSTEM_SUBDOMAIN,
+        disabledAt: null,
+      },
+      select: { domain: true },
+    });
+    if (existing) {
+      return { domain: existing.domain, resolvedUrl: null as string | null };
+    }
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { slug: true },
+    });
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
+    }
+    const issued = await this.tenantProvisioning.provisionSystemDomain({
+      tenantId,
+      slug: tenant.slug,
+      actorId: actorUserId ?? undefined,
+    });
+    return {
+      domain: issued.domain,
+      resolvedUrl: issued.resolvedUrl as string | null,
     };
   }
 

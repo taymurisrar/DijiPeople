@@ -32,10 +32,18 @@ Accounts (demo tenant `dijipeople-demo`, password `DEMO_USER_PASSWORD` from the 
 ## Things to avoid in the room
 
 - HR uploading from the employee record's Documents tab is refused today (BUG-4456, product decision). Upload as the admin, as the script does.
-- The lookup editor used for department and designation is not automated (BUG-4447). Do that step by hand.
 - Do not show the Approvals inbox as a manager for a new leave request; the approval is assigned to the admin. Use the admin.
 - First load of each page after a deploy is slow. Open every page once before the call.
 
 ## Evidence
 
-Browser runs on 2026-11-19: Flow O 8/8, Flow P 9 passed + 1 `fixme`, Flow Q 7/7 (Flow P and Q twice consecutively, zero tagged residue). CI results are recorded in PLAN-057.
+**Continuous replay** (`node e2e/tools/run-growth-demo.mjs`: Flow Q, then O, then P, one clock, any skip or failure fails the run). Two consecutive runs on a brand-new disposable database on 2026-11-20:
+
+| Run | Passed | Failed | Skipped | Seconds |
+|---|---|---|---|---|
+| 1 | 25 | 0 | 0 | 462 |
+| 2 | 25 | 0 | 0 | 354 |
+
+Segments (run 2): bank-transfer purchase 7 passed in 106s, hiring to employee 8 in 78s, HR workflows 10 in 170s.
+
+Limits of this proof: Flow Q provisions a new tenant and signs its owner in, but Flows O and P then run on the seeded demo tenant (the same Growth entitlements), not on the tenant Q just created. The replay runs far faster than a live presenter, so the 30 minutes is a speaking budget, not a measured duration.

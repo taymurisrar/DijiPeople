@@ -1454,7 +1454,19 @@ export class EmployeesService {
           )
         : null;
 
-    if (hasNonEmptyString(dto.ownerUserId)) {
+    /*
+     * Only a CHANGE of owner is an assignment that needs an eligible owner. The
+     * edit form sends the current owner back with every save, and a draft
+     * profile that Start onboarding created is owned by whoever clicked it - a
+     * recruiter, who holds none of the owner roles. Re-validating the unchanged
+     * value refused every save of that draft ("Owner user was not found for this
+     * tenant") and so blocked assigning its department, designation and manager
+     * from the screen (BUG-4447).
+     */
+    if (
+      hasNonEmptyString(dto.ownerUserId) &&
+      dto.ownerUserId !== employee.ownerUserId
+    ) {
       await this.assertAssignableOwner(currentUser, dto.ownerUserId);
     }
     await this.assertActiveWorkSchedule(tenantId, dto.defaultWorkScheduleId);

@@ -57,6 +57,14 @@ export type PlatformOperator = {
  * API is not production and the database is a disposable `*_test` / `*_e2e`
  * one. Runs before the first write.
  */
+/**
+ * The page's content landmark. During a client navigation the previous and next
+ * page can both be in the DOM for a moment, so `locator('main')` is two elements
+ * and a strict assertion on it throws (seen on Q4: "resolved to 2 elements",
+ * one of them the loading state). The current page renders last.
+ */
+export const mainOf = (page: Page) => page.locator('main').last();
+
 export async function requireBankTransferEnvironment(): Promise<void> {
   const probe = await request.newContext();
   let apiEnvironment: string | null = null;
@@ -291,7 +299,7 @@ export async function runWizardToVerification(page: Page, buyer: Buyer) {
   await page.goto(`${TARGET.landing}/plans`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('link', { name: /start with growth/i }).first().click();
   await expect(page).toHaveURL(/\/subscribe\?plan=growth/);
-  const main = page.locator('main');
+  const main = mainOf(page);
 
   await fillStable(page.getByLabel(/company name/i).first(), buyer.company);
   await expect(main).toContainText('Bank transfer / Raast');
@@ -327,8 +335,8 @@ export async function buyGrowthToInvoice(page: Page, buyer: Buyer) {
   await page.getByLabel(/verification code/i).fill(code);
   await page.getByRole('button', { name: /confirm and continue to payment/i }).click();
   await page.waitForURL(/\/subscribe\/bank-transfer\?onboarding=/, { timeout: 45_000 });
-  await expect(page.locator('main')).toContainText('Awaiting your transfer');
-  const reference = (await page.locator('main').innerText()).match(/DP-[A-Z0-9]{4}-[A-Z0-9]{4}/)?.[0] ?? '';
+  await expect(mainOf(page)).toContainText('Awaiting your transfer');
+  const reference = (await mainOf(page).innerText()).match(/DP-[A-Z0-9]{4}-[A-Z0-9]{4}/)?.[0] ?? '';
   expect(reference, 'the invoice should show a payment reference').not.toBe('');
   return { orderId, reference };
 }
@@ -341,7 +349,7 @@ export async function submitClaimInBrowser(page: Page, txnReference: string) {
     .locator('input[name=evidence]')
     .setInputFiles({ name: `receipt-${TAG}.png`, mimeType: 'image/png', buffer: SYNTHETIC_RECEIPT });
   await page.getByRole('button', { name: 'I have paid' }).click();
-  await expect(page.locator('main')).toContainText('Pending verification');
+  await expect(mainOf(page)).toContainText('Pending verification');
 }
 
 /* ------------------------------------------------------------- admin console */
