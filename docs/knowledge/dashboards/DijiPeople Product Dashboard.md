@@ -204,7 +204,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
-| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | OPEN | apps/admin | PLAN_REQUIRED |
+| [[BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th|BUG-4439]] | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | FIXED | apps/admin | FIX_NOW |
 
 ## How to read this
 

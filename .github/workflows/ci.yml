@@ -1097,6 +1097,19 @@ jobs:
       # the default write limit (20) makes the later flows fail on 429. Honoured
       # only for NODE_ENV=test or development, never in production.
       PUBLIC_RATE_LIMIT_WRITE_MAX: '2000'
+      # Flow Q buys Growth by bank transfer end to end. Provisioning runs in the
+      # outbox worker, and the activation link is only readable from the API when
+      # mail goes to the console sink; user-invitations refuses it in production.
+      OUTBOX_WORKER_ENABLED: 'true'
+      # Public checkout builds return and activation links from these; without them
+      # the API refuses to create the invoice ("LANDING_APP_URL or WEB_APP_URL must
+      # be configured for public checkout") and Flow Q stops after the email code.
+      # Provisioning issues a workspace hostname under this domain; without it the
+      # handler throws after creating the tenant and the outbox retries (BUG-4467).
+      TENANT_BASE_DOMAIN: dijipeople.com
+      LANDING_APP_URL: http://localhost:3000
+      WEB_APP_URL: http://localhost:3001
+      EXPOSE_DEV_AUTH_LINKS: 'true'
       E2E_TENANT_SLUG: dijipeople-demo
       E2E_TENANT_USER_EMAIL: system-admin@dijipeople.local
       E2E_TENANT_USER_PASSWORD: DemoUser@12345

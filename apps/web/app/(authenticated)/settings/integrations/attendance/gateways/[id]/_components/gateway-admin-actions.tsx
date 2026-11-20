@@ -216,9 +216,9 @@ export function GatewayCredentialList({
             </p>
             <p className="mt-0.5 text-xs text-muted">
               {credential.label ?? "Credential"} · issued{" "}
-              {new Date(credential.createdAt).toLocaleDateString()}
+              {new Date(credential.createdAt).toLocaleDateString("en-GB", { timeZone: "UTC" })}
               {credential.lastUsedAt
-                ? ` · last used ${new Date(credential.lastUsedAt).toLocaleDateString()}`
+                ? ` · last used ${new Date(credential.lastUsedAt).toLocaleDateString("en-GB", { timeZone: "UTC" })}`
                 : " · never used"}
             </p>
           </div>

@@ -815,7 +815,7 @@ export function TimesheetMONTHLYEditor({
               week.reopeningRequests.some((request) => request.canDecide) ||
               ["APPROVED", "PAYROLL_READY", "LOCKED"].includes(week.status) ? (
                 <label className="mt-4 grid max-w-xl gap-1 text-xs font-medium text-foreground">
-                  Comment {week.status === "OVERDUE" ? "or late reason" : ""}
+                  Comment {isWeekLate(week) ? "or late reason" : ""}
                   <textarea
                     className="min-h-20 rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-accent"
                     maxLength={1000}
@@ -874,7 +874,7 @@ export function TimesheetMONTHLYEditor({
                             weekVersion: week.version,
                             comment: commentByWeek[week.id] || undefined,
                             lateReason:
-                              week.status === "OVERDUE"
+                              isWeekLate(week)
                                 ? commentByWeek[week.id] || undefined
                                 : undefined,
                           },
@@ -1441,3 +1441,23 @@ type ApprovalTracker = {
     completedAtUtc?: string | null;
   }>;
 };
+
+/**
+ * A week is late once its deadline has passed, whatever its status. Keying this
+ * on status === "OVERDUE" lost the late reason as soon as a draft was saved
+ * (the status becomes READY_TO_SUBMIT while the deadline stays passed), so the
+ * API refused the submission with "A late submission reason is required" and the
+ * form no longer offered a way to give one.
+ */
+function isWeekLate(week: {
+  status: string;
+  submissionDeadline?: string | null;
+}) {
+  return (
+    week.status === "OVERDUE" ||
+    Boolean(
+      week.submissionDeadline &&
+        new Date() > new Date(week.submissionDeadline),
+    )
+  );
+}

@@ -236,3 +236,34 @@ export function classifyDashboardError(
 
   return CONFIGS.unexpected;
 }
+
+/**
+ * What the boundary reports to monitoring (BUG-4440).
+ *
+ * A server-component throw reaches the client with its message and status
+ * stripped, and the boundary used to file it as 500 SYSTEM_UNEXPECTED_ERROR at
+ * ERROR level, so a handled 400 (an unsupported setting key, a password reset
+ * for an unlinked user) looked like a system fault. The server already recorded
+ * the real event, with its real status, under the same digest. This report is a
+ * pointer to that row, not a second incident: it keeps a distinct code and
+ * WARNING severity and does not claim a status it cannot know. A failure thrown
+ * in a client component still carries its message and stays an ERROR.
+ */
+export function clientReportFor(
+  error: DashboardErrorLike,
+  variant: DashboardErrorVariant,
+): { statusCode: number; errorCode: string; severity: "WARNING" | "ERROR" } {
+  const status = getDashboardErrorStatus(error);
+  if (status === undefined && variant === "server-error") {
+    return {
+      statusCode: 500,
+      errorCode: "SERVER_COMPONENT_RENDER_ERROR",
+      severity: "WARNING",
+    };
+  }
+  return {
+    statusCode: status ?? 500,
+    errorCode: error.code ?? "SYSTEM_UNEXPECTED_ERROR",
+    severity: (status ?? 500) >= 500 ? "ERROR" : "WARNING",
+  };
+}

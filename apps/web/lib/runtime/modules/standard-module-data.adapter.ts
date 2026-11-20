@@ -1373,6 +1373,12 @@ function normalizeProjectAssignmentValues(values: RuntimeRecord) {
               : String(values.billingRateAmount),
         }
       : {}),
+    // An untouched optional date input yields "", which the API rejects as a
+    // non-ISO date (400 "endDate must be a valid ISO 8601 date string"), so an
+    // assignment with no end date could never be saved from the form.
+    ...(values.endDate !== undefined
+      ? { endDate: values.endDate === "" ? null : values.endDate }
+      : {}),
     ...(values.costRateAmount !== undefined
       ? {
           costRateAmount:

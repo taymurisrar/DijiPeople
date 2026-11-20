@@ -2,7 +2,7 @@
 ID: BUG-4440
 aliases: [BUG-4440]
 Title: The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-19
 DetectedInSha: 3a705545
 AffectedModules: [error-logs, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-691
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
 UpdatedAt: 2026-11-19
-ResolvedAt:
+ResolvedAt: 2026-11-19
 ---
 
 # BUG-4440 — The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring
@@ -58,13 +58,22 @@ error-logs controller, web error boundary.
 
 ## Proposed Resolution
 
+Report a distinct code and WARNING for the pointer row.
+
+
 Carry the upstream status from the boundary, or classify by message for known refusals.
 
 ## Acceptance Criteria
 
+A stripped server-component failure is not stored as 500 SYSTEM_UNEXPECTED_ERROR at ERROR level.
+
+
 Verifiable statements QA can retest against.
 
 ## Regression Coverage
+
+REG-691 — apps/web/app/(authenticated)/_lib/classify-dashboard-error.spec.ts.
+
 
 The test that must fail without the fix, and its `REG-nnn` entry once it exists.
 
@@ -78,9 +87,15 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
+The boundary now reports a status-stripped server-component failure as SERVER_COMPONENT_RENDER_ERROR at WARNING (clientReportFor in classify-dashboard-error.ts); the server row keeps the real status. Client-component crashes stay ERROR.
+
+
 What was actually changed, with the commit or branch. Filled at fix time.
 
 ## QA Retest
+
+Jest: classify-dashboard-error.spec.ts (3 new cases).
+
 
 Which QA run verified the fix, and the scenario ids.
 
@@ -93,5 +108,6 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-691 (see the regression register)
 
 <!-- GRAPH:END -->

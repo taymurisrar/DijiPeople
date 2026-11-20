@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**807 records** — 574 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**811 records** — 578 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 306 |
+| Open (active work) | 310 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **124** |
+| **Open HIGH** | **125** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 124 |
-| MEDIUM | 139 |
+| HIGH | 125 |
+| MEDIUM | 142 |
 | LOW | 32 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 18 |
-| BUG | 96 |
+| AUTHORIZATION | 19 |
+| BUG | 99 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 59 |
+| OPEN | 57 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 218 |
+| FIXED | 224 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -336,6 +336,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4427](../../docs/bugs/BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a.md) | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | P1 | FIXED | landing, billing | FIX_NOW |
 | [BUG-4438](../../docs/bugs/BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-.md) | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | P1 | FIXED | recruitment, permissions | FIX_NOW |
 | [BUG-4446](../../docs/bugs/BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the.md) | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | P1 | FIXED | onboarding, apps/web | FIX_NOW |
+| [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | FIXED | — | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -613,8 +614,11 @@ see [`README.md`](README.md) for why.
 | [BUG-4218](../../docs/bugs/BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla.md) | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | P2 | FIXED | contracts | FIX_NOW |
 | [BUG-4428](../../docs/bugs/BUG-4428-activate-account-agreement-party-and-signature-recipient-for.md) | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | P2 | FIXED | auth, contracts, apps/web, apps/admin | FIX_NOW |
 | [BUG-4429](../../docs/bugs/BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem.md) | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | P2 | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
-| [BUG-4440](../../docs/bugs/BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy.md) | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | P2 | OPEN | error-logs, apps/web | PLAN_REQUIRED |
-| [BUG-4441](../../docs/bugs/BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se.md) | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
+| [BUG-4440](../../docs/bugs/BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy.md) | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | P2 | FIXED | error-logs, apps/web | FIX_NOW |
+| [BUG-4441](../../docs/bugs/BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se.md) | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-4456](../../docs/bugs/BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do.md) | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | P2 | FIXED | api:employees, services/api/src/common/constants/rbac-matrix.ts | FIX_NOW |
+| [BUG-4457](../../docs/bugs/BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l.md) | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
+| [BUG-4458](../../docs/bugs/BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t.md) | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -791,7 +795,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4006](../../docs/bugs/BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica.md) | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [BUG-4019](../../docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md) | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | P3 | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [BUG-4034](../../docs/bugs/BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then.md) | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | P3 | FIXED | app:admin | FIX_NOW |
-| [BUG-4439](../../docs/bugs/BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th.md) | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | P3 | OPEN | apps/admin | PLAN_REQUIRED |
+| [BUG-4439](../../docs/bugs/BUG-4439-admin-dashboard-cards-fail-wcag-color-contrast-serious-in-th.md) | Admin dashboard cards fail WCAG color-contrast (serious) in the browser accessibility sweep | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [BUG-4447](../../docs/bugs/BUG-4447-employee-record-lookup-editor-department-designation-reporti.md) | Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API | TEST_GAP | LOW | P3 | OPEN | employees, apps/web | PLAN_REQUIRED |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |

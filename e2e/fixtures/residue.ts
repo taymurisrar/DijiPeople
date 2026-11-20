@@ -19,6 +19,7 @@ const TAGGED: Tables = [
   { table: 'Project', column: 'name' },
   { table: 'Document', column: 'title' },
   { table: 'LeaveRequest', column: 'reason' },
+  { table: 'TimesheetEntry', column: 'note' },
 ];
 
 async function withClient<T>(
@@ -76,6 +77,21 @@ export async function deleteTaggedJobOpenings(tag: string): Promise<number> {
     const r = await c.query(`delete from "JobOpening" where title like $1`, [
       `%${tag}%`,
     ]);
+    return r.rowCount ?? 0;
+  });
+}
+
+/**
+ * Remove the timesheets that carry a tagged entry. A timesheet has no delete
+ * route and is created lazily the first time an employee opens the month, so
+ * it is regenerable; deleting it cascades its weeks, days and entries.
+ */
+export async function deleteTaggedTimesheets(tag: string): Promise<number> {
+  return withClient(async (c) => {
+    const r = await c.query(
+      `delete from "Timesheet" where id in (select "timesheetId" from "TimesheetEntry" where note like $1)`,
+      [`%${tag}%`],
+    );
     return r.rowCount ?? 0;
   });
 }
