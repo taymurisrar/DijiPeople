@@ -43,6 +43,14 @@ const asJson = process.argv.includes('--json');
  * rejected below. Every one of these is a `--omit=dev` finding whose npm-offered
  * "fix" costs more than the advisory, and each names the record that argues it.
  */
+/**
+ * A disposition that must be looked at again by a date. Past it, the entry stops
+ * counting and the gate fails as if it were undocumented, so an accepted risk
+ * cannot quietly become permanent. Most entries above predate this and have no
+ * date; new ones should.
+ */
+const EXPIRES = new Map([['effect', '2026-12-20']]);
+
 const DISPOSITIONED = new Map([
   [
     'prisma',
@@ -51,6 +59,10 @@ const DISPOSITIONED = new Map([
   [
     '@prisma/config',
     'Transitive through the prisma CLI. Same disposition as `prisma`. BUG-0052.',
+  ],
+  [
+    'effect',
+    "Owner-approved 2026-11-20, time-bound (see EXPIRES below). GHSA-7589-6fvf-x4pw: ReDoS in Schema.TemplateLiteral's compiled regex, range <=3.22.0. Reached only through the prisma CLI (prisma -> @prisma/config -> effect, pinned exactly to 3.20.0). Nothing in services/api/src or the three apps imports 'effect' (searched 2026-11-20), so no request path reaches it; the only caller is the Prisma CLI reading our own prisma.config.ts at build and migrate time. No fix exists: prisma 7.10.1 still pins 3.20.0, an npm override is ignored for an exact pin, and a hand-edited lockfile fails npm ls. Remove this entry when @prisma/config requires effect >=3.22.1; the stale-disposition check forces that. BUG-0052.",
   ],
   [
     'deepmerge-ts',
@@ -159,7 +171,14 @@ for (const [name, entry] of found) {
     criticals.push(name);
     continue;
   }
-  if (!DISPOSITIONED.has(name)) undocumented.push(`${entry.severity} ${name}`);
+  if (!DISPOSITIONED.has(name)) {
+    undocumented.push(`${entry.severity} ${name}`);
+    continue;
+  }
+  const expires = EXPIRES.get(name);
+  if (expires && new Date().toISOString().slice(0, 10) > expires) {
+    undocumented.push(`${entry.severity} ${name} (disposition expired ${expires})`);
+  }
 }
 
 // A disposition that no longer matches anything is worse than none: it reads as
