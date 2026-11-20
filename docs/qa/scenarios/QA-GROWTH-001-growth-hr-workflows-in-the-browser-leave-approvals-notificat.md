@@ -8,12 +8,12 @@ TYPE: BROWSER_E2E
 RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: e2e/tests/flow-p-growth-hr-browser.spec.ts
-RELATED_BUGS: [BUG-4457, BUG-4458, BUG-4456]
+RELATED_BUGS: [BUG-4457, BUG-4458, BUG-4456, BUG-1980]
 RELATED_REGRESSIONS: [REG-692, REG-693, REG-694]
 LAST_RUN: 2026-11-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-11-19
-UPDATED_AT: 2026-11-19
+UPDATED_AT: 2026-11-20
 ---
 
 # QA-GROWTH-001 — Growth: HR workflows in the browser (leave, approvals, notifications, projects, timesheets, attendance, documents, settings)
@@ -40,7 +40,12 @@ Created 2026-11-19 at `ea0029da`.
 ## Related
 
 - Test plan — [[PLAN-057]]
-- Bugs — [[BUG-4457]], [[BUG-4458]], [[BUG-4456]]
+- Bugs — [[BUG-4457]], [[BUG-4458]], [[BUG-4456]], [[BUG-1980]]
 - Regressions — REG-692, REG-693, REG-694 (see the regression register)
 
 <!-- GRAPH:END -->
+
+## Notes — 2026-11-20 hardening
+
+- GP-S1 asserts on the store the Attendance Settings screen writes (tenant setting `attendance.defaultGraceMinutes`), not on `attendance/policy`: once a tenant has an AttendancePolicy row that row wins (BUG-1980, deliberately still open), so the policy no longer follows the screen. The test reads its starting value from the API and restores it in a `finally`.
+- GP-AT1 no longer skips on the tenant's off days. It gives the synthetic employee an all-day seven-day schedule through the product API (`e2e/fixtures/work-schedule.ts`), punches in and out in the browser, then sweeps the punch's raw event, session, day and reconciliation job and archives the schedule and shift. The off-day validation and the policy flags are untouched.

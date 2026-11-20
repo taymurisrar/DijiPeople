@@ -128,7 +128,7 @@ BUG-4427, BUG-4428, BUG-4429 (this plan). Related: BUG-1742, BUG-1754, BUG-2465.
 |---|---|---|---|
 | Flow M | `e2e/tests/flow-m-growth-hiring-workflows.spec.ts` | 5 | recruiter pipeline end to end, rejection rule, who may reach recruitment |
 | Flow N | `e2e/tests/flow-n-growth-people-workflows.spec.ts` | 7 | leave (approve/reject/refusals), projects + assignment, documents, entitlement boundary |
-| Flow O | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` | 8 | the hiring journey through the browser: recruiter job, candidate, application, stages to HIRED, onboarding; admin completes 11 tasks and converts (one API-assisted step, BUG-4447) |
+| Flow O | `e2e/tests/flow-o-growth-hiring-browser.spec.ts` | 8 | the hiring journey through the browser: recruiter job, candidate, application, stages to HIRED, onboarding; admin completes 11 tasks, assigns department, designation and manager on the record, and converts (no API-assisted step) |
 | Flow P | `e2e/tests/flow-p-growth-hr-browser.spec.ts` | 10 (1 `fixme`, BUG-4456) | HR workflows through the browser: leave approve/reject/invalid, approvals inbox, notification, projects + assignment, timesheet submit/approve, attendance, document upload/download, setting change and restore |
 | Flow Q | `e2e/tests/flow-q-growth-bank-transfer-browser.spec.ts` | 7 | Growth bought by bank transfer end to end: pricing, wizard, email code, bank details, claim, two-person approval, provisioning, activation, tenant login; duplicate, reject-resubmit, double approval, code failures, login before activation |
 | Safety | `e2e/tests/safety.spec.ts` | 12 | writing flows refuse production URLs, non-loopback hosts, non-test databases and a production API |

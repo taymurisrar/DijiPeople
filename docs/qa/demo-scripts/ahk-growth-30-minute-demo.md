@@ -32,7 +32,6 @@ Accounts (demo tenant `dijipeople-demo`, password `DEMO_USER_PASSWORD` from the 
 ## Things to avoid in the room
 
 - HR uploading from the employee record's Documents tab is refused today (BUG-4456, product decision). Upload as the admin, as the script does.
-- The lookup editor used for department and designation is not automated (BUG-4447). Do that step by hand.
 - Do not show the Approvals inbox as a manager for a new leave request; the approval is assigned to the admin. Use the admin.
 - First load of each page after a deploy is slow. Open every page once before the call.
 

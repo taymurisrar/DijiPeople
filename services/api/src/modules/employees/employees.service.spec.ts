@@ -324,6 +324,70 @@ describe('EmployeesService', () => {
     expect(message).not.toContain('Emergency contact');
   });
 
+  describe('owner on update (BUG-4447)', () => {
+    const actor = {
+      tenantId: 'tenant-1',
+      userId: 'actor-1',
+      email: 'admin@example.com',
+      firstName: 'Admin',
+      lastName: 'User',
+      roleIds: ['role-1'],
+      roleKeys: ['system-admin'],
+      permissionKeys: ['employees.update'],
+    };
+    // A draft profile created by a recruiter, who is not an eligible owner role.
+    const draft = () => ({
+      id: 'employee-1',
+      tenantId: 'tenant-1',
+      ownerUserId: 'recruiter-1',
+      hireDate: new Date('2026-01-01'),
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      employeeCode: 'EMP-001',
+      email: 'ada@example.com',
+      phone: '1234567890',
+      employmentStatus: 'ACTIVE',
+      manager: null,
+      user: null,
+      profileImageDocument: null,
+      department: null,
+      designation: null,
+      location: null,
+      _count: {},
+    });
+    let userFindFirst: jest.Mock;
+
+    beforeEach(() => {
+      userFindFirst = jest.fn().mockResolvedValue(null);
+      (prisma as unknown as { user: { findFirst: jest.Mock } }).user = {
+        findFirst: userFindFirst,
+      };
+      employeesRepository.findByIdAndTenant.mockResolvedValue(draft());
+    });
+
+    it('does not re-validate an owner the form sent back unchanged', async () => {
+      await service
+        .update(actor, 'employee-1', {
+          ownerUserId: 'recruiter-1',
+          preferredName: 'Ada',
+        })
+        .catch(() => undefined);
+
+      expect(userFindFirst).not.toHaveBeenCalled();
+    });
+
+    it('still refuses reassigning the record to a user who cannot own employees', async () => {
+      const error = await service
+        .update(actor, 'employee-1', { ownerUserId: 'someone-else' })
+        .catch((thrown: unknown) => thrown);
+
+      expect(userFindFirst).toHaveBeenCalledTimes(1);
+      const message =
+        error instanceof Error ? error.message : toDisplayString(error ?? '');
+      expect(message).toContain('Owner user was not found');
+    });
+  });
+
   it('requires a work email before sending an employee invitation', async () => {
     employeesRepository.findByIdAndTenant.mockResolvedValue({
       id: 'employee-1',

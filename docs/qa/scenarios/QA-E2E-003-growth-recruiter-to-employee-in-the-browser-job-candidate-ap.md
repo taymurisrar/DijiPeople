@@ -8,12 +8,12 @@ TYPE: BROWSER_E2E
 RISK: HIGH
 AUTOMATION_STATUS: PARTIAL
 TEST_REFERENCE: e2e/tests/flow-o-growth-hiring-browser.spec.ts
-RELATED_BUGS: [BUG-4446]
-RELATED_REGRESSIONS: [REG-689]
+RELATED_BUGS: [BUG-4446, BUG-4447]
+RELATED_REGRESSIONS: [REG-689, REG-697]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-11-19
-UPDATED_AT: 2026-11-19
+UPDATED_AT: 2026-11-20
 ---
 
 # QA-E2E-003 — Growth: recruiter to employee in the browser (job, candidate, application, stages, onboarding, conversion)
@@ -26,11 +26,11 @@ Disposable `*_test` database with `seed:config`, `seed:demo`, `prepare-growth-te
 
 1. `cd e2e && npx playwright test tests/flow-o-growth-hiring-browser.spec.ts`.
 2. GO-1 recruiter creates a job opening through the form. GO-2 registers a candidate. GO-3 applies the candidate from the Applications screen. GO-4 moves the application to HIRED one stage at a time. GO-5 starts onboarding.
-3. GO-6 admin completes all 11 onboarding tasks (open each, set Completed, Save). GO-7 (API-assisted, BUG-4447) assigns department, designation and manager. GO-8 clicks Convert to employee.
+3. GO-6 admin completes all 11 onboarding tasks (open each, set Completed, Save). GO-7 opens the employee record from the onboarding screen, presses Edit, chooses department, designation and reporting manager from the lookups, fills the required emergency contact and saves (BUG-4447, no API assistance). GO-8 clicks Convert to employee.
 
 ## Expected Result
 
-8 of 8 pass: seven steps driven through the browser, one API-assisted and labelled; the run removes everything it created and asserts zero residue by run tag.
+8 of 8 pass: all eight steps driven through the browser; the run removes everything it created and asserts zero residue by run tag.
 
 ## Notes
 
@@ -41,7 +41,7 @@ Created 2026-11-19 at `0b9f1f34`.
 ## Related
 
 - Test plan — [[PLAN-057]]
-- Bugs — [[BUG-4446]]
-- Regressions — REG-689 (see the regression register)
+- Bugs — [[BUG-4446]], [[BUG-4447]]
+- Regressions — REG-689, REG-697 (see the regression register)
 
 <!-- GRAPH:END -->

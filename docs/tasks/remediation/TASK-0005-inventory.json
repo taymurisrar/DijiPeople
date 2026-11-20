@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 811,
+    "total_records": 812,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -11859,7 +11859,8 @@
       ],
       "qa_scenarios": [
         "QA-ATT-011",
-        "QA-ATT-012"
+        "QA-ATT-012",
+        "QA-GROWTH-001"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -25497,26 +25498,31 @@
     },
     {
       "record_id": "BUG-4447",
-      "type": "TEST_GAP",
-      "title": "Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API",
-      "severity": "LOW",
-      "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "type": "BUG",
+      "title": "Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-4447-employee-record-lookup-editor-department-designation-reporti.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "0b9f1f34",
         "created_at": "2026-11-19",
-        "updated_at": "2026-11-19",
-        "resolved_at": ""
+        "updated_at": "2026-11-20",
+        "resolved_at": "2026-11-20"
       },
       "affected_modules": [
         "employees",
+        "onboarding",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-697"
+      ],
+      "qa_scenarios": [
+        "QA-E2E-003"
+      ],
       "test_plan": [
         "PLAN-057"
       ],
@@ -25684,6 +25690,48 @@
       "current_evidence": {
         "paths": [],
         "verification_scope": "See docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4484",
+      "type": "BUG",
+      "title": "Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "5c901a0a",
+        "created_at": "2026-11-20",
+        "updated_at": "2026-11-20",
+        "resolved_at": "2026-11-20"
+      },
+      "affected_modules": [
+        "services/api/src/modules/super-admin"
+      ],
+      "regressions": [
+        "REG-696"
+      ],
+      "qa_scenarios": [
+        "QA-GROWTH-002"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -1,88 +1,88 @@
 ---
 ID: BUG-4447
 aliases: [BUG-4447]
-Title: Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API
-Status: OPEN
-Severity: LOW
-Priority: P3
-Type: TEST_GAP
+Title: Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine
+Status: FIXED
+Severity: HIGH
+Priority: P1
+Type: BUG
 Source: QA_RUN
 DetectedDate: 2026-11-19
 DetectedInSha: 0b9f1f34
-AffectedModules: [employees, apps/web]
+AffectedModules: [employees, onboarding, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-697
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
-UpdatedAt: 2026-11-19
-ResolvedAt:
+UpdatedAt: 2026-11-20
+ResolvedAt: 2026-11-20
 ---
 
-# BUG-4447 — Employee record lookup editor (Department, Designation, Reporting manager) cannot be driven by the browser suite; the hiring journey assigns them through the API
+# BUG-4447 — Saving a draft employee profile from the employee form silently promoted it to ACTIVE
 
 ## Summary
 
-The employee record's Department, Designation and Reporting manager are runtime lookup fields. The browser hiring journey could not drive their popup: a generic option locator resolved to the hidden options of the Form switcher. The journey assigns them through the API (flow-o GO-7, labelled API-assisted) so conversion is still proven in the browser.
+The browser hiring journey could not assign Department, Designation and Reporting manager on the employee record, so GO-7 did it through the API. Re-investigating showed two product defects behind it, and that the lookup editor is not one of them. (1) `GET /employees/:id` (the profile response) did not publish `status`, `subStatus` or `isDraftProfile`; the edit form therefore fell back to ACTIVE / OPEN and posted them back, so saving ANY field of a draft profile promoted it to an active employee (employmentStatus stayed INACTIVE) and onboarding then refused conversion with "Employee has already been created". The same defaults silently reset an inactive or archived employee on every edit. (2) `PATCH /employees/:id` re-validated the owner even when the form merely echoed the current one; a draft created by a recruiter is owned by a recruiter, who holds no owner role, so the save was refused with "Owner user was not found for this tenant".
 
 ## Expected Behavior
 
-The lookup fields are operable by an automated browser test with stable accessible names.
+An administrator opens the draft from the onboarding screen, chooses department, designation and manager from the lookups, saves, and the onboarding screen then offers Convert to employee. Saving never changes a record's lifecycle unless the user changed it.
 
 ## Actual Behavior
 
-Not automated; one journey step is API-assisted.
+The save was refused (owner check) and, once that was bypassed, it activated the draft and blocked conversion.
 
 ## Reproduction
 
-Open an employee, click Edit, click Department: the popup's options are not exposed with a role the suite can target distinctly from the Form select.
+Start onboarding for a hired application, complete the checklist, open the employee record, Edit, choose the three lookups, fill the emergency contact, Save. Before the fix: HTTP 400 "Owner user was not found for this tenant", then (owner check removed) status ACTIVE and isDraftProfile false on the row.
 
 ## Evidence
 
-flow-o-growth-hiring-browser.spec.ts GO-7 and the Playwright traces from 2026-11-19.
+Browser traces and the PATCH payload from flow-o GO-7 on 2026-11-20: `status: "ACTIVE", subStatus: "OPEN", employmentStatus: "INACTIVE"` against a GET response with no `status` key. The department, designation and manager comboboxes themselves have role=combobox, aria-haspopup=listbox and a role=listbox/option popup, and open and select correctly; the earlier failure was an automation gap (the record is read-only until Edit is pressed, and a bare option locator also matches the hidden options of the Form switcher).
 
 ## Root Cause
 
-Not established; either the lookup popup lacks listbox/option roles scoped to its field or the test needs a scoped locator.
+`EmployeeProfilesService.getProfile` built its own response and left out the lifecycle fields that `EmployeesService.mapEmployee` publishes. `EmployeesService.update` called `assertAssignableOwner` for any non-empty `ownerUserId`, changed or not.
 
 ## Impact
 
-Test coverage only. No customer impact.
+HR could not complete the standard hire from the UI: a draft could not be edited at all (owner check), and editing it any other way converted it and stranded the onboarding. Inactive and archived employees were reset to ACTIVE by any edit through the form.
 
 ## Affected Areas
 
-apps/web runtime lookup field, e2e hiring journey.
+services/api employees (profile response, update), onboarding conversion, apps/web employee record form (unchanged).
 
 ## Proposed Resolution
 
-Give the lookup popup a labelled listbox, then drive it in GO-7.
+Publish the normalised lifecycle in the profile response through one shared function; validate the owner only when it changes.
 
 ## Acceptance Criteria
 
-Verifiable statements QA can retest against.
+Editing a draft profile from the employee form keeps it a draft; the three lookups are driven by clicks in the browser; conversion then succeeds; an unchanged owner is not re-validated and a changed one still is.
 
 ## Regression Coverage
 
-The test that must fail without the fix, and its `REG-nnn` entry once it exists.
+REG-697: `services/api/src/modules/employees/employee-lifecycle.constants.spec.ts`, `employees.service.spec.ts` (owner on update), and flow-o GO-7 and GO-8 (no API assistance) in `e2e/tests/flow-o-growth-hiring-browser.spec.ts`.
 
 ## Dependencies
 
-Other records, decisions or infrastructure this waits on.
+None.
 
 ## Related Items
 
-Wikilinks to related bugs, items, modules and decisions — for the Obsidian graph.
+BUG-4446 (the Convert button), QA-E2E-003.
 
 ## Resolution
 
-What was actually changed, with the commit or branch. Filled at fix time.
+Fixed on branch `agent/growth-closure-records`: `getProfile` now returns `status`, `subStatus`, `isDraftProfile` and the normalised `employmentStatus` via `resolveRecordLifecycle`; `update` skips owner validation for an unchanged owner; GO-7 drives the lookups in the browser and the API workaround is removed.
 
 ## QA Retest
 
-Which QA run verified the fix, and the scenario ids.
+flow-o 8 of 8 on a clean database, twice consecutively, 2026-11-20.
 
 ## History
 
@@ -93,5 +93,6 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[employees]], [[tenant-application]]
+- Regression — REG-697 (see the regression register)
 
 <!-- GRAPH:END -->

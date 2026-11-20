@@ -8,7 +8,8 @@ import {
   unique,
   type Actor,
 } from '../fixtures/growth-api';
-import { deleteTaggedTimesheets, residue } from '../fixtures/residue';
+import { deleteTaggedTimesheets, residue, sweepAttendanceSince } from '../fixtures/residue';
+import { provisionWorkingShift } from '../fixtures/work-schedule';
 
 /**
  * Flow P — the everyday people workflows, driven through the browser.
@@ -397,51 +398,65 @@ test.describe('Flow P — timesheets', () => {
 test.describe('Flow P — attendance', () => {
   test('GP-AT1 the employee checks in and out on the Attendance screen and the record persists', async () => {
     type Entry = { id: string; checkInAt?: string | null; checkOutAt?: string | null };
-    const before = await employee.get<Entry | ''>('attendance/mine/active');
-    expect(before.body, 'no open attendance entry before the test').toBeFalsy();
-
-    await go(employeePage, '/attendance');
     // The product refuses a punch on a day the employee's resolved schedule has
-    // no shift ("The resolved work schedule does not provide a shift for today"),
-    // and says so on the disabled button. That is correct behaviour, and it makes
-    // this test calendar-dependent: it cannot pass on the tenant's weekend. It
-    // skips there, visibly and with the product's own reason, instead of failing
-    // every Friday and Saturday or changing a policy to force a punch the
-    // schedule would still refuse.
-    const checkIn = employeePage.getByRole('button', { name: 'Check In', exact: true });
-    await expect(checkIn).toBeVisible({ timeout: 20_000 });
-    if (await checkIn.isDisabled()) {
-      const reason = (await checkIn.getAttribute('title')) ?? '';
-      test.skip(/off day|holiday|no shift/i.test(reason), `check-in unavailable today: ${reason}`);
-    }
-    await checkIn.click();
-    let entryId = '';
-    await expect
-      .poll(async () => {
-        const r = await employee.get<Entry | ''>('attendance/mine/active');
-        entryId = (r.body as Entry)?.id ?? '';
-        return entryId;
-      }, { timeout: 30_000 })
-      .not.toBe('');
-    // The punch has no tag column, so cleanup is by the id captured here.
-    cleanup.push(async () => {
-      const r = await admin.del(`attendance/${entryId}`);
-      return [200, 204, 404].includes(r.status)
-        ? null
-        : `attendance ${entryId}: ${r.status} ${r.message}`;
+    // no shift, and says so on the disabled button. That refusal is correct and
+    // stays. Rather than skip on the tenant's weekend, the synthetic employee is
+    // given a schedule that works today (the way an administrator would) and
+    // loses it again in the finally block, so this passes on any date.
+    const people = await admin.get('employees?pageSize=100');
+    const target = rows<{ id: string; workEmail?: string }>(people.body).find(
+      (e) => e.workEmail === 'employee@dijipeople.local',
+    );
+    expect(target, 'the seeded employee exists').toBeTruthy();
+    const fixture = await provisionWorkingShift(admin, target!.id, {
+      date: process.env.E2E_ATTENDANCE_DATE || undefined,
     });
-    await expect(employeePage.getByRole('button', { name: 'Check Out', exact: true })).toBeVisible({ timeout: 20_000 });
+    let entryId = '';
+    // Minus a minute for clock skew between the test host and the database.
+    const startedAt = new Date(Date.now() - 60_000);
+    try {
+      const before = await employee.get<Entry | ''>('attendance/mine/active');
+      expect(before.body, 'no open attendance entry before the test').toBeFalsy();
 
-    await employeePage.getByRole('button', { name: 'Check Out', exact: true }).click();
-    await expect
-      .poll(async () => {
-        const r = await employee.get<Entry>(`attendance/${entryId}`);
-        return r.body.checkOutAt ?? '';
-      }, { timeout: 30_000 })
-      .not.toBe('');
-    const open = await employee.get<Entry | ''>('attendance/mine/active');
-    expect(open.body, 'the entry is closed, nothing left open').toBeFalsy();
-    await expect(employeePage.getByRole('button', { name: 'Check In', exact: true })).toBeVisible({ timeout: 20_000 });
+      await go(employeePage, '/attendance');
+      const checkIn = employeePage.getByRole('button', { name: 'Check In', exact: true });
+      await expect(checkIn).toBeVisible({ timeout: 20_000 });
+      await expect(checkIn, 'the working shift makes check-in available').toBeEnabled({ timeout: 20_000 });
+      await checkIn.click();
+      await expect
+        .poll(async () => {
+          const r = await employee.get<Entry | ''>('attendance/mine/active');
+          entryId = (r.body as Entry)?.id ?? '';
+          return entryId;
+        }, { timeout: 30_000 })
+        .not.toBe('');
+      await expect(employeePage.getByRole('button', { name: 'Check Out', exact: true })).toBeVisible({ timeout: 20_000 });
+
+      await employeePage.getByRole('button', { name: 'Check Out', exact: true }).click();
+      await expect
+        .poll(async () => {
+          const r = await employee.get<Entry>(`attendance/${entryId}`);
+          return r.body.checkOutAt ?? '';
+        }, { timeout: 30_000 })
+        .not.toBe('');
+      const open = await employee.get<Entry | ''>('attendance/mine/active');
+      expect(open.body, 'the entry is closed, nothing left open').toBeFalsy();
+      await expect(employeePage.getByRole('button', { name: 'Check In', exact: true })).toBeVisible({ timeout: 20_000 });
+    } finally {
+      // The punch has no tag column, so it is removed by the id captured above.
+      const problems: string[] = [];
+      if (entryId) {
+        const r = await admin.del(`attendance/${entryId}`);
+        if (![200, 204, 404].includes(r.status)) problems.push(`attendance ${entryId}: ${r.status} ${r.message}`);
+      }
+      // The punch also leaves a raw event, session and day and queues a
+      // reconciliation that would rebuild a deleted entry: sweep them too.
+      const swept = await sweepAttendanceSince(target!.id, startedAt);
+      if (swept) problems.push(swept);
+      const restored = await fixture.restore();
+      if (restored) problems.push(restored);
+      expect(problems, 'attendance cleanup must not fail silently').toEqual([]);
+    }
   });
 });
 
@@ -515,32 +530,51 @@ test.describe('Flow P — documents', () => {
 });
 
 test.describe('Flow P — settings', () => {
-  test('GP-S1 an admin changes the late-check-in grace in Attendance Settings; it persists across a reload and is restored', async () => {
-    const policy = async () =>
-      (await admin.get<{ lateCheckInGraceMinutes: number }>('attendance/policy')).body.lateCheckInGraceMinutes;
-    const original = await policy();
-    const changed = original + 1;
-    // Safety net: whatever happens below, the tenant ends on its original value.
-    cleanup.push(async () => {
-      if ((await policy()) === original) return null;
-      const r = await admin.patch('attendance/policy', { lateCheckInGraceMinutes: original });
-      return r.status < 300 ? null : `restore attendance policy: ${r.status} ${r.message}`;
-    });
-
+  test('GP-S1 an admin changes the late grace in Attendance Settings; it persists across a reload and is restored', async () => {
+    /*
+     * The Attendance Settings screen writes the tenant-settings category
+     * `attendance` (key defaultGraceMinutes). It does NOT write the
+     * AttendancePolicy row that `GET attendance/policy` reads. Until a tenant
+     * saves the policy card that row does not exist and the policy falls back to
+     * the setting, so asserting on `attendance/policy` passes on a clean
+     * database and fails on any database where the row exists: the field shows
+     * the new value while the policy still reports the old one (the documented
+     * precedence defect, BUG-1980). This test therefore asserts on the store the
+     * screen actually owns, reads its starting value from that store rather than
+     * assuming one, and restores it in a finally block.
+     */
+    type Category = { settings?: { defaultGraceMinutes?: number } };
+    const stored = async () =>
+      Number(
+        (await admin.get<Category>('tenant-settings/attendance')).body.settings?.defaultGraceMinutes,
+      );
+    const original = await stored();
+    expect(Number.isFinite(original), 'the starting value is readable from the API').toBe(true);
+    const changed = original >= 179 ? original - 1 : original + 1;
     const field = () => adminPage.getByLabel(/late grace minutes/i);
-    await go(adminPage, '/settings/people/attendance');
-    await expect(field()).toHaveValue(String(original), { timeout: 20_000 });
-    await fillStable(field(), String(changed));
-    await adminPage.getByRole('button', { name: /^save$/i }).click();
-    await expect.poll(policy, { timeout: 30_000 }).toBe(changed);
+    const saveInUi = async (value: number) => {
+      await fillStable(field(), String(value));
+      await adminPage.getByRole('button', { name: /^save$/i }).click();
+      await expect.poll(stored, { timeout: 30_000 }).toBe(value);
+    };
 
-    await go(adminPage, '/settings/people/attendance');
-    await expect(field()).toHaveValue(String(changed), { timeout: 20_000 });
-
-    await fillStable(field(), String(original));
-    await adminPage.getByRole('button', { name: /^save$/i }).click();
-    await expect.poll(policy, { timeout: 30_000 }).toBe(original);
-    await go(adminPage, '/settings/people/attendance');
-    await expect(field()).toHaveValue(String(original), { timeout: 20_000 });
+    try {
+      await go(adminPage, '/settings/people/attendance');
+      await expect(field()).toHaveValue(String(original), { timeout: 20_000 });
+      await saveInUi(changed);
+      await go(adminPage, '/settings/people/attendance');
+      await expect(field()).toHaveValue(String(changed), { timeout: 20_000 });
+      await saveInUi(original);
+      await go(adminPage, '/settings/people/attendance');
+      await expect(field()).toHaveValue(String(original), { timeout: 20_000 });
+    } finally {
+      // Whatever happened above, the tenant ends on the value it started with.
+      if ((await stored()) !== original) {
+        const r = await admin.patch('tenant-settings/attendance', {
+          updates: [{ category: 'attendance', key: 'defaultGraceMinutes', value: original }],
+        });
+        expect(r.status, `restore attendance setting: ${r.message}`).toBeLessThan(300);
+      }
+    }
   });
 });

@@ -34,6 +34,7 @@ import { EmailService } from '../notifications/email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
+import { resolveRecordLifecycle } from './employee-lifecycle.constants';
 import { toEmployeeUserSummary } from './employee-user-summary';
 import { EmployeeAccessService } from './employee-access.service';
 import { CreateEmployeePreviousEmploymentDto } from './dto/create-employee-previous-employment.dto';
@@ -153,6 +154,7 @@ export class EmployeeProfilesService {
       .filter(Boolean)
       .join(' ');
     const profileImage = await this.buildProfileImageSummary(employee);
+    const lifecycle = resolveRecordLifecycle(employee);
 
     return {
       customFields,
@@ -176,7 +178,20 @@ export class EmployeeProfilesService {
       nationality: employee.nationality,
       cnic: employee.cnic,
       bloodGroup: employee.bloodGroup,
-      employmentStatus: employee.employmentStatus,
+      /*
+       * BUG-4447 — the record lifecycle (status, sub status, draft flag) was
+       * not published here, although the edit form posts all three back on every
+       * save. Missing, they fell to the form's defaults (ACTIVE / OPEN), so
+       * saving ANY field of a draft profile promoted it to an active employee
+       * (and left employmentStatus INACTIVE), after which onboarding refused to
+       * convert it ("Employee has already been created"). The same defaults
+       * silently reset an inactive or archived employee on every edit. These are
+       * the same normalised values the list and create responses carry.
+       */
+      employmentStatus: lifecycle.employmentStatus,
+      status: lifecycle.status,
+      subStatus: lifecycle.subStatus,
+      isDraftProfile: employee.isDraftProfile,
       employeeType: employee.employeeType,
       workMode: employee.workMode,
       contractType: employee.contractType,

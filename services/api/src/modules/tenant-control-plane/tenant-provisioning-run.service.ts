@@ -29,6 +29,9 @@ export class TenantProvisioningRunService {
     trigger: 'ONBOARDING' | 'RETRY';
     requestedById?: string | null;
     correlationId?: string | null;
+    /** The purchase this run provisions; null for an operator-started run. */
+    subscriptionOrderId?: string | null;
+    customerAccountId?: string | null;
     /** Steps to skip on a retry, recorded as SKIPPED rather than omitted. */
     skipStepKeys?: string[];
   }) {
@@ -45,6 +48,8 @@ export class TenantProvisioningRunService {
           status: TenantProvisioningRunStatus.RUNNING,
           requestedById: input.requestedById ?? null,
           correlationId: input.correlationId ?? null,
+          subscriptionOrderId: input.subscriptionOrderId ?? null,
+          customerAccountId: input.customerAccountId ?? null,
           steps: {
             create: TENANT_PROVISIONING_STEPS.map((step) => ({
               tenantId: input.tenantId,
@@ -69,6 +74,91 @@ export class TenantProvisioningRunService {
       );
       return null;
     }
+  }
+
+  /**
+   * The run for a self-service order — opened once, resumed on every retry.
+   *
+   * Keyed on the order so a redelivered outbox event updates the SAME run
+   * instead of stacking a new one per attempt: an operator reads one row that
+   * says "attempt 3, failed at invitations", not three rows to reconcile. A
+   * resumed run goes back to RUNNING with its failure cleared and its failed
+   * steps pending, and `attempt` counts how many times automation has tried.
+   * Steps that already succeeded keep their record. `requestedById` stays null:
+   * no human triggered it, and naming one would falsify the history.
+   */
+  async startOrResumeForOrder(input: {
+    tenantId: string;
+    subscriptionOrderId: string;
+    customerAccountId: string;
+    correlationId?: string | null;
+  }): Promise<{ id: string; attempt: number; resumed: boolean } | null> {
+    try {
+      const existing = await this.prisma.tenantProvisioningRun.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          subscriptionOrderId: input.subscriptionOrderId,
+        },
+        orderBy: { startedAt: 'desc' },
+        select: { id: true },
+      });
+      if (!existing) {
+        const created = await this.start({
+          tenantId: input.tenantId,
+          trigger: 'ONBOARDING',
+          correlationId: input.correlationId,
+          subscriptionOrderId: input.subscriptionOrderId,
+          customerAccountId: input.customerAccountId,
+        });
+        return created
+          ? { id: created.id, attempt: created.attempt, resumed: false }
+          : null;
+      }
+      const resumed = await this.prisma.tenantProvisioningRun.update({
+        where: { id: existing.id },
+        data: {
+          attempt: { increment: 1 },
+          status: TenantProvisioningRunStatus.RUNNING,
+          completedAt: null,
+          durationMs: null,
+          failedStepKey: null,
+          message: null,
+        },
+        select: { id: true, attempt: true },
+      });
+      await this.prisma.tenantProvisioningStep.updateMany({
+        where: {
+          runId: existing.id,
+          status: TenantProvisioningStepStatus.FAILED,
+        },
+        data: {
+          status: TenantProvisioningStepStatus.PENDING,
+          completedAt: null,
+          durationMs: null,
+          message: null,
+        },
+      });
+      return { ...resumed, resumed: true };
+    } catch (error) {
+      this.logger.warn(
+        `Unable to open a provisioning run for order ${input.subscriptionOrderId}: ${message(error)}`,
+      );
+      return null;
+    }
+  }
+
+  async stepSkipped(
+    runId: string | null | undefined,
+    key: string,
+    detail: string,
+  ) {
+    if (!runId) return;
+    await this.complete(
+      runId,
+      key,
+      TenantProvisioningStepStatus.SKIPPED,
+      detail,
+    );
   }
 
   async stepStarted(runId: string | null | undefined, key: string) {
