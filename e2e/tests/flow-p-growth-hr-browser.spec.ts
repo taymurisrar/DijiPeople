@@ -494,9 +494,9 @@ test.describe('Flow P — documents', () => {
     await uploadEmployeeDocumentInUi(adminPage, admin, 'GP-D1');
   });
 
-  // BUG-4456: the employee record's upload route needs employees.documents.upload,
-  // which the HR role does not hold, so HR is refused (403) in the browser.
-  test.fixme('GP-D2 HR uploads a document against an employee in the UI (BUG-4456)', async () => {
+  // BUG-4456 (fixed): HR now holds employees.documents.upload. Was test.fixme while the
+  // grant was missing, which refused HR with a 403 in the browser.
+  test('GP-D2 HR uploads a document against an employee in the UI (BUG-4456)', async () => {
     await uploadEmployeeDocumentInUi(hrPage, hr, 'GP-D2');
   });
 });

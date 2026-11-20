@@ -55,6 +55,13 @@ export type ProvisionTenantForCustomerInput = {
   owner: { firstName: string; lastName: string; email: string };
   tenantStatus: TenantStatus;
   /**
+   * The order this tenant is being provisioned for, when there is one. The order
+   * is pointed at the tenant inside the same transaction that creates it, so a
+   * failure *after* creation cannot leave a tenant the order does not know about,
+   * and a retry finds it instead of creating a second one (BUG-4467).
+   */
+  subscriptionOrderId?: string;
+  /**
    * Null for an automated run. There is no human behind a webhook, and naming
    * one would be a false audit trail.
    */
@@ -221,6 +228,13 @@ export class PlatformOnboardingService {
           },
         },
       });
+
+      if (input.subscriptionOrderId) {
+        await tx.subscriptionOrder.update({
+          where: { id: input.subscriptionOrderId },
+          data: { tenantId: tenant.id },
+        });
+      }
 
       await this.permissionsService.bootstrapTenantDefaults(
         tenant.id,
@@ -420,7 +434,7 @@ export class PlatformOnboardingService {
      * mail cannot be rolled back — so it must not happen inside a transaction
      * that might still abort. The cost is that a crash here leaves a provisioned
      * tenant whose owner has no activation link, which the provisioning retry
-     * path resends rather than duplicating.
+     * path finds through SubscriptionOrder.tenantId rather than duplicating.
      */
     const invitations = await Promise.all(
       onboardingResult.invitedUsers.map((user) =>

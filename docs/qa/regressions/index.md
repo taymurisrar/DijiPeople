@@ -7594,3 +7594,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — GP-P1 got 400 on the assignment. |
 | **Fixed** | 2026-11-19, branch `agent/growth-demo-closure` |
 | **Active** | yes |
+
+### REG-694 — HR could not upload a document from the employee record
+
+| | |
+|---|---|
+| **Bug class** | `missing-grant` |
+| **Module** | `services/api/src/common/constants` |
+| **Bug record** | BUG-4456 |
+| **Root cause** | No grant carried employees.documents.upload for HR, which the upload route checks after HR_MANAGE access resolves. |
+| **Regression test** | `services/api/src/common/constants/rbac-matrix.hr-employee-documents.spec.ts` |
+| **Scenario** | QA-GROWTH-001 — Growth: HR workflows in the browser (leave, approvals, notifications, projects, timesheets, attendance, documents, settings) |
+| **Fails without the fix** | Yes — the key was absent from the HR grant list. |
+| **Fixed** | 2026-11-20, branch `agent/growth-demo-closure` |
+| **Active** | yes |
+
+### REG-695 — A retried provisioning request created another tenant for the same order
+
+| | |
+|---|---|
+| **Bug class** | `non-idempotent-retry` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-4467 |
+| **Root cause** | The order learned its tenant only after the post-creation steps, so a late failure left no marker and the retry created again. |
+| **Regression test** | `services/api/src/modules/super-admin/provisioning-requested.handler.spec.ts` |
+| **Scenario** | QA-GROWTH-002 — Growth: bank-transfer purchase in the browser (pricing to tenant login, two-person rule, duplicates, retries) |
+| **Fails without the fix** | Yes — the retry called provisionTenantForCustomer again and finalization did not run. |
+| **Fixed** | 2026-11-20, branch `agent/growth-demo-closure` |
+| **Active** | yes |

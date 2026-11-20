@@ -2,7 +2,7 @@
 ID: BUG-4467
 aliases: [BUG-4467]
 Title: Tenant provisioning retried after a late failure creates another tenant for the same order
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-19
 DetectedInSha: 6c780328
 AffectedModules: []
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-695
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
-UpdatedAt: 2026-11-19
-ResolvedAt:
+UpdatedAt: 2026-11-20
+ResolvedAt: 2026-11-20
 ---
 
 # BUG-4467 — Tenant provisioning retried after a late failure creates another tenant for the same order
@@ -89,12 +89,18 @@ A direction, not a patch. Say if it needs an ExecPlan.
 
 ## Acceptance Criteria
 
+A provisioning failure after tenant creation, retried, leaves exactly one tenant for the order and a finished order.
+
+
 A provisioning failure after tenant creation, retried three times, leaves exactly one tenant for the order.
 
 
 Verifiable statements QA can retest against.
 
 ## Regression Coverage
+
+REG-695 — services/api/src/modules/super-admin/provisioning-requested.handler.spec.ts.
+
 
 To be added with the fix (handler spec).
 
@@ -117,12 +123,18 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
+provisionTenantForCustomer now takes subscriptionOrderId and points the order at the tenant inside the creating transaction; the handler, on a retry that finds order.tenantId, skips creation and runs the idempotent closing steps (finalize). The "retry path finds it" comment in platform-onboarding.service.ts is now true.
+
+
 Open. CI now sets TENANT_BASE_DOMAIN so Flow Q tests the happy path.
 
 
 What was actually changed, with the commit or branch. Filled at fix time.
 
 ## QA Retest
+
+provisioning-requested.handler.spec.ts (2 cases); Flow Q in CI.
+
 
 Not yet.
 
@@ -137,8 +149,6 @@ Which QA run verified the fix, and the scenario ids.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-695 (see the regression register)
 
 <!-- GRAPH:END -->

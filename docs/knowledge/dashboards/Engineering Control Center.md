@@ -17,7 +17,7 @@
 | Open CRITICAL | **8** |
 | Open HIGH | 125 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 16 |
+| Owner decisions pending | 15 |
 | QA coverage gaps | 167 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 309 |
-| No next action | 309 |
+| No acceptance criteria | 310 |
+| No next action | 310 |
 | Aging — 7d / 30d / 90d | 297 / 295 / 12 |
 | Architecture and technical debt | 8 |
-| Security gaps | 49 |
+| Security gaps | 50 |
 | Database gaps | 29 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -125,7 +125,6 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 - [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing**
-- [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] — **HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted)**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
 - [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint**
 - [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream**
@@ -313,10 +312,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 309 |
+| Open total | 310 |
 | Blocked | 4 |
 | Deferred | 125 |
-| Awaiting a product decision | 16 |
+| Awaiting a product decision | 15 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

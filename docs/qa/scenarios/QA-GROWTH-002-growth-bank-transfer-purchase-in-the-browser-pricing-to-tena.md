@@ -8,8 +8,8 @@ TYPE: BROWSER_E2E
 RISK: CRITICAL
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: e2e/tests/flow-q-growth-bank-transfer-browser.spec.ts
-RELATED_BUGS: []
-RELATED_REGRESSIONS: []
+RELATED_BUGS: [BUG-4467]
+RELATED_REGRESSIONS: [REG-695]
 LAST_RUN: 2026-11-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-11-19
@@ -40,5 +40,7 @@ Created 2026-11-19 at `ea0029da`.
 ## Related
 
 - Test plan — [[PLAN-057]]
+- Bugs — [[BUG-4467]]
+- Regressions — REG-695 (see the regression register)
 
 <!-- GRAPH:END -->

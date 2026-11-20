@@ -9,9 +9,9 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **125** |
-| Open total | 309 |
+| Open total | 310 |
 | Blocked | 4 |
-| Awaiting a product decision | 16 |
+| Awaiting a product decision | 15 |
 | Deferred | 125 |
 | Completed | 357 |
 | Awaiting Architect triage | 0 |
@@ -153,7 +153,7 @@
 | [[BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a|BUG-4427]] | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | FIXED | landing, billing | FIX_NOW |
 | [[BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-|BUG-4438]] | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | FIXED | recruitment, permissions | FIX_NOW |
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
-| [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | OPEN | — | PLAN_REQUIRED |
+| [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -171,7 +171,6 @@
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
-| [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | PRODUCT_DECISION | api:employees, services/api/src/common/constants/rbac-matrix.ts | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
 | [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
@@ -428,6 +427,7 @@
 | [[BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a|BUG-4427]] | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | FIXED | landing, billing | FIX_NOW |
 | [[BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-|BUG-4438]] | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | FIXED | recruitment, permissions | FIX_NOW |
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
+| [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -620,6 +620,7 @@
 | [[BUG-4428-activate-account-agreement-party-and-signature-recipient-for|BUG-4428]] | Activate-account, agreement party and signature-recipient forms submit input the API will refuse (unmet password policy, malformed email) | UX | MEDIUM | FIXED | auth, contracts, apps/web, apps/admin | FIX_NOW |
 | [[BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem|BUG-4429]] | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [[BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy|BUG-4440]] | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | FIXED | error-logs, apps/web | FIX_NOW |
+| [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | FIXED | api:employees, services/api/src/common/constants/rbac-matrix.ts | FIX_NOW |
 | [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
@@ -831,6 +832,7 @@
 | [[BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem|BUG-4429]] | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [[BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy|BUG-4440]] | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | FIXED | error-logs, apps/web | FIX_NOW |
 | [[BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se|BUG-4441]] | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do|BUG-4456]] | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | FIXED | api:employees, services/api/src/common/constants/rbac-matrix.ts | FIX_NOW |
 | [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |

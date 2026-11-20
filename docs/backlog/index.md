@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 309 |
+| Open (active work) | 310 |
 | Blocked | 4 |
 | Deferred | 125 |
-| Awaiting a product decision | 16 |
+| Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **125** |
@@ -28,14 +28,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 125 |
-| MEDIUM | 141 |
+| MEDIUM | 142 |
 | LOW | 32 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 18 |
+| AUTHORIZATION | 19 |
 | BUG | 99 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 58 |
+| OPEN | 57 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
-| PRODUCT_DECISION | 16 |
-| FIXED | 222 |
+| PRODUCT_DECISION | 15 |
+| FIXED | 224 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -336,7 +336,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4427](../../docs/bugs/BUG-4427-safepay-appends-order-id-to-a-success-url-that-already-has-a.md) | Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected) | INTEGRATION | HIGH | P1 | FIXED | landing, billing | FIX_NOW |
 | [BUG-4438](../../docs/bugs/BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-.md) | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | P1 | FIXED | recruitment, permissions | FIX_NOW |
 | [BUG-4446](../../docs/bugs/BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the.md) | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | P1 | FIXED | onboarding, apps/web | FIX_NOW |
-| [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | OPEN | — | PLAN_REQUIRED |
+| [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | FIXED | — | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -616,7 +616,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4429](../../docs/bugs/BUG-4429-monitoring-queues-user-correctable-4xx-outcomes-blank-agreem.md) | Monitoring queues user-correctable 4xx outcomes (blank agreement field, weak password, used signature link, duplicate agreement, stale public price) as incidents | BUG | MEDIUM | P2 | FIXED | error-logs, platform-monitoring, contracts | FIX_NOW |
 | [BUG-4440](../../docs/bugs/BUG-4440-the-client-error-boundary-stores-a-handled-api-refusal-as-sy.md) | The client error boundary stores a handled API refusal as SYSTEM_UNEXPECTED_ERROR (500) in monitoring | BUG | MEDIUM | P2 | FIXED | error-logs, apps/web | FIX_NOW |
 | [BUG-4441](../../docs/bugs/BUG-4441-browser-reported-react-hydration-errors-418-441-on-tenant-se.md) | Browser-reported React hydration errors 418/441 on tenant settings and profile pages (12 open rows, last seen 2026-10-06) are unverified | BUG | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
-| [BUG-4456](../../docs/bugs/BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do.md) | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | P2 | PRODUCT_DECISION | api:employees, services/api/src/common/constants/rbac-matrix.ts | PRODUCT_DECISION |
+| [BUG-4456](../../docs/bugs/BUG-4456-hr-role-cannot-upload-a-document-from-the-employee-record-do.md) | HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted) | AUTHORIZATION | MEDIUM | P2 | FIXED | api:employees, services/api/src/common/constants/rbac-matrix.ts | FIX_NOW |
 | [BUG-4457](../../docs/bugs/BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l.md) | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
 | [BUG-4458](../../docs/bugs/BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t.md) | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |

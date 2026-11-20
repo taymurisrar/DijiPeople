@@ -2,7 +2,7 @@
 ID: BUG-4456
 aliases: [BUG-4456]
 Title: HR role cannot upload a document from the employee record Documents tab (403 ACCESS_DENIED, employees.documents.upload not granted)
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-19
 DetectedInSha: fefab9da
 AffectedModules: [services/api/src/modules/employees, services/api/src/common/constants/rbac-matrix.ts]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-694
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
-UpdatedAt: 2026-11-19
-ResolvedAt:
+UpdatedAt: 2026-11-20
+ResolvedAt: 2026-11-20
 ---
 
 
@@ -63,9 +63,15 @@ Product decision: grant HR the employee-document upload privilege (extend the ma
 
 ## Acceptance Criteria
 
+HR uploads from the employee record (201); employee, recruiter, manager and payroll manager do not gain the key; HR does not gain delete.
+
+
 HR either uploads from the employee record (201) or the tab does not offer the action to HR; the chosen behaviour is asserted by flow P.
 
 ## Regression Coverage
+
+REG-694 — services/api/src/common/constants/rbac-matrix.hr-employee-documents.spec.ts and e2e/tests/flow-p-growth-hr-browser.spec.ts GP-D2.
+
 
 GP-D2 in `e2e/tests/flow-p-growth-hr-browser.spec.ts` (currently `test.fixme`); promote it when the decision lands.
 
@@ -79,9 +85,15 @@ Modules: employees, documents.
 
 ## Resolution
 
+HR was granted employees.documents.upload in SYSTEM_ROLE_MISC_PERMISSIONS (rbac-matrix.ts), per the owner's decision of 2026-11-20. Record access still resolves through getEmployeeRecordAccess (HR_MANAGE), so tenant and employee-level scope apply. Delete stays admin-only. Existing tenants receive the key when PermissionBootstrapService re-syncs role grants at API start.
+
+
 Open pending decision.
 
 ## QA Retest
+
+Flow P GP-D2 promoted from test.fixme; rbac-matrix.hr-employee-documents.spec.ts.
+
 
 Flow P run 2026-11-19.
 
@@ -94,5 +106,6 @@ Flow P run 2026-11-19.
 ## Related
 
 - Modules — [[employees]]
+- Regression — REG-694 (see the regression register)
 
 <!-- GRAPH:END -->

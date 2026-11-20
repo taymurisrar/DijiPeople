@@ -116,9 +116,18 @@ async function rowNames() {
   await expect(page.locator("tbody tr").first()).toBeVisible({
     timeout: 30_000,
   });
-  return (await page.locator("tbody tr td:nth-child(2)").allInnerTexts()).map(
-    (t) => t.trim(),
+  // Read the Name column by its header, not by a fixed position. K5 failed once
+  // in CI with every row reading "Closed" (the stage column) because the cell at
+  // position 2 was not the name in that render; the data was right, the position
+  // was an assumption.
+  const headers = (await page.locator("thead th").allInnerTexts()).map((t) =>
+    t.trim(),
   );
+  const at = headers.findIndex((h) => /^name/i.test(h));
+  const column = at >= 0 ? at + 1 : 2;
+  return (
+    await page.locator(`tbody tr td:nth-child(${column})`).allInnerTexts()
+  ).map((t) => t.trim());
 }
 
 async function goToPage(n: number) {

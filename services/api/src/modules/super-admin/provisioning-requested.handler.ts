@@ -113,6 +113,16 @@ export class ProvisioningRequestedHandler
     // Already provisioned. A redelivery, or an operator who provisioned by hand
     // before the event was processed.
     if (order.tenantId) {
+      /*
+       * The tenant exists, so it is never created again. The order is linked to
+       * it in the same transaction that creates it, which means reaching here on
+       * a retry is how a failure *after* creation shows up (the invitation, the
+       * hostname). Provisioning is skipped, and the idempotent closing steps run
+       * so the order, the onboarding record and the tenant's readiness are not
+       * left half-finished. BUG-4467: this used to return here without finishing,
+       * and before the link was atomic a retry created a second tenant.
+       */
+      await this.finalize(order, order.tenantId);
       return {
         status: 'PROCESSED',
         detail: `Order ${order.orderNumber} already has tenant ${order.tenantId}.`,
@@ -154,6 +164,7 @@ export class ProvisioningRequestedHandler
 
     const result = await this.onboarding.provisionTenantForCustomer({
       customerAccountId: order.customerAccountId,
+      subscriptionOrderId: order.id,
       companyName: order.customer.companyName,
       slug,
       contactEmail: order.customer.contactEmail,
@@ -192,11 +203,30 @@ export class ProvisioningRequestedHandler
       note: `Workspace provisioned automatically from order ${order.orderNumber}.`,
     });
 
+    await this.finalize(order, result.tenantId);
+
+    this.logger.log(
+      `Provisioned tenant ${result.tenantId} (${slug}) for order ${order.orderNumber}.`,
+    );
+
+    return {
+      status: 'PROCESSED',
+      detail: `Provisioned tenant ${result.tenantId} at ${slug}.`,
+    };
+  }
+  /**
+   * Everything that follows the tenant's creation. Each step is idempotent, so a
+   * retry can run it again after a failure part-way through.
+   */
+  private async finalize(
+    order: { id: string; customerAccountId: string },
+    tenantId: string,
+  ) {
     await this.prisma.$transaction(async (tx) => {
       await tx.subscriptionOrder.update({
         where: { id: order.id },
         data: {
-          tenantId: result.tenantId,
+          tenantId,
           activatedAt: new Date(),
           // The hold has served its purpose: Tenant.slug now owns the name, and
           // holding it here as well would block nothing and confuse a reader.
@@ -214,7 +244,7 @@ export class ProvisioningRequestedHandler
 
       await tx.customerOnboarding.updateMany({
         where: { customerId: order.customerAccountId, tenantId: null },
-        data: { tenantId: result.tenantId, tenantCreated: true },
+        data: { tenantId, tenantCreated: true },
       });
     });
 
@@ -241,18 +271,9 @@ export class ProvisioningRequestedHandler
      * idempotent state change, and `markTenantReady` opens its own transaction.
      */
     await this.activation.markTenantReady({
-      tenantId: result.tenantId,
+      tenantId,
       orderId: order.id,
     });
-
-    this.logger.log(
-      `Provisioned tenant ${result.tenantId} (${slug}) for order ${order.orderNumber}.`,
-    );
-
-    return {
-      status: 'PROCESSED',
-      detail: `Provisioned tenant ${result.tenantId} at ${slug}.`,
-    };
   }
 }
 

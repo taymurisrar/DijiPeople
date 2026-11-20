@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: e2e/tests/flow-p-growth-hr-browser.spec.ts
 RELATED_BUGS: [BUG-4457, BUG-4458, BUG-4456]
-RELATED_REGRESSIONS: [REG-692, REG-693]
+RELATED_REGRESSIONS: [REG-692, REG-693, REG-694]
 LAST_RUN: 2026-11-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-11-19
@@ -41,6 +41,6 @@ Created 2026-11-19 at `ea0029da`.
 
 - Test plan — [[PLAN-057]]
 - Bugs — [[BUG-4457]], [[BUG-4458]], [[BUG-4456]]
-- Regressions — REG-692, REG-693 (see the regression register)
+- Regressions — REG-692, REG-693, REG-694 (see the regression register)
 
 <!-- GRAPH:END -->
