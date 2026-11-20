@@ -8,9 +8,12 @@ import { ROLE_KEYS, SYSTEM_ROLE_MISC_PERMISSIONS } from './rbac-matrix';
  * 2026-11-20) is that HR uploads; nobody else gains it.
  */
 describe('employee document upload grant', () => {
-  it('is held by HR', () => {
-    expect(SYSTEM_ROLE_MISC_PERMISSIONS[ROLE_KEYS.HR]).toContain(
-      'employees.documents.upload',
+  it('is held by HR, with the read it needs to open what it uploads', () => {
+    expect(SYSTEM_ROLE_MISC_PERMISSIONS[ROLE_KEYS.HR]).toEqual(
+      expect.arrayContaining([
+        'employees.documents.upload',
+        'employees.documents.read',
+      ]),
     );
   });
 
@@ -22,6 +25,9 @@ describe('employee document upload grant', () => {
   ])('is not widened to %s', (role) => {
     expect(SYSTEM_ROLE_MISC_PERMISSIONS[role]).not.toContain(
       'employees.documents.upload',
+    );
+    expect(SYSTEM_ROLE_MISC_PERMISSIONS[role]).not.toContain(
+      'employees.documents.read',
     );
   });
 

@@ -401,7 +401,20 @@ test.describe('Flow P — attendance', () => {
     expect(before.body, 'no open attendance entry before the test').toBeFalsy();
 
     await go(employeePage, '/attendance');
-    await employeePage.getByRole('button', { name: 'Check In', exact: true }).click();
+    // The product refuses a punch on a day the employee's resolved schedule has
+    // no shift ("The resolved work schedule does not provide a shift for today"),
+    // and says so on the disabled button. That is correct behaviour, and it makes
+    // this test calendar-dependent: it cannot pass on the tenant's weekend. It
+    // skips there, visibly and with the product's own reason, instead of failing
+    // every Friday and Saturday or changing a policy to force a punch the
+    // schedule would still refuse.
+    const checkIn = employeePage.getByRole('button', { name: 'Check In', exact: true });
+    await expect(checkIn).toBeVisible({ timeout: 20_000 });
+    if (await checkIn.isDisabled()) {
+      const reason = (await checkIn.getAttribute('title')) ?? '';
+      test.skip(/off day|holiday|no shift/i.test(reason), `check-in unavailable today: ${reason}`);
+    }
+    await checkIn.click();
     let entryId = '';
     await expect
       .poll(async () => {

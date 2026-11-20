@@ -1160,6 +1160,10 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     // route checks this key *after* employee-record access resolves to
     // HR_MANAGE, so tenant and employee-level scope still apply; this only stops
     // the key itself being the reason HR is refused. Delete stays admin-only.
+    // Reading is the other half: download and view check employees.documents.read
+    // under the same HR_MANAGE gate, so an upload HR could not open again would
+    // be a half-grant.
+    'employees.documents.read',
     'employees.documents.upload',
     ...DATA_MANAGEMENT_PERMISSION_KEYS,
     MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,

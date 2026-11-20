@@ -85,7 +85,7 @@ Modules: employees, documents.
 
 ## Resolution
 
-HR was granted employees.documents.upload in SYSTEM_ROLE_MISC_PERMISSIONS (rbac-matrix.ts), per the owner's decision of 2026-11-20. Record access still resolves through getEmployeeRecordAccess (HR_MANAGE), so tenant and employee-level scope apply. Delete stays admin-only. Existing tenants receive the key when PermissionBootstrapService re-syncs role grants at API start.
+HR was granted employees.documents.upload and employees.documents.read (download and view check the read key under the same gate; Flow P GP-D2 showed an upload HR could not open again) in SYSTEM_ROLE_MISC_PERMISSIONS (rbac-matrix.ts), per the owner's decision of 2026-11-20. Record access still resolves through getEmployeeRecordAccess (HR_MANAGE), so tenant and employee-level scope apply. Delete stays admin-only. Existing tenants receive the key when PermissionBootstrapService re-syncs role grants at API start.
 
 
 Open pending decision.
