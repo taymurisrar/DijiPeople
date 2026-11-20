@@ -25677,7 +25677,9 @@
       "regressions": [
         "REG-695"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-GROWTH-002"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [],
