@@ -2947,41 +2947,32 @@ export class CustomizationService {
       currentUser.tenantId,
       table,
     );
-    if (dependencies.total > 0) {
+    /*
+     * A module's own fields, forms, views and package components are part of
+     * it, so they go with it — blocking on them made deletion a loop (the last
+     * default form cannot be deleted, and the module cannot be deleted while a
+     * form exists). Only a reference from ANOTHER module blocks: deleting under
+     * it would leave that module pointing at nothing.
+     */
+    if (dependencies.externalReferences.length > 0) {
       throw new BadRequestException({
-        message:
-          'This Module has metadata dependencies. Remove dependent Fields, Forms, Views, and package references before retirement.',
+        message: `Cannot delete ${table.displayName}. It is referenced by other modules: ${dependencies.externalReferences
+          .map((ref) => `${ref.tableDisplayName} (${ref.columnDisplayName})`)
+          .join(', ')}. Remove those references first.`,
         dependencies,
       });
     }
 
-    await this.prisma.$transaction([
-      this.prisma.customizationTable.update({
-        where: { id: table.id },
-        data: {
-          isActive: false,
-          isVisibleInCustomization: false,
-          updatedByUserId: currentUser.userId,
-        },
-      }),
-      this.prisma.customizationSolutionComponent.updateMany({
-        where: {
-          tenantId: currentUser.tenantId,
-          componentType: 'table',
-          objectId: table.id,
-        },
-        data: {
-          lifecycleState: 'retired',
-          updatedByUserId: currentUser.userId,
-        },
-      }),
-    ]);
+    // Columns, views, forms, package components and records cascade from the
+    // table row (onDelete: Cascade), so one delete removes the whole module.
+    await this.prisma.customizationTable.deleteMany({
+      where: { id: table.id, tenantId: currentUser.tenantId },
+    });
 
     return {
-      deleted: false,
-      retired: true,
-      lifecycleState: 'retired',
-      message: 'The custom Module was retired. Business data was not purged.',
+      deleted: true,
+      message: `${table.displayName} and its ${dependencies.columns} fields, ${dependencies.forms} forms, ${dependencies.views} views and ${dependencies.records} records were deleted.`,
+      dependencies,
     };
   }
 
@@ -6521,22 +6512,53 @@ export class CustomizationService {
     tenantId: string,
     table: CustomizationTable,
   ) {
-    const [columns, forms, views] = await Promise.all([
-      this.prisma.customizationColumn.count({
-        where: { tenantId, tableId: table.id },
-      }),
-      this.prisma.customizationForm.count({
-        where: { tenantId, tableId: table.id },
-      }),
-      this.prisma.customizationView.count({
-        where: { tenantId, tableId: table.id },
-      }),
-    ]);
+    const [columns, forms, views, records, components, referencing] =
+      await Promise.all([
+        this.prisma.customizationColumn.count({
+          where: { tenantId, tableId: table.id },
+        }),
+        this.prisma.customizationForm.count({
+          where: { tenantId, tableId: table.id },
+        }),
+        this.prisma.customizationView.count({
+          where: { tenantId, tableId: table.id },
+        }),
+        this.prisma.customDataRecord.count({
+          where: { tenantId, tableId: table.id, isDeleted: false },
+        }),
+        this.prisma.customizationSolutionComponent.count({
+          where: { tenantId, tableId: table.id },
+        }),
+        // Fields of OTHER modules that look up into this one.
+        this.prisma.customizationColumn.findMany({
+          where: {
+            tenantId,
+            lookupTargetTableKey: table.tableKey,
+            tableId: { not: table.id },
+          },
+          select: {
+            columnKey: true,
+            displayName: true,
+            table: { select: { tableKey: true, displayName: true } },
+          },
+        }),
+      ]);
+    const externalReferences = referencing.map((column) => ({
+      tableKey: column.table.tableKey,
+      tableDisplayName: column.table.displayName,
+      columnKey: column.columnKey,
+      columnDisplayName: column.displayName,
+    }));
     return {
       tableKey: table.tableKey,
+      displayName: table.displayName,
       columns,
       forms,
       views,
+      records,
+      packageComponents: components,
+      externalReferences,
+      canDelete: externalReferences.length === 0,
       total: columns + forms + views,
     };
   }
