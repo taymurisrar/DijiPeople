@@ -2,7 +2,11 @@ services:
   - type: web
     name: dijipeople-api
     env: node
-    plan: starter
+    # Live service is STANDARD (2 GB), verified read-only against the Render API
+    # on 2026-11-21. This file said starter (512 MB) while observed memory was
+    # 585-749 MB, so applying it as a blueprint would have downgraded production
+    # below its own working set. Do not lower this without peak-memory evidence.
+    plan: standard
     # BUG-0767 — THIS FILE WAS NOT WHAT PRODUCTION RAN.
     #
     # Until 2026-08-23 the live service was configured by hand in the Render
@@ -101,6 +105,18 @@ services:
       # Optional everywhere there is no pooler: unset, migrations fall back to
       # DATABASE_URL.
       - key: DIRECT_DATABASE_URL
+        sync: false
+      # Connection-pool bounds (RES-01). Only the connect timeout has a code default
+      # (15000 ms; the driver's own default waits forever). The rest are unset on
+      # purpose: set DATABASE_STATEMENT_TIMEOUT_MS only after measuring, because a
+      # default would kill long payroll/import work that has never had a limit.
+      - key: DATABASE_POOL_CONNECTION_TIMEOUT_MS
+        sync: false
+      - key: DATABASE_POOL_MAX
+        sync: false
+      - key: DATABASE_POOL_IDLE_TIMEOUT_MS
+        sync: false
+      - key: DATABASE_STATEMENT_TIMEOUT_MS
         sync: false
       - key: JWT_ACCESS_SECRET
         sync: false

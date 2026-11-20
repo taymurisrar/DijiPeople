@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 128
+**Active: 2** · completed: 128
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0135](../../docs/sessions/SESSION-0135-performance-reliability-and-cost-hardening-audit-111-concept.md) | — | Performance, reliability and cost hardening audit (111 concepts, readiness, DB pool bounds) | ACTIVE | `agent/perf-reliability-hardening` | `develop` | — | 2026-11-20T22:32:39.329Z |
 | [SESSION-0130](../../docs/sessions/SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2.md) | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | 2026-10-30T19:14:29.947Z |
 
 ## Completed

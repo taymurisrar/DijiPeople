@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { resolvePoolBounds } from './pool-config';
 import { RequestContextService } from '../request-context/request-context.service';
 import {
   locateMigrationsDir,
@@ -26,7 +27,10 @@ export class PrismaService
       throw new Error('DATABASE_URL is required.');
     }
     super({
-      adapter: new PrismaPg({ connectionString }),
+      adapter: new PrismaPg({
+        connectionString,
+        ...resolvePoolBounds(process.env),
+      }),
       log: process.env.NODE_ENV === 'development' ? ['warn'] : [],
     });
 

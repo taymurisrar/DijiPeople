@@ -120,6 +120,20 @@ changes. Setting either variable to a pooled url when it is the one migrations
 would use is refused at config load with a message naming the fix, rather than
 being discovered ten seconds into a deploy.
 
+### Connection-pool bounds (API)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DATABASE_POOL_CONNECTION_TIMEOUT_MS` | 15000 | How long a request waits for a pooled connection before failing. Without it the driver waits forever and a saturated pool looks like a hung API (RES-01). |
+| `DATABASE_POOL_MAX` | driver default (10) | Maximum pooled connections for this process. Size it against the Neon endpoint's connection limit divided by instance count. |
+| `DATABASE_POOL_IDLE_TIMEOUT_MS` | driver default | How long an idle connection is kept. |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | unset (off) | Server-side statement timeout. Deliberately off: payroll runs, imports and package-ALM have never had one. Set only after measuring the longest legitimate statement. |
+
+Unusable values (zero, negative, non-numeric) fall back to the default.
+`GET /api/health/ready` is the dependency-aware readiness probe (200/503 on a
+`SELECT 1`); `/api/health` stays the liveness check. Do not point Render's
+`healthCheckPath` at the readiness route.
+
 Required production values:
 
 ```env
