@@ -36,7 +36,7 @@ const SEGMENTS = [
   ['Leave, approvals, notifications, timesheets, attendance, projects, documents, settings', 'tests/flow-p-growth-hr-browser.spec.ts'],
 ];
 
-const outDir = path.join(e2eDir, 'test-results', 'demo-run');
+const outDir = path.join(e2eDir, 'demo-run-output');
 mkdirSync(outDir, { recursive: true });
 
 const started = Date.now();
@@ -64,7 +64,11 @@ for (const [name, file] of SEGMENTS) {
     const walk = (suite) => {
       for (const spec of suite.specs ?? []) {
         for (const t of spec.tests ?? []) {
-          if (t.status === 'unexpected') failures.push(spec.title);
+          if (t.status === 'unexpected') {
+            const err = (t.results ?? []).map((r) => r.error?.message).find(Boolean) ?? '';
+            // eslint-disable-next-line no-control-regex
+            failures.push(`${spec.title}: ${err.replace(/[[0-9;]*m/g, '').slice(0, 500)}`);
+          }
           if (t.status === 'skipped') failures.push(`SKIPPED: ${spec.title}`);
         }
       }

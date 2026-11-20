@@ -143,3 +143,9 @@ Both run in the required `browser-e2e` CI job (fail-closed) and **throw rather t
 - **CI root causes found on the way:** the runner was memory-starved by `next dev` (production builds now); Flow Q needed `OUTBOX_WORKER_ENABLED`, `EXPOSE_DEV_AUTH_LINKS`, `LANDING_APP_URL`, `WEB_APP_URL` and `TENANT_BASE_DOMAIN`, and without the last the provisioning handler created duplicate tenants (BUG-4467).
 - **Local runs:** Flow P 9 passed + 1 fixme and Flow Q 7/7, each twice in a row, zero tagged residue.
 - **Demo script:** `docs/qa/demo-scripts/ahk-growth-30-minute-demo.md`.
+
+## Final sign-off evidence (2026-11-20)
+
+- **Continuous demo replay**, `e2e/tools/run-growth-demo.mjs`, two consecutive runs on fresh disposable databases: 25 passed, 0 failed, 0 skipped (462 s and 354 s).
+- **Closed in this pass:** GP-S1 (the test asserted a different store from the one the screen writes; BUG-1980 remains open and untouched), the attendance calendar skip (a seeded working schedule, off-day validation untouched), BUG-4447 (browser lookup assignment, plus two draft-save defects it exposed), BUG-4484 (self-service provisioning now records a provisioning run) and BUG-4467 recovery tests (failures after tenant creation retried without duplicates).
+- **Test flakes fixed:** Q4 (two `<main>` elements during a client navigation) and GP-L2 (the rejection reason read once before it was recorded).

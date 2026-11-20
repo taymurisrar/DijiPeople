@@ -215,9 +215,15 @@ test.describe('Flow P — approvals inbox and notifications', () => {
     await expect
       .poll(async () => (await findLeave(reason))?.status, { timeout: 30_000 })
       .toBe('REJECTED');
-    const after = await admin.get(`approvals/${approval.id}`);
-    expect(after.status).toBe(200);
-    expect(JSON.stringify(after.body)).toContain(why);
+    // The leave turns REJECTED a moment before the approval record shows the
+    // reason (seen once in a continuous run: status read first, reason absent).
+    // Wait for the reason rather than reading the approval once.
+    await expect
+      .poll(async () => JSON.stringify((await admin.get(`approvals/${approval.id}`)).body), {
+        timeout: 30_000,
+        message: 'the rejection reason is recorded on the approval',
+      })
+      .toContain(why);
     await go(employeePage, `/leaves/${id}`);
     await expect(employeePage.getByText(/rejected/i).first()).toBeVisible();
   });
@@ -415,6 +421,13 @@ test.describe('Flow P — attendance', () => {
     // Minus a minute for clock skew between the test host and the database.
     const startedAt = new Date(Date.now() - 60_000);
     try {
+      // A previous run's punch can be rebuilt by the reconciliation job after that
+      // run has finished (it fires about half a minute after the punch), leaving an
+      // open system entry that makes this run's first assertion fail on the next
+      // invocation. This is a disposable database and the employee is synthetic,
+      // so start from nothing of today's.
+      const stale = await sweepAttendanceSince(target!.id, new Date(Date.now() - 24 * 3600_000));
+      expect(stale, 'attendance from an earlier run is cleared').toBeNull();
       const before = await employee.get<Entry | ''>('attendance/mine/active');
       expect(before.body, 'no open attendance entry before the test').toBeFalsy();
 
@@ -455,6 +468,10 @@ test.describe('Flow P — attendance', () => {
       if (swept) problems.push(swept);
       const restored = await fixture.restore();
       if (restored) problems.push(restored);
+      // Restoring the schedule changes what the day resolves to, which can queue
+      // one more reconciliation. Let it settle and sweep once more.
+      const sweptAgain = await sweepAttendanceSince(target!.id, startedAt);
+      if (sweptAgain) problems.push(sweptAgain);
       expect(problems, 'attendance cleanup must not fail silently').toEqual([]);
     }
   });

@@ -3,7 +3,7 @@ import { BASE_URLS } from '../playwright.config';
 import { withDatabase } from '../fixtures/environment';
 import { TARGET } from '../fixtures/landing-target';
 import { signInToWeb, tenantUrl } from '../fixtures/web-session';
-import {
+import { mainOf,
   OWNER_PASSWORD,
   TAG,
   approveInDialog,
@@ -135,7 +135,7 @@ test.describe('Flow Q — Growth plan, bank transfer, browser end to end', () =>
     await test.step('landing -> Growth -> wizard -> verified email -> bank invoice', async () => {
       const { orderId, reference } = await buyGrowthToInvoice(page, buyer);
       test.info().annotations.push({ type: 'order', description: orderId });
-      const main = page.locator('main');
+      const main = mainOf(page);
       await expect(main).toContainText(`Pay USD ${expectedTotal()}`);
       await expect(main).toContainText(`QA Test Bank ${TAG}`);
       await expect(main).toContainText('SYNTHETIC TEST ACCOUNT');
@@ -197,7 +197,7 @@ test.describe('Flow Q — Growth plan, bank transfer, browser end to end', () =>
 
         // The customer's own page now offers the way in.
         await page.reload();
-        await expect(page.locator('main')).toContainText('Continue to your workspace');
+        await expect(mainOf(page)).toContainText('Continue to your workspace');
       });
 
       await test.step('payment-received and activation emails are recorded', async () => {
@@ -353,7 +353,7 @@ test.describe('Flow Q — Growth plan, bank transfer, browser end to end', () =>
 
     // The customer sees the reason and is offered the form again.
     await page.reload();
-    await expect(page.locator('main')).toContainText(`Amount not seen on the statement ${TAG}`);
+    await expect(mainOf(page)).toContainText(`Amount not seen on the statement ${TAG}`);
     await submitClaimInBrowser(page, `QAREF-${TAG}-rj2`);
     const resubmitted = await orderState(orderId);
     expect(resubmitted.claims.map((c) => c.status)).toEqual(['REJECTED', 'PENDING_VERIFICATION']);
@@ -402,7 +402,7 @@ test.describe('Flow Q — Growth plan, bank transfer, browser end to end', () =>
     const buyer = newBuyer('vc');
     const { context, page } = await newCustomerPage(browser);
     const { orderId, code } = await runWizardToVerification(page, buyer);
-    const main = page.locator('main');
+    const main = mainOf(page);
     const submit = page.getByRole('button', { name: /confirm and continue to payment/i });
     const unverified = () => scalar(`select count(*)::int from "SubscriptionOrder" where id = $1 and "ownerEmailVerifiedAt" is null`, [orderId]);
 
