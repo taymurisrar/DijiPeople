@@ -697,6 +697,7 @@
 
 ## Recent Engineering History
 
+- [[2026-11-21-security-timesheet-datajob-followup-d175f2dd|Engineering History — Security timesheet datajob followup]]
 - [[2026-11-21-perf-reliability-hardening-fbf002c7|Engineering History — Perf reliability hardening]]
 - [[2026-10-13-agreement-version-approval-e4801467|Engineering History — Submit for approval derives the agreement version]]
 - [[2026-10-13-agreement-template-v3-b3c2b9a4|Engineering History — Agreement template 55b74891 v3 and mandatory agreement terms]]
@@ -704,7 +705,6 @@
 - [[2026-10-12-owner-names-and-lookup-links-f93b56b5|Engineering History — Owner names and lookup links]]
 - [[2026-10-12-agreement-templates-hotfix-dcd2720d|Engineering History — Agreement templates hotfix]]
 - [[2026-10-12-admin-delete-and-labels-ed30bda7|Engineering History — Admin delete and labels]]
-- [[2026-10-11-dp-platform-remediation-dc10b371|Engineering History — DP platform remediation (12 workstreams)]]
 
 ## Recent Releases
 
@@ -942,7 +942,7 @@
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
-| Engineering history records | 105 |
+| Engineering history records | 106 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
