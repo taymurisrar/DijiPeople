@@ -70,7 +70,7 @@ deferred earlier as [[ITEM-0070]] and is unchanged.
 | WP5 | Vercel Node 22/24 drift, selective builds, frontend performance | **Node drift confirmed and aligned in source; the rest not assessed** | section 2f |
 | WP6 | Agent-workforce efficiency | Not started | |
 | WP7 | Observability, runbooks, restore drills | Not started | |
-| WP8 | Compliance control register (HIPAA applicability, ISO, SOC 2, ASVS, NIST) | Not started | |
+| WP8 | Compliance control register (HIPAA applicability, ISO, SOC 2, ASVS, NIST) | **First readiness register written; no compliance or certification is claimed** | [`docs/compliance/control-readiness-register.md`](../compliance/control-readiness-register.md) |
 
 ## 2a. WP3 — tenant isolation: static sweep (2026-11-21)
 
@@ -163,6 +163,8 @@ alongside its own tests. Recorded as a standing risk, not fixed.
 | Database-backed tests | New suite (15) plus the six existing suites (18+) |
 | HTTP integration | New suite |
 | Independently verified | **Not yet** — no independent QA/Security pass has been run |
+
+**Tenant lifecycle suite** `services/api/test/tenant-lifecycle-access.e2e-spec.ts` (database-backed HTTP, 16 tests): a cryptographically valid token is refused (401) for each of the 8 non-ACTIVE tenant statuses, for a DISABLED user and for a revoked session, and access returns on reactivation; a role-less user and a tenant token on the admin client are refused. Mutation-tested: dropping the tenant-status condition in `auth-access.service.ts` failed 10 of 16.
 
 **Still open under WP3:** list/search/count/aggregate/export paths, raw SQL,
 bulk and nested writes, upsert and `updateMany` with computed filters,
