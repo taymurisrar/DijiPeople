@@ -19,7 +19,7 @@
     "test": "jest --config jest.config.js"
   },
   "dependencies": {
-    "active-win": "^8.2.1",
+    "active-win": "^9.0.0",
     "dotenv": "^16.0.3",
     "electron-is-dev": "^3.0.1",
     "electron-updater": "^6.6.2",
