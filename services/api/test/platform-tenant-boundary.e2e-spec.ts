@@ -149,31 +149,28 @@ describeWithDatabase()('Platform / tenant boundary (e2e, HTTP)', () => {
       },
     );
 
-    it('BUG-4625: a refused platform-log request is audited against the tenant and raises no unhandled rejection', async () => {
+    it('BUG-4625: a refused platform-log request is audited against the tenant, not the platform table', async () => {
       // Before the fix the denial audit wrote a TENANT user id into the platform
-      // audit table's actor foreign key; the insert failed, the promise was
-      // discarded, and Node's default for an unhandled rejection ends the
-      // process. Observed on a booted API: one request, API down. Here the
-      // rejection is collected instead of ending the test runner.
-      const rejections: unknown[] = [];
-      const collect = (reason: unknown) => rejections.push(reason);
-      process.on('unhandledRejection', collect);
-      try {
-        const res = await get(tenantAdmin, 'platform/logs', 'web');
-        expect(res.status).toBe(403);
-        // Give a discarded promise time to reject, which it does asynchronously.
-        await new Promise((resolve) => setTimeout(resolve, 750));
-      } finally {
-        process.off('unhandledRejection', collect);
+      // audit table's actor foreign key; the insert failed inside a discarded
+      // promise, which ends the process on a booted API (observed: one request,
+      // API down). The failure also left no audit row, and THAT is what this
+      // asserts. Collecting 'unhandledRejection' here was tried and removed:
+      // jest installs its own handler, so such a listener never fires and would
+      // make the assertion vacuous.
+      const res = await get(tenantAdmin, 'platform/logs', 'web');
+      expect(res.status).toBe(403);
+      // The audit write is not awaited by the request, so poll for the row.
+      let audit = null;
+      for (let attempt = 0; attempt < 20 && !audit; attempt += 1) {
+        audit = await prisma.auditLog.findFirst({
+          where: {
+            tenantId,
+            action: 'PLATFORM_ERROR_LOG_ACCESS_DENIED',
+            actorUserId: tenantAdmin.id,
+          },
+        });
+        if (!audit) await new Promise((resolve) => setTimeout(resolve, 250));
       }
-      expect(rejections).toEqual([]);
-      const audit = await prisma.auditLog.findFirst({
-        where: {
-          tenantId,
-          action: 'PLATFORM_ERROR_LOG_ACCESS_DENIED',
-          actorUserId: tenantAdmin.id,
-        },
-      });
       expect(audit).not.toBeNull();
     });
 

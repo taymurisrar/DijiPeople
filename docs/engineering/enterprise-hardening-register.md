@@ -224,6 +224,42 @@ All 45 tests across the four strengthened suites pass on the isolated database.
   alive after an unhandled rejection: a deliberate trade against an outage,
   logged at error level each time.
 
+**Independent review of both fixes** (read-only subagent, 2026-11-22) — outcome:
+
+- **Fix A is complete for the release routes but the class is not closed.** Tenant
+  administrators can create, rename and delete the shared state and city rows
+  (`lookups.controller.ts`, `lookups.service.ts`: no tenant filter). That is the
+  already-open owner decision QUESTION-3931 and is unchanged here; it is the same
+  shape as BUG-4624. Cleared by reading: currencies and tax rules (tenant-scoped),
+  the update feed (read-only), the publisher controller (own token), platform
+  controllers (platform guard). Not inspected: `platform-runtime`,
+  `data-management`, `navigation`, `settings-runtime`, the agent and DLP
+  controllers.
+- **The platform-FK class is not closed.** `AuditService.log` maps the actor to
+  `platformActorUserId` whenever `tenantId === 'platform'`. The other
+  `tenantId: 'platform'` call sites (auth, bank-transfer, payment-method-registry,
+  payment-recheck, platform-numbering, release-publisher) were not opened to see
+  which actor they pass; any reachable by a tenant caller with a tenant user id
+  would repeat BUG-4625. A structural guard in `AuditService` is the proper fix and
+  is NOT done.
+- **Timer workers:** each of the 11 `setInterval` workers has an internal try/catch
+  (counted, not every path read), so they are not obviously unhandled-rejection
+  sources.
+- **The unhandled-rejection handler** is installed after `NestFactory.create`, so a
+  boot-time rejection still crashes (desirable); it is a no-op if another handler
+  exists (the guarantee then goes silent); a rejection storm would flood the log
+  with no rate limit or alert. `uncaughtException` is left unhandled on purpose
+  (state after a synchronous throw is unknown; a restart is safe); a log-and-exit
+  handler would at least flush the cause and is not added.
+- **Tests (fixed).** The `unhandledRejection` collector in the BUG-4625 test was
+  vacuous: jest installs its own handler, so a listener never fires. It is removed;
+  the assertion that matters is the tenant audit row, polled rather than a fixed
+  wait. A negative test for `enable` was added (66 tests across the two suites).
+  The tenant-to-platform checks are GET-only except for the release routes.
+- **A route-level guard** would be sturdier than the in-handler
+  `assertPlatformSubject` call, which a new release route can forget; no test yet
+  enforces "every mutating route on this controller refuses a tenant".
+
 **Sensitive employee data suite**
 `services/api/test/employee-sensitive-data-isolation.e2e-spec.ts` (13 tests):
 salary and bank details read and overwritten through the real endpoints, personal

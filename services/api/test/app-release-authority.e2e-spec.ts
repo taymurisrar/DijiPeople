@@ -150,6 +150,25 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
     expect((await release()).isActive).toBe(true);
   });
 
+  it('a tenant admin cannot enable a disabled global release', async () => {
+    await prisma.applicationRelease.update({
+      where: { id: releaseId },
+      data: { isActive: false },
+    });
+    const res = await call(
+      'post',
+      tenantAdmin,
+      `app-releases/${releaseId}/enable`,
+      'web',
+    );
+    expect(res.status).toBe(403);
+    expect((await release()).isActive).toBe(false);
+    await prisma.applicationRelease.update({
+      where: { id: releaseId },
+      data: { isActive: true },
+    });
+  });
+
   it('a tenant admin cannot promote a global release to STABLE', async () => {
     const res = await call(
       'post',
