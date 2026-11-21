@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **127** |
-| Open total | 312 |
+| Open total | 313 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -626,6 +626,7 @@
 | [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so|BUG-4484]] | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | FIXED | api:super-admin | FIX_NOW |
+| [[BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las|BUG-4509]] | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -839,6 +840,7 @@
 | [[BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l|BUG-4457]] | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so|BUG-4484]] | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | FIXED | api:super-admin | FIX_NOW |
+| [[BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las|BUG-4509]] | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -931,7 +933,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 580 |
+| Bug records | 581 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
