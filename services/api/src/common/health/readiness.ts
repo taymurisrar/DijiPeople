@@ -1,10 +1,13 @@
 /**
  * Dependency-aware readiness, deliberately separate from liveness.
  *
- * `/api/health` answers from environment values alone (main.ts) and must stay
- * that way: it is what Render's health check and the deployment smoke test hit,
- * and wiring a database outage into it would turn a Neon blip into a restart
- * loop of an otherwise healthy process. `/api/health/ready` is the question
+ * `/api/health/live` (liveness.ts) answers from nothing at all and is the route
+ * a restart decision may use. `/api/health` used to answer from environment
+ * values alone, but it now also reports entitlement enforcement, which reads the
+ * database when its cache expires, so it is not guaranteed independent of the
+ * database and only the deployment smoke test should rely on it. Wiring a database outage into a
+ * restart decision would turn a Neon blip into a restart loop of an otherwise
+ * healthy process. `/api/health/ready` is the question
  * "can this instance do useful work right now?" — for an uptime monitor or an
  * operator, never for a restart decision.
  */

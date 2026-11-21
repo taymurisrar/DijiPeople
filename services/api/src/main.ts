@@ -18,6 +18,7 @@ import {
 import { AppModule } from './app.module';
 import { resolveLogLevels } from './log-level';
 import { PrismaService } from './common/prisma/prisma.service';
+import { livenessReport } from './common/health/liveness';
 import { probeReadiness } from './common/health/readiness';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
 import { TenantEntitlementService } from './common/security/tenant-entitlement.service';
@@ -104,6 +105,14 @@ async function bootstrap() {
   expressApp.get('/', serveHealth);
   expressApp.get('/api', serveHealth);
   expressApp.get('/api/health', serveHealth);
+
+  // Liveness: process-up only, no database and no imports (common/health/
+  // liveness.ts). This is the route a restart decision may use. `/api` and
+  // `/api/health` above read the entitlement mode from the database whenever
+  // their cache has expired, so they are not safe for that (ITEM-0236).
+  expressApp.get('/api/health/live', (_req: Request, res: Response) => {
+    res.json(livenessReport());
+  });
 
   // Readiness is NOT liveness: it probes the database and answers 503 when it is
   // unreachable, so it is for monitors and operators. Do not point Render's

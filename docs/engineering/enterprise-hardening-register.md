@@ -225,6 +225,8 @@ is not synced to the service, so it changes nothing live by itself.
 Also noted: the live pre-deploy command carries a 4 GB Node memory cap that the
 file does not. Autodeploy is on and the branch is `main`, as expected.
 
+**Health route dependency trace (2026-11-22).** `/api` and `/api/health` call `entitlements.describeEnforcement()`, which reads `PlatformSetting` when a 30 s cache expires; the read is wrapped, so a refused connection cannot fail the route. Measured against a locally booted API on the isolated database, with the database stopped and the cache expired: `/api` 200 in 61 ms, `/api/health/live` 200 in 37 ms, `/api/health/ready` 503 in 32 ms. A hanging database (not refusing) was not reproduced; there the read waits for the 15 s pool timeout. So `/api` is database-tolerant, not database-independent. Source change: a dedicated `/api/health/live` (no imports, no database), registered before Nest; the claim in `readiness.ts` that `/api/health` was environment-only was stale and is corrected. The live service is not changed; after the release, set the Render health check to `/api/health/live` ([[ITEM-0236]]).
+
 **Not done, by design:** no live Render configuration was changed, and no
 `render.yaml` edit was made. Resource sizing, restarts, memory and CPU were not
 measured because the checker reads configuration, not metrics.
