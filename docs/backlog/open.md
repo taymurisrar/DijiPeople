@@ -165,6 +165,7 @@ _None._
 | [BUG-3501](../../docs/bugs/BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver.md) | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | IN_PROGRESS | api:billing | FIX_NOW |
 | [ITEM-0232](../../docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md) | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | P1 | READY | billing | PLAN_REQUIRED |
+| [ITEM-0234](../../docs/backlog/items/ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic.md) | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | P1 | READY | agent | PLAN_REQUIRED |
 | [BUG-1548](../../docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md) | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | P2 | FIXED | onboarding | DONE |
 | [BUG-1551](../../docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md) | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | P2 | FIXED | agent, app-releases | DONE |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | FIXED | views | DONE |
@@ -307,6 +308,7 @@ _None._
 | [ITEM-0177](../../docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md) | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
 | [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
+| [ITEM-0235](../../docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md) | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 
 ## LOW and unrated
 

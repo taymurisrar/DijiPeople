@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **127** |
-| Open total | 314 |
+| Open total | 316 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -721,6 +721,7 @@
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | IN_PROGRESS | api:billing | FIX_NOW |
 | [[ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p|ITEM-0232]] | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | READY | billing | PLAN_REQUIRED |
+| [[ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic|ITEM-0234]] | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -863,6 +864,7 @@
 | [[ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-|ITEM-0177]] | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no|ITEM-0226]] | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | READY | common, platform-runtime | PLAN_REQUIRED |
 | [[ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf|ITEM-0228]] | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | READY | platform-communications, partner-experience | PLAN_REQUIRED |
+| [[ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend|ITEM-0235]] | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -939,7 +941,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 582 |
-| Backlog items | 233 |
+| Backlog items | 235 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |

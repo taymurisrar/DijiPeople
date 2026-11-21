@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**815 records** — 582 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**817 records** — 582 bugs under [`docs/bugs/`](../bugs/), 235 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 314 |
+| Open (active work) | 316 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 127 |
-| MEDIUM | 145 |
+| MEDIUM | 147 |
 | LOW | 31 |
 
 ## Open by type
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 8 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
-| SECURITY | 28 |
+| SECURITY | 30 |
 | STATE_MACHINE | 7 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
@@ -65,7 +65,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 27 |
+| READY | 29 |
 | DONE | 122 |
 
 ## All records
@@ -371,6 +371,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | DONE | api:contracts, api:partners | DONE |
 | [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | IN_PROGRESS | api:billing | FIX_NOW |
 | [ITEM-0232](../../docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md) | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | P1 | READY | billing | PLAN_REQUIRED |
+| [ITEM-0234](../../docs/backlog/items/ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic.md) | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | P1 | READY | agent | PLAN_REQUIRED |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -730,6 +731,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0211](../../docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md) | Safepay renewal invoices are issued but never emailed to the tenant | FOLLOW_UP | MEDIUM | P2 | DEFERRED | api:billing | DEFER |
 | [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
 | [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
+| [ITEM-0235](../../docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md) | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
