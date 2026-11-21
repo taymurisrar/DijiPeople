@@ -1,11 +1,14 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { TenantStatus } from '@prisma/client';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { randomUUID } from 'node:crypto';
 
 import { AppModule } from '../src/app.module';
+import { getClientAccessTokenSecret } from '../src/common/config/auth.config';
 import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
@@ -90,7 +93,39 @@ describeWithDatabase()('Tenant lifecycle gates access (e2e, HTTP)', () => {
   });
 
   it('control: a user holding no role is refused, so 200 above is RBAC working, not an open door', async () => {
-    expect([401, 403]).toContain((await get(plain, 'roles')).status);
+    // Exactly 403: 401 would mean the session is broken, which this control
+    // must not hide as "RBAC working".
+    expect((await get(plain, 'roles')).status).toBe(403);
+  });
+
+  it('a validly signed token whose tenantId claim names ANOTHER tenant is refused (claim forgery)', async () => {
+    const other = await fixtures.createTenant('life-other');
+    const session = await prisma.refreshToken.findFirstOrThrow({
+      where: { userId: admin.id },
+      select: { sessionId: true },
+    });
+    const forged = await app.get(JwtService).signAsync(
+      {
+        sub: admin.id,
+        tenantId: other.id,
+        email: admin.email,
+        sessionId: session.sessionId,
+        tokenVersion: 1,
+        type: 'access',
+        tokenUse: 'access',
+        appClientId: 'web',
+        aud: 'web',
+      },
+      {
+        secret: getClientAccessTokenSecret(app.get(ConfigService), 'web'),
+        expiresIn: '1h',
+      },
+    );
+    const res = await request(app.getHttpServer())
+      .get('/roles')
+      .set('Authorization', `Bearer ${forged}`)
+      .set('X-DijiPeople-App', 'web');
+    expect(res.status).toBe(401);
   });
 
   const blocked = Object.values(TenantStatus).filter(

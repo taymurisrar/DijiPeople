@@ -148,7 +148,31 @@ describeWithDatabase()(
       await app.close();
     });
 
+    const subResources = [
+      '',
+      '/export',
+      '/history',
+      '/education',
+      '/compensation',
+      '/previous-employments',
+      '/documents',
+      '/hierarchy',
+      '/reporting-structure',
+      '/direct-reports',
+    ];
+
     describe('positive controls', () => {
+      it('the owner reads every by-id sub-resource the attack below targets (200)', async () => {
+        for (const sub of subResources) {
+          const res = await call(
+            'get',
+            beta,
+            `employees/${betaEmployeeId}${sub}`,
+          );
+          expect({ sub, status: res.status }).toEqual({ sub, status: 200 });
+        }
+      });
+
       it('each admin lists, searches and exports its own employees', async () => {
         for (const [who, marker] of [
           [alpha, markerA],
@@ -198,25 +222,15 @@ describeWithDatabase()(
       });
 
       it('by-id reads and sub-resources are refused', async () => {
-        for (const sub of [
-          '',
-          '/export',
-          '/history',
-          '/education',
-          '/compensation',
-          '/previous-employments',
-          '/documents',
-          '/hierarchy',
-          '/reporting-structure',
-          '/direct-reports',
-        ]) {
+        for (const sub of subResources) {
           const res = await call(
             'get',
             alpha,
             `employees/${betaEmployeeId}${sub}`,
           );
-          refused(res.status);
-          expect(text(res)).not.toContain(markerB);
+          // Exactly 404: the owner gets 200 on the same URL (control above), so
+          // a 403 here would mean RBAC, not isolation.
+          expect({ sub, status: res.status }).toEqual({ sub, status: 404 });
         }
       });
     });

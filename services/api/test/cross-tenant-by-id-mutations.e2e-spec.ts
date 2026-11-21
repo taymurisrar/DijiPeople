@@ -197,6 +197,35 @@ describeWithDatabase()('Cross-tenant by-id mutation (e2e, HTTP)', () => {
         (await call('get', beta.admin, `users/${beta.victimUserId}`)).status,
       ).toBe(200);
     });
+
+    // The attacks below are writes, so the controls must be writes too: if the
+    // same verbs failed for the owner (wrong DTO, wrong permission) every
+    // refusal under them would be meaningless. These run on ALPHA's own rows.
+    it('ALPHA admin can write its own role, team, user and view (same verbs as the attacks)', async () => {
+      const role = await call('put', alpha.admin, `roles/${alpha.roleId}`, {
+        name: 'Renamed by owner',
+        description: 'owner edit',
+      });
+      expect(role.status).toBe(200);
+      const team = await call('patch', alpha.admin, `teams/${alpha.teamId}`, {
+        description: 'owner edit',
+      });
+      expect(team.status).toBe(200);
+      const user = await call(
+        'patch',
+        alpha.admin,
+        `users/${alpha.victimUserId}`,
+        { firstName: 'OwnerEdit' },
+      );
+      expect(user.status).toBe(200);
+      const view = await call(
+        'patch',
+        alpha.admin,
+        `module-views/${alpha.viewId}`,
+        { name: 'Renamed view' },
+      );
+      expect(view.status).toBe(200);
+    });
   });
 
   describe('ALPHA admin against BETA rows, by id', () => {
@@ -257,20 +286,16 @@ describeWithDatabase()('Cross-tenant by-id mutation (e2e, HTTP)', () => {
     });
 
     it('cannot clone a role into its own tenant', async () => {
-      const res = await call(
-        'post',
-        alpha.admin,
-        `roles/${beta.roleId}/clone`,
-        {
-          name: 'Stolen clone',
-        },
-      );
+      // The clone endpoint takes no body, so the check is on ALPHA's role
+      // count: a successful clone of BETA's role would add a row to ALPHA.
+      const rolesBefore = await prisma.role.count({
+        where: { tenantId: alpha.tenantId },
+      });
+      const res = await call('post', alpha.admin, `roles/${beta.roleId}/clone`);
       refused(res.status);
       expect(
-        await prisma.role.count({
-          where: { tenantId: alpha.tenantId, name: 'Stolen clone' },
-        }),
-      ).toBe(0);
+        await prisma.role.count({ where: { tenantId: alpha.tenantId } }),
+      ).toBe(rolesBefore);
     });
 
     it('cannot delete a role', async () => {

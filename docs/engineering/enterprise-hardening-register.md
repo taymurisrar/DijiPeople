@@ -177,6 +177,29 @@ removing `tenantId` from `findByIdAndTenant` failed 2 tests. Note: the list
 response echoes the search term, so the empty-result assertion is on `items` and
 `meta.total`, not raw text.
 
+**Independent QA review (2026-11-22, read-only, `dp-qa-engineer`)** of the first
+three suites found real weaknesses, all addressed:
+
+- Refusals accepted 403 as well as 404, and positive controls were GET-only, so a
+  failing write verb would have looked like isolation. Fixed: owner-side controls
+  now use the same write verbs (200), and attacks on by-id reads must be exactly 404.
+- A response-text assertion on a refusal body proved nothing (removed); the clone
+  check used a body the endpoint ignores (now compares role counts).
+- The role-less control accepted 401 or 403 (now exactly 403).
+- The cross-client replay test fails on signature, not on the `aud` check, so it is
+  not claimed as that; a claim-forgery test was added (a validly signed token whose
+  `tenantId` names another tenant is refused, 401).
+- The top uncovered scenario was **child-id IDOR** (caller's own parent id plus the
+  other tenant's child id). Added `services/api/test/child-id-idor.e2e-spec.ts`
+  (16 tests): 8 verbs across team members, team roles, user roles, education and
+  previous employments, each with an owner control (2xx) and an attack that must be
+  exactly 404 with BETA's child row unchanged. Mutation-tested: removing the tenant
+  and employee filter from the education update/delete failed 2 tests.
+- The reviewer found no isolation defect by reading, with medium confidence, and
+  could not confirm the employee documents, compensation and history handlers.
+
+All 45 tests across the four strengthened suites pass on the isolated database.
+
 **Still open under WP3:** list/search/count/aggregate/export paths, raw SQL,
 bulk and nested writes, upsert and `updateMany` with computed filters,
 SELF/TEAM/BUSINESS_UNIT/TENANT permission levels, platform versus tenant
