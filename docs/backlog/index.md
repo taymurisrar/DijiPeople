@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 318 |
+| Open (active work) | 317 |
 | Blocked | 4 |
 | Deferred | 125 |
-| Awaiting a product decision | 15 |
+| Awaiting a product decision | 16 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **127** |
@@ -29,7 +29,7 @@ see [`README.md`](README.md) for why.
 | CRITICAL | 8 |
 | HIGH | 127 |
 | MEDIUM | 148 |
-| LOW | 32 |
+| LOW | 31 |
 
 ## Open by type
 
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
 | INTEGRATION | 8 |
-| PERFORMANCE | 16 |
+| PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
 | SECURITY | 31 |
 | STATE_MACHINE | 7 |
@@ -60,12 +60,12 @@ see [`README.md`](README.md) for why.
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
-| PRODUCT_DECISION | 15 |
+| PRODUCT_DECISION | 16 |
 | FIXED | 231 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 31 |
+| READY | 30 |
 | DONE | 122 |
 
 ## All records
@@ -743,7 +743,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
 | [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | READY | api:auth | PLAN_REQUIRED |
 | [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DONE | api:platform-runtime, apps/admin | DONE |
-| [ITEM-0237](../../docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md) | Idle back-off for the outbox and data-job pollers to let Neon compute suspend | PERFORMANCE | LOW | P2 | READY | outbox, data-management | PLAN_REQUIRED |
+| [ITEM-0237](../../docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md) | Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers | PERFORMANCE | LOW | P2 | PRODUCT_DECISION | outbox, data-management | PRODUCT_DECISION |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |

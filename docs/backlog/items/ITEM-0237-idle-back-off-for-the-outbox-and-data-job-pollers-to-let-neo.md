@@ -1,15 +1,15 @@
 ---
 ID: ITEM-0237
 aliases: [ITEM-0237]
-Title: Idle back-off for the outbox and data-job pollers to let Neon compute suspend
+Title: Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers
 Type: PERFORMANCE
-Status: READY
+Status: PRODUCT_DECISION
 Priority: P2
 Severity: LOW
 AffectedModules: [outbox, data-management]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 CreatedAt: 2026-11-22
 UpdatedAt: 2026-11-22
 RelatedBug: 
@@ -20,33 +20,45 @@ TargetMilestone:
 BlockedBy: 
 ---
 
-# ITEM-0237 — Idle back-off for the outbox and data-job pollers to let Neon compute suspend
+# ITEM-0237 — Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers
 
 ## Summary
 
-The outbox worker and the data-job worker each poll PostgreSQL every 5 seconds, indefinitely, through `setInterval`. That is about 17,280 claim queries per worker per day regardless of load. Neon suspends compute only after a period with no activity, so a fixed 5 second poll is a candidate reason the compute never suspends. This is not confirmed: the Neon autosuspend setting and the compute-hours history are not readable from this session.
+CORRECTED 2026-11-22. The first version of this item assumed Neon autosuspend was enabled and that worker polling was what kept compute awake. The owner's read of the connected production compute shows otherwise: **autosuspend is disabled (timeout 0), minimum 0.25 CU, maximum 8 CU, connection pooling disabled, compute active.** With autosuspend off, compute never suspends whatever the application does, so reducing polling cannot, by itself, let it suspend and should not be expected to cut the compute bill. Idle back-off on the pollers is therefore not a cost fix under the current configuration.
+
+What remains is a decision about the configuration, and a smaller question about load.
 
 ## Why It Matters
 
-If autosuspend is enabled, steady polling turns an idle database into an always-on one, which is a major controllable driver of Neon compute cost for a small tenant base. If autosuspend is disabled, this item is moot and should be closed.
+- Cost: with autosuspend disabled the compute bills for at least the minimum 0.25 CU around the clock. Whether that is the right trade is a product and cost decision (a suspended compute adds a cold-start delay to the first request after idle). The API's background timers make a suspended compute impractical unless polling is replaced by event-driven wake-ups.
+- Connections: pooling is disabled and the API holds its own `pg` pool. Neon's connection limit scales with compute size, and at the 0.25 CU floor it is small. The limit and the live connection count were not readable from this session.
+- Load: the timers below run regardless of tenant activity.
 
 ## Evidence
 
-`services/api/src/modules/outbox/outbox-worker.service.ts` (default 5,000 ms, `setInterval`) and `services/api/src/modules/data-management/data-job-worker.service.ts` (5,000 ms). The outbox claim query is indexed (`@@index([status, availableAt])`), so the cumulative sequential scans seen in table statistics on OutboxEvent and DataJob most likely reflect the planner scanning a very small table, not a missing index. The data-job poll index shipped in migration 20261121090000. The cost per poll is small; the issue is frequency, not query shape.
+Application timers in `services/api/src` (all `setInterval`, per process): outbox worker 5 s, data-job worker 5 s, attendance reconciliation queue 30 s, platform communications retry 5 min, timesheet jobs 15 min, three billing workers 15 min each, report scheduler 60 s (only when `REPORTS_SCHEDULER_ENABLED=true`), workforce snapshot hourly, error-log retention daily. That is roughly 38,000 poll cycles a day from the first three alone, per API process, each running at least one statement. This is a source count, not a measurement of live query rates.
+
+The outbox claim query is indexed (`@@index([status, availableAt])`) and the data-job poll index shipped in migration 20261121090000, so the cumulative sequential scans reported on those two tables most likely reflect the planner choosing a scan on small tables.
+
+Neon configuration: reported by the owner from the connected integration, 2026-11-22. This session did not read it directly.
 
 ## Proposed Approach
 
-Needs a plan. An idle back-off would poll every 5 seconds while work was seen in the last minute or a `kick()` arrived, and stretch toward 30 to 60 seconds once the queue has been empty. Payment-driven provisioning already uses `kick()`, so it stays fast. Any producer that does not call `kick()` gains latency, so the owner decides the acceptable delay first. Measure compute hours with and without the change on a non-production branch before touching production polling.
+1. **Owner decision first:** keep autosuspend off (current), or enable it and accept cold starts. If it stays off, close the polling question as "no cost effect" and keep only the load and latency items below.
+2. Measure before changing anything: statements per minute by source and compute utilisation over a week, from Neon's own metrics (not available to this session).
+3. Consider enabling pooling through Neon's pooled connection string for the API, after checking that Prisma and the advisory-lock calls (`pg_advisory_xact_lock`) behave under transaction pooling. They may not; session-level features need the direct string. This needs a test, not an assumption.
+4. If polling is to be bounded regardless: an event-driven wake-up (the outbox already has `kick()`) with a slower bounded fallback poll. Payment confirmation and provisioning already call `kick()`; the added delay applies only to events from producers that do not.
 
 ## Acceptance Criteria
 
-- The owner confirms the Neon autosuspend setting and the acceptable worst-case delivery delay for an event with no `kick()`.
-- A test proves a queued event is claimed within that delay under the back-off, and that `kick()` still drains immediately.
-- Query count over an idle hour is reported before and after on an isolated database.
+- The owner records the autosuspend and pooling decision.
+- Any change to polling is justified by a measured statement rate, and a test shows queued events are still claimed within the stated delay and that `kick()` still drains at once.
+- Any pooling change is proven against advisory locks and transactions on an isolated database before production.
+- Modeled savings are labelled as modeled. No dollar figure is claimed without a measured baseline.
 
 ## Dependencies
 
-None.
+Neon metrics access for whoever measures. Related: [[ITEM-0236]].
 
 ## Related Items
 
@@ -55,6 +67,7 @@ None.
 ## History
 
 - 2026-11-22 — created; triaged PLAN_REQUIRED.
+- 2026-11-22 — corrected after the owner reported autosuspend is disabled; retitled; disposition changed to PRODUCT_DECISION.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

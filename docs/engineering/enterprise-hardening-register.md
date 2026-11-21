@@ -195,10 +195,17 @@ file does not. Autodeploy is on and the branch is `main`, as expected.
 `render.yaml` edit was made. Resource sizing, restarts, memory and CPU were not
 measured because the checker reads configuration, not metrics.
 
-## 2d. WP4 — Neon (source analysis only)
+## 2d. WP4 — Neon (corrected 2026-11-22)
 
-No Neon tool or credential is available to this session, so nothing about live
-compute, autosuspend, transfer or the 20 November spike was observed.
+**Correction.** An earlier version of this section, and of [[ITEM-0237]], assumed
+autosuspend was enabled and that worker polling kept compute awake. The owner
+reports the connected production compute is: **autosuspend timeout 0 (disabled),
+minimum 0.25 CU, maximum 8 CU, connection pooling disabled, compute active.** This
+session did not read that configuration directly; it is taken from the owner.
+With autosuspend off, compute never suspends whatever the application does, so
+idle back-off on the pollers is **not** a cost fix under this configuration and
+no saving from it is claimed. No Neon metrics are readable here, so live query
+rates, utilisation, transfer and the 20 November spike were not observed.
 
 - **OutboxEvent / DataJob sequential scans.** The outbox claim query uses
   `status IN (…) AND availableAt <= NOW() ORDER BY availableAt … FOR UPDATE SKIP
@@ -206,11 +213,22 @@ compute, autosuspend, transfer or the 20 November spike was observed.
   shipped in `20261121090000`. Cumulative scan counters on small tables are the
   planner's normal choice and are history, not a current defect. Confirmed
   inefficiency: none from source.
-- **Polling frequency** is the real lever: two workers at 5 s each is about 34,500
-  queries a day, enough to keep an autosuspending compute awake. Recorded as
-  [[ITEM-0237]] with the owner decision it needs. No financial figure is claimed.
-- **Not assessed:** connection counts, pool sizing against Neon's pooler,
-  backup and branch governance, retention of large operational tables.
+- **Timer inventory** (per API process, source count, not measured): outbox 5 s,
+  data-job 5 s, attendance reconciliation 30 s, platform communications retry
+  5 min, timesheet jobs 15 min, three billing workers 15 min each, report
+  scheduler 60 s (only when enabled), workforce snapshot hourly, error-log
+  retention daily. About 38,000 cycles a day from the first three alone.
+- **What this means.** Cost is the 0.25 CU floor around the clock plus whatever
+  the workload scales to; polling affects load and connections, not suspension.
+  Enabling autosuspend is a product and cost decision with a cold-start
+  trade-off, and the background timers make it impractical without event-driven
+  wake-ups. Recorded as a PRODUCT_DECISION in [[ITEM-0237]].
+- **Connection pooling is disabled** and the API keeps its own `pg` pool. Moving
+  to Neon pooled connections needs proof that `pg_advisory_xact_lock` and
+  transactions behave under transaction pooling; not assumed.
+- **Not assessed:** connection counts against the CU limit, backup and branch
+  governance, retention of large operational tables, modeled versus measured
+  cost (no figure is given).
 
 ## 2e. WP3 — raw SQL sweep (2026-11-22)
 

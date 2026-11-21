@@ -35893,11 +35893,11 @@
     {
       "record_id": "ITEM-0237",
       "type": "PERFORMANCE",
-      "title": "Idle back-off for the outbox and data-job pollers to let Neon compute suspend",
+      "title": "Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers",
       "severity": "LOW",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md",
         "provenance": "ARCHITECT",

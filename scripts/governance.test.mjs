@@ -176,7 +176,8 @@ test('CI-006: the framework validation job fetches full history; other jobs keep
 
 test('CI-007: dependabot targets develop, has exactly one npm entry at the root, and groups updates', () => {
   // Dependency-free on purpose: governance.yml runs without npm ci, so no YAML parser is available.
-  const text = read('.github/dependabot.yml');
+  // Normalise: a Windows checkout (core.autocrlf=true) has CRLF, and the multi-line regexes below match LF only.
+  const text = read('.github/dependabot.yml').replace(/\r\n/g, '\n');
   assert.match(text, /^version: 2$/m);
   const ecosystems = [...text.matchAll(/^\s*- package-ecosystem: (\S+)/gm)].map((m) => m[1]);
   assert.equal(ecosystems.filter((e) => e === 'npm').length, 1, 'a second npm entry re-creates the duplicate-PR problem');
