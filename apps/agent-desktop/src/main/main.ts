@@ -15,6 +15,7 @@ import {
   ElectronScreenshotCapturer,
 } from "./dlp/electron-adapters";
 import { resolveAgentAsset } from "./assets";
+import { isAllowedNavigation } from "./navigation-policy";
 import {
   captureDesktopLocation,
   probeDesktopLocationPermission,
@@ -133,6 +134,8 @@ function createLoginWindow() {
     },
   });
 
+  hardenWindowNavigation(loginWindow);
+
   loginWindow.once("ready-to-show", () => {
     loginWindow?.show();
     loginWindow?.focus();
@@ -141,6 +144,25 @@ function createLoginWindow() {
   void loginWindow.loadFile(path.join(__dirname, "../renderer/login.html"));
   loginWindow.on("closed", () => {
     loginWindow = null;
+  });
+}
+
+/**
+ * The agent only ever shows its own local pages. Refuse every attempt to open a
+ * new window, attach a webview, or navigate to anything that is not a local
+ * file, so injected content cannot put a web page into a window that has the
+ * preload bridge. The decision itself is in navigation-policy.ts (unit-tested);
+ * this wiring needs a real-device check before distribution (ITEM-0234).
+ */
+function hardenWindowNavigation(window: BrowserWindow): void {
+  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-attach-webview", (event) => {
+    event.preventDefault();
+  });
+  window.webContents.on("will-navigate", (event, url) => {
+    if (!isAllowedNavigation(url)) {
+      event.preventDefault();
+    }
   });
 }
 
@@ -456,6 +478,8 @@ function createPermissionsWindow() {
     },
   });
 
+  hardenWindowNavigation(permissionsWindow);
+
   applyDevicePermissionHandlers(permissionsWindow);
 
   permissionsWindow.once("ready-to-show", () => {
@@ -500,6 +524,8 @@ function createLocationRequestWindow(request: AgentLocationRequest) {
       sandbox: false,
     },
   });
+
+  hardenWindowNavigation(locationRequestWindow);
 
   locationRequestWindow.setMenu(null);
 

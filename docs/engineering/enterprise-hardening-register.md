@@ -64,7 +64,7 @@ deferred earlier as [[ITEM-0070]] and is unchanged.
 | WP | Scope | Status | Evidence |
 |---|---|---|---|
 | WP1 | Dependency alerts: fix what has a safe in-range fix, prove or track the rest | **Implemented; CI pending on the exact final SHA** | commit `f19b247d` plus the follow-up commit on the same branch |
-| WP2 | Electron 42 upgrade + sandbox | **Not started — tracked** | [[ITEM-0234]], [[ITEM-0235]]; needs a real Windows device |
+| WP2 | Electron 42 upgrade + sandbox | **Partial.** Navigation hardening added in source (new windows, webviews and non-file navigation denied; unit-tested decision function). Electron 42, `sandbox:true`, native-module and update/signing review not done; real-device test mandatory | [[ITEM-0234]], [[ITEM-0235]] |
 | WP3 | Tenant-isolation penetration tests, auth/MFA/session review | **Partial.** Database-backed HTTP suite written and passing for roles, teams, users, sessions and saved views. Not covered yet: list/aggregate/export, raw SQL, bulk and nested writes, permission levels, suspended tenants, jobs, files, payroll, billing, concurrency. Auth/MFA review not started. The full tenant-isolation review is **NOT passed**. | sections 2a, 2b |
 | WP4 | Render `render.yaml` drift (39 fields), Neon polling/scan investigation, network-transfer spike | **Render drift classified; Neon partly analysed from source only** (no Neon access from this session) | sections 2c, 2d; [[ITEM-0236]], [[ITEM-0237]] |
 | WP5 | Vercel Node 22/24 drift, selective builds, frontend performance | **Node drift confirmed and aligned in source; the rest not assessed** | section 2f |

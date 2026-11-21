@@ -36,6 +36,8 @@ BlockedBy:
 
 ## Evidence
 
+Verified 2026-11-22 by plain GET against production: `/api` and `/api/health` both answer 200 JSON from the running service (commit 53517ab, outbox worker enabled, entitlement enforcement ENFORCE). `/api` is the liveness route registered before Nest, with no database access, so `healthCheckPath: /api` as declared in `render.yaml` is safe and will not turn a database blip into a restart loop. `/api/health/ready` answers 404 on the deployed commit, so readiness has not shipped yet; it must not be used as the health check anyway (see `main.ts`). The proxy topology is NOT verified: no endpoint reports the client address the API derives, so it needs a log line or a diagnostic that echoes it.
+
 Read-only run of `scripts/check-render-config.mjs --json` against the live service on 2026-11-22. Code defaults read in `services/api/src` (outbox, data-job, billing workers, `pool-config.ts`, `proxy-trust.ts`) and `packages/config/forwarded-host.js`. No values were read or recorded.
 
 ## Proposed Approach
