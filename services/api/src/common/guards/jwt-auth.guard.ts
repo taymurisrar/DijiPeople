@@ -197,19 +197,21 @@ export class JwtAuthGuard implements CanActivate {
       request.user.roleKeys.includes('system-scheduler')
     )
       return;
-    const employee = await this.prisma.employee.findFirst({
-      where: {
-        tenantId: request.user.tenantId,
-        userId: request.user.userId,
-        isDeleted: false,
-      },
-      select: { id: true },
-    });
-    if (!employee) return;
+    // One query, not two: the restriction is found through its employee
+    // relation instead of resolving the employee id first. The overwhelmingly
+    // common case — an employee with no active restriction — used to cost two
+    // round trips on every authenticated request and now costs one. Nothing is
+    // cached, so a restriction added or lifted still applies to the very next
+    // request. Same predicates as before: the employee must be this tenant's,
+    // this user's and not deleted, and the restriction must be this tenant's.
     const restriction = await this.prisma.timesheetAccessRestriction.findFirst({
       where: {
         tenantId: request.user.tenantId,
-        employeeId: employee.id,
+        employee: {
+          tenantId: request.user.tenantId,
+          userId: request.user.userId,
+          isDeleted: false,
+        },
         isActive: true,
         overriddenAt: null,
         OR: [{ expiryAt: null }, { expiryAt: { gt: new Date() } }],

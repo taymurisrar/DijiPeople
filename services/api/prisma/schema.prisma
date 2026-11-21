@@ -11997,6 +11997,8 @@ model DataJob {
 
   @@unique([tenantId, kind, idempotencyKey])
   @@index([tenantId, kind, status, createdAt])
+  /// The worker poll (`WHERE status = QUEUED AND cancelledAt IS NULL ORDER BY createdAt`) names no tenant, so no index above can serve it.
+  @@index([status, createdAt])
   @@index([tenantId, moduleKey, createdAt])
   @@index([tenantId, submittedByUserId])
 }

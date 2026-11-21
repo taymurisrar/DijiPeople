@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 812,
+    "total_records": 813,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -25732,6 +25732,44 @@
           "services/api/src/modules/super-admin"
         ],
         "verification_scope": "See docs/bugs/BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4518",
+      "type": "BUG",
+      "title": "JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "b7ddb808",
+        "created_at": "2026-11-21",
+        "updated_at": "2026-11-21",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common/guards"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/guards"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

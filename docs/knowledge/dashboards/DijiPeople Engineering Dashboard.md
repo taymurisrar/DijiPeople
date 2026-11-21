@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **126** |
-| Open total | 311 |
+| Open HIGH | **127** |
+| Open total | 312 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -155,6 +155,7 @@
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
 | [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
+| [[BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401|BUG-4518]] | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | OPEN | services/api/src/common/guards | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -930,7 +931,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 579 |
+| Bug records | 580 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |

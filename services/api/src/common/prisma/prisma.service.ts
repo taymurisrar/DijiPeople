@@ -21,6 +21,19 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
+  /**
+   * Whether anything reads the per-request business-unit context.
+   *
+   * The only reader is the `$use` hook below. On the installed Prisma 7 client
+   * `$use` does not exist, the hook is never registered, and the context that
+   * `BusinessUnitAccessMiddleware` builds is never consulted — yet building it
+   * cost about a dozen statements on every authenticated request (measured:
+   * 12 of 39). The middleware asks this flag so it does the work only when a
+   * reader exists. Decided once, here, from the same `typeof` test that
+   * decides whether the hook registers, so the two cannot disagree.
+   */
+  readonly consumesRequestContext: boolean;
+
   constructor(private readonly requestContextService: RequestContextService) {
     const connectionString = process.env.DATABASE_URL?.trim();
     if (!connectionString) {
@@ -35,6 +48,7 @@ export class PrismaService
     });
 
     const middlewareRegistrar = (this as any).$use;
+    this.consumesRequestContext = typeof middlewareRegistrar === 'function';
     if (typeof middlewareRegistrar !== 'function') {
       this.logger.debug(
         'Prisma middleware registration skipped because PrismaClient.$use is unavailable in this runtime/client build.',

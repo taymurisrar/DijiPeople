@@ -118,6 +118,12 @@ services:
         sync: false
       - key: DATABASE_STATEMENT_TIMEOUT_MS
         sync: false
+      # Data-job worker. ON by default (unlike the outbox); set false only on a
+      # process that must not drain the import/export queue.
+      - key: DATA_JOB_WORKER_ENABLED
+        sync: false
+      - key: DATA_JOB_WORKER_POLL_INTERVAL_MS
+        sync: false
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET

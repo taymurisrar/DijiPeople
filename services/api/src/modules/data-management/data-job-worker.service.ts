@@ -10,7 +10,33 @@ import { AuthAccessService } from '../auth/auth-access.service';
 import { ExportExecutionService } from './export-execution.service';
 import { ImportExecutionService } from './import-execution.service';
 
-const POLL_INTERVAL_MS = 5_000;
+const DEFAULT_POLL_INTERVAL_MS = 5_000;
+const MIN_POLL_INTERVAL_MS = 1_000;
+
+/**
+ * Whether this process runs the data-job queue.
+ *
+ * ON unless explicitly set to `false`. That is the opposite default to the
+ * sibling workers (outbox, sweepers), deliberately: this worker has always
+ * started in every process, so switching its default to off would stop import
+ * and export jobs the moment this ships to an environment that has not set a
+ * new variable — a silent failure. `DATA_JOB_WORKER_ENABLED=false` is for the
+ * processes that should not drain the queue: tests, CLI seeds, one-off scripts,
+ * an additional instance.
+ */
+export function resolveDataJobWorkerSettings(env: NodeJS.ProcessEnv): {
+  enabled: boolean;
+  pollIntervalMs: number;
+} {
+  const enabled =
+    (env.DATA_JOB_WORKER_ENABLED ?? '').trim().toLowerCase() !== 'false';
+  const raw = Number(env.DATA_JOB_WORKER_POLL_INTERVAL_MS);
+  const pollIntervalMs =
+    Number.isFinite(raw) && raw > 0
+      ? Math.max(MIN_POLL_INTERVAL_MS, Math.trunc(raw))
+      : DEFAULT_POLL_INTERVAL_MS;
+  return { enabled, pollIntervalMs };
+}
 
 /**
  * Runs queued data jobs outside the request that submitted them.
@@ -33,8 +59,21 @@ export class DataJobWorkerService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => void this.runCycle(), POLL_INTERVAL_MS);
+    const settings = resolveDataJobWorkerSettings(process.env);
+    if (!settings.enabled) {
+      this.logger.log(
+        'Data job worker disabled (DATA_JOB_WORKER_ENABLED=false); queued jobs wait for a process that runs it.',
+      );
+      return;
+    }
+    this.timer = setInterval(
+      () => void this.runCycle(),
+      settings.pollIntervalMs,
+    );
     this.timer.unref?.();
+    this.logger.log(
+      `Data job worker started; polling every ${settings.pollIntervalMs}ms.`,
+    );
   }
 
   onModuleDestroy() {

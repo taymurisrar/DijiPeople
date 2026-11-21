@@ -1,0 +1,25 @@
+{
+  "measuredOn": "2026-11-21",
+  "alwaysLoaded": {
+    "files": {
+      "CLAUDE.md": 711,
+      "AGENTS.md": 51890
+    },
+    "bytes": 52601,
+    "estimatedTokens": 13150
+  },
+  "selective": {
+    ".agent/agents": {
+      "files": 14,
+      "bytes": 269889
+    },
+    ".agent/context": {
+      "files": 32,
+      "bytes": 516487
+    },
+    ".agent/skills": {
+      "files": 6,
+      "bytes": 29320
+    }
+  }
+}
