@@ -65,8 +65,8 @@ deferred earlier as [[ITEM-0070]] and is unchanged.
 |---|---|---|---|
 | WP1 | Dependency alerts: fix what has a safe in-range fix, prove or track the rest | **Implemented; CI pending on the exact final SHA** | commit `f19b247d` plus the follow-up commit on the same branch |
 | WP2 | Electron 42 upgrade + sandbox | **Not started — tracked** | [[ITEM-0234]], [[ITEM-0235]]; needs a real Windows device |
-| WP3 | Tenant-isolation penetration tests, auth/MFA/session review | **Static sweep done (no defect); DB-backed tests blocked on a test `DATABASE_URL`; auth/MFA review not started** | section 2a |
-| WP4 | Render `render.yaml` drift (39 fields), Neon polling/scan investigation, network-transfer spike | Not started | `npm run check:render-config` reports 39 differing fields |
+| WP3 | Tenant-isolation penetration tests, auth/MFA/session review | **Partial.** Database-backed HTTP suite written and passing for roles, teams, users, sessions and saved views. Not covered yet: list/aggregate/export, raw SQL, bulk and nested writes, permission levels, suspended tenants, jobs, files, payroll, billing, concurrency. Auth/MFA review not started. The full tenant-isolation review is **NOT passed**. | sections 2a, 2b |
+| WP4 | Render `render.yaml` drift (39 fields), Neon polling/scan investigation, network-transfer spike | **Render drift classified; Neon partly analysed from source only** (no Neon access from this session) | sections 2c, 2d; [[ITEM-0236]], [[ITEM-0237]] |
 | WP5 | Vercel Node 22/24 drift, selective builds, frontend performance | Not started | |
 | WP6 | Agent-workforce efficiency | Not started | |
 | WP7 | Observability, runbooks, restore drills | Not started | |
@@ -101,11 +101,114 @@ does not cover raw SQL, `updateMany` with computed filters, list/search/count/
 aggregate/export paths, or any model reached through a relation include. It
 shows the convention is being followed; it does not prove isolation.
 
-**Status: the PostgreSQL-backed adversarial test (tenant A attempts by-id
-update/delete on tenant B's roles, teams, users, banks, configuration records,
-customization packages, saved views and timesheet exports; B's rows must be
-unchanged) is NOT written or run.** It needs a throwaway `DATABASE_URL`, which
-this session does not have. Local Postgres is listening on port 5432.
+**Status: superseded by section 2b.** The database-backed test was blocked until
+a private throwaway PostgreSQL cluster was created (recipe in 2b); roles, teams,
+users, sessions and saved views are now covered. Banks, configuration records,
+customization packages and timesheet exports are still not.
+
+## 2b. WP3 — database-backed HTTP isolation (2026-11-22)
+
+**Isolated database.** The local server on port 5432 requires a password this
+session does not hold, and the documented route reads it from `services/api/.env`,
+which is off limits. Instead a private cluster was created with `initdb` in the
+session scratchpad (trust authentication, `127.0.0.1:5433`, role
+`dp_isolation_test`, database `dijipeople_isolation_test`). `scripts/assert-test-database.mjs`
+confirmed it as disposable before any migration. The full migration history was applied,
+then `seed:demo`, `seed:admin` and `seed:config` with the documented CI
+placeholder values. No credential was stored, printed or committed; nothing
+touched the 5432 server or any managed database.
+
+**Baseline.** The existing database-backed isolation suites
+(`tenant-isolation-pattern`, `tenant-scoped-reads`, `employee-scope-isolation`,
+`lookups-usage-isolation`, `reporting-tenant-isolation`, `workspace-domain-isolation`)
+run green on it once `seed:config` has supplied geography: 4 passed first, then
+the 2 that needed geography passed (18 of 18).
+
+**New suite** `services/api/test/cross-tenant-by-id-mutations.e2e-spec.ts` —
+evidence class: **database-backed HTTP integration** (real Nest app, real guards
+and services, real PostgreSQL; not a mock, not a static scan). A GLOBAL_ADMIN of
+tenant ALPHA targets tenant BETA's role, team, user, session and saved view by
+id: reads, lists, updates, deactivation, permission changes, clone, delete, team
+membership, user roles, business unit, MFA reset, session revocation. It also
+tries to wire BETA ids into ALPHA's own rows. BETA's rows must be byte-identical
+afterwards, and each group opens with a positive control showing the target is
+reachable by its owner. 15 tests, all passing.
+
+- **Mutation proof.** Removing `tenantId` from the team repository lookup made 3
+  tests fail; the file was restored from a backup and `git diff` was empty.
+- **What it found.** No isolation defect. One behaviour worth stating:
+  `DELETE users/:id/sessions` for a foreign user id answers 200 with
+  `revoked: 0` rather than 404. It is a tenant-scoped `updateMany` and revokes
+  nothing; the test asserts exactly that.
+- **My own probe errors**, caught because the suite asserts 403/404 only: a status
+  value that is not in the enum (400) and a debug line. A refusal by validation
+  would have passed a looser test, so refusals are pinned to 403 or 404.
+
+**Read-verify-then-write.** The convention reads through a tenant-filtered
+lookup, then calls a repository mutator keyed by bare id. Assessment: it is not
+an atomic guarantee, but the gap needs a tenant-owned row to change tenant between
+the read and the write. No endpoint changes a row's `tenantId`, ids are UUIDs that
+are not reused, and tenant erasure deletes rather than moves. So the window is
+theoretical under current code and becomes real the day a tenant merge or move
+feature exists. Not changed here: converting every mutator to a conditional write
+is a wide change with no demonstrated exploit, and is better done per module
+alongside its own tests. Recorded as a standing risk, not fixed.
+
+**Evidence classes, so nothing is overstated**
+
+| Class | State |
+|---|---|
+| Static inspection | 526 candidates narrowed to 51, all read (section 2a) |
+| Mock-based tests | Existing unit specs; not counted as isolation evidence |
+| Database-backed tests | New suite (15) plus the six existing suites (18+) |
+| HTTP integration | New suite |
+| Independently verified | **Not yet** — no independent QA/Security pass has been run |
+
+**Still open under WP3:** list/search/count/aggregate/export paths, raw SQL,
+bulk and nested writes, upsert and `updateMany` with computed filters,
+SELF/TEAM/BUSINESS_UNIT/TENANT permission levels, platform versus tenant
+boundary, suspended or disabled tenants, background-job tenant propagation,
+files/documents, payroll and billing data, and concurrent ownership change.
+Until those run, the tenant-isolation review is not reported as passed.
+
+## 2c. WP4 — Render drift classification (2026-11-22)
+
+Read-only `check-render-config --json` against the live API service. 39 fields:
+4 scalar, 35 environment variables. Values were not read or recorded. `render.yaml`
+is not synced to the service, so it changes nothing live by itself.
+
+| Class | Fields | Verdict |
+|---|---|---|
+| **Needs an owner action** ([[ITEM-0236]]) | `TRUST_PROXY_HEADERS` (declared 2; live falls back to inferring 1 hop on Render), `healthCheckPath` (declared `/api`, unset live), `SUBSCRIPTION_ORDER_SWEEPER_ENABLED` (worker off; expired orders accumulate), `PLATFORM_OPS_NOTIFICATION_EMAILS`, `PLATFORM_ENVIRONMENT` | Real behavioural or safety gap |
+| **Code default equals the declared value** | `R2_REQUEST_TIMEOUT_MS` (15000), `R2_MAX_ATTEMPTS` (3), `DATA_JOB_WORKER_ENABLED` (on unless `false`), `DATA_JOB_WORKER_POLL_INTERVAL_MS` and `OUTBOX_WORKER_POLL_INTERVAL_MS` (5000), `OUTBOX_WORKER_BATCH_SIZE` (25), `*_SWEEPER_POLL_INTERVAL_MS` and `MANAGED_BILLING_WORKER_POLL_INTERVAL_MS` (15 min), `MANAGED_BILLING_GRACE_DAYS` and `…RENEWAL_NOTICE_DAYS` (7), `SEAT_OVERAGE_WARN/REVIEW_PERCENT/ABSOLUTE` (10/100/100), `TENANT_RETENTION_DAYS` (60), `RELEASE_ARTIFACT_MAX_BYTES` (512 MB) | Benign; absence changes nothing |
+| **Deliberately opt-in, dashboard-owned** (`sync: false` in the file) | `DATABASE_POOL_MAX`, `DATABASE_POOL_IDLE_TIMEOUT_MS`, `DATABASE_POOL_CONNECTION_TIMEOUT_MS`, `DATABASE_STATEMENT_TIMEOUT_MS`, `RETENTION_POLICY_VERSION` | Unset means library or code default (connect timeout 15 s, no statement timeout). A decision, not drift |
+| **Secrets seeded once, correctly absent** | `PLATFORM_SUPER_ADMIN_EMAIL`, `_PASSWORD`, `_PASSWORD_RESET` | Absent is the safe state |
+| **Cannot be classified from here** | `EMAIL_PROVIDER`, `EMAIL_SMTP_HOST/PORT/SECURE/USER/PASSWORD`, `EMAIL_FROM`, `EMAIL_FROM_NAME` | Tenant mail may be configured in the database instead; unverified |
+| **Scalar, equivalent or cosmetic** | `name` (service name differs), `startCommand` (root `npm run start:prod` versus the workspace form), `buildCommand` (live adds `--include=dev` and a 6 GB Node memory cap; the file has neither) | The build difference is deliberate, a memory cap the build needs; reflect it in the file or leave it, no live risk either way |
+
+Also noted: the live pre-deploy command carries a 4 GB Node memory cap that the
+file does not. Autodeploy is on and the branch is `main`, as expected.
+
+**Not done, by design:** no live Render configuration was changed, and no
+`render.yaml` edit was made. Resource sizing, restarts, memory and CPU were not
+measured because the checker reads configuration, not metrics.
+
+## 2d. WP4 — Neon (source analysis only)
+
+No Neon tool or credential is available to this session, so nothing about live
+compute, autosuspend, transfer or the 20 November spike was observed.
+
+- **OutboxEvent / DataJob sequential scans.** The outbox claim query uses
+  `status IN (…) AND availableAt <= NOW() ORDER BY availableAt … FOR UPDATE SKIP
+  LOCKED`, with `@@index([status, availableAt])` present. The data-job poll index
+  shipped in `20261121090000`. Cumulative scan counters on small tables are the
+  planner's normal choice and are history, not a current defect. Confirmed
+  inefficiency: none from source.
+- **Polling frequency** is the real lever: two workers at 5 s each is about 34,500
+  queries a day, enough to keep an autosuspending compute awake. Recorded as
+  [[ITEM-0237]] with the owner decision it needs. No financial figure is claimed.
+- **Not assessed:** connection counts, pool sizing against Neon's pooler,
+  backup and branch governance, retention of large operational tables.
 
 ## 3. Measured results so far
 

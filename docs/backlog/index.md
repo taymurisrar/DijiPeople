@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**817 records** — 582 bugs under [`docs/bugs/`](../bugs/), 235 non-bug items under [`items/`](items/).
+**819 records** — 582 bugs under [`docs/bugs/`](../bugs/), 237 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 316 |
+| Open (active work) | 318 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
@@ -28,8 +28,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 127 |
-| MEDIUM | 147 |
-| LOW | 31 |
+| MEDIUM | 148 |
+| LOW | 32 |
 
 ## Open by type
 
@@ -43,9 +43,9 @@ see [`README.md`](README.md) for why.
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
 | INTEGRATION | 8 |
-| PERFORMANCE | 15 |
+| PERFORMANCE | 16 |
 | PRODUCT_DECISION | 3 |
-| SECURITY | 30 |
+| SECURITY | 31 |
 | STATE_MACHINE | 7 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
@@ -65,7 +65,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 29 |
+| READY | 31 |
 | DONE | 122 |
 
 ## All records
@@ -372,6 +372,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | IN_PROGRESS | api:billing | FIX_NOW |
 | [ITEM-0232](../../docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md) | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | P1 | READY | billing | PLAN_REQUIRED |
 | [ITEM-0234](../../docs/backlog/items/ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic.md) | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | P1 | READY | agent | PLAN_REQUIRED |
+| [ITEM-0236](../../docs/backlog/items/ITEM-0236-reconcile-render-live-config-with-render-yaml-proxy-hops-hea.md) | Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email | SECURITY | MEDIUM | P1 | READY | platform-runtime | BLOCKED_EXTERNAL |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -742,6 +743,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
 | [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | READY | api:auth | PLAN_REQUIRED |
 | [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DONE | api:platform-runtime, apps/admin | DONE |
+| [ITEM-0237](../../docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md) | Idle back-off for the outbox and data-job pollers to let Neon compute suspend | PERFORMANCE | LOW | P2 | READY | outbox, data-management | PLAN_REQUIRED |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |

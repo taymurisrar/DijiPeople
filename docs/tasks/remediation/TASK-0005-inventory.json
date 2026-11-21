@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 817,
+    "total_records": 819,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -35841,6 +35841,84 @@
           "agent"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0236",
+      "type": "SECURITY",
+      "title": "Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0236-reconcile-render-live-config-with-render-yaml-proxy-hops-hea.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-22",
+        "updated_at": "2026-11-22",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-runtime"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-runtime"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0236-reconcile-render-live-config-with-render-yaml-proxy-hops-hea.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0237",
+      "type": "PERFORMANCE",
+      "title": "Idle back-off for the outbox and data-job pollers to let Neon compute suspend",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-22",
+        "updated_at": "2026-11-22",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "outbox",
+        "data-management"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "outbox",
+          "data-management"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

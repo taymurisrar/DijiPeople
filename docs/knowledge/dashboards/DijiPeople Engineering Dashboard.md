@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **127** |
-| Open total | 316 |
+| Open total | 318 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -722,6 +722,7 @@
 | [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | IN_PROGRESS | api:billing | FIX_NOW |
 | [[ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p|ITEM-0232]] | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | READY | billing | PLAN_REQUIRED |
 | [[ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic|ITEM-0234]] | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
+| [[ITEM-0236-reconcile-render-live-config-with-render-yaml-proxy-hops-hea|ITEM-0236]] | Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email | SECURITY | MEDIUM | READY | platform-runtime | BLOCKED_EXTERNAL |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -867,6 +868,7 @@
 | [[ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend|ITEM-0235]] | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
+| [[ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo|ITEM-0237]] | Idle back-off for the outbox and data-job pollers to let Neon compute suspend | PERFORMANCE | LOW | READY | outbox, data-management | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | FIXED | api:projects, apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
@@ -941,7 +943,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 582 |
-| Backlog items | 235 |
+| Backlog items | 237 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |
