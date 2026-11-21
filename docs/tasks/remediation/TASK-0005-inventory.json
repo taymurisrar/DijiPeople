@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 819,
+    "total_records": 820,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -35919,6 +35919,44 @@
           "data-management"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0238",
+      "type": "SECURITY",
+      "title": "Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-22",
+        "updated_at": "2026-11-22",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "agent"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "agent"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

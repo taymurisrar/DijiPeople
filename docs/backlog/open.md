@@ -310,6 +310,7 @@ _None._
 | [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
 | [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [ITEM-0235](../../docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md) | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
+| [ITEM-0238](../../docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md) | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 
 ## LOW and unrated
 

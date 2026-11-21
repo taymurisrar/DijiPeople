@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **127** |
-| Open total | 317 |
+| Open total | 318 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 125 |
@@ -867,6 +867,7 @@
 | [[ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no|ITEM-0226]] | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | READY | common, platform-runtime | PLAN_REQUIRED |
 | [[ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf|ITEM-0228]] | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [[ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend|ITEM-0235]] | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
+| [[ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea|ITEM-0238]] | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -943,7 +944,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 582 |
-| Backlog items | 237 |
+| Backlog items | 238 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |

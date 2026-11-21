@@ -1,4 +1,11 @@
-import { app, BrowserWindow, clipboard, ipcMain, type Tray } from "electron";
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  ipcMain,
+  type IpcMainInvokeEvent,
+  type Tray,
+} from "electron";
 import path from "node:path";
 import { ActivityTracker } from "./activity-tracker";
 import { ApiClient } from "./api-client";
@@ -15,7 +22,13 @@ import {
   ElectronScreenshotCapturer,
 } from "./dlp/electron-adapters";
 import { resolveAgentAsset } from "./assets";
-import { isAllowedNavigation } from "./navigation-policy";
+import {
+  isAllowedNavigation,
+  isTrustedIpcSender,
+  rendererPagePaths,
+  validateDevicePermissions,
+  validateLocationResult,
+} from "./navigation-policy";
 import {
   captureDesktopLocation,
   probeDesktopLocationPermission,
@@ -134,7 +147,7 @@ function createLoginWindow() {
     },
   });
 
-  hardenWindowNavigation(loginWindow);
+  hardenWindowNavigation(loginWindow, RENDERER_PAGE_PATHS.login);
 
   loginWindow.once("ready-to-show", () => {
     loginWindow?.show();
@@ -147,22 +160,56 @@ function createLoginWindow() {
   });
 }
 
+const RENDERER_DIR = path.join(__dirname, "../renderer");
+const RENDERER_PAGE_PATHS = rendererPagePaths(RENDERER_DIR);
+
 /**
  * The agent only ever shows its own local pages. Refuse every attempt to open a
- * new window, attach a webview, or navigate to anything that is not a local
- * file, so injected content cannot put a web page into a window that has the
- * preload bridge. The decision itself is in navigation-policy.ts (unit-tested);
- * this wiring needs a real-device check before distribution (ITEM-0234).
+ * new window, attach a webview, or navigate anywhere except the window's own
+ * page (which keeps a reload working). Not "any file:" - that would let injected
+ * content load any local HTML file into a window that has the preload bridge.
+ * The decision is in navigation-policy.ts (unit-tested); this wiring needs a
+ * real-device check before distribution (ITEM-0234).
  */
-function hardenWindowNavigation(window: BrowserWindow): void {
+function hardenWindowNavigation(
+  window: BrowserWindow,
+  ownPagePath: string,
+): void {
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-attach-webview", (event) => {
     event.preventDefault();
   });
-  window.webContents.on("will-navigate", (event, url) => {
-    if (!isAllowedNavigation(url)) {
+  const refuseUnapproved = (event: { preventDefault(): void }, url: string) => {
+    if (!isAllowedNavigation(url, [ownPagePath])) {
       event.preventDefault();
     }
+  };
+  window.webContents.on("will-navigate", refuseUnapproved);
+  // A redirect is a navigation the page did not ask for by name.
+  window.webContents.on("will-redirect", refuseUnapproved);
+}
+
+/**
+ * ipcMain.handle that only answers a call from the page that legitimately uses
+ * the channel, in the main frame. A channel with no entry in navigation-policy
+ * is refused, so a new handler fails closed until it is listed.
+ */
+function handleTrusted<Args extends unknown[], Result>(
+  channel: string,
+  listener: (event: IpcMainInvokeEvent, ...args: Args) => Result,
+): void {
+  ipcMain.handle(channel, (event, ...args) => {
+    const frame = event.senderFrame;
+    const trusted = isTrustedIpcSender(
+      channel,
+      frame?.url,
+      frame !== null && frame === event.sender.mainFrame,
+      RENDERER_DIR,
+    );
+    if (!trusted) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return listener(event, ...(args as Args));
   });
 }
 
@@ -288,7 +335,7 @@ function wireEvents() {
     createLocationRequestWindow(request as AgentLocationRequest);
   });
 
-  ipcMain.handle(
+  handleTrusted(
     "agent:login",
     async (_event, payload: LoginPayload): Promise<LoginResult> => {
       const validationError = validateLoginPayload(payload);
@@ -314,7 +361,7 @@ function wireEvents() {
     },
   );
 
-  ipcMain.handle("agent:resume-session", async (): Promise<LoginResult> => {
+  handleTrusted("agent:resume-session", async (): Promise<LoginResult> => {
     try {
       await sessionManager.resumeSavedSession();
 
@@ -328,11 +375,15 @@ function wireEvents() {
     }
   });
 
-  ipcMain.handle(
+  handleTrusted(
     "agent:update-device-permissions",
-    async (_event, permissions) => {
+    async (_event, permissions: unknown) => {
+      const valid = validateDevicePermissions(permissions);
+      if (!valid) {
+        return { ok: false, message: "Invalid device permission payload." };
+      }
       try {
-        await sessionManager.updateDevicePermissions(permissions);
+        await sessionManager.updateDevicePermissions(valid);
 
         return { ok: true };
       } catch (error) {
@@ -347,7 +398,7 @@ function wireEvents() {
     },
   );
 
-  ipcMain.handle("agent:get-device-permission-config", () => {
+  handleTrusted("agent:get-device-permission-config", () => {
     const features = configManager.current.features;
 
     return {
@@ -357,9 +408,9 @@ function wireEvents() {
     };
   });
 
-  ipcMain.handle("agent:get-location-request", () => currentLocationRequest);
+  handleTrusted("agent:get-location-request", () => currentLocationRequest);
 
-  ipcMain.handle("agent:capture-desktop-location", async () => {
+  handleTrusted("agent:capture-desktop-location", async () => {
     if (!configManager.current.features.locationAccess) {
       return {
         ok: false,
@@ -371,7 +422,7 @@ function wireEvents() {
     return captureDesktopLocation();
   });
 
-  ipcMain.handle("agent:probe-location-permission", async () => {
+  handleTrusted("agent:probe-location-permission", async () => {
     if (!configManager.current.features.locationAccess) {
       return "UNAVAILABLE";
     }
@@ -379,9 +430,13 @@ function wireEvents() {
     return probeDesktopLocationPermission();
   });
 
-  ipcMain.handle(
+  handleTrusted(
     "agent:submit-location-result",
-    async (_event, result: AgentLocationResult) => {
+    async (_event, rawResult: unknown) => {
+      const result = validateLocationResult(rawResult);
+      if (!result) {
+        return { ok: false, message: "Invalid location result payload." };
+      }
       try {
         await sessionManager.completeLocationRequest(result);
 
@@ -478,7 +533,10 @@ function createPermissionsWindow() {
     },
   });
 
-  hardenWindowNavigation(permissionsWindow);
+  hardenWindowNavigation(
+    permissionsWindow,
+    RENDERER_PAGE_PATHS.devicePermissions,
+  );
 
   applyDevicePermissionHandlers(permissionsWindow);
 
@@ -525,7 +583,10 @@ function createLocationRequestWindow(request: AgentLocationRequest) {
     },
   });
 
-  hardenWindowNavigation(locationRequestWindow);
+  hardenWindowNavigation(
+    locationRequestWindow,
+    RENDERER_PAGE_PATHS.locationRequest,
+  );
 
   locationRequestWindow.setMenu(null);
 

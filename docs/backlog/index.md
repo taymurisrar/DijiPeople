@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**819 records** — 582 bugs under [`docs/bugs/`](../bugs/), 237 non-bug items under [`items/`](items/).
+**820 records** — 582 bugs under [`docs/bugs/`](../bugs/), 238 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 317 |
+| Open (active work) | 318 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 127 |
-| MEDIUM | 148 |
+| MEDIUM | 149 |
 | LOW | 31 |
 
 ## Open by type
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 8 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
-| SECURITY | 31 |
+| SECURITY | 32 |
 | STATE_MACHINE | 7 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
@@ -65,7 +65,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 30 |
+| READY | 31 |
 | DONE | 122 |
 
 ## All records
@@ -733,6 +733,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
 | [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [ITEM-0235](../../docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md) | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
+| [ITEM-0238](../../docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md) | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
