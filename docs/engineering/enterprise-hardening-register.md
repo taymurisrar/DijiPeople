@@ -166,6 +166,17 @@ alongside its own tests. Recorded as a standing risk, not fixed.
 
 **Tenant lifecycle suite** `services/api/test/tenant-lifecycle-access.e2e-spec.ts` (database-backed HTTP, 16 tests): a cryptographically valid token is refused (401) for each of the 8 non-ACTIVE tenant statuses, for a DISABLED user and for a revoked session, and access returns on reactivation; a role-less user and a tenant token on the admin client are refused. Mutation-tested: dropping the tenant-status condition in `auth-access.service.ts` failed 10 of 16.
 
+**Employee surface suite** `services/api/test/employee-cross-tenant-surface.e2e-spec.ts`
+(database-backed HTTP, 11 tests): ALPHA's admin lists, searches, exports (filtered
+and unfiltered) and reads ten by-id sub-resources of BETA's employee; mutates,
+reassigns, bulk-deletes and bulk-assigns BETA rows; tries to give an ALPHA
+employee a BETA manager; and attempts mass assignment of `tenantId`, `id`,
+`createdById` and `isDeleted` (all 400, row not moved). Positive controls show
+each admin sees its own rows. BETA's rows are unchanged. Mutation-tested:
+removing `tenantId` from `findByIdAndTenant` failed 2 tests. Note: the list
+response echoes the search term, so the empty-result assertion is on `items` and
+`meta.total`, not raw text.
+
 **Still open under WP3:** list/search/count/aggregate/export paths, raw SQL,
 bulk and nested writes, upsert and `updateMany` with computed filters,
 SELF/TEAM/BUSINESS_UNIT/TENANT permission levels, platform versus tenant
