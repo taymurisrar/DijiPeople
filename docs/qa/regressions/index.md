@@ -7650,3 +7650,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the save was refused with "Owner user was not found for this tenant", and once that was removed GO-8 failed with "Employee has already been created". |
 | **Fixed** | 2026-11-20, branch `agent/growth-closure-records` |
 | **Active** | yes |
+
+### REG-698 — A custom module could not be deleted: its own forms blocked the module, and the last default form could not be deleted
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-4509 |
+| **Root cause** | The module delete counted the module's own fields, forms and views as external dependencies, while the form delete refused the last default form. |
+| **Regression test** | `services/api/src/modules/customization/delete-module.spec.ts` |
+| **Scenario** | QA-RUNTIME-047 |
+| **Fails without the fix** | Yes — deleting a module with a form was refused. |
+| **Fixed** | 2026-11-21, branch `agent/module-delete-impact` |
+| **Active** | yes |

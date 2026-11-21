@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**812 records** — 579 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**813 records** — 580 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 311 |
+| Open (active work) | 312 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 126 |
-| MEDIUM | 143 |
+| MEDIUM | 144 |
 | LOW | 31 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 19 |
-| BUG | 101 |
+| BUG | 102 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 226 |
+| FIXED | 227 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -621,6 +621,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4457](../../docs/bugs/BUG-4457-timesheet-late-reason-is-not-offered-after-save-draft-so-a-l.md) | Timesheet late reason is not offered after Save draft, so a late week cannot be submitted | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
 | [BUG-4458](../../docs/bugs/BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t.md) | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
 | [BUG-4484](../../docs/bugs/BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so.md) | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | P2 | FIXED | api:super-admin | FIX_NOW |
+| [BUG-4509](../../docs/bugs/BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las.md) | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

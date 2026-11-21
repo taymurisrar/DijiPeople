@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 503** · automated: 414 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 504** · automated: 414 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -404,6 +404,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-044](../../../docs/qa/scenarios/QA-RUNTIME-044-a-record-form-entity-lookup-finds-and-selects-a-record-past-.md) | A record-form entity lookup finds and selects a record past the server's default page | runtime-modules | MANUAL_VISUAL | HIGH | PARTIAL | `apps/web/app/components/metadata/lookup-reference-route.spec.ts` | BUG-3376 | REG-470 |
 | [QA-RUNTIME-045](../../../docs/qa/scenarios/QA-RUNTIME-045-a-published-custom-module-has-a-sidebar-entry-and-list-form-.md) | A published custom module has a sidebar entry and list, form and record screens | runtime-modules | BROWSER_E2E | HIGH | PARTIAL | `apps/web/lib/runtime/custom-modules/custom-module-navigation.spec.ts` | BUG-3494 | REG-492 |
 | [QA-RUNTIME-046](../../../docs/qa/scenarios/QA-RUNTIME-046-custom-module-records-are-unreachable-before-publish-from-an.md) | Custom-module records are unreachable before publish, from another tenant and without custom-records privileges | runtime-modules | SECURITY | CRITICAL | PARTIAL | `services/api/test/custom-module-runtime.e2e-spec.ts` | BUG-3494 | REG-491, REG-493, REG-494 |
+| [QA-RUNTIME-047](../../../docs/qa/scenarios/QA-RUNTIME-047-custom-module-delete-impact-dialog-own-metadata-cascades-cro.md) | Custom module delete: impact dialog, own metadata cascades, cross-module reference blocks | runtime-modules | UNIT | MEDIUM | PARTIAL | `services/api/src/modules/customization/delete-module.spec.ts` | BUG-4509 | REG-698 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
 | [QA-SECURITY-002](../../../docs/qa/scenarios/QA-SECURITY-002-the-rate-limiter-does-not-trust-a-client-supplied-x-forwarde.md) | The rate limiter does not trust a client-supplied X-Forwarded-For | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-3115 | REG-407 |
 | [QA-SECURITY-003](../../../docs/qa/scenarios/QA-SECURITY-003-the-forwarded-for-hop-arithmetic-resolves-the-visitor-not-nu.md) | The forwarded-for hop arithmetic resolves the visitor, not null and not a forged entry | authorization | UNIT | HIGH | AUTOMATED | `packages/config/client-ip.test.js` | BUG-3254 | REG-409 |
