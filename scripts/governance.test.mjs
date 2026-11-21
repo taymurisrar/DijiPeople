@@ -154,6 +154,19 @@ test('CI-006: ci.yml installs only through the shared setup action, which pins n
   assert.equal(pkg.engines.npm.split('.')[0], pkg.packageManager.split('@')[1].split('.')[0], 'packageManager and engines.npm agree on the major');
 });
 
+test('WP5: every Vercel-deployed app pins the same Node major as CI, because Vercel reads engines.node from the app directory', () => {
+  // Vercel resolves the Node version from the project dashboard unless the
+  // package.json in the project root directory states one. On 2026-11-22 the
+  // three projects were set to 24.x while CI and package.json say 22.x, so
+  // production built on a major CI never ran. apps/web and apps/landing deploy
+  // from their own directory, where the root package.json is not read.
+  const root = JSON.parse(read('package.json')).engines.node;
+  for (const app of ['web', 'admin', 'landing']) {
+    const pkg = JSON.parse(read(`apps/${app}/package.json`));
+    assert.equal(pkg.engines?.node, root, `apps/${app}/package.json must declare engines.node = ${root}`);
+  }
+});
+
 test('CI-006: the framework validation job fetches full history; other jobs keep the default shallow checkout', () => {
   const ci = read('.github/workflows/ci.yml');
   const validate = ci.slice(ci.indexOf('  validate:'), ci.indexOf('  typecheck:'));

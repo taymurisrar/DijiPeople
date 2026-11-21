@@ -2,6 +2,9 @@
   "name": "landing",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "node ../../scripts/next-with-port.mjs dev 3000 LANDING_PORT",
     "build": "next build",

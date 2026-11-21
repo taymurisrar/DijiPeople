@@ -67,7 +67,7 @@ deferred earlier as [[ITEM-0070]] and is unchanged.
 | WP2 | Electron 42 upgrade + sandbox | **Not started — tracked** | [[ITEM-0234]], [[ITEM-0235]]; needs a real Windows device |
 | WP3 | Tenant-isolation penetration tests, auth/MFA/session review | **Partial.** Database-backed HTTP suite written and passing for roles, teams, users, sessions and saved views. Not covered yet: list/aggregate/export, raw SQL, bulk and nested writes, permission levels, suspended tenants, jobs, files, payroll, billing, concurrency. Auth/MFA review not started. The full tenant-isolation review is **NOT passed**. | sections 2a, 2b |
 | WP4 | Render `render.yaml` drift (39 fields), Neon polling/scan investigation, network-transfer spike | **Render drift classified; Neon partly analysed from source only** (no Neon access from this session) | sections 2c, 2d; [[ITEM-0236]], [[ITEM-0237]] |
-| WP5 | Vercel Node 22/24 drift, selective builds, frontend performance | Not started | |
+| WP5 | Vercel Node 22/24 drift, selective builds, frontend performance | **Node drift confirmed and aligned in source; the rest not assessed** | section 2f |
 | WP6 | Agent-workforce efficiency | Not started | |
 | WP7 | Observability, runbooks, restore drills | Not started | |
 | WP8 | Compliance control register (HIPAA applicability, ISO, SOC 2, ASVS, NIST) | Not started | |
@@ -209,6 +209,45 @@ compute, autosuspend, transfer or the 20 November spike was observed.
   [[ITEM-0237]] with the owner decision it needs. No financial figure is claimed.
 - **Not assessed:** connection counts, pool sizing against Neon's pooler,
   backup and branch governance, retention of large operational tables.
+
+## 2e. WP3 — raw SQL sweep (2026-11-22)
+
+Static, one defect class. 23 raw-SQL call sites in `services/api/src` outside
+specs. Most are `pg_advisory_xact_lock(hashtext(...))` (billing, leave, payroll,
+numbering): they lock, they do not read or write tenant data. The tenant-facing
+data queries are `matchingRecordIdsSql` and `orderedRecordIdsSql`
+(`customization/custom-field-query.ts`): both put `"tenantId" = ${tenantId}` in the
+`WHERE`, parameterised through `Prisma.sql`; the only `Prisma.raw` is the constant
+`ASC`/`DESC` chosen from a two-value union. No `queryRawUnsafe`/`executeRawUnsafe`.
+No defect found. Not covered: whether every caller passes `user.tenantId`
+(the two custom-field callers do).
+
+## 2f. WP5 — Vercel (read-only, 2026-11-22)
+
+| Project | Node on Vercel | Root dir | Ignored build step |
+|---|---|---|---|
+| diji-people-admin | 24.x | repo root | builds only when the branch is `main` |
+| diji-people-web | 24.x | `apps/web` | same |
+| diji-people-landing | 24.x | `apps/landing` | same |
+
+- **Node drift (confirmed setting).** Repo, CI and `engines` say 22.x; all three
+  Vercel projects are set to 24.x. `apps/web` and `apps/landing` deploy from their
+  own directory, where the root `engines` is not read, so they very likely build on
+  24 (not confirmed from a build log). Production therefore builds on a Node major
+  that CI never ran. **Source-side correction made:** `engines.node = 22.x` in the
+  three app `package.json` files plus a governance test that fails if any app drifts
+  from the root (mutation-tested: setting `apps/web` to 24.x failed it). This takes
+  effect for production only when a release reaches `main`. The alternative is to
+  move CI and the repo to 24; that is an owner decision, so only the lower-risk
+  alignment to what CI proves was made.
+- **Build skipping.** Skipping is by branch only: every push to `main` builds all
+  three apps even when only the API or docs changed. A path-aware ignore step is
+  possible, but a wrongly skipped build leaves production stale, and the dashboard
+  setting takes precedence unless `vercel.json` overrides it; not attempted here.
+  No cost saving is claimed; build-minute usage was not readable.
+- **Not assessed:** bundle sizes, SSR/ISR behaviour, function usage, navigation
+  latency, duplicate polling, RTL and accessibility. These need a built app and a
+  browser session; the Playwright MCP server failed to connect this session.
 
 ## 3. Measured results so far
 
