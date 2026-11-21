@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 130
+**Active: 2** · completed: 130
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0137](../../docs/sessions/SESSION-0137-dependency-alert-remediation-111-dependabot-alerts-p0-exposu.md) | — | Dependency alert remediation: 111 Dependabot alerts, P0 exposure triage | ACTIVE | `agent/dependency-alert-remediation` | `develop` | — | 2026-11-21T14:45:15.125Z |
 | [SESSION-0130](../../docs/sessions/SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2.md) | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | 2026-10-30T19:14:29.947Z |
 
 ## Completed
