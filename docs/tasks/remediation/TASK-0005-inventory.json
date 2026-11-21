@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 814,
+    "total_records": 815,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -16194,21 +16194,25 @@
       "title": "The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-11-21",
+        "resolved_at": "2026-11-21"
       },
       "affected_modules": [
         "services/api/src/modules/lookups"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-700"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-069"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -16308,21 +16312,25 @@
       "title": "The timesheet-restriction allowlist omits the /api prefix, so it never matches",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-11-21",
+        "resolved_at": "2026-11-21"
       },
       "affected_modules": [
         "services/api/src/modules/timesheets"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-699"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-023"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -25791,7 +25799,7 @@
       "title": "JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md",
@@ -25799,19 +25807,65 @@
         "detected_in_sha": "b7ddb808",
         "created_at": "2026-11-21",
         "updated_at": "2026-11-21",
-        "resolved_at": ""
+        "resolved_at": "2026-11-21"
       },
       "affected_modules": [
         "services/api/src/common/guards"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-699"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-023"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
           "services/api/src/common/guards"
         ],
         "verification_scope": "See docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4547",
+      "type": "BUG",
+      "title": "A data job left PROCESSING by a dead worker is never recovered",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "1df480bf",
+        "created_at": "2026-11-21",
+        "updated_at": "2026-11-21",
+        "resolved_at": "2026-11-21"
+      },
+      "affected_modules": [
+        "services/api/src/modules/data-management"
+      ],
+      "regressions": [
+        "REG-701"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-048"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/data-management"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

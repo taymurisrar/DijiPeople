@@ -208,9 +208,10 @@ describeWithDatabase()('Authenticated request query budget (e2e, HTTP)', () => {
       },
     });
     const blocked = await get('documents/types');
-    // BUG-4518: the guard's catch rewrites the designed 403 into a 401. Either
-    // way the request must be refused; tighten to 403 when that is fixed.
-    expect([401, 403]).toContain(blocked.status);
+    expect(blocked.status).toBe(403);
+    expect((blocked.body as { code?: string }).code).toBe(
+      'TIMESHEET_ACCESS_RESTRICTED',
+    );
 
     await prisma.timesheetAccessRestriction.update({
       where: { id: restriction.id },

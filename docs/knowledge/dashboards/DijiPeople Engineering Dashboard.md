@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **127** |
-| Open total | 313 |
+| Open total | 314 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 125 |
@@ -75,9 +75,9 @@
 | [[BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref|BUG-3140]] | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | OPEN | api:auth, api:agent | FIX_NOW |
 | [[BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store|BUG-3141]] | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | OPEN | api:customization | FIX_NOW |
 | [[BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-|BUG-3156]] | A tenant admin can create, rename or deactivate the platform-wide shared geography reference data | TENANT_ISOLATION | HIGH | OPEN | api:lookups | FIX_NOW |
-| [[BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee|BUG-3157]] | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | OPEN | api:lookups | FIX_NOW |
+| [[BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee|BUG-3157]] | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | FIXED | api:lookups | FIX_NOW |
 | [[BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele|BUG-3162]] | Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation) | SECURITY | HIGH | OPEN | api:tenants | FIX_NOW |
-| [[BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-|BUG-3164]] | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | OPEN | api:timesheets | FIX_NOW |
+| [[BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-|BUG-3164]] | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | FIXED | api:timesheets | FIX_NOW |
 | [[BUG-3165-every-authenticated-request-costs-roughly-26-database-round-|BUG-3165]] | Every authenticated request costs roughly 26 database round trips before the handler runs | PERFORMANCE | HIGH | OPEN | services/api/src/common | PLAN_REQUIRED |
 | [[BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi|BUG-3166]] | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3167-the-required-browser-gate-executes-zero-tests-against-apps-w|BUG-3167]] | The required browser gate executes zero tests against apps/web | TEST_GAP | HIGH | OPEN | .github/workflows | FIX_NOW |
@@ -155,7 +155,7 @@
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
 | [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
-| [[BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401|BUG-4518]] | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | OPEN | services/api/src/common/guards | PLAN_REQUIRED |
+| [[BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401|BUG-4518]] | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | FIXED | services/api/src/common/guards | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -381,6 +381,8 @@
 | [[BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi|BUG-3007]] | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
+| [[BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee|BUG-3157]] | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | FIXED | api:lookups | FIX_NOW |
+| [[BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-|BUG-3164]] | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | FIXED | api:timesheets | FIX_NOW |
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
 | [[BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg|BUG-3330]] | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | FIXED | apps/web, api:billing | FIX_NOW |
 | [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | FIXED | apps/web, api:billing | PLAN_REQUIRED |
@@ -430,6 +432,7 @@
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
 | [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
+| [[BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401|BUG-4518]] | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | FIXED | services/api/src/common/guards | PLAN_REQUIRED |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -627,6 +630,7 @@
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so|BUG-4484]] | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las|BUG-4509]] | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover|BUG-4547]] | A data job left PROCESSING by a dead worker is never recovered | BUG | MEDIUM | FIXED | api:data-management | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -841,6 +845,7 @@
 | [[BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t|BUG-4458]] | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | FIXED | — | FIX_NOW |
 | [[BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so|BUG-4484]] | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las|BUG-4509]] | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover|BUG-4547]] | A data job left PROCESSING by a dead worker is never recovered | BUG | MEDIUM | FIXED | api:data-management | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -933,7 +938,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 581 |
+| Bug records | 582 |
 | Backlog items | 233 |
 | Known bug patterns | 35 |
 | QA runs | 40 |

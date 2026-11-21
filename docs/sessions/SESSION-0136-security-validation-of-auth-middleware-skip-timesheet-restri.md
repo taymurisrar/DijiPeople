@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0136
+aliases: [SESSION-0136]
+TASK_ID:
+TITLE: Security validation of auth middleware skip, timesheet-restriction 403 (BUG-4518/3164), DataJob recovery, perf follow-up
+ARCHITECT_INTENT: Security validation of auth middleware skip, timesheet-restriction 403 (BUG-4518/3164), DataJob recovery, perf follow-up
+STATUS: ACTIVE
+TASK_TYPE: SECURITY
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 1df480bf7057ed50721258f88a2833c21b65a094
+TASK_BRANCH: agent/security-timesheet-datajob-followup
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-perf-reliability
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-11-21T10:05:39.764Z
+LAST_HEARTBEAT: 2026-11-21T10:05:39.764Z
+BLOCKERS: none
+---
+
+# SESSION-0136 — Security validation of auth middleware skip, timesheet-restriction 403 (BUG-4518/3164), DataJob recovery, perf follow-up
+
+## Intent
+
+Security validation of auth middleware skip, timesheet-restriction 403 (BUG-4518/3164), DataJob recovery, perf follow-up
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-11-21 — session started from `origin/develop` at `1df480b`.

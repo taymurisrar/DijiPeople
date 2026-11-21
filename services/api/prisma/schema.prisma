@@ -11937,6 +11937,10 @@ enum DataImportMode {
 enum DataRowStatus {
   PENDING
   VALID
+  /// An import row whose apply is under way. Set per chunk BEFORE any row of the
+  /// chunk is applied, so after a crash the lowest-numbered IN_PROGRESS row is the
+  /// only one whose outcome is unknown (rows are applied strictly in order).
+  IN_PROGRESS
   INVALID
   CREATED
   UPDATED
@@ -11989,6 +11993,11 @@ model DataJob {
   completedAt       DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  /// Which worker process owns the job while it is PROCESSING.
+  claimedBy         String?
+  /// Ownership lapses at this time unless the owner renews it. A PROCESSING job
+  /// past its lease belongs to a dead process and is eligible for recovery.
+  leaseExpiresAt    DateTime?
   submittedByUserId String?
   tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   submittedByUser   User?           @relation("DataJobSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
@@ -11999,6 +12008,7 @@ model DataJob {
   @@index([tenantId, kind, status, createdAt])
   /// The worker poll (`WHERE status = QUEUED AND cancelledAt IS NULL ORDER BY createdAt`) names no tenant, so no index above can serve it.
   @@index([status, createdAt])
+  @@index([status, leaseExpiresAt])
   @@index([tenantId, moduleKey, createdAt])
   @@index([tenantId, submittedByUserId])
 }

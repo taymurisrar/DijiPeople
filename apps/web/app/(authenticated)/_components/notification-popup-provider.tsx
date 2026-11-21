@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startVisibilityAwarePolling } from "@/lib/visibility-polling";
 import { useRouter } from "next/navigation";
 import { SideToast } from "@/app/components/notifications";
 import {
@@ -43,14 +44,12 @@ export function NotificationPopupProvider() {
     // Polling intentionally hydrates popup state from the external notifications API.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPopup();
-    const intervalId = window.setInterval(() => {
-      if (sessionEndedRef.current) {
-        window.clearInterval(intervalId);
-        return;
-      }
-      void loadPopup();
-    }, 60_000);
-    return () => window.clearInterval(intervalId);
+    // Not in a hidden tab; catches up the moment the tab is visible again.
+    return startVisibilityAwarePolling({
+      intervalMs: 60_000,
+      run: () => void loadPopup(),
+      shouldStop: () => sessionEndedRef.current,
+    });
   }, [loadPopup]);
 
   const variant = useMemo<"success" | "error" | "warning" | "info">(() => {

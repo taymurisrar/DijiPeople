@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**814 records** — 581 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
+**815 records** — 582 bugs under [`docs/bugs/`](../bugs/), 233 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 313 |
+| Open (active work) | 314 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 127 |
-| MEDIUM | 144 |
+| MEDIUM | 145 |
 | LOW | 31 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 19 |
-| BUG | 103 |
+| BUG | 104 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 57 |
+| OPEN | 54 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 227 |
+| FIXED | 231 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -249,10 +249,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | OPEN | api:auth, api:agent | FIX_NOW |
 | [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | FIX_NOW |
 | [BUG-3156](../../docs/bugs/BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-.md) | A tenant admin can create, rename or deactivate the platform-wide shared geography reference data | TENANT_ISOLATION | HIGH | P1 | OPEN | api:lookups | FIX_NOW |
-| [BUG-3157](../../docs/bugs/BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee.md) | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | P1 | OPEN | api:lookups | FIX_NOW |
+| [BUG-3157](../../docs/bugs/BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee.md) | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | P1 | FIXED | api:lookups | FIX_NOW |
 | [BUG-3162](../../docs/bugs/BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele.md) | Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation) | SECURITY | HIGH | P1 | OPEN | api:tenants | FIX_NOW |
 | [BUG-3163](../../docs/bugs/BUG-3163-the-rate-limit-key-trusts-a-client-supplied-x-forwarded-for-.md) | The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare | SECURITY | HIGH | P1 | DUPLICATE | services/api/src/common | DUPLICATE |
-| [BUG-3164](../../docs/bugs/BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-.md) | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | P1 | OPEN | api:timesheets | FIX_NOW |
+| [BUG-3164](../../docs/bugs/BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-.md) | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | P1 | FIXED | api:timesheets | FIX_NOW |
 | [BUG-3165](../../docs/bugs/BUG-3165-every-authenticated-request-costs-roughly-26-database-round-.md) | Every authenticated request costs roughly 26 database round trips before the handler runs | PERFORMANCE | HIGH | P1 | OPEN | services/api/src/common | PLAN_REQUIRED |
 | [BUG-3166](../../docs/bugs/BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi.md) | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | P1 | OPEN | .github/workflows | FIX_NOW |
 | [BUG-3167](../../docs/bugs/BUG-3167-the-required-browser-gate-executes-zero-tests-against-apps-w.md) | The required browser gate executes zero tests against apps/web | TEST_GAP | HIGH | P1 | OPEN | .github/workflows | FIX_NOW |
@@ -338,7 +338,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4446](../../docs/bugs/BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the.md) | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | P1 | FIXED | onboarding, apps/web | FIX_NOW |
 | [BUG-4447](../../docs/bugs/BUG-4447-employee-record-lookup-editor-department-designation-reporti.md) | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | P1 | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | FIXED | — | FIX_NOW |
-| [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | OPEN | services/api/src/common/guards | PLAN_REQUIRED |
+| [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | FIXED | services/api/src/common/guards | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -623,6 +623,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4458](../../docs/bugs/BUG-4458-project-assignment-with-no-end-date-fails-with-400-because-t.md) | Project assignment with no end date fails with 400 because the drawer sends an empty endDate | BUG | MEDIUM | P2 | FIXED | — | FIX_NOW |
 | [BUG-4484](../../docs/bugs/BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so.md) | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | P2 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-4509](../../docs/bugs/BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las.md) | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
+| [BUG-4547](../../docs/bugs/BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover.md) | A data job left PROCESSING by a dead worker is never recovered | BUG | MEDIUM | P2 | FIXED | api:data-management | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

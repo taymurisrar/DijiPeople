@@ -7,12 +7,12 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 5 |
 | Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
-| Open questions | 0 |
+| Open questions | 1 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
 | Open HIGH | 127 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 313 |
-| No next action | 313 |
+| No acceptance criteria | 314 |
+| No next action | 314 |
 | Aging — 7d / 30d / 90d | 297 / 295 / 12 |
 | Architecture and technical debt | 8 |
 | Security gaps | 50 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0136-security-validation-of-auth-middleware-skip-timesheet-restri|SESSION-0136]] | — | Security validation of auth middleware skip, timesheet-restriction 403 (BUG-4518/3164), DataJob recovery, perf follow-up | ACTIVE | `agent/security-timesheet-datajob-followup` | `develop` | — | NO |
 | [[SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2|SESSION-0130]] | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -312,7 +313,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 313 |
+| Open total | 314 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 15 |

@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -28,6 +29,10 @@ import {
   AuthTokenPayload,
 } from '../interfaces/authenticated-request.interface';
 import { TimesheetRestrictionMode } from '@prisma/client';
+import {
+  isRouteAllowedUnderTimesheetRestriction,
+  timesheetRestrictionAllowedRoutesForClient,
+} from './timesheet-restriction-routes';
 import { toErrorMessage } from '../utils/display-string';
 
 @Injectable()
@@ -141,6 +146,14 @@ export class JwtAuthGuard implements CanActivate {
         throw error;
       }
 
+      // BUG-4518: a deliberate refusal (the timesheet restriction's 403) is an
+      // answer, not a token failure. Falling through to the generic branch
+      // below rewrote it into 401 INVALID_TOKEN, which a client reads as
+      // "session expired" and answers with a pointless refresh-and-retry.
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       if (error instanceof TokenExpiredError) {
         this.logger.warn(
           `Access token expired. Path=${request.url}, Method=${request.method}`,
@@ -223,37 +236,24 @@ export class JwtAuthGuard implements CanActivate {
       restriction.restrictionMode === TimesheetRestrictionMode.WARNING_ONLY
     )
       return;
+    // BUG-3164: matched against the path as served, `/api` prefix included.
     const path = request.path || request.url.split('?')[0] || '/';
-    const alwaysAllowed = [
-      '/timesheets',
-      '/timesheet-exports',
-      '/approvals',
-      '/notifications',
-      '/in-app-notifications',
-      '/my-profile',
-      '/employees/me',
-      '/auth',
-      '/help',
-      '/support',
-      '/tenant-settings/resolved',
-      '/tenant-settings/features/availability',
-      '/runtime-metadata',
-      '/settings-runtime',
-      '/projects/assigned/me',
-      '/audit-logs',
-    ];
-    if (alwaysAllowed.some((prefix) => path.startsWith(prefix))) return;
+    if (isRouteAllowedUnderTimesheetRestriction(path)) return;
     if (
       restriction.restrictionMode === TimesheetRestrictionMode.LIMITED_ACCESS &&
       request.method.toUpperCase() === 'GET'
     )
       return;
+    // `details` is the one place the exception filter passes structured data
+    // through to the client; top-level extras are dropped by it.
     throw new ForbiddenException({
       code: 'TIMESHEET_ACCESS_RESTRICTED',
       message: restriction.reason,
-      restrictionMode: restriction.restrictionMode,
-      restrictionId: restriction.id,
-      allowedRoutes: ['/timesheets', '/notifications', '/my-profile', '/help'],
+      details: {
+        restrictionMode: restriction.restrictionMode,
+        restrictionId: restriction.id,
+        allowedRoutes: timesheetRestrictionAllowedRoutesForClient(),
+      },
     });
   }
 

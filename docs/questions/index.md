@@ -9,13 +9,15 @@ question to ask.
 Answered questions in the durable categories carry an ADR, so the decision is
 retrievable by a later task and the user is not asked again.
 
-- **Open — waiting on an answer:** 0
+- **Open — waiting on an answer:** 1
 - **Answered:** 0
-- **Total:** 0
+- **Total:** 1
 
 ## Open
 
-Nothing is waiting on a user answer.
+| ID | QUESTION | CATEGORY | ASKED BY | BLOCKING | SCOPE | DECISION |
+|---|---|---|---|---|---|---|
+| [QUESTION-3931](QUESTION-3931-should-tenant-administrators-keep-the-ability-to-create-rena.md) | Should tenant administrators keep the ability to create, rename and deactivate the platform-wide shared geography (states, cities), or become platform-only (BUG-3156)? | USER_DECISION_REQUIRED | security | NONE | —  | — |
 
 ## Answered
 

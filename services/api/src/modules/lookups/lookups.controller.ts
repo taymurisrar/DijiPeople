@@ -49,8 +49,11 @@ export class LookupsController {
     { entityKey: ENTITY_KEYS.BRANDING, action: 'read' },
     { entityKey: ENTITY_KEYS.TENANT_ADMINISTRATION, action: 'read' },
   )
-  getCountryUsage(@Param('id') id: string) {
-    return this.lookupsService.getCountryUsage(id);
+  getCountryUsage(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.lookupsService.getCountryUsage(id, user.tenantId);
   }
 
   @Get('states')
@@ -89,8 +92,11 @@ export class LookupsController {
     { entityKey: ENTITY_KEYS.BRANDING, action: 'read' },
     { entityKey: ENTITY_KEYS.TENANT_ADMINISTRATION, action: 'read' },
   )
-  getStateUsage(@Param('id') id: string) {
-    return this.lookupsService.getStateUsage(id);
+  getStateUsage(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.lookupsService.getStateUsage(id, user.tenantId);
   }
 
   @Patch('states/:id')
@@ -150,8 +156,11 @@ export class LookupsController {
     { entityKey: ENTITY_KEYS.BRANDING, action: 'read' },
     { entityKey: ENTITY_KEYS.TENANT_ADMINISTRATION, action: 'read' },
   )
-  getCityUsage(@Param('id') id: string) {
-    return this.lookupsService.getCityUsage(id);
+  getCityUsage(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.lookupsService.getCityUsage(id, user.tenantId);
   }
 
   @Patch('cities/:id')

@@ -99,7 +99,14 @@ export class LookupsService {
     return country;
   }
 
-  async getCountryUsage(idOrCode: string) {
+  /*
+   * BUG-3157. Usage is reported for the CALLER'S tenant only. `Employee` is a
+   * tenant-owned model; an unscoped count told any tenant administrator how many
+   * employees every other tenant has in a given country, state or city. The
+   * geography rows themselves are shared reference data, so counting them is not
+   * tenant-specific.
+   */
+  async getCountryUsage(idOrCode: string, tenantId: string) {
     const country = await this.getCountry(idOrCode);
     return {
       countryId: country.id,
@@ -114,7 +121,9 @@ export class LookupsService {
         ),
         await usage(
           'Employee',
-          this.prisma.employee.count({ where: { countryId: country.id } }),
+          this.prisma.employee.count({
+            where: { tenantId, countryId: country.id },
+          }),
         ),
       ],
     };
@@ -137,7 +146,7 @@ export class LookupsService {
     };
   }
 
-  async getStateUsage(id: string) {
+  async getStateUsage(id: string, tenantId: string) {
     // Existence check: `getState` throws NotFoundException for an unknown id,
     // which is what turns a usage request for a deleted state into a 404 rather
     // than an empty report.
@@ -151,7 +160,9 @@ export class LookupsService {
         ),
         await usage(
           'Employee',
-          this.prisma.employee.count({ where: { stateProvinceId: id } }),
+          this.prisma.employee.count({
+            where: { tenantId, stateProvinceId: id },
+          }),
         ),
       ],
     };
@@ -167,6 +178,13 @@ export class LookupsService {
     return this.prisma.stateProvince.update({ where: { id }, data });
   }
 
+  /*
+   * The reference-use check below is deliberately NOT tenant-scoped: deleting
+   * a shared row hides it from every tenant, so every tenant's employees must
+   * be protected. That is also why this write belongs to the platform, not to a
+   * tenant administrator — BUG-3156 (open; product decision recorded). Until
+   * then the 409 reveals only THAT a row is in use somewhere, never how many.
+   */
   async deleteState(id: string) {
     const existing = await this.prisma.stateProvince.findFirst({
       where: { id },
@@ -210,14 +228,14 @@ export class LookupsService {
     };
   }
 
-  async getCityUsage(id: string) {
+  async getCityUsage(id: string, tenantId: string) {
     await this.getCity(id);
     return {
       cityId: id,
       usages: [
         await usage(
           'Employee',
-          this.prisma.employee.count({ where: { cityId: id } }),
+          this.prisma.employee.count({ where: { tenantId, cityId: id } }),
         ),
       ],
     };

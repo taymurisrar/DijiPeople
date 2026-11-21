@@ -6275,6 +6275,27 @@ if (trackedFiles) {
   rmSync(sandbox, { recursive: true, force: true });
 }
 
+// ------------------------------------------------------- context budget (SESSION-0136)
+//
+// Every session pays for the root instruction files before any work starts, so
+// their size is a standing cost that should change only on purpose. The ratchet
+// itself lives in scripts/check-context-budget.mjs; this makes it a gate that
+// already runs in CI. It fails on GROWTH only, and shrinking never fails.
+{
+  const { measure, verdict } = await import('./check-context-budget.mjs');
+  const baselinePath = join(ROOT, 'docs', 'engineering', 'context-budget-baseline.json');
+  check('context-budget baseline is recorded', existsSync(baselinePath), baselinePath);
+  if (existsSync(baselinePath)) {
+    const current = measure();
+    const result = verdict(current, JSON.parse(readFileSync(baselinePath, 'utf8')));
+    check(
+      'always-loaded instruction files are within the context budget',
+      result.ok,
+      `${current.alwaysLoaded.bytes} bytes against a limit of ${result.limit}. Move new material into .agent/context/ and link to it, or re-baseline deliberately: node scripts/check-context-budget.mjs --update`,
+    );
+  }
+}
+
 // ------------------------------------------------------------------- reporting
 
 if (warnings.length) {

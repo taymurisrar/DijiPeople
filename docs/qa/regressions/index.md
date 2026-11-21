@@ -7664,3 +7664,45 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — deleting a module with a form was refused. |
 | **Fixed** | 2026-11-21, branch `agent/module-delete-impact` |
 | **Active** | yes |
+
+### REG-699 — A timesheet restriction produced a 401 INVALID_TOKEN instead of a 403, and its allow-list never matched the /api prefix
+
+| | |
+|---|---|
+| **Bug class** | `error-mapping` |
+| **Module** | `services/api/src/common/guards` |
+| **Bug record** | BUG-4518, BUG-3164 |
+| **Root cause** | The guard's catch rewrote the restriction's 403 into a 401, the exception filter did not know the code, and the allow-list was matched without the global /api prefix. |
+| **Regression test** | `services/api/test/timesheet-restriction.e2e-spec.ts`; `services/api/src/common/guards/timesheet-restriction-routes.spec.ts`; `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | QA-AUTH-023 |
+| **Fails without the fix** | Yes — the e2e received 401 where it expects 403, and /api/timesheets was refused. |
+| **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
+| **Active** | yes |
+
+### REG-700 — The lookups usage endpoints counted employees across every tenant
+
+| | |
+|---|---|
+| **Bug class** | `tenant-isolation` |
+| **Module** | `services/api/src/modules/lookups` |
+| **Bug record** | BUG-3157 |
+| **Root cause** | The Employee counts carried no tenantId filter. |
+| **Regression test** | `services/api/test/lookups-usage-isolation.e2e-spec.ts` |
+| **Scenario** | QA-TENANT-069 |
+| **Fails without the fix** | Yes — received 5 (both tenants) where the caller's tenant has 2. |
+| **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
+| **Active** | yes |
+
+### REG-701 — A data job left PROCESSING by a dead worker was never recovered
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/data-management` |
+| **Bug record** | BUG-4547 |
+| **Root cause** | Job ownership was implicit in the status column, with no lease and no per-row checkpoint. |
+| **Regression test** | `services/api/test/data-job-recovery.e2e-spec.ts` |
+| **Scenario** | QA-RUNTIME-048 |
+| **Fails without the fix** | Yes — without the parking step four tests fail; without the conditional claim the race test fails. |
+| **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
+| **Active** | yes |

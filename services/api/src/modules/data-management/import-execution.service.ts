@@ -11,6 +11,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { AuditService } from '../audit/audit.service';
 import { AttendanceService } from '../attendance/attendance.service';
 import { EmployeesService } from '../employees/employees.service';
+import type { JobLease } from './data-job-lease';
 import { DataModuleRegistryService } from './module-registry.service';
 import type { ColumnMapping, RowIssue } from './import-analysis.service';
 
@@ -214,7 +215,7 @@ export class ImportExecutionService {
   async executeJob(
     currentUser: AuthenticatedUser,
     jobId: string,
-    options: { alreadyClaimed?: boolean } = {},
+    options: { alreadyClaimed?: boolean; lease?: JobLease } = {},
   ) {
     const job = await this.prisma.dataJob.findFirst({
       where: { id: jobId, tenantId: currentUser.tenantId, kind: 'IMPORT' },
@@ -253,21 +254,45 @@ export class ImportExecutionService {
     const mappings = (job.mappingJson ?? []) as unknown as ColumnMapping[];
     const mode = job.importMode ?? DataImportMode.CREATE_ONLY;
 
+    // Counters are derived from the rows, not zeroed: on a first run every row
+    // is VALID/INVALID so this yields zeros, and on a RESUME after a worker died
+    // it carries forward the rows that were already applied instead of erasing
+    // them (BUG-recovery, SESSION-0136). `failedRows` is the rows rejected at
+    // analysis (INVALID) plus those that failed while being applied.
+    const grouped = await this.prisma.dataJobRow.groupBy({
+      by: ['status'],
+      where: { jobId: job.id },
+      _count: { _all: true },
+    });
+    const rowsIn = (status: DataRowStatus) =>
+      grouped.find((g) => g.status === status)?._count._all ?? 0;
+    const invalidAtAnalysis = rowsIn(DataRowStatus.INVALID);
+    const counts = {
+      created: rowsIn(DataRowStatus.CREATED),
+      updated: rowsIn(DataRowStatus.UPDATED),
+      skipped: rowsIn(DataRowStatus.SKIPPED),
+      failed: rowsIn(DataRowStatus.FAILED),
+    };
+    let processed =
+      counts.created + counts.updated + counts.skipped + counts.failed;
+
     await this.prisma.dataJob.update({
       where: { id: job.id },
       data: {
         status: DataJobStatus.PROCESSING,
-        startedAt: new Date(),
-        processedRows: 0,
-        createdRows: 0,
-        updatedRows: 0,
-        skippedRows: 0,
-        progressPercent: 0,
+        startedAt: job.startedAt ?? new Date(),
+        processedRows: processed,
+        createdRows: counts.created,
+        updatedRows: counts.updated,
+        skippedRows: counts.skipped,
+        failedRows: invalidAtAnalysis + counts.failed,
+        progressPercent:
+          job.totalRows > 0
+            ? Math.min(100, Math.round((processed / job.totalRows) * 100))
+            : 0,
       },
     });
 
-    const counts = { created: 0, updated: 0, skipped: 0, failed: 0 };
-    let processed = 0;
     let cancelled = false;
 
     for (;;) {
@@ -278,6 +303,8 @@ export class ImportExecutionService {
       });
 
       if (rows.length === 0) break;
+
+      await options.lease?.ensureHeld();
 
       // Cancellation is honoured between chunks so a long import can be
       // stopped without leaving a row half written.
@@ -291,7 +318,25 @@ export class ImportExecutionService {
         break;
       }
 
+      // Checkpoint BEFORE applying anything. Rows are applied strictly in
+      // rowNumber order, one at a time, and each leaves IN_PROGRESS as soon as it
+      // is applied — so after a crash the lowest IN_PROGRESS row is the only one
+      // whose outcome is unknown (see DataJobRecoveryService).
+      const marked = await this.prisma.dataJobRow.updateMany({
+        where: {
+          id: { in: rows.map((row) => row.id) },
+          status: DataRowStatus.VALID,
+        },
+        data: { status: DataRowStatus.IN_PROGRESS },
+      });
+      if (marked.count !== rows.length) {
+        throw new Error(
+          'Import rows changed while this job was running; stopping to avoid applying a row twice.',
+        );
+      }
+
       for (const row of rows) {
+        await options.lease?.ensureHeld();
         const source = (row.sourceJson ?? {}) as Record<string, string>;
         const values = this.applyMapping(source, mappings);
 
@@ -356,7 +401,7 @@ export class ImportExecutionService {
           createdRows: counts.created,
           updatedRows: counts.updated,
           skippedRows: counts.skipped,
-          failedRows: job.failedRows + counts.failed,
+          failedRows: invalidAtAnalysis + counts.failed,
           progressPercent:
             job.totalRows > 0
               ? Math.min(100, Math.round((processed / job.totalRows) * 100))

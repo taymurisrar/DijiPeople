@@ -2,7 +2,7 @@
 ID: BUG-4518
 aliases: [BUG-4518]
 Title: JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/common/guards]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
-RegressionId: 
+RegressionId: REG-699
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-21
 UpdatedAt: 2026-11-21
-ResolvedAt:
+ResolvedAt: 2026-11-21
 ---
 
 # BUG-4518 — JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN
@@ -48,7 +48,7 @@ The response is 401 `INVALID_TOKEN` "Access token could not be verified." A clie
 
 ## Root Cause
 
-Why it happens — not the symptom. Leave empty until it is actually established.
+`JwtAuthGuard.canActivate` runs the restriction check inside its `try`, and its `catch` re-threw only `UnauthorizedException`; the restriction's `ForbiddenException` fell through to the generic branch, which throws 401 `INVALID_TOKEN`. The exception filter also only honours codes in the error catalog, and `TIMESHEET_ACCESS_RESTRICTED` was not in it, so even a 403 would have rendered as `ACCESS_DENIED`.
 
 ## Impact
 
@@ -68,7 +68,7 @@ A restricted employee gets 403 `TIMESHEET_ACCESS_RESTRICTED` on a blocked route 
 
 ## Regression Coverage
 
-The test that must fail without the fix, and its `REG-nnn` entry once it exists.
+REG-699 — see `docs/qa/regressions/index.md`.
 
 ## Dependencies
 
@@ -80,7 +80,7 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
-What was actually changed, with the commit or branch. Filled at fix time.
+Fixed together with BUG-3164 on `agent/security-timesheet-datajob-followup`. The guard now re-throws deliberate `HttpException`s. `TIMESHEET_ACCESS_RESTRICTED` is in the API error catalog and mirrored in the web client catalog. The restriction data (mode, id, allow-list) travels in `details`, the only field the filter passes through. Verified against real PostgreSQL with the global `/api` prefix and the real exception filter: 403 with the reason, no 401, session not revoked, and the web client makes one request and never calls `/auth/refresh`.
 
 ## QA Retest
 
@@ -94,8 +94,7 @@ Which QA run verified the fix, and the scenario ids.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-699 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-21 — fixed on `agent/security-timesheet-datajob-followup` (BUG-4518 + BUG-3164).

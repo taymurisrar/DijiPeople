@@ -740,6 +740,20 @@ export const ERROR_CATALOG = {
     'error',
     'payroll',
   ),
+  /*
+   * BUG-4518. A timesheet restriction refuses the request on purpose. It is a
+   * 403 with its own code so a client can tell "you are restricted until you
+   * submit your timesheets" from "you lack permission" (ACCESS_DENIED) and from
+   * "your session is gone" (401) — the last of which the guard used to send.
+   */
+  TIMESHEET_ACCESS_RESTRICTED: entry(
+    403,
+    'Timesheet access restricted',
+    'Access is limited until outstanding timesheets are submitted.',
+    'warning',
+    'payroll',
+    'Submit your outstanding timesheets to restore access.',
+  ),
   TIMESHEET_SUBMISSION_FAILED: entry(
     400,
     'Timesheet submission failed',
