@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **8** |
+| Open CRITICAL | **10** |
 | Open HIGH | **127** |
-| Open total | 318 |
+| Open total | 320 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 125 |
@@ -28,6 +28,8 @@
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 | [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
+| [[BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl|BUG-4624]] | A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs | AUTHORIZATION | CRITICAL | FIXED | app-releases | FIX_NOW |
+| [[BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r|BUG-4625]] | Any signed-in tenant user can crash the whole API with one request to GET /platform/logs | SECURITY | CRITICAL | FIXED | platform-monitoring | FIX_NOW |
 
 ## Open High Bugs
 
@@ -245,6 +247,8 @@
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 | [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
+| [[BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl|BUG-4624]] | A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs | AUTHORIZATION | CRITICAL | FIXED | app-releases | FIX_NOW |
+| [[BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r|BUG-4625]] | Any signed-in tenant user can crash the whole API with one request to GET /platform/logs | SECURITY | CRITICAL | FIXED | platform-monitoring | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | VERIFIED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -943,7 +947,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 582 |
+| Bug records | 584 |
 | Backlog items | 238 |
 | Known bug patterns | 35 |
 | QA runs | 40 |

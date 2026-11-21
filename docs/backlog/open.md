@@ -25,6 +25,8 @@ _None._
 | [BUG-3581](../../docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md) | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [BUG-3862](../../docs/bugs/BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros.md) | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | P0 | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 | [BUG-3883](../../docs/bugs/BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and.md) | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | P0 | FIXED | employees, apps/web | FIX_NOW |
+| [BUG-4624](../../docs/bugs/BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl.md) | A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs | AUTHORIZATION | CRITICAL | P0 | FIXED | app-releases | FIX_NOW |
+| [BUG-4625](../../docs/bugs/BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r.md) | Any signed-in tenant user can crash the whole API with one request to GET /platform/logs | SECURITY | CRITICAL | P0 | FIXED | platform-monitoring | FIX_NOW |
 
 ## HIGH
 

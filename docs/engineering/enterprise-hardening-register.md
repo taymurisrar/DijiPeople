@@ -200,12 +200,62 @@ three suites found real weaknesses, all addressed:
 
 All 45 tests across the four strengthened suites pass on the isolated database.
 
-**Still open under WP3:** list/search/count/aggregate/export paths, raw SQL,
-bulk and nested writes, upsert and `updateMany` with computed filters,
-SELF/TEAM/BUSINESS_UNIT/TENANT permission levels, platform versus tenant
-boundary, suspended or disabled tenants, background-job tenant propagation,
-files/documents, payroll and billing data, and concurrent ownership change.
-Until those run, the tenant-isolation review is not reported as passed.
+**Two confirmed defects found and fixed in this round (both CRITICAL):**
+
+- **BUG-4624** — a tenant Global Administrator could publish, promote to STABLE,
+  disable and enable the global desktop-agent releases every tenant installs, and
+  read the management catalogue: `POST /app-releases/:id/disable` 201, `/promote`
+  201, `POST /app-releases` 201, `GET /app-releases/manage` 200. The key
+  `appDownloads.manage` is held by tenant Global Administrators through the
+  elevated-role bypass. Fixed with a platform-subject check on the five routes
+  (`app-release-authority.e2e-spec.ts`, 6 tests, 4 failed before the fix; REG-702,
+  QA-AUTHZ-020). Not exercised: whether the update feed would serve an attacker's
+  row; the builds are unsigned ([[ITEM-0238]]).
+- **BUG-4625** — one request from any signed-in tenant user, with no role at all,
+  to `GET /api/platform/logs` ended the API process. The denial audit wrote a
+  tenant user id into `PlatformAuditLog.platformActorUserId` (a foreign key to
+  platform users); the insert failed inside an uncaught `void` promise, and Node
+  ends the process on an unhandled rejection. Reproduced on a locally booted API:
+  liveness 200 before, no connection after. Fixed (audit against the caller's own
+  tenant, with a catch) plus a logged `unhandledRejection` handler as a net
+  (`platform-tenant-boundary.e2e-spec.ts`, `unhandled-rejection.spec.ts`; REG-703,
+  QA-AUTHZ-021). Verified to fail on the original code (foreign-key violation, no
+  audit row). Production was not tested or touched. The handler keeps the process
+  alive after an unhandled rejection: a deliberate trade against an outage,
+  logged at error level each time.
+
+**Sensitive employee data suite**
+`services/api/test/employee-sensitive-data-isolation.e2e-spec.ts` (13 tests):
+salary and bank details read and overwritten through the real endpoints, personal
+details, address, emergency contact, employment history. Controls are the same
+verbs on the caller's own employee. Observed: address and emergency-contact
+updates refuse a foreign employee with 403 while others answer 404; the test
+requires the answer to equal the one for a nonexistent id, so the status is not an
+existence oracle. Mutation-tested (skipping the access check let an overwrite
+through, 1 test failed).
+
+**Platform / tenant boundary suite**
+`services/api/test/platform-tenant-boundary.e2e-spec.ts` (59 tests): 14 platform
+routes against a tenant Global Administrator (403 on the web client, 401 on the
+admin client) with a platform super admin control (200) on each; a platform token
+on five tenant routes returns empty results while the tenant demonstrably has
+data. `app-releases/publisher/releases` is excluded because it uses its own
+publisher token.
+
+**Sweep of writes to tenant-less models** from tenant-reachable modules: only the
+shared geography lookups (QUESTION-3931, already an owner decision) and internal
+auth-lockout counters. No further cases of the BUG-4624 shape found by this
+method; it does not cover reads or routes that mutate through another service.
+
+**Still open under WP3:** employee documents (download, view, upload), payroll
+generation, approval and bank files, billing, subscriptions, payment webhooks and
+entitlements, attendance, leave, timesheets and shifts, the dynamic entity API
+(including the `USE_ENTITY_DATA_API` path), reporting and exports, bulk
+operations outside employees, create/update with foreign references,
+SELF/TEAM/BUSINESS_UNIT permission levels, background-job tenant propagation,
+concurrent authorization and mutation, MFA / password reset / refresh-token
+flows, and an independent QA/Security review of the two fixes. Until those run,
+the tenant-isolation review is not reported as passed.
 
 ## 2c. WP4 — Render drift classification (2026-11-22)
 

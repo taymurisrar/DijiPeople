@@ -7706,3 +7706,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the parking step four tests fail; without the conditional claim the race test fails. |
 | **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
 | **Active** | yes |
+
+### REG-702 — A tenant Global Administrator could publish, promote and disable the global desktop agent releases
+
+| | |
+|---|---|
+| **Bug class** | `tenant-isolation` |
+| **Module** | `services/api/src/modules/app-releases` |
+| **Bug record** | BUG-4624 |
+| **Root cause** | The release mutation routes were guarded only by a permission key, which a tenant Global Administrator holds through the elevated-role bypass; nothing required a platform subject. |
+| **Regression test** | `services/api/test/app-release-authority.e2e-spec.ts` |
+| **Scenario** | QA-AUTHZ-020 |
+| **Fails without the fix** | Yes — 4 of 6 tests fail: disable, promote and publish returned 201 and the management catalogue returned 200 to a tenant administrator. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-703 — A tenant user's request to a platform-only log route ended the API process
+
+| | |
+|---|---|
+| **Bug class** | `unhandled-promise` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | BUG-4625 |
+| **Root cause** | The denial audit wrote a tenant user id into a platform foreign key; the call was fire-and-forget with no catch; Node ends the process on an unhandled rejection and nothing caught it. |
+| **Regression test** | `services/api/test/platform-tenant-boundary.e2e-spec.ts`; `services/api/src/common/process/unhandled-rejection.spec.ts` |
+| **Scenario** | QA-AUTHZ-021 |
+| **Fails without the fix** | Yes — a foreign-key violation is raised and no audit row exists. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |

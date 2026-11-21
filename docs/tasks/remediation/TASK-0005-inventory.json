@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 820,
+    "total_records": 822,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -25866,6 +25866,90 @@
           "services/api/src/modules/data-management"
         ],
         "verification_scope": "See docs/bugs/BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4624",
+      "type": "AUTHORIZATION",
+      "title": "A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "4c2517e7",
+        "created_at": "2026-11-21",
+        "updated_at": "2026-11-21",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "app-releases"
+      ],
+      "regressions": [
+        "REG-702"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-020"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "app-releases"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4625",
+      "type": "SECURITY",
+      "title": "Any signed-in tenant user can crash the whole API with one request to GET /platform/logs",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "4c2517e7",
+        "created_at": "2026-11-21",
+        "updated_at": "2026-11-21",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [
+        "REG-703"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-021"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

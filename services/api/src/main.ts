@@ -19,6 +19,7 @@ import { AppModule } from './app.module';
 import { resolveLogLevels } from './log-level';
 import { PrismaService } from './common/prisma/prisma.service';
 import { livenessReport } from './common/health/liveness';
+import { installUnhandledRejectionHandler } from './common/process/unhandled-rejection';
 import { probeReadiness } from './common/health/readiness';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
 import { TenantEntitlementService } from './common/security/tenant-entitlement.service';
@@ -40,6 +41,8 @@ async function bootstrap() {
     logger: resolveLogLevels(),
   });
   const logger = new Logger('Bootstrap');
+  // A forgotten .catch must not take every tenant down (BUG-4625).
+  installUnhandledRejectionHandler(new Logger('UnhandledRejection'));
   const configService = app.get(ConfigService);
 
   assertAuthEnvironment(configService);

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 507** · automated: 417 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 509** · automated: 419 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -97,6 +97,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTHZ-017](../../../docs/qa/scenarios/QA-AUTHZ-017-every-platform-role-that-holds-tenants-update-can-save-a-ten.md) | Every platform role that holds tenants.update can save a tenant profile | authorization | API | HIGH | AUTOMATED | `services/api/src/modules/super-admin/super-admin.service.spec.ts` | BUG-3544 | REG-525, REG-526, REG-529 |
 | [QA-AUTHZ-018](../../../docs/qa/scenarios/QA-AUTHZ-018-the-admin-session-heartbeat-never-requires-a-tenant-business.md) | The admin session heartbeat never requires a tenant business permission | authorization | API | HIGH | AUTOMATED | `services/api/src/modules/auth/auth-activity-authorization.spec.ts` | BUG-3545 | REG-527 |
 | [QA-AUTHZ-019](../../../docs/qa/scenarios/QA-AUTHZ-019-platform-administrator-tiers-are-held-by-exactly-the-intende.md) | Platform administrator tiers are held by exactly the intended roles | authorization | API | MEDIUM | AUTOMATED | `services/api/src/modules/platform-auth/platform-admin-tier.spec.ts` | ITEM-0204 | REG-631 |
+| [QA-AUTHZ-020](../../../docs/qa/scenarios/QA-AUTHZ-020-a-tenant-administrator-cannot-publish-promote-or-disable-the.md) | A tenant administrator cannot publish, promote or disable the global desktop agent releases | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/test/app-release-authority.e2e-spec.ts` | BUG-4624 | REG-702 |
+| [QA-AUTHZ-021](../../../docs/qa/scenarios/QA-AUTHZ-021-a-refused-platform-log-request-is-audited-against-the-caller.md) | A refused platform log request is audited against the caller and cannot end the API process | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/test/platform-tenant-boundary.e2e-spec.ts` | BUG-4625 | REG-703 |
 | [QA-BILLING-001](../../../docs/qa/scenarios/QA-BILLING-001-billing-reads-and-writes-require-distinct-capabilities.md) | Billing reads and writes require distinct capabilities | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/billing/billing-authorization.spec.ts` | BUG-0056 | REG-043 |
 | [QA-BILLING-002](../../../docs/qa/scenarios/QA-BILLING-002-an-outbox-event-is-delivered-at-least-once-and-consumed-exac.md) | An outbox event is delivered at least once and consumed exactly once | outbox | DATABASE | HIGH | AUTOMATED | `services/api/test/outbox-delivery.e2e-spec.ts` | BUG-0070 | REG-064 |
 | [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | AUTOMATED | `services/api/test/legal-documents.e2e-spec.ts` | — | — |

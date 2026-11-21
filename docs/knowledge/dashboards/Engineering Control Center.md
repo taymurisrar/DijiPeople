@@ -14,7 +14,7 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 1 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **8** |
+| Open CRITICAL | **10** |
 | Open HIGH | 127 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 16 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 318 |
-| No next action | 318 |
+| No acceptance criteria | 320 |
+| No next action | 320 |
 | Aging — 7d / 30d / 90d | 297 / 295 / 12 |
 | Architecture and technical debt | 8 |
-| Security gaps | 54 |
+| Security gaps | 56 |
 | Database gaps | 29 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -112,6 +112,8 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 | [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
+| [[BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl|BUG-4624]] | A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs | AUTHORIZATION | CRITICAL | FIXED | app-releases | FIX_NOW |
+| [[BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r|BUG-4625]] | Any signed-in tenant user can crash the whole API with one request to GET /platform/logs | SECURITY | CRITICAL | FIXED | platform-monitoring | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -314,7 +316,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 318 |
+| Open total | 320 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
