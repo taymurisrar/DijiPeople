@@ -21,8 +21,10 @@ export const DATA_JOB_MAX_RECOVERIES = 3;
 /**
  * Jobs that were PROCESSING before leases existed carry no lease. During a
  * rolling deploy an OLD instance may still be running one, so such a job is
- * only treated as stale after this long — comfortably longer than any import
- * has taken — rather than the moment the new code starts.
+ * only treated as stale after this long WITHOUT ANY UPDATE. It keys on
+ * `updatedAt`, not `startedAt`: the old executor writes the job after every
+ * chunk, so a live old-version import keeps refreshing it however long it runs,
+ * while a dead one goes quiet (independent review, SESSION-0136).
  */
 export const DATA_JOB_LEGACY_STALE_AFTER_MS = 60 * 60_000;
 
@@ -34,6 +36,7 @@ export type RecoveryOutcome =
   | 'RESUMED_IMPORT'
   | 'FINALISED_IMPORT'
   | 'FAILED_RETRIES_EXHAUSTED'
+  | 'CANCELLED'
   | 'LOST_RACE';
 
 export type RecoveryResult = {
@@ -75,6 +78,8 @@ export class DataJobRecoveryService {
     instanceId: string,
     now: Date = new Date(),
   ): Promise<RecoveryResult[]> {
+    await this.settleCancelledQueuedJobs();
+
     const legacyCutoff = new Date(
       now.getTime() - DATA_JOB_LEGACY_STALE_AFTER_MS,
     );
@@ -83,7 +88,7 @@ export class DataJobRecoveryService {
         status: DataJobStatus.PROCESSING,
         OR: [
           { leaseExpiresAt: { lt: now } },
-          { leaseExpiresAt: null, startedAt: { lt: legacyCutoff } },
+          { leaseExpiresAt: null, updatedAt: { lt: legacyCutoff } },
         ],
       },
       select: {
@@ -94,6 +99,7 @@ export class DataJobRecoveryService {
         leaseExpiresAt: true,
         claimedBy: true,
         importMode: true,
+        cancelledAt: true,
       },
       orderBy: { updatedAt: 'asc' },
       take: 20,
@@ -121,6 +127,7 @@ export class DataJobRecoveryService {
       retryCount: number;
       leaseExpiresAt: Date | null;
       claimedBy: string | null;
+      cancelledAt: Date | null;
     },
     instanceId: string,
     now: Date,
@@ -148,7 +155,12 @@ export class DataJobRecoveryService {
     };
 
     let result: RecoveryResult;
-    if (job.kind === DataJobKind.EXPORT) {
+    if (job.cancelledAt) {
+      // The submitter cancelled while the job was stranded. Re-queueing it would
+      // leave it QUEUED forever (the worker never claims a cancelled job), so it
+      // is settled as CANCELLED here, with any in-flight row parked as usual.
+      result = await this.recoverCancelled(job.id, job.kind);
+    } else if (job.kind === DataJobKind.EXPORT) {
       result = await this.recoverExport(job.id, exhausted);
     } else {
       result = await this.recoverImport(job.id, exhausted);
@@ -175,6 +187,125 @@ export class DataJobRecoveryService {
           : ''),
     );
     return result;
+  }
+
+  /**
+   * Settles the rows a dead or failed run left IN_PROGRESS.
+   *
+   * Rows are applied strictly in rowNumber order, so the LOWEST IN_PROGRESS row
+   * is the only one whose outcome is unknown: it is parked as FAILED with an
+   * explicit message and never replayed automatically. Every higher one was
+   * never started and returns to VALID. Returns the parked row number, or null
+   * when nothing was in flight. Also used by the worker when an executor throws
+   * a non-lease error after checkpointing a chunk, so a FAILED job never keeps
+   * rows that are neither applied nor retriable.
+   */
+  async parkInFlightRows(jobId: string): Promise<number | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const inFlight = await tx.dataJobRow.findMany({
+        where: { jobId, status: DataRowStatus.IN_PROGRESS },
+        orderBy: { rowNumber: 'asc' },
+        select: { id: true, rowNumber: true },
+      });
+      if (inFlight.length === 0) return null;
+
+      const [unknown, ...neverStarted] = inFlight;
+      await tx.dataJobRow.update({
+        where: { id: unknown.id },
+        data: {
+          status: DataRowStatus.FAILED,
+          issuesJson: [
+            {
+              field: null,
+              value: null,
+              message: INTERRUPTED_ROW_MESSAGE,
+              severity: 'ERROR',
+            },
+          ] as unknown as Prisma.InputJsonValue,
+        },
+      });
+      if (neverStarted.length > 0) {
+        await tx.dataJobRow.updateMany({
+          where: {
+            id: { in: neverStarted.map((row) => row.id) },
+            status: DataRowStatus.IN_PROGRESS,
+          },
+          data: { status: DataRowStatus.VALID },
+        });
+      }
+      return unknown.rowNumber;
+    });
+  }
+
+  /**
+   * A QUEUED job that was cancelled before it started is never claimed (the
+   * worker skips cancelled jobs), so it would sit QUEUED forever. Nothing was
+   * applied, so settling it as CANCELLED is always safe.
+   */
+  async settleCancelledQueuedJobs(): Promise<number> {
+    const stuck = await this.prisma.dataJob.findMany({
+      where: { status: DataJobStatus.QUEUED, cancelledAt: { not: null } },
+      select: { id: true, tenantId: true },
+      take: 50,
+    });
+    let settled = 0;
+    for (const job of stuck) {
+      const result = await this.prisma.dataJob.updateMany({
+        where: {
+          id: job.id,
+          status: DataJobStatus.QUEUED,
+          cancelledAt: { not: null },
+        },
+        data: {
+          status: DataJobStatus.CANCELLED,
+          completedAt: new Date(),
+          failureReason: 'Cancelled before it started.',
+        },
+      });
+      if (result.count !== 1) continue;
+      settled += 1;
+      await this.audit.log({
+        tenantId: job.tenantId,
+        actorUserId: null,
+        action: 'DATA_JOB_CANCELLED_BEFORE_START',
+        entityType: 'DataJob',
+        entityId: job.id,
+        beforeSnapshot: { status: 'QUEUED' },
+        afterSnapshot: { status: 'CANCELLED' },
+        sourceModule: 'data-management',
+      });
+    }
+    return settled;
+  }
+
+  private async recoverCancelled(
+    jobId: string,
+    kind: DataJobKind,
+  ): Promise<RecoveryResult> {
+    const parked =
+      kind === DataJobKind.IMPORT ? await this.parkInFlightRows(jobId) : null;
+    const counts =
+      kind === DataJobKind.IMPORT ? await this.rowCounts(jobId) : null;
+    await this.prisma.dataJob.update({
+      where: { id: jobId },
+      data: {
+        status: DataJobStatus.CANCELLED,
+        completedAt: new Date(),
+        failureReason:
+          'Cancelled while interrupted.' +
+          (parked !== null
+            ? ` Row ${parked} was being applied at the time and needs a manual check.`
+            : ''),
+        claimedBy: null,
+        leaseExpiresAt: null,
+        ...(counts ? counts.jobFields : {}),
+      },
+    });
+    return {
+      jobId,
+      outcome: 'CANCELLED',
+      ...(parked !== null ? { parkedRowNumber: parked } : {}),
+    };
   }
 
   private async recoverExport(
@@ -212,40 +343,7 @@ export class DataJobRecoveryService {
     jobId: string,
     exhausted: boolean,
   ): Promise<RecoveryResult> {
-    const parked = await this.prisma.$transaction(async (tx) => {
-      const inFlight = await tx.dataJobRow.findMany({
-        where: { jobId, status: DataRowStatus.IN_PROGRESS },
-        orderBy: { rowNumber: 'asc' },
-        select: { id: true, rowNumber: true },
-      });
-      if (inFlight.length === 0) return null;
-
-      const [unknown, ...neverStarted] = inFlight;
-      await tx.dataJobRow.update({
-        where: { id: unknown.id },
-        data: {
-          status: DataRowStatus.FAILED,
-          issuesJson: [
-            {
-              field: null,
-              value: null,
-              message: INTERRUPTED_ROW_MESSAGE,
-              severity: 'ERROR',
-            },
-          ] as unknown as Prisma.InputJsonValue,
-        },
-      });
-      if (neverStarted.length > 0) {
-        await tx.dataJobRow.updateMany({
-          where: {
-            id: { in: neverStarted.map((row) => row.id) },
-            status: DataRowStatus.IN_PROGRESS,
-          },
-          data: { status: DataRowStatus.VALID },
-        });
-      }
-      return unknown.rowNumber;
-    });
+    const parked = await this.parkInFlightRows(jobId);
 
     const remaining = await this.prisma.dataJobRow.count({
       where: { jobId, status: DataRowStatus.VALID },

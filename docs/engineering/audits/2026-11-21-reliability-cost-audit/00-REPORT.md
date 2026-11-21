@@ -393,3 +393,120 @@ Fixed per-session cost before any work is about **17.8k tokens**, roughly 73% of
 - Cost-per-tenant / per-CI-run metrics: no billing data to feed them.
 - `AGENTS.md` trimming and CI wiring of the context ratchet.
 - Owner decisions: D7 (`relationJoins`), BUG-4518 fix, Vercel dashboard wiring.
+
+---
+
+# Follow-up (SESSION-0136): security validation, recovery, census
+
+Branch `agent/security-timesheet-datajob-followup`, from `develop` @ `1df480bf`. Everything above is history; where this section disagrees, **this section wins**.
+
+## Corrections to earlier claims
+
+- **AGENTS.md duplication (second pass, Phase 6) — wrong lever.** I said `AGENTS.md` "restates material that has authoritative homes in `.agent/context/`". Measured by 8-word-shingle overlap against every other instruction/architecture document: **only ≈ 7% (≈ 3.7 KB) of `AGENTS.md` is restated anywhere else** (largest: "Task Completion" 13%, "`DP:`" 23%, everything else ≤ 9%). Deduplicating would save under 1k tokens. The fixed per-session cost is real content, not repetition; shrinking it is a content decision, not a cleanup.
+- **Middleware skip — now proven, not just argued.** See below.
+
+## Priority 1 — independent security review of the middleware skip
+
+| Check | Evidence | Result |
+|---|---|---|
+| Static equivalence | Independent Reviewer role (read-only): the only reader of `RequestContextService.getContext()` is the `$use` hook; `req.buAccess` is written only by the middleware and read by nothing; no bracket/`as any`/string-key access; the flag derives from the same `typeof $use` test that gates the hook | **APPROVE** |
+| Differential, PostgreSQL | `test/employee-scope-isolation.e2e-spec.ts`: two tenants, BU1/BU2, three viewers (SELF / BUSINESS_UNIT / TENANT), list + by-id reads. Run against the **old** middleware (`b7ddb808`) and the **new** one | outcome matrix **byte-identical**; 5/5 pass on both |
+| Isolation outcomes | SELF sees only their own record; BUSINESS_UNIT sees BU1 only; TENANT sees all of tenant A; nobody sees tenant B; out-of-scope by-id reads are 403/404 | pass |
+| Guard predicate | Reviewer: the single-query restriction check is at least as strict as the two-query original | **APPROVE** |
+
+Caveat the review raised, accepted: if `$use` ever returned, the old path would resume with two latent weaknesses (it decodes the token without checking the session row, and any exception yields an *unscoped* null context). Not live today; noted for whoever reintroduces it.
+
+**Pre-existing gaps the reviewer found (verified by me before acting):**
+
+| Finding | Status |
+|---|---|
+| BUG-3157 lookups usage counted employees across tenants (HIGH, open since 2026-09) | **FIXED** — usage endpoints take the caller's `tenantId`. Isolation e2e fails on the old code (received 5 where the tenant has 2) and passes now (REG-700). |
+| BUG-3156 any tenant admin can create/rename/deactivate shared geography (HIGH, open since 2026-09) | **NOT changed — product decision, QUESTION-3931.** The framing "mass assignment" was refuted (fields are picked explicitly), but the authorization problem is real. The fix removes a capability the tenant settings screen uses. Recommendation recorded: platform-only writes. The delete guard stays platform-wide on purpose and reveals only that a row is in use. |
+| BUG-3136 five public read routes have no `PublicRateLimitGuard` (MEDIUM, deferred) | **Not changed.** The record rates regression risk LOW; I disagree: the guard's default read budget is 120 per 10 min per IP+path, and these routes are hit on every page load, so behind a shared office NAT it could 429 real users — the BUG-2458 failure. Needs traffic data to size a budget; an invented number would be worse than the gap. |
+| Tenant enumeration via `public/tenants/resolve` (404 vs 403 `TENANT_SUSPENDED` / `TENANT_NOT_ACTIVE`) | Reported by the reviewer; **not triaged or changed** here. |
+| `entity-scope.resolver` returns `{}` for an entity that is neither tenant- nor BU-scoped | design hazard, unchanged; not exploitable today (only `employees` registered) |
+
+Not checked by the reviewer (so unverified): a complete handler-by-handler sweep, row scope per handler for every role, `projects`, webhook signature checks, raw SQL, reporting.
+
+## Priority 2 — BUG-4518 + BUG-3164 (fixed together)
+
+Root causes: the guard's `catch` rewrote the restriction's 403 into a 401 `INVALID_TOKEN`; the exception filter honours only catalog codes and `TIMESHEET_ACCESS_RESTRICTED` was not one; the allow-list was matched without the `/api` prefix the API is served under (the e2e app omitted it too, which hid the bug).
+
+Fix: deliberate `HttpException`s re-thrown; code added to the API and web catalogs; restriction data (mode, id, allow-list) carried in `details` (the only field the filter passes through); allow-list matched after stripping `/api`, on a path-segment boundary (so `/support` no longer admits `/support-cases`); the 403 now returns the real allow-list. Evidence:
+
+- `test/timesheet-restriction.e2e-spec.ts` (10 tests, PostgreSQL, **with the production `/api` prefix and the real exception filter**): 403 with `errorCode TIMESHEET_ACCESS_RESTRICTED`, the reason as `message`, `details.allowedRoutes`; allow-listed routes return **200** (not merely "not 401/403"); the session is not revoked; LIMITED_ACCESS reads pass and writes are 403; WARNING_ONLY never blocks; lifting, expiring and overriding take effect on the next request; another employee's restriction, another tenant's restriction, and a row whose `tenantId` disagrees with its employee are all ignored.
+- `timesheet-restriction-routes.spec.ts` (9): bypass attempts fail closed (case, `//api`, `/apix`, `/api/api`).
+- `apps/web/lib/server-api.spec.ts`: with a valid session, a 403 makes **one** request, never calls `/auth/refresh`, leaves both cookies untouched.
+- The permissive `[401, 403]` assertion in the budget spec is now exact.
+- Review: Reviewer **APPROVE** — no exception thrown inside the guard's `try` can now leak a wrong status; every real controller route in the allow-list is matched.
+
+Browser behaviour **not** observed in a real browser (no browser verification available); the client logic (refresh only on 401; `statusToCode` maps 401 to "session expired") is covered at unit level.
+
+## Priority 3 — stranded DataJobs
+
+Design (additive migration `20261121120000_datajob_lease_and_row_checkpoint`): `DataJob.claimedBy` / `leaseExpiresAt` (renewed on a timer while the worker runs); `DataRowStatus.IN_PROGRESS` set per 100-row chunk **before** any row is applied. Because rows are applied strictly in `rowNumber` order and each is fully awaited, after a crash every row below the lowest IN_PROGRESS row is finished and every row above it never started — so **only one row is unknown**. Recovery (single-winner conditional claim on the exact lapsed lease value) parks that row as FAILED with an explicit message (never replayed), returns the rest to VALID, and resumes with counters carried forward. Exports (idempotent) are re-queued. Retries capped at 3. Every recovery is audited.
+
+| Independent condition | Resolution |
+|---|---|
+| Reviewer + QA: a job cancelled while stranded would be re-queued and never claimed | settled as CANCELLED with the unknown row parked; **also** a QUEUED job cancelled before it started (pre-existing: never claimed, stuck forever) is now settled |
+| Reviewer + QA: a non-lease executor error after the checkpoint left rows IN_PROGRESS on a FAILED job | worker parks the unknown row and frees the rest |
+| Reviewer + QA: a worker paused past its lease could still write job-level state and audit | `ensureHeld` before every job-level write; row writes are conditional on the row still being IN_PROGRESS (a parked row cannot be overwritten) |
+| Reviewer: 60-min legacy threshold keyed on `startedAt` could re-run a live long import from an old-version instance | now keyed on `updatedAt` (the old executor writes the job every chunk) |
+
+**Evidence:** `test/data-job-recovery.e2e-spec.ts`, 14 tests on real PostgreSQL, 3 consecutive passes (no flake). Mutation-checked: no parking → 4 fail; unconditional recovery claim → 1 fails; no final ownership check → 1 fails; unfenced row write → 1 fails; cancel branch removed → 2 fail; worker parking removed → 1 fails (my first attempt at that mutation silently matched nothing — Prettier had reflowed the call — so I redid it with a pattern that provably applied). Unit: 116 pass across data-management, guards, lookups.
+
+**Residual risks (not eliminated):**
+1. During a rolling deploy an **old-version** instance reading rows a new worker marked `IN_PROGRESS` goes through a Prisma client built before that enum value existed; I did not verify how it deserialises. Low exposure (only jobs being processed during the overlap). The migration runs pre-deploy, before the new code.
+2. An old-version worker that claims a job the new code re-queued ignores IN_PROGRESS and the new counter logic. Same overlap window.
+3. A single row can be parked unnecessarily (when the crash came after the checkpoint but before the first row of the chunk). That is the deliberate conservative choice.
+4. An export interrupted after saving its file but before recording it leaves an unreferenced object; `scripts/storage-reconcile.mjs` exists for that, not exercised here.
+
+## Priority 4 — frontend
+
+Browser testing was **not possible** (no browser verification path in this session; GitHub being unreachable also meant no CI browser-e2e result). What was done, and how it is verified:
+
+- `apps/web/lib/visibility-polling.ts` + 7 unit tests: polling pauses while the document is hidden and catches up **immediately** when it becomes visible; stops permanently when the session ends. Wired into the notification bell and popup (previously 2 requests/min/tab, hidden or not). By construction a background tab drops from 120 authenticated requests/hour to 0; a visible tab is unchanged. **Not observed in a real browser.**
+- Web unit suite: 91 suites / 1369 tests pass; ESLint at zero warnings on the touched files.
+- Not changed: admin dashboard `router.refresh()` every 60 s and the web widget renderer's 60 s poll (the admin app has no shared `lib`; duplicating the helper is the repo's convention but I did not do it), bundle sizes, LCP/INP/CLS, rerenders, virtualisation. None measured.
+
+## Priority 5 — infrastructure and agent framework
+
+- **Vercel build-skip, validated against real history:** replayed over the last 40 merge commits to `main`. It would have **skipped 19 / 15 / 25 builds (web / admin / landing) of 40**, with **0 unsafe skips** (no skipped commit touched `apps/<app>/`, `packages/`, or the root manifest/lockfile/`turbo.json`). That is a **measured build-count reduction on history, not a realised saving**: nothing is wired and the dashboard is untouched (D4). Dollar effect on Hobby: not visible.
+- **Context-budget check wired into `validate-framework.mjs`** (already a required CI job): fails if `CLAUDE.md` + `AGENTS.md` grow > 3% over the recorded baseline. Mutation-checked: +4.2 KB on `AGENTS.md` fails the check (56,801 vs limit 54,179 bytes) and the file was restored byte-identical. Shrinking never fails.
+- Neon / Render: no new data was gathered this pass; the first-pass conclusions stand (compute is an always-on floor, autosuspend not recommended, Standard retained). No production setting was changed.
+
+## Priority 6 — statement census at two volumes
+
+`test/api-query-census.e2e-spec.ts`: 19 list routes as a tenant admin, real PostgreSQL, entities seeded at 5 and then 65 rows.
+
+| Route | Statements 5→65 rows | Rows returned | Payload |
+|---|---|---|---|
+| employees (`pageSize=100`) | 47 → 47 | 5 → 65 | 10.9 → 139.6 KB (**≈ 2.1 KB/row**) |
+| teams | 34 → 34 | 5 → 65 (**unpaginated**) | 3.9 → 50.5 KB |
+| departments | 39 → 39 | 5 → 65 (**unpaginated**) | 2.6 → 34.0 KB |
+| designations | 28 → 28 | 5 → 65 (**unpaginated**) | 1.7 → 22.5 KB |
+| projects | 35 → 35 | 5 → 50 (capped at 50) | 6.7 → 65.9 KB |
+| customers | 26 → 26 | 5 → 65 (**unpaginated**) | 2.6 → 34.1 KB |
+
+- **No N+1 growth** on any of the six routes that had data. A budget (no growth + the measured ceiling) is asserted for exactly those six; a mutant ceiling is caught.
+- The other 13 routes returned zero rows (nothing seeded for them), so "flat" is **vacuous** there and I did not budget them. **Not measured at all:** attendance, payroll, payslips, leave requests, timesheets, documents with data, billing, reporting. This is a census of six entities, not the system.
+- Findings, not fixed: four lists are unpaginated; the employee list is heavy per row; the user list costs 53 statements for one row (≈ 28 above the auth floor) — worth a look.
+
+## Independent sign-off status
+
+| Role | Scope | Verdict |
+|---|---|---|
+| Reviewer + Security (independent) | middleware skip, guard, lookups, web polling, scripts, recovery | APPROVE / APPROVE WITH CONDITIONS — **all conditions fixed** (above) |
+| QA (independent) | unit/web/script runs + adversarial coverage review | SIGN-OFF WITH CONDITIONS — conditions fixed; QA re-run of the fixed code **not done** |
+| QA (independent) database-backed re-run | — | **not done**: my first QA dispatch asked the agent to read database credentials from your primary checkout's `.env` and was denied by the permission classifier; I did not work around it. The PostgreSQL results above are my own runs. |
+
+## Test evidence (local, Node 24 — not CI-equivalent)
+
+**Final code, full API e2e: 65 suites / 664 tests pass.** API ESLint: 0 errors, 785 warnings against the CI ceiling of 787. Unit: 116 pass in the touched API modules; web 91 suites / 1369 tests; framework validation pass. `data-job-recovery` 14/14 on three consecutive runs. **CI on this SHA is not recorded** — see blockers.
+
+## Blockers and remaining risk
+
+- **GitHub unreachable from this machine** (TCP 443 to github.com failed on two pushes). The commit exists locally; **nothing from this follow-up is pushed, so there is no CI result for it and no integration into `develop`.** Next action: push the branch, wait for `CI required gate` on the exact SHA, then fast-forward `develop`.
+- Decisions: QUESTION-3931 (shared geography writes); D7 (Prisma `relationJoins`) still the owner's; Vercel dashboard wiring.
+- Open, unchanged: BUG-3136, tenant enumeration on `public/tenants/resolve`, unpaginated lists, no browser-measured frontend numbers, no billing data.
+- **Production promotion verdict: NOT READY.** Ready for review: the code and tests above. Not verified: CI on the final SHA, browser behaviour, the old-version/new-version deploy overlap for the DataJob migration. Financial improvements verified: none.

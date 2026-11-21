@@ -62,7 +62,7 @@ Lease-based ownership, a recovery pass, and per-chunk checkpointing (see Resolut
 
 ## Acceptance Criteria
 
-A stranded job recovers once even with racing recoverers; no row is applied twice; the single unknown row is parked with an explicit message; retries are capped; live leases are never touched; audit log records the recovery.
+A stranded job recovers once even with racing recoverers; no row is applied twice; the single unknown row is parked with an explicit message; retries are capped; live leases are never touched; a paused worker cannot overwrite the new owner's job, row or audit state; cancellation is honoured while stranded; no row is left IN_PROGRESS on a settled job; the audit log records the recovery.
 
 ## Regression Coverage
 
@@ -78,7 +78,7 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
-Fixed on `agent/security-timesheet-datajob-followup`. `DataJob` gains `claimedBy` and `leaseExpiresAt` (renewed on a timer while the worker runs); `DataRowStatus` gains `IN_PROGRESS`, set per chunk before any row is applied. `DataJobRecoveryService` takes a single-winner conditional claim on a lapsed lease, then: re-queues an export (idempotent), and for an import parks the lowest-numbered IN_PROGRESS row (the only one whose outcome is unknown, because rows are applied strictly in order) as FAILED with an explicit message, returns the never-started rows to VALID, and resumes with counters carried forward. Retries are capped at 3. Every recovery writes an audit record. A worker that was only paused re-confirms ownership against the database before each row and stops if it was taken over. Verified with 8 PostgreSQL tests, mutation-checked.
+Fixed on `agent/security-timesheet-datajob-followup`. `DataJob` gains `claimedBy` and `leaseExpiresAt` (renewed on a timer while the worker runs); `DataRowStatus` gains `IN_PROGRESS`, set per chunk before any row is applied. `DataJobRecoveryService` takes a single-winner conditional claim on a lapsed lease, then: re-queues an export (idempotent); for an import parks the lowest-numbered IN_PROGRESS row (the only one whose outcome is unknown, because rows are applied strictly in order) as FAILED with an explicit message, returns the never-started rows to VALID, and resumes with counters carried forward; a job cancelled while stranded is settled as CANCELLED instead of being re-queued; and a QUEUED job cancelled before it started (never claimed, previously stuck forever) is settled as CANCELLED. Retries are capped at 3 and every recovery writes an audit record. A worker that was only paused re-confirms ownership against the database before each row and before every job-level write, and its row writes only succeed while the row is still IN_PROGRESS, so it cannot overwrite what recovery decided. A non-lease executor error after a checkpoint parks the unknown row and frees the rest instead of stranding them on a FAILED job. Pre-lease jobs (rolling deploy) are judged by their last update, not by start time. Independent review and QA conditions (cancel-while-stranded, stranded rows after a non-lease failure, unconditional job-level writes, legacy threshold) were all fixed and each has a mutation-verified PostgreSQL test (14 tests).
 
 ## QA Retest
 

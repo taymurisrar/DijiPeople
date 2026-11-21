@@ -142,6 +142,8 @@ describeWithDatabase()('Data job recovery (e2e, PostgreSQL)', () => {
     startedAt?: Date | null;
     retryCount?: number;
     claimedBy?: string | null;
+    updatedAt?: Date;
+    cancelledAt?: Date | null;
   }) {
     const job = await prisma.dataJob.create({
       data: {
@@ -161,6 +163,8 @@ describeWithDatabase()('Data job recovery (e2e, PostgreSQL)', () => {
         claimedBy: opts.claimedBy ?? null,
         retryCount: opts.retryCount ?? 0,
         submittedByUserId: userId,
+        ...(opts.updatedAt ? { updatedAt: opts.updatedAt } : {}),
+        ...(opts.cancelledAt ? { cancelledAt: opts.cancelledAt } : {}),
       },
       select: { id: true },
     });
@@ -178,7 +182,11 @@ describeWithDatabase()('Data job recovery (e2e, PostgreSQL)', () => {
     return job.id;
   }
 
-  async function exportJob(opts: { lease: Date; retryCount?: number }) {
+  async function exportJob(opts: {
+    lease: Date;
+    retryCount?: number;
+    cancelledAt?: Date;
+  }) {
     const job = await prisma.dataJob.create({
       data: {
         tenantId,
@@ -191,6 +199,7 @@ describeWithDatabase()('Data job recovery (e2e, PostgreSQL)', () => {
         claimedBy: 'dead-worker',
         retryCount: opts.retryCount ?? 0,
         submittedByUserId: userId,
+        ...(opts.cancelledAt ? { cancelledAt: opts.cancelledAt } : {}),
       },
       select: { id: true },
     });
@@ -417,22 +426,24 @@ describeWithDatabase()('Data job recovery (e2e, PostgreSQL)', () => {
     expect(await statusesOf(jobId)).toEqual(['1:CREATED', '2:IN_PROGRESS']);
   });
 
-  it('a pre-lease job (no lease at all) is left alone until it is very old', async () => {
-    const recent = await importJob({
+  it('a pre-lease job is judged by its last UPDATE, not by how long ago it started', async () => {
+    const longRunningButAlive = await importJob({
       status: DataJobStatus.PROCESSING,
       lease: null,
-      startedAt: new Date(Date.now() - 5 * 60_000),
+      startedAt: new Date(Date.now() - 3 * 60 * 60_000), // started 3 h ago…
+      updatedAt: new Date(Date.now() - 2 * 60_000), // …but the old executor touched it 2 min ago
       rows: [{ n: 1, status: V }],
     });
-    const old = await importJob({
+    const quietAndDead = await importJob({
       status: DataJobStatus.PROCESSING,
       lease: null,
-      startedAt: new Date(Date.now() - 2 * 60 * 60_000),
+      startedAt: new Date(Date.now() - 3 * 60 * 60_000),
+      updatedAt: new Date(Date.now() - 2 * 60 * 60_000),
       rows: [{ n: 1, status: V }],
     });
     const results = await recovery.recoverStaleJobs('worker-x');
-    expect(results.filter((r) => r.jobId === recent)).toEqual([]);
-    expect(results.filter((r) => r.jobId === old)).toHaveLength(1);
+    expect(results.filter((r) => r.jobId === longRunningButAlive)).toEqual([]);
+    expect(results.filter((r) => r.jobId === quietAndDead)).toHaveLength(1);
   });
 
   it('an interrupted export is re-queued, then failed once retries are exhausted', async () => {
@@ -504,5 +515,177 @@ describeWithDatabase()('Data job recovery (e2e, PostgreSQL)', () => {
     expect(job.status).toBe(DataJobStatus.COMPLETED);
     expect(job.createdRows).toBe(2);
     expect(applied).toEqual([]);
+  });
+  it('a job cancelled while stranded is settled as CANCELLED, with the unknown row parked — not re-queued forever', async () => {
+    const jobId = await importJob({
+      status: DataJobStatus.PROCESSING,
+      claimedBy: 'dead-worker',
+      lease: PAST(),
+      startedAt: PAST(),
+      cancelledAt: new Date(),
+      rows: [
+        { n: 1, status: C },
+        { n: 2, status: IP },
+        { n: 3, status: IP },
+        { n: 4, status: V },
+      ],
+    });
+    await worker.runCycle();
+    const job = await prisma.dataJob.findUniqueOrThrow({
+      where: { id: jobId },
+    });
+    expect(job.status).toBe(DataJobStatus.CANCELLED);
+    expect(job.claimedBy).toBeNull();
+    expect(job.completedAt).not.toBeNull();
+    expect(await statusesOf(jobId)).toEqual([
+      '1:CREATED',
+      '2:FAILED',
+      '3:VALID',
+      '4:VALID',
+    ]);
+    // Cancelled means nothing more is applied: rows 3-4 are still VALID above.
+    // (Not asserted on the shared `applied` list: runCycle also drains jobs
+    // earlier tests left QUEUED.)
+  });
+
+  it('an export cancelled while stranded is CANCELLED, not re-queued', async () => {
+    const jobId = await exportJob({ lease: PAST(), cancelledAt: new Date() });
+    await recovery.recoverStaleJobs('worker-x');
+    expect(
+      (await prisma.dataJob.findUniqueOrThrow({ where: { id: jobId } })).status,
+    ).toBe(DataJobStatus.CANCELLED);
+  });
+
+  it('a QUEUED job cancelled before it started is settled, not left QUEUED forever', async () => {
+    const jobId = await importJob({
+      status: DataJobStatus.QUEUED,
+      cancelledAt: new Date(),
+      rows: [{ n: 1, status: V }],
+    });
+    await worker.runCycle();
+    const job = await prisma.dataJob.findUniqueOrThrow({
+      where: { id: jobId },
+    });
+    expect(job.status).toBe(DataJobStatus.CANCELLED);
+    expect(await statusesOf(jobId)).toEqual(['1:VALID']); // never applied
+    expect(
+      await prisma.auditLog.count({
+        where: {
+          entityType: 'DataJob',
+          entityId: jobId,
+          action: 'DATA_JOB_CANCELLED_BEFORE_START',
+        },
+      }),
+    ).toBe(1);
+  });
+
+  it('an executor error after the chunk checkpoint strands no rows: the unknown one is parked, the rest freed', async () => {
+    const jobId = await importJob({
+      status: DataJobStatus.QUEUED,
+      rows: Array.from({ length: 6 }, (_, i) => ({ n: i + 1, status: V })),
+    });
+    // applyMapping runs OUTSIDE the per-row try, so a throw here escapes
+    // executeJob exactly as an unexpected infrastructure error would — after
+    // the whole chunk has been checkpointed IN_PROGRESS.
+    const original = (
+      importExec as never as Record<string, (...a: unknown[]) => unknown>
+    )['applyMapping'];
+    let calls = 0;
+    jest
+      .spyOn(importExec as never, 'applyMapping' as never)
+      .mockImplementation(((...args: unknown[]) => {
+        calls += 1;
+        if (calls === 3) throw new Error('simulated infrastructure failure');
+        return original.apply(importExec, args) as unknown;
+      }) as never);
+
+    await worker.runCycle();
+
+    const job = await prisma.dataJob.findUniqueOrThrow({
+      where: { id: jobId },
+    });
+    expect(job.status).toBe(DataJobStatus.FAILED);
+    expect(job.failureReason).toContain('simulated infrastructure failure');
+    expect(await statusesOf(jobId)).toEqual([
+      '1:CREATED',
+      '2:CREATED',
+      '3:FAILED', // the row in hand when it broke: parked
+      '4:VALID', // never started: retriable
+      '5:VALID',
+      '6:VALID',
+    ]);
+    expect(
+      (await rowsOf(jobId)).some((r) => r.s === DataRowStatus.IN_PROGRESS),
+    ).toBe(false);
+  });
+
+  it('a worker that loses its lease just before finalising writes no final status and no audit entry', async () => {
+    const jobId = await importJob({
+      status: DataJobStatus.QUEUED,
+      rows: [
+        { n: 1, status: V },
+        { n: 2, status: V },
+      ],
+    });
+    // calls: 1 chunk start, 2-3 the two rows, 4 chunk-end progress write,
+    // 5 the final status write. Lose ownership exactly at 5.
+    let calls = 0;
+    const lease: JobLease = {
+      ensureHeld: async () => {
+        calls += 1;
+        if (calls >= 5) throw new DataJobLeaseLostError(jobId);
+      },
+    };
+    const context = await app.get(AuthAccessService).loadAccessContext(userId);
+    await expect(
+      importExec.executeJob(context.authUser, jobId, {
+        alreadyClaimed: true,
+        lease,
+      }),
+    ).rejects.toBeInstanceOf(DataJobLeaseLostError);
+
+    const job = await prisma.dataJob.findUniqueOrThrow({
+      where: { id: jobId },
+    });
+    expect(job.status).not.toBe(DataJobStatus.COMPLETED);
+    expect(job.status).not.toBe(DataJobStatus.PARTIALLY_COMPLETED);
+    expect(job.completedAt).toBeNull();
+    expect(
+      await prisma.auditLog.count({
+        where: {
+          entityType: 'DataJob',
+          entityId: jobId,
+          action: 'DATA_IMPORT_EXECUTED',
+        },
+      }),
+    ).toBe(0);
+  });
+
+  it('a row that recovery parked while the worker was paused is not overwritten when the worker wakes', async () => {
+    const jobId = await importJob({
+      status: DataJobStatus.QUEUED,
+      rows: [{ n: 1, status: V }],
+    });
+    // While row 1 is being applied, "recovery" parks it (the worker was paused).
+    jest.spyOn(importExec as never, 'executors' as never).mockReturnValue({
+      [MODULE]: {
+        findExisting: async () => null,
+        create: async (_u: unknown, v: Record<string, string>) => {
+          applied.push(v.code);
+          await prisma.dataJobRow.updateMany({
+            where: { jobId, rowNumber: 1 },
+            data: { status: DataRowStatus.FAILED },
+          });
+          return 'rec-1';
+        },
+        update: async () => undefined,
+      },
+    } as never);
+    const context = await app.get(AuthAccessService).loadAccessContext(userId);
+    await expect(
+      importExec.executeJob(context.authUser, jobId, { alreadyClaimed: true }),
+    ).rejects.toBeInstanceOf(DataJobLeaseLostError);
+    // Recovery's decision stands: the row is still FAILED, never flipped to CREATED.
+    expect(await statusesOf(jobId)).toEqual(['1:FAILED']);
   });
 });

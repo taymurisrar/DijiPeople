@@ -11,7 +11,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { AuditService } from '../audit/audit.service';
 import { AttendanceService } from '../attendance/attendance.service';
 import { EmployeesService } from '../employees/employees.service';
-import type { JobLease } from './data-job-lease';
+import { DataJobLeaseLostError, type JobLease } from './data-job-lease';
 import { DataModuleRegistryService } from './module-registry.service';
 import type { ColumnMapping, RowIssue } from './import-analysis.service';
 
@@ -351,8 +351,8 @@ export class ImportExecutionService {
           );
 
           counts[outcome.counter] += 1;
-          await this.prisma.dataJobRow.update({
-            where: { id: row.id },
+          await this.settleRow(job.id, {
+            where: { id: row.id, status: DataRowStatus.IN_PROGRESS },
             data: {
               status: outcome.status,
               recordId: outcome.recordId,
@@ -370,9 +370,11 @@ export class ImportExecutionService {
             },
           });
         } catch (error) {
+          // Losing ownership is not a row failure: stop, write nothing more.
+          if (error instanceof DataJobLeaseLostError) throw error;
           counts.failed += 1;
-          await this.prisma.dataJobRow.update({
-            where: { id: row.id },
+          await this.settleRow(job.id, {
+            where: { id: row.id, status: DataRowStatus.IN_PROGRESS },
             data: {
               status: DataRowStatus.FAILED,
               mappedJson: values as unknown as Prisma.InputJsonValue,
@@ -394,6 +396,7 @@ export class ImportExecutionService {
         processed += 1;
       }
 
+      await options.lease?.ensureHeld();
       await this.prisma.dataJob.update({
         where: { id: job.id },
         data: {
@@ -416,6 +419,9 @@ export class ImportExecutionService {
         ? DataJobStatus.PARTIALLY_COMPLETED
         : DataJobStatus.COMPLETED;
 
+    // A worker paused past its lease must not stamp a final status (or write
+    // the audit entry below) over the job another worker now owns.
+    await options.lease?.ensureHeld();
     await this.prisma.dataJob.update({
       where: { id: job.id },
       data: { status, completedAt: new Date() },
@@ -444,6 +450,19 @@ export class ImportExecutionService {
     );
 
     return this.getExecutionSummary(currentUser, job.id);
+  }
+
+  /**
+   * Writes a row's outcome only while the row is still IN_PROGRESS. If recovery
+   * has parked it (or reset it) in the meantime, this run no longer owns the row
+   * and must stop rather than overwrite what recovery decided.
+   */
+  private async settleRow(
+    jobId: string,
+    args: Prisma.DataJobRowUpdateManyArgs,
+  ) {
+    const result = await this.prisma.dataJobRow.updateMany(args);
+    if (result.count !== 1) throw new DataJobLeaseLostError(jobId);
   }
 
   private async applyRow(

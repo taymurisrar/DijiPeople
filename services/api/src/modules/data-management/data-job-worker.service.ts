@@ -267,6 +267,17 @@ export class DataJobWorkerService implements OnModuleInit, OnModuleDestroy {
         this.logger.warn(
           `Data job ${jobId} failed but is no longer owned by this worker; leaving it alone.`,
         );
+      } else if (kind === DataJobKind.IMPORT) {
+        // The executor may have died AFTER checkpointing a chunk. Without this the
+        // chunk's rows would stay IN_PROGRESS on a FAILED job forever, neither
+        // applied nor retriable. Park the one unknown row; free the rest.
+        await this.recovery
+          .parkInFlightRows(jobId)
+          .catch((parkError: unknown) => {
+            this.logger.error(
+              `Could not settle in-flight rows of failed data job ${jobId}: ${parkError instanceof Error ? parkError.message : String(parkError)}`,
+            );
+          });
       }
     } finally {
       lease.stop();
