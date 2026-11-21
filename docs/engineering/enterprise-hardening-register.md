@@ -65,12 +65,47 @@ deferred earlier as [[ITEM-0070]] and is unchanged.
 |---|---|---|---|
 | WP1 | Dependency alerts: fix what has a safe in-range fix, prove or track the rest | **Implemented; CI pending on the exact final SHA** | commit `f19b247d` plus the follow-up commit on the same branch |
 | WP2 | Electron 42 upgrade + sandbox | **Not started — tracked** | [[ITEM-0234]], [[ITEM-0235]]; needs a real Windows device |
-| WP3 | Tenant-isolation penetration tests, auth/MFA/session review | Not started | |
+| WP3 | Tenant-isolation penetration tests, auth/MFA/session review | **Static sweep done (no defect); DB-backed tests blocked on a test `DATABASE_URL`; auth/MFA review not started** | section 2a |
 | WP4 | Render `render.yaml` drift (39 fields), Neon polling/scan investigation, network-transfer spike | Not started | `npm run check:render-config` reports 39 differing fields |
 | WP5 | Vercel Node 22/24 drift, selective builds, frontend performance | Not started | |
 | WP6 | Agent-workforce efficiency | Not started | |
 | WP7 | Observability, runbooks, restore drills | Not started | |
 | WP8 | Compliance control register (HIPAA applicability, ISO, SOC 2, ASVS, NIST) | Not started | |
+
+## 2a. WP3 — tenant isolation: static sweep (2026-11-21)
+
+Method: every Prisma `findUnique` / `findUniqueOrThrow` / `update` / `delete`
+by bare `id` on a model that declares `tenantId` (269 such models), scanned in
+`services/api/src` excluding specs.
+
+| Stage | Count |
+|---|---|
+| By-id operations with no `tenantId` in the same `where` | 526 |
+| After excluding platform-side modules (billing, super-admin, tenant-control-plane, tenants, leads, partners, auth, agent, notifications and similar, where cross-tenant access is legitimate) and methods that mention `tenantId` anywhere | 51 |
+
+All 51 were read in context. **No confirmed isolation defect.**
+
+- **Platform-only (`assertPlatform`)**: `contracts.get`, `support-cases.get`
+  and their helpers, which operate on DijiPeople's own commercial records.
+- **Tenant-verified helper before the write**: `settings-runtime.detail`
+  (`findFirst` on `{ id, tenantId, settingKey }`), `loans.bank`,
+  `customization.findPackageOrThrow`, `timesheet-export.findRequest` (also
+  requester-scoped), `saved-view.findOwn` (also owner-scoped); and in
+  `roles`, `teams` and `users` the service checks tenant ownership through a
+  tenant-filtered lookup before calling the bare-id repository mutator.
+- **Not request-driven**: DataJob recovery and queue bookkeeping, which carry
+  the job's own id.
+
+**What this is and is not.** A static pattern sweep over one defect class. It
+does not cover raw SQL, `updateMany` with computed filters, list/search/count/
+aggregate/export paths, or any model reached through a relation include. It
+shows the convention is being followed; it does not prove isolation.
+
+**Status: the PostgreSQL-backed adversarial test (tenant A attempts by-id
+update/delete on tenant B's roles, teams, users, banks, configuration records,
+customization packages, saved views and timesheet exports; B's rows must be
+unchanged) is NOT written or run.** It needs a throwaway `DATABASE_URL`, which
+this session does not have. Local Postgres is listening on port 5432.
 
 ## 3. Measured results so far
 
