@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 509** · automated: 419 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 510** · automated: 420 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -148,6 +148,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-047](../../../docs/qa/scenarios/QA-BILLING-047-a-bank-transfer-claim-is-untrusted-and-its-evidence-fails-.md) | A bank-transfer claim is untrusted and its evidence fails closed | billing | SECURITY | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | BUG-3177, BUG-3179, BUG-3222 | — |
 | [QA-BILLING-048](../../../docs/qa/scenarios/QA-BILLING-048-bank-transfer-settlement-is-authorized-atomic-and-single-al.md) | Bank-transfer settlement is authorized, atomic and single-allocation | billing | DATABASE | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | BUG-0072, BUG-3232 | REG-067 |
 | [QA-BILLING-049](../../../docs/qa/scenarios/QA-BILLING-049-only-a-verified-bank-payment-can-provision-and-lifecycle-ch.md) | Only a verified bank payment can provision, and lifecycle changes never double-charge | billing | DATABASE | CRITICAL | AUTOMATED | `services/api/test/bank-transfer-settlement.e2e-spec.ts` | BUG-0015, BUG-0280 | — |
+| [QA-BILLING-050](../../../docs/qa/scenarios/QA-BILLING-050-a-tenant-cannot-quote-another-customer-s-reserved-plan-price.md) | A tenant cannot quote another customer's reserved plan price | billing | SECURITY | MEDIUM | AUTOMATED | `services/api/test/billing-cross-tenant.e2e-spec.ts` | BUG-4638 | REG-704 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |

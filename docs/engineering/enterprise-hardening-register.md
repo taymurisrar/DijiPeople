@@ -293,6 +293,27 @@ concurrent authorization and mutation, MFA / password reset / refresh-token
 flows, and an independent QA/Security review of the two fixes. Until those run,
 the tenant-isolation review is not reported as passed.
 
+## 2g. WP3 — further database-backed surfaces (2026-11-22, second pass)
+
+Same method as 2b: a real HTTP request through the real guards on an isolated database, an owner control on every route, the attack's exact status, and BETA's persisted rows re-read. Every suite is lint-clean and was mutation-tested (a tenant filter removed, the suite went red, the file restored from backup).
+
+| Surface | Suite | Tests | Result |
+|---|---|---|---|
+| Documents (upload, view/download bytes, retag, types, categories, global rows) | `document-cross-tenant.e2e-spec.ts` | 18 | no defect; mutation fails 3 |
+| Leave (requests, types, policies, foreign ids) | `leave-cross-tenant.e2e-spec.ts` | 25 | no defect; mutation fails 3 |
+| Attendance (entries, corrections, manual create/re-home) | `attendance-cross-tenant.e2e-spec.ts` | 18 | no defect; mutation fails 3 |
+| Payroll (runs, operations, journals, payslips, GL, posting rules, bank accounts, `/me`) | `payroll-cross-tenant.e2e-spec.ts` | 185 | no isolation defect; mutation fails 13 |
+| Billing (tenant routes, 42 platform routes on both clients, webhooks, entitlements) | `billing-cross-tenant.e2e-spec.ts` | 76 | one defect (BUG-4638, fixed); mutation fails 2 |
+| Machine publisher routes (release token) | `app-release-authority.e2e-spec.ts` | 11 | no defect |
+
+Findings:
+
+- **BUG-4638 (fixed, REG-704, QA-BILLING-050).** `GET /billing/plan-prices/:id/seat-quote` served another customer's reserved unit price. Fixed by applying `assertPlanAssignableToTenant` and mapping a refusal to the generic unavailable code.
+- **BUG-4639 (open, `PLAN_REQUIRED`).** Payroll journal reversal returns 500 on a migrated database: migration `20260712190000` used `DROP CONSTRAINT IF EXISTS` on what `20260430040000` created as a unique index. Functional, not isolation. The fix is a migration that drops an index on a shared database, so it is not applied without an ExecPlan and the owner's go-ahead.
+- **Structural audit guard.** `AuditService.log` now resolves the platform actor before writing, so a mis-attributed `tenantId: 'platform'` caller can no longer violate the actor foreign key (the structural half of BUG-4625). Every platform-audit call site is covered centrally.
+- **Governance workflow was red on `develop`.** `Engineering governance` is a separate workflow from `CI`; it failed on every push since the BUG-4624 fix (stale authorization inventory, then stale derived counts in `AGENTS.md`). Earlier reports of those SHAs passing referred to `CI` only. Both are corrected, and every governance step now passes locally.
+
+Not yet covered: timesheets, projects/resource assignments, customers/partners/agreements, reports/saved views outside employees, the dynamic entity API (including `USE_ENTITY_DATA_API`), imports, SELF/TEAM/BUSINESS_UNIT permission-level cases, background-job tenant propagation, MFA/password-reset/refresh flows. Independent QA/Security review of this pass is pending.
 ## 2c. WP4 — Render drift classification (2026-11-22)
 
 Read-only `check-render-config --json` against the live API service. 39 fields:

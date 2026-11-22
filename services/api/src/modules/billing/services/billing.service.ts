@@ -1,4 +1,7 @@
-import { publiclyOfferablePlanWhere } from '../../super-admin/plan-eligibility';
+import {
+  assertPlanAssignableToTenant,
+  publiclyOfferablePlanWhere,
+} from '../../super-admin/plan-eligibility';
 import {
   BadRequestException,
   ConflictException,
@@ -1721,6 +1724,19 @@ export class BillingService {
     const tenantMarket =
       await this.commercialConfigService.resolveMarketForTenant(tenantId);
     if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+    }
+    // A price on a plan reserved for another customer (or outside its window)
+    // must not be quotable: the quote carries that customer's negotiated unit
+    // price. The refusal reuses the generic code so it does not confirm the
+    // plan exists. A tenant's own current plan is exempt inside the helper.
+    try {
+      await assertPlanAssignableToTenant(
+        this.prisma,
+        tenantId,
+        planPrice.planId,
+      );
+    } catch {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
 

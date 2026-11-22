@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**822 records** — 584 bugs under [`docs/bugs/`](../bugs/), 238 non-bug items under [`items/`](items/).
+**824 records** — 586 bugs under [`docs/bugs/`](../bugs/), 238 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 320 |
+| Open (active work) | 322 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
@@ -28,17 +28,17 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 10 |
 | HIGH | 127 |
-| MEDIUM | 149 |
+| MEDIUM | 151 |
 | LOW | 31 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 20 |
+| AUTHORIZATION | 21 |
 | BUG | 104 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 28 |
+| DATA_INTEGRITY | 29 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 54 |
+| OPEN | 55 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 233 |
+| FIXED | 234 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -628,6 +628,8 @@ see [`README.md`](README.md) for why.
 | [BUG-4484](../../docs/bugs/BUG-4484-self-service-provisioning-writes-no-tenantprovisioningrun-so.md) | Self-service provisioning writes no TenantProvisioningRun, so Operations never shows it | BUG | MEDIUM | P2 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-4509](../../docs/bugs/BUG-4509-custom-module-cannot-be-deleted-metadata-first-loop-with-las.md) | Custom module cannot be deleted: metadata-first loop with last default form | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-4547](../../docs/bugs/BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover.md) | A data job left PROCESSING by a dead worker is never recovered | BUG | MEDIUM | P2 | FIXED | api:data-management | FIX_NOW |
+| [BUG-4638](../../docs/bugs/BUG-4638-seat-quote-serves-another-customer-s-reserved-plan-price-to-.md) | Seat quote serves another customer's reserved plan price to any tenant | AUTHORIZATION | MEDIUM | P2 | FIXED | billing | FIX_NOW |
+| [BUG-4639](../../docs/bugs/BUG-4639-payroll-journal-reversal-fails-unique-index-on-payrollrunid-.md) | Payroll journal reversal fails: unique index on payrollRunId was never dropped | DATA_INTEGRITY | MEDIUM | P2 | OPEN | payroll | PLAN_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

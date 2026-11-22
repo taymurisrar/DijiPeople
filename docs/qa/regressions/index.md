@@ -7734,3 +7734,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — a foreign-key violation is raised and no audit row exists. |
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
+
+### REG-704 — A tenant could quote another customer's reserved plan price
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-4638 |
+| **Root cause** | The seat-quote read path never applied the plan-eligibility rule that every plan move applies. |
+| **Regression test** | `services/api/test/billing-cross-tenant.e2e-spec.ts`; `services/api/src/modules/billing/services/billing-seat-quote.spec.ts` |
+| **Scenario** | QA-BILLING-050 |
+| **Fails without the fix** | Yes — the route answers 200 with the other customer's unit price. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |

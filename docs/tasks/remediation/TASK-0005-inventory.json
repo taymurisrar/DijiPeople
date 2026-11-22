@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 822,
+    "total_records": 824,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -25950,6 +25950,86 @@
           "platform-monitoring"
         ],
         "verification_scope": "See docs/bugs/BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4638",
+      "type": "AUTHORIZATION",
+      "title": "Seat quote serves another customer's reserved plan price to any tenant",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4638-seat-quote-serves-another-customer-s-reserved-plan-price-to-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "34582a27",
+        "created_at": "2026-11-22",
+        "updated_at": "2026-11-22",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [
+        "REG-704"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-050"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4638-seat-quote-serves-another-customer-s-reserved-plan-price-to-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4639",
+      "type": "DATA_INTEGRITY",
+      "title": "Payroll journal reversal fails: unique index on payrollRunId was never dropped",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-4639-payroll-journal-reversal-fails-unique-index-on-payrollrunid-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "34582a27",
+        "created_at": "2026-11-22",
+        "updated_at": "2026-11-22",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "payroll"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "payroll"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4639-payroll-journal-reversal-fails-unique-index-on-payrollrunid-.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
