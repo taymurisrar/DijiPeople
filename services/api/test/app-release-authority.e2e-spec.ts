@@ -38,6 +38,7 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
   let releaseId: string;
   const suffix = randomUUID().slice(0, 6);
   const appKey = `authority-test-${suffix}`;
+  const publishToken = `tok-${randomUUID()}-${randomUUID()}`;
 
   const call = (
     method: 'get' | 'post',
@@ -57,6 +58,9 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
     prisma.applicationRelease.findUniqueOrThrow({ where: { id: releaseId } });
 
   beforeAll(async () => {
+    // Configure the machine token so the refusals below are the guard rejecting
+    // a WRONG token, not the guard failing closed because none is set.
+    process.env.RELEASE_PUBLISH_TOKEN = publishToken;
     moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -200,6 +204,49 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
     expect(await prisma.applicationRelease.count({ where: { appKey } })).toBe(
       before,
     );
+  });
+
+  describe('machine publisher routes (@Public, token-gated)', () => {
+    // These are @Public() because a CI job has no user session, so the ONLY
+    // thing between the internet and a global STABLE release is the token guard.
+    const publish = (headers: Record<string, string>) => {
+      let req = request(app.getHttpServer()).post(
+        '/app-releases/publisher/promote',
+      );
+      for (const [k, v] of Object.entries(headers)) req = req.set(k, v);
+      return req.send({ appKey, version: '9.9.9', channel: 'STABLE' });
+    };
+    const stable = () =>
+      prisma.applicationRelease.count({ where: { appKey, channel: 'STABLE' } });
+
+    it('control: the configured publish token is accepted (list is read-only)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/app-releases/publisher/releases?app=agent-desktop')
+        .set('x-dijipeople-release-token', publishToken);
+      expect(res.status).toBe(200);
+    });
+
+    it('refuses a request with no token', async () => {
+      const res = await publish({});
+      expect([401, 403]).toContain(res.status);
+      expect(await stable()).toBe(0);
+    });
+
+    it('refuses a tenant admin bearer token in place of the publish token', async () => {
+      const res = await publish({
+        Authorization: `Bearer ${tenantAdmin.token}`,
+      });
+      expect([401, 403]).toContain(res.status);
+      expect(await stable()).toBe(0);
+    });
+
+    it('refuses a guessed token', async () => {
+      const res = await publish({
+        'x-dijipeople-release-token': 'a'.repeat(48),
+      });
+      expect([401, 403]).toContain(res.status);
+      expect(await stable()).toBe(0);
+    });
   });
 
   it('a tenant admin cannot read the management catalogue (disabled and every channel)', async () => {
