@@ -628,7 +628,9 @@ export class PlatformMonitoringService {
         .catch(() => {
           // Do not log a raw database error containing a SQL statement or
           // potentially sensitive tenant data in the server error stream.
-          this.logger.error('Could not persist denied platform log access audit.');
+          this.logger.error(
+            'Could not persist denied platform log access audit.',
+          );
         });
       throw new ForbiddenException({
         code: 'PLATFORM_SUPER_ADMIN_REQUIRED',
