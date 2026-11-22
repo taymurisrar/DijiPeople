@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 47 |
+| OPEN | 41 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 243 |
+| FIXED | 249 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -247,7 +247,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3134](../../docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md) | Employee export endpoint skips the row-level access scope its read sibling applies (BOLA) | AUTHORIZATION | HIGH | P1 | DUPLICATE | api:employees | DUPLICATE |
 | [BUG-3137](../../docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md) | Live password-reset links and invite tokens sit in the tenant-readable email delivery log | SECURITY | HIGH | P1 | FIXED | api:notifications | FIX_NOW |
 | [BUG-3138](../../docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md) | Password reset unconditionally reactivates a disabled account | SECURITY | HIGH | P1 | FIXED | api:auth | FIX_NOW |
-| [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | OPEN | api:auth | FIX_NOW |
+| [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | FIXED | api:auth | FIX_NOW |
 | [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | FIXED | api:auth, api:agent | FIX_NOW |
 | [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | FIX_NOW |
 | [BUG-3156](../../docs/bugs/BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-.md) | A tenant admin can create, rename or deactivate the platform-wide shared geography reference data | TENANT_ISOLATION | HIGH | P1 | OPEN | api:lookups | FIX_NOW |
@@ -263,13 +263,13 @@ see [`README.md`](README.md) for why.
 | [BUG-3170](../../docs/bugs/BUG-3170-timesheet-bulk-import-confirmation-runs-an-unbounded-per-row.md) | Timesheet bulk-import confirmation runs an unbounded per-row loop inside one transaction on the default 5-second timeout | PERFORMANCE | HIGH | P1 | OPEN | api:timesheets | PLAN_REQUIRED |
 | [BUG-3171](../../docs/bugs/BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin.md) | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | P1 | OPEN | api:audit | FIX_NOW |
 | [BUG-3172](../../docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md) | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | P1 | OPEN | api:payslips | FIX_NOW |
-| [BUG-3173](../../docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md) | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | P1 | OPEN | apps/web | PLAN_REQUIRED |
+| [BUG-3173](../../docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md) | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | P1 | FIXED | apps/web | FIX_NOW |
 | [BUG-3174](../../docs/bugs/BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page.md) | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | P1 | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
 | [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | OPEN | apps/admin | FIX_NOW |
-| [BUG-3176](../../docs/bugs/BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl.md) | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | P1 | OPEN | apps/web, apps/admin | FIX_NOW |
-| [BUG-3177](../../docs/bugs/BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read.md) | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | P1 | OPEN | api:recruitment, api:app-releases | FIX_NOW |
+| [BUG-3176](../../docs/bugs/BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl.md) | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | P1 | FIXED | apps/web, apps/admin | FIX_NOW |
+| [BUG-3177](../../docs/bugs/BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read.md) | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | P1 | FIXED | api:recruitment, api:app-releases | FIX_NOW |
 | [BUG-3178](../../docs/bugs/BUG-3178-no-malware-scanning-exists-anywhere-the-tenant-setting-that-.md) | No malware scanning exists anywhere; the tenant setting that claims it does is inert | SECURITY | HIGH | P1 | PRODUCT_DECISION | services/api/src/common | PRODUCT_DECISION |
-| [BUG-3179](../../docs/bugs/BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-.md) | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | P1 | OPEN | services/api/src/common | FIX_NOW |
+| [BUG-3179](../../docs/bugs/BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-.md) | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
 | [BUG-3180](../../docs/bugs/BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev.md) | The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml | INFRA | HIGH | P1 | PRODUCT_DECISION | render.yaml | PRODUCT_DECISION |
 | [BUG-3181](../../docs/bugs/BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc.md) | Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production | INFRA | HIGH | P1 | PRODUCT_DECISION | docs/deployment | PRODUCT_DECISION |
 | [BUG-3182](../../docs/bugs/BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means.md) | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | P1 | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
@@ -287,7 +287,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3199](../../docs/bugs/BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe.md) | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | P1 | FIXED | api:billing | FIX_NOW |
 | [BUG-3200](../../docs/bugs/BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan.md) | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | PLAN_REQUIRED |
 | [BUG-3201](../../docs/bugs/BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti.md) | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | P1 | OPEN | api:tenants | FIX_NOW |
-| [BUG-3202](../../docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md) | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | P1 | OPEN | api:payroll | FIX_NOW |
+| [BUG-3202](../../docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md) | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | P1 | FIXED | api:payroll | FIX_NOW |
 | [BUG-3205](../../docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md) | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | P1 | OPEN | services/api/prisma | PLAN_REQUIRED |
 | [BUG-3241](../../docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md) | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | P1 | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
 | [BUG-3330](../../docs/bugs/BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg.md) | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | P1 | FIXED | apps/web, api:billing | FIX_NOW |

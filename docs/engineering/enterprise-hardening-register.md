@@ -317,6 +317,55 @@ Findings:
 
 Independent QA/Security review of this pass (a separate agent that did not write it) found five of my attacks were refused for the wrong reason: the admin user had no linked employee (leave and attendance), an OFFICE-mode body had no location, a body lacked the required reason or timestamp, and a documents persisted check counted only the BETA tenant. All were corrected: the employee is linked, each attack body is proved valid by a success control on the caller's own data, refusals are pinned to the tenant-scoped message (for example "Selected employee does not belong to this tenant."), and the documents check counts by entity id and title across tenants. The earlier "mutation fails N" claims for leave and attendance did not cover those attacks and should not be read as evidence for them. Still open from that review: the same wide-status acceptances remain in some payroll, billing and leave controls (listed in the review, all with persisted-state checks), and the audit guard lacks a transaction-client spec.
 Not yet covered: timesheets, projects/resource assignments, customers/partners/agreements, reports/saved views outside employees, the dynamic entity API (including `USE_ENTITY_DATA_API`), imports, SELF/TEAM/BUSINESS_UNIT permission-level cases, background-job tenant propagation, MFA/password-reset/refresh flows. Independent QA/Security review of this pass is pending.
+## 2h. Backlog verification pass (2026-11-22)
+
+The directive was to process the whole open backlog, not only the work packages. The headline "323 open" is misleading: it counts records marked FIXED but not yet QA-verified. The actual state at develop 23335bdc was **55 OPEN bugs (40 FIX_NOW, 15 PLAN_REQUIRED), 235 FIXED awaiting verification, 56 deferred bugs, 69 deferred items, 31 READY items, 16 product decisions**. Records go stale (an earlier audit found five of fifty with false premises), so each of the 40 open CRITICAL and HIGH bugs was first checked against the current code by an independent reader before anything was changed. Verdicts:
+
+| Bug | Verdict | Done / next |
+|---|---|---|
+| BUG-3110 live DB password in git history | OWNER_GATED | needs credential rotation; not touched |
+| BUG-3137 reset link in delivery log | STILL_OPEN, now FIXED | forgot-password path fixed, scrub added; historical rows hold expired links, scrubbing them is an owner decision |
+| BUG-3138 reset reactivates disabled | STILL_OPEN, now FIXED | |
+| BUG-3139 replayable reset token | STALE_FIXED, closed | existing unit spec |
+| BUG-3140 refresh flag resets session | STILL_OPEN, now FIXED | flag now relaxes idle only |
+| BUG-3141 branding SVG XSS | STALE_FIXED (serving path) | no regression test yet; upload still accepts SVG; slug-addressed public asset is by design. Next: an e2e test |
+| BUG-3154 PII plaintext | PARTIAL | expand phase merged; Employee.cnic and tax-profile writes not wired to the codec (S-M); backfill and contract are OWNER_GATED (need a tested backup, ITEM-0131) |
+| BUG-3155 field masking only in browser | STILL_OPEN, L | extract a server-side field-security service and apply on employee reads, the entity data API and exports; high risk to the three frontends and the agent, needs an ExecPlan |
+| BUG-3156 tenant admin writes shared geography | OWNER_GATED | QUESTION-3931 unanswered; recommended option A (platform-only) |
+| BUG-3162 resolve cache poisoning | STILL_OPEN, now FIXED | |
+| BUG-3165 ~27 statements per request | PARTIAL | 39 to 27 shipped; 22 of the rest are nested-include round trips; flat findMany rewrite behind a golden-equivalence spec, M-L, security review required; not relationJoins |
+| BUG-3166 deploy before CI verdict | OWNER_GATED | set Render autoDeployTrigger to checksPass |
+| BUG-3167 browser gate runs zero web tests | STALE_FIXED | env block seeds tenant flows; close after a skip-count assertion |
+| BUG-3168 gates that execute nothing | PARTIAL, now FIXED | DB e2e verdict refuses zero-passed or any skipped; browser readiness loop now fails instead of warning |
+| BUG-3169 notification fan-out | STILL_OPEN, M | batch dedupe and creates per rule |
+| BUG-3170 timesheet import per-row loop | STILL_OPEN, M | batched reads; all-or-nothing semantics are a product choice |
+| BUG-3171 audit filter DISTINCT scan | STILL_OPEN, S-M | needs EXPLAIN on a populated table to choose between skip-scan, a time window and a TTL |
+| BUG-3172 GET /payslips unpaginated | STILL_OPEN, S-M | a silent cap would truncate a 50-employee tenant's history; needs paging in the web screen, left planned |
+| BUG-3173 duplicate shell fetches | STALE_FIXED, closed | transport-level dedupe, existing spec |
+| BUG-3174 per-click fan-out | PARTIAL, L | structural; stays PLAN_REQUIRED |
+| BUG-3175 nine admin modules page in memory | STILL_OPEN, L | push where/orderBy/skip/take into Prisma, module by module; search semantics change |
+| BUG-3176 server-table search | STILL_OPEN, now FIXED | browser check owed |
+| BUG-3177 storageKey IDOR | STALE_FIXED, closed | existing spec |
+| BUG-3179 multipart limits | STALE_FIXED, closed | source guard added |
+| BUG-3183 platform-ops alerts never sent | STILL_OPEN, M | handler logs at a level production discards; setting the recipients env today would silence the alerts it should surface; send through the notifications orchestrator |
+| BUG-3184 termination not audited | STILL_OPEN, now FIXED | |
+| BUG-3185 document reads not audited | STILL_OPEN, now FIXED | employee-document, recruitment and support-case readers still unaudited |
+| BUG-3186 no erasure path | OWNER_GATED | retention and what "erased" means |
+| BUG-3187 rate limit covers writes only | STILL_OPEN, M | five or six public GETs unguarded; widen the invariant; the read budget must not break shared-IP offices |
+| BUG-3188 429 writes a DB row | PARTIAL, S-M | coalesce 429 occurrences; keep 401/404/400 rows |
+| BUG-3189 login CPU | STILL_OPEN | refresh tokens do not need bcrypt (256-bit random): S-M; lowering the cost or a new hash library is OWNER_GATED |
+| BUG-3195 pool defaults | PARTIAL | 15 s connect timeout shipped; max, idle and statement timeout are dashboard-owned |
+| BUG-3196 payroll calculation inline | STILL_OPEN, claim now FIXED | asynchronous calculation remains PLAN_REQUIRED |
+| BUG-3197 leave overdraw | PARTIAL, ceiling now FIXED | pending requests still do not reserve balance (product choice) |
+| BUG-3198 health is static ok | PARTIAL | live and ready routes shipped; Render setting owner-gated |
+| BUG-3199 outbound deadlines | STILL_OPEN, now FIXED | |
+| BUG-3200 sync email on request thread | STILL_OPEN, L | route through the outbox; changes delivery status semantics |
+| BUG-3201 P2002 inside interactive transactions | STILL_OPEN, M | three sites: identity ensure, recruitment draft, invoice number; raw INSERT ... ON CONFLICT |
+| BUG-3202 payroll ignores isDeleted | STALE_FIXED, closed | unit spec only; add an e2e |
+| BUG-3205 tenant delete cascades through audit | OWNER_GATED | retention policy |
+
+Everything marked FIXED has a regression test that fails without the fix, a REG entry and a QA scenario; independent review of the batch is still pending. What is not fixed is stated above rather than hidden.
+
 ## 2c. WP4 — Render drift classification (2026-11-22)
 
 Read-only `check-render-config --json` against the live API service. 39 fields:

@@ -7888,3 +7888,87 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — mutation-verified. |
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
+
+### REG-715 — A server-mode table search reaches the backend
+
+| | |
+|---|---|
+| **Bug class** | `ui-contract` |
+| **Module** | `services/api/src/modules/web` |
+| **Bug record** | BUG-3176 |
+| **Root cause** | In server mode the search box only filtered the rows already on the current page, so a record on another page could never be found and the search appeared to work. |
+| **Regression test** | `apps/web/app/components/data-table/data-table-server-search.spec.ts` |
+| **Scenario** | QA-RUNTIME-049 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-716 — Every upload endpoint declares a multipart size limit
+
+| | |
+|---|---|
+| **Bug class** | `missing-limit` |
+| **Module** | `services/api/src/modules/common` |
+| **Bug record** | BUG-3179 |
+| **Root cause** | Nine of ten upload endpoints had no multipart limit, so a whole file was buffered in memory before the service-level size check ran. |
+| **Regression test** | `services/api/src/common/storage/upload-endpoints-have-limits.spec.ts` |
+| **Scenario** | QA-PLATFORM-067 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-717 — Password-reset links are single-use
+
+| | |
+|---|---|
+| **Bug class** | `token-replay` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3139 |
+| **Root cause** | Tenant reset tokens were stateless and replayable for 24 hours. |
+| **Regression test** | `services/api/src/modules/auth/password-reset-single-use.spec.ts` |
+| **Scenario** | QA-AUTH-028 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-718 — Identical GETs within one render are one API call
+
+| | |
+|---|---|
+| **Bug class** | `duplicate-fetch` |
+| **Module** | `services/api/src/modules/web` |
+| **Bug record** | BUG-3173 |
+| **Root cause** | About 20 pages re-fetched business-unit access and current-employee context that the shell layout had already fetched. |
+| **Regression test** | `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | QA-RUNTIME-050 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-719 — Payroll eligibility excludes soft-deleted employees
+
+| | |
+|---|---|
+| **Bug class** | `eligibility` |
+| **Module** | `services/api/src/modules/payroll` |
+| **Bug record** | BUG-3202 |
+| **Root cause** | Payroll run eligibility never checked Employee.isDeleted. |
+| **Regression test** | `services/api/src/modules/payroll/payroll-eligibility-soft-delete.spec.ts` |
+| **Scenario** | QA-PAYROLL-004 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-720 — Storage reads refuse a key outside the caller scope
+
+| | |
+|---|---|
+| **Bug class** | `idor` |
+| **Module** | `services/api/src/modules/common` |
+| **Bug record** | BUG-3177 |
+| **Root cause** | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check. |
+| **Regression test** | `services/api/src/common/storage/storage.service.spec.ts` |
+| **Scenario** | QA-PLATFORM-068 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |

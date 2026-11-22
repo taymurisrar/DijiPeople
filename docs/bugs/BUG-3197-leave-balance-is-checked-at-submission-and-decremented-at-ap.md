@@ -155,3 +155,4 @@ Not yet retested.
   block is regenerated and a hand-written link inside it is lost.
 
 <!-- GRAPH:END -->
+- 2026-11-22 — verified against current code: the non-overdraft overdraw is already fixed (DP-QA-029). Fixed now: for an overdraft-allowed rule the approval deduction enforces the maximum negative balance atomically (floor on the conditional write; the no-row case is checked against the ceiling), with unit tests including concurrent approvals; mutation-verified. Still open: pending requests do not reserve balance at submission, which is a product choice, so this record stays OPEN pending that decision.
