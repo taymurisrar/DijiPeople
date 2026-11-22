@@ -563,49 +563,54 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    await actors.cleanup();
-    // Claims and orders restrict their invoice/plan/method, so they go first.
-    const orders = await prisma.subscriptionOrder.findMany({
-      where: { orderNumber: { endsWith: suffix } },
-      select: { id: true },
-    });
-    const orderIds = orders.map((o) => o.id);
-    if (orderIds.length > 0) {
-      await prisma.bankTransferClaim.deleteMany({
-        where: { subscriptionOrderId: { in: orderIds } },
+    // try/finally so a cleanup failure can never leave the Nest app open and the
+    // jest process hanging (CI has no --forceExit).
+    try {
+      await actors.cleanup();
+      // Claims and orders restrict their invoice/plan/method, so they go first.
+      const orders = await prisma.subscriptionOrder.findMany({
+        where: { orderNumber: { endsWith: suffix } },
+        select: { id: true },
       });
-      await prisma.subscriptionOrder.deleteMany({
-        where: { id: { in: orderIds } },
+      const orderIds = orders.map((o) => o.id);
+      if (orderIds.length > 0) {
+        await prisma.bankTransferClaim.deleteMany({
+          where: { subscriptionOrderId: { in: orderIds } },
+        });
+        await prisma.subscriptionOrder.deleteMany({
+          where: { id: { in: orderIds } },
+        });
+      }
+      await prisma.plan.deleteMany({
+        where: { key: `${keyPrefix}-reserved` },
       });
+      await fixtures.cleanup();
+      await prisma.plan.deleteMany({
+        where: { key: { startsWith: keyPrefix } },
+      });
+      if (methodId) {
+        await prisma.bankTransferClaim.deleteMany({
+          where: { paymentMethodConfigId: methodId },
+        });
+        await prisma.bankReceivingAccount.deleteMany({
+          where: { paymentMethodConfigId: methodId },
+        });
+        await prisma.paymentMethodConfiguration.deleteMany({
+          where: { id: methodId },
+        });
+      }
+      if (marketId) {
+        await prisma.market.deleteMany({ where: { id: marketId } });
+      }
+      const storage = app.get(StorageService);
+      for (const key of storedFiles) {
+        await storage
+          .deleteFile(key, { kind: 'platform' })
+          .catch(() => undefined);
+      }
+    } finally {
+      await app.close();
     }
-    await prisma.plan.deleteMany({
-      where: { key: `${keyPrefix}-reserved` },
-    });
-    await fixtures.cleanup();
-    await prisma.plan.deleteMany({
-      where: { key: { startsWith: keyPrefix } },
-    });
-    if (methodId) {
-      await prisma.bankTransferClaim.deleteMany({
-        where: { paymentMethodConfigId: methodId },
-      });
-      await prisma.bankReceivingAccount.deleteMany({
-        where: { paymentMethodConfigId: methodId },
-      });
-      await prisma.paymentMethodConfiguration.deleteMany({
-        where: { id: methodId },
-      });
-    }
-    if (marketId) {
-      await prisma.market.deleteMany({ where: { id: marketId } });
-    }
-    const storage = app.get(StorageService);
-    for (const key of storedFiles) {
-      await storage
-        .deleteFile(key, { kind: 'platform' })
-        .catch(() => undefined);
-    }
-    await app.close();
   });
 
   // ---------------------------------------------------------------------------
@@ -731,8 +736,9 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
       );
       // Bank-transfer invoices are not payable by card: the route found ALPHA's
       // own invoice and refused on the payment rule, not on identity.
-      expect(control.status).not.toBe(404);
-      expect(control.status).toBeLessThan(500);
+      // 409: the payment rule refused, which only happens after the invoice was
+      // found as ALPHA's own.
+      expect(control.status).toBe(409);
 
       const attack = await call(
         'post',
@@ -764,14 +770,24 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
         'billing/subscription/resume',
         { tenantId: beta.tenantId, subscriptionId: beta.subscriptionId },
       );
-      expect(sneaky.status).toBeLessThan(500);
+      // The body names BETA's tenant and subscription but the route has no such
+      // fields: it resumes the CALLER's own subscription and ignores them.
+      expect(sneaky.status).toBe(201);
       const restored = await prisma.subscription.findUniqueOrThrow({
         where: { id: alpha.subscriptionId },
         select: { cancelAtPeriodEnd: true },
       });
-      // Either path leaves BETA untouched; the persisted baseline check below
-      // is the assertion that matters.
-      expect(typeof restored.cancelAtPeriodEnd).toBe('boolean');
+      // ALPHA's own cancel was undone, so the verb acted on the caller...
+      expect(restored.cancelAtPeriodEnd).toBe(false);
+      // ...and BETA's subscription was not touched by it.
+      expect(
+        (
+          await prisma.subscription.findUniqueOrThrow({
+            where: { id: beta.subscriptionId },
+            select: { cancelAtPeriodEnd: true },
+          })
+        ).cancelAtPeriodEnd,
+      ).toBe(false);
       expectNoBetaMarker(sneaky);
     });
 
@@ -782,7 +798,7 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
         `billing/plan-changes/preview?toPlanId=${beta.planId}`,
       );
       // ALPHA may legitimately preview a public catalogue plan.
-      expect([200, 400]).toContain(control.status);
+      expect(control.status).toBe(200);
 
       const res = await send('post', alpha.admin, 'billing/plan-changes', {
         toPlanId: beta.planId,
@@ -925,8 +941,7 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
       const res = await send('patch', alpha.admin, 'tenant-settings/features', {
         updates: [{ key: 'payroll', isEnabled: true }],
       });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(400);
       entitlements.invalidate(alpha.tenantId);
       const decision = await entitlements.decide(alpha.tenantId, ['payroll']);
       expect(decision.outcome).toBe('NOT_ENTITLED');
@@ -1316,7 +1331,7 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
         `super-admin/tenants/${alpha.tenantId}/features`,
         { features: [{ key: 'attendance', isEnabled: true }] },
       );
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(200);
     });
 
     it('creates a plan', async () => {

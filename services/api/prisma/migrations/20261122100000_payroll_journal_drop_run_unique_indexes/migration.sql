@@ -1,0 +1,27 @@
+-- BUG-4639 / EXECPLAN-0057.
+--
+-- 20260430040000_payroll_gl_foundation created two UNIQUE INDEXES that allow one
+-- journal per payroll run, on the same pair of columns in both orders:
+--   "PayrollJournalEntry_tenantId_payrollRunId_key"
+--   "PayrollJournalEntry_payrollRunId_tenantId_key"
+-- 20260712190000_payroll_journal_reversal_documents tried to remove them with
+-- ALTER TABLE ... DROP CONSTRAINT IF EXISTS. They are indexes, not constraints,
+-- so that statement matched nothing and both survived, and a reversal journal for
+-- a run that already has its original violates them (HTTP 500 on reverse).
+--
+-- Verified against the catalog before writing this: neither index backs a
+-- constraint or a foreign key, and nothing depends on them. The foreign keys on
+-- this table are backed by the primary key, "PayrollJournalEntry_id_tenantId_key"
+-- and PayrollRun's "PayrollRun_id_tenantId_key", all of which stay, as does the
+-- non-unique ("tenantId", "payrollRunId") index. schema.prisma declares no unique
+-- on the run pair, so this brings migrated databases in line with it.
+--
+-- DROP INDEX IF EXISTS is idempotent and a no-op on a database built by `db push`.
+-- CONCURRENTLY is deliberately not used: it cannot run inside the transaction a
+-- migration runs in, and this table holds at most a few rows per payroll run.
+-- No data is read, written or deleted.
+--
+-- NOT SAFELY REVERSIBLE once any reversal or adjustment journal exists: the unique
+-- indexes cannot be recreated over valid duplicate (tenantId, payrollRunId) rows.
+DROP INDEX IF EXISTS "PayrollJournalEntry_tenantId_payrollRunId_key";
+DROP INDEX IF EXISTS "PayrollJournalEntry_payrollRunId_tenantId_key";

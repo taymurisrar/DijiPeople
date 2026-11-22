@@ -300,7 +300,7 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
       ];
       for (const attempt of attempts) {
         const res = await attempt();
-        expect([400, 403, 404]).toContain(res.status);
+        expect(res.status).toBe(404);
       }
       const after = await betaEntry();
       expect(after.notes).toBe(before.notes);
@@ -322,7 +322,7 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
           alpha.admin,
           `attendance/correction-requests/${beta.correctionId}/${verb}`,
         ).send({ comment: 'HIJACKED' });
-        expect([400, 403, 404]).toContain(res.status);
+        expect(res.status).toBe(404);
         const after = await betaCorrection();
         expect(after.status).toBe('SUBMITTED');
         expect(after.actionComment).toBeNull();

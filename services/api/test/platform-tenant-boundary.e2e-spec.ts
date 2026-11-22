@@ -117,9 +117,14 @@ describeWithDatabase()('Platform / tenant boundary (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    await actors.cleanup();
-    await fixtures.cleanup();
-    await app.close();
+    // try/finally so a cleanup failure can never leave the Nest app open and the
+    // jest process hanging (CI has no --forceExit).
+    try {
+      await actors.cleanup();
+      await fixtures.cleanup();
+    } finally {
+      await app.close();
+    }
   });
 
   describe('controls', () => {

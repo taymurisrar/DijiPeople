@@ -174,9 +174,14 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    await actors.cleanup();
-    await fixtures.cleanup();
-    await app.close();
+    // try/finally so a cleanup failure can never leave the Nest app open and the
+    // jest process hanging (CI has no --forceExit).
+    try {
+      await actors.cleanup();
+      await fixtures.cleanup();
+    } finally {
+      await app.close();
+    }
   });
 
   describe('controls (owner, same verbs)', () => {
@@ -215,7 +220,7 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
 
     it('cannot read the document by id', async () => {
       const res = await api('get', alpha.admin, `documents/${beta.documentId}`);
-      expect(refusedStatuses).toContain(res.status);
+      expect(res.status).toBe(404);
       expect(JSON.stringify(res.body)).not.toContain(betaSecret);
     });
 
@@ -258,7 +263,7 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
         alpha.admin,
         `documents/${beta.documentId}`,
       ).send({ title: 'HIJACKED' });
-      expect(refusedStatuses).toContain(res.status);
+      expect(res.status).toBe(404);
       const after = await betaDocument();
       expect(after.title).toBe(before.title);
       expect(after.updatedAt.getTime()).toBe(before.updatedAt.getTime());
@@ -270,7 +275,7 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
         alpha.admin,
         `documents/${beta.documentId}`,
       );
-      expect(refusedStatuses).toContain(res.status);
+      expect(res.status).toBe(404);
       expect((await betaDocument()).isArchived).toBe(false);
     });
   });
@@ -308,8 +313,7 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
       const res = await upload(alpha.admin, alpha.employeeId, 'foreign-type', {
         documentTypeId: beta.typeId,
       });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(400);
       expect(
         await prisma.document.count({
           where: { title: 'Doc foreign-type' },
@@ -321,8 +325,7 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
       const res = await upload(alpha.admin, alpha.employeeId, 'foreign-cat', {
         documentCategoryId: beta.categoryId,
       });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(400);
       expect(
         await prisma.document.count({ where: { title: 'Doc foreign-cat' } }),
       ).toBe(0);
@@ -340,8 +343,7 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
         const res = await api('patch', alpha.admin, `documents/${own.id}`).send(
           body,
         );
-        expect(res.status).toBeGreaterThanOrEqual(400);
-        expect(res.status).toBeLessThan(500);
+        expect(res.status).toBe(400);
       }
       const after = await prisma.document.findUniqueOrThrow({
         where: { id: own.id },

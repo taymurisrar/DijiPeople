@@ -7749,16 +7749,30 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
 
-### REG-705 — A tenant could start a checkout for another customer's reserved plan price
+### REG-705 — A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it
 
 | | |
 |---|---|
 | **Bug class** | `authorization` |
 | **Module** | `services/api/src/modules/billing` |
 | **Bug record** | BUG-4652 |
-| **Root cause** | Plan eligibility was applied to plan moves only; the checkout path that takes a price id never applied it. |
-| **Regression test** | `services/api/test/billing-cross-tenant.e2e-spec.ts` |
+| **Root cause** | Plan eligibility was applied to plan moves and the public listing only; every path that takes a price id (quote, checkout, public order) had to remember it, and the anonymous guard checked the sales model alone. |
+| **Regression test** | `services/api/test/public-purchase-eligibility.e2e-spec.ts`; `services/api/src/modules/billing/public-purchase-eligibility.spec.ts`; `services/api/test/billing-cross-tenant.e2e-spec.ts` |
 | **Scenario** | QA-BILLING-051 |
 | **Fails without the fix** | Yes — with the guard removed the request is not refused with the 404 (mutation-verified). |
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-706 — Reversing a posted payroll journal failed because two unique indexes survived a DROP CONSTRAINT
+
+| | |
+|---|---|
+| **Bug class** | `migration-no-op` |
+| **Module** | `services/api/prisma/migrations` |
+| **Bug record** | BUG-4639 |
+| **Root cause** | Unique indexes were removed with `DROP CONSTRAINT IF EXISTS`, which matches nothing for an index. |
+| **Regression test** | `services/api/test/payroll-cross-tenant.e2e-spec.ts` |
+| **Scenario** | QA-PAYROLL-002 |
+| **Fails without the fix** | Yes — with a run-pair unique index re-added, five tests fail (mutation-verified). |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation`, migration 20261122100000 |
 | **Active** | yes |

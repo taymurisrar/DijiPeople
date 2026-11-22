@@ -686,24 +686,29 @@ describeWithDatabase()('Payroll cross-tenant (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    const tenantIds = definedIds([alpha?.tenantId, beta?.tenantId]);
-    if (prisma && tenantIds.length > 0) {
-      const where = { tenantId: { in: tenantIds } };
-      // Restrict foreign keys between payroll tables: leaves first.
-      await prisma.payrollJournalEntryLine.deleteMany({ where });
-      await prisma.payrollJournalEntry.deleteMany({ where });
-      await prisma.payrollPostingRule.deleteMany({ where });
-      await prisma.payslip.deleteMany({ where });
-      await prisma.payrollPaymentLine.deleteMany({ where });
-      await prisma.payrollBankExport.deleteMany({ where });
-      await prisma.payrollRun.deleteMany({ where });
-      await prisma.payrollGlAccount.deleteMany({ where });
-      await prisma.employeeBankAccount.deleteMany({ where });
-      await prisma.employee.deleteMany({ where });
+    // try/finally so a cleanup failure can never leave the Nest app open and the
+    // jest process hanging (CI has no --forceExit).
+    try {
+      const tenantIds = definedIds([alpha?.tenantId, beta?.tenantId]);
+      if (prisma && tenantIds.length > 0) {
+        const where = { tenantId: { in: tenantIds } };
+        // Restrict foreign keys between payroll tables: leaves first.
+        await prisma.payrollJournalEntryLine.deleteMany({ where });
+        await prisma.payrollJournalEntry.deleteMany({ where });
+        await prisma.payrollPostingRule.deleteMany({ where });
+        await prisma.payslip.deleteMany({ where });
+        await prisma.payrollPaymentLine.deleteMany({ where });
+        await prisma.payrollBankExport.deleteMany({ where });
+        await prisma.payrollRun.deleteMany({ where });
+        await prisma.payrollGlAccount.deleteMany({ where });
+        await prisma.employeeBankAccount.deleteMany({ where });
+        await prisma.employee.deleteMany({ where });
+      }
+      await actors?.cleanup();
+      await fixtures?.cleanup();
+    } finally {
+      await app?.close();
     }
-    await actors?.cleanup();
-    await fixtures?.cleanup();
-    await app?.close();
   });
 
   // ------------------------------------------------------------ case engine
@@ -1173,26 +1178,202 @@ describeWithDatabase()('Payroll cross-tenant (e2e, HTTP)', () => {
         PayrollJournalEntryStatus.POSTED,
         {
           body: () => ({ reason: 'posted in error' }),
-          // KNOWN PRODUCT DEFECT (not an isolation one): reversing a POSTED
-          // journal returns 500 on a migration-built database because
-          // 20260712190000 runs DROP CONSTRAINT on what 20260430040000 created
-          // as a UNIQUE INDEX, so "PayrollJournalEntry_tenantId_payrollRunId_key"
-          // still forbids the reversal row. The owner control therefore proves
-          // route, permission and body by reaching the service's state check
-          // (a GENERATED journal is refused with 400) instead of a 2xx.
-          control: {
-            status: 400,
-            make: (s) =>
-              newRun(s, {
-                ...earnings,
-                journal: PayrollJournalEntryStatus.GENERATED,
-              }),
-          },
+          // The default owner control now expects a 2xx: BETA's admin reverses
+          // a POSTED BETA journal (BUG-4639 fixed by migration
+          // 20261122100000, which drops the two obsolete run-pair unique indexes).
         },
       ),
     ]);
   });
 
+  // ------------------------------------------- 3b. reversal (BUG-4639)
+
+  describe('journal reversal after the run-pair unique indexes were dropped (BUG-4639)', () => {
+    const lineTotals = async (journalId: string) => {
+      const lines = await prisma.payrollJournalEntryLine.findMany({
+        where: { journalEntryId: journalId },
+        orderBy: { id: 'asc' },
+      });
+      const sum = (pick: 'debitAmount' | 'creditAmount') =>
+        lines.reduce((total, line) => total + Number(line[pick] ?? 0), 0);
+      return { lines, debit: sum('debitAmount'), credit: sum('creditAmount') };
+    };
+
+    it('reverses a POSTED journal into a second journal for the same run, balanced and linked', async () => {
+      const fx = await newRun(beta, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      const original = await lineTotals(fx.journalId as string);
+      const originalBefore = snap(
+        await prisma.payrollJournalEntry.findUniqueOrThrow({
+          where: { id: fx.journalId as string },
+        }),
+      );
+      const auditBefore = await prisma.auditLog.count({
+        where: { tenantId: beta.tenantId, entityId: fx.journalId },
+      });
+
+      const res = await call(
+        'post',
+        beta.admin,
+        `payroll/runs/${fx.runId}/journal/reverse`,
+        { reason: 'posted in error' },
+      );
+      expectOk(res);
+
+      const journals = await prisma.payrollJournalEntry.findMany({
+        where: { payrollRunId: fx.runId },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(journals.map((j) => j.journalType).sort()).toEqual([
+        'ORIGINAL',
+        'REVERSAL',
+      ]);
+      const reversal = journals.find((j) => j.journalType === 'REVERSAL');
+      const orig = journals.find((j) => j.journalType === 'ORIGINAL');
+      expect(reversal?.originalJournalId).toBe(fx.journalId);
+      expect(orig?.reversalJournalId).toBe(reversal?.id);
+      expect(reversal?.tenantId).toBe(beta.tenantId);
+
+      // Mirror image: every debit becomes a credit of the same amount, so the
+      // reversal balances and exactly offsets the original.
+      const mirrored = await lineTotals(reversal?.id as string);
+      expect(mirrored.lines).toHaveLength(original.lines.length);
+      expect(mirrored.debit).toBeCloseTo(original.credit, 2);
+      expect(mirrored.credit).toBeCloseTo(original.debit, 2);
+      expect(mirrored.debit).toBeCloseTo(mirrored.credit, 2);
+      expect(mirrored.debit).toBeGreaterThan(0);
+
+      // The original's lines are untouched and its audit history only grew.
+      const originalAfter = await lineTotals(fx.journalId as string);
+      expect(snap(originalAfter.lines)).toEqual(snap(original.lines));
+      const after = snap(
+        await prisma.payrollJournalEntry.findUniqueOrThrow({
+          where: { id: fx.journalId as string },
+        }),
+      ) as Record<string, unknown>;
+      const before = originalBefore as Record<string, unknown>;
+      for (const key of Object.keys(before)) {
+        if (
+          [
+            'reversalJournalId',
+            'reversedAt',
+            'reversedBy',
+            'reversalReason',
+            'updatedAt',
+            'status',
+          ].includes(key)
+        ) {
+          continue;
+        }
+        expect({ key, value: after[key] }).toEqual({ key, value: before[key] });
+      }
+      expect(
+        await prisma.auditLog.count({
+          where: { tenantId: beta.tenantId, entityId: fx.journalId },
+        }),
+      ).toBeGreaterThanOrEqual(auditBefore);
+    });
+
+    it('refuses a second reversal of the same journal with 409 and creates no third journal', async () => {
+      const fx = await newRun(beta, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      const first = await call(
+        'post',
+        beta.admin,
+        `payroll/runs/${fx.runId}/journal/reverse`,
+        { reason: 'first' },
+      );
+      expectOk(first);
+      const second = await call(
+        'post',
+        beta.admin,
+        `payroll/runs/${fx.runId}/journal/reverse`,
+        { reason: 'second' },
+      );
+      expectStatus(second, 409);
+      expect(
+        await prisma.payrollJournalEntry.count({
+          where: { payrollRunId: fx.runId },
+        }),
+      ).toBe(2);
+    });
+
+    it('lets an ADJUSTMENT journal coexist with the original for one run', async () => {
+      const fx = await newRun(beta, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      // No service path creates an adjustment today; this proves the database no
+      // longer forbids one (the schema documents that they coexist).
+      await prisma.payrollJournalEntry.create({
+        data: {
+          tenantId: beta.tenantId,
+          payrollRunId: fx.runId,
+          journalType: 'ADJUSTMENT',
+          status: PayrollJournalEntryStatus.GENERATED,
+          journalNumber: `ADJ-${beta.marker}-${(seq += 1)}`,
+          originalJournalId: fx.journalId,
+        },
+      });
+      const list = await call(
+        'get',
+        beta.admin,
+        `payroll/runs/${fx.runId}/journals`,
+      );
+      expectOk(list);
+      expect(
+        await prisma.payrollJournalEntry.count({
+          where: { payrollRunId: fx.runId },
+        }),
+      ).toBe(2);
+    });
+
+    it("reversing BETA's journal leaves ALPHA's payroll exactly as it was", async () => {
+      const alphaFx = await newRun(alpha, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      const betaFx = await newRun(beta, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      const alphaBefore = await runState(alphaFx.runId);
+      expectOk(
+        await call(
+          'post',
+          beta.admin,
+          `payroll/runs/${betaFx.runId}/journal/reverse`,
+          { reason: 'beta only' },
+        ),
+      );
+      expect(await runState(alphaFx.runId)).toEqual(alphaBefore);
+    });
+
+    it("ALPHA's admin cannot reverse BETA's POSTED journal, and BETA's rows are unchanged", async () => {
+      const fx = await newRun(beta, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      const before = await runState(fx.runId);
+      const res = await call(
+        'post',
+        alpha.admin,
+        `payroll/runs/${fx.runId}/journal/reverse`,
+        { reason: 'attack' },
+      );
+      expectStatus(res, 404);
+      expect(await runState(fx.runId)).toEqual(before);
+      expect(
+        await prisma.payrollJournalEntry.count({
+          where: { payrollRunId: fx.runId },
+        }),
+      ).toBe(1);
+    });
+  });
   // --------------------------------------------------------- 4. payslips
 
   describe('payslips', () => {
@@ -1412,7 +1593,7 @@ describeWithDatabase()('Payroll cross-tenant (e2e, HTTP)', () => {
       });
       // The run model carries no bank-account link; the id must not be echoed
       // or stored anywhere, and BETA's account must be untouched.
-      expect([201, 400, 404]).toContain(res.status);
+      expect(res.status).toBe(201);
       expectNoBeta(textOf(res));
       expect(textOf(res)).not.toContain(beta.employerAccountId);
       expect(
@@ -1481,8 +1662,7 @@ describeWithDatabase()('Payroll cross-tenant (e2e, HTTP)', () => {
           currencyCode: 'USD',
         },
       );
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(400);
       expect(
         await prisma.payrollAdjustment.count({ where: { label: 'Planted' } }),
       ).toBe(0);

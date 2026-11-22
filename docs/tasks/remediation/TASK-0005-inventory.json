@@ -26010,7 +26010,7 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-4639-payroll-journal-reversal-fails-unique-index-on-payrollrunid-.md",
         "provenance": "QA_RUN",
@@ -26022,8 +26022,12 @@
       "affected_modules": [
         "payroll"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-706"
+      ],
+      "qa_scenarios": [
+        "QA-PAYROLL-002"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -26044,7 +26048,7 @@
     {
       "record_id": "BUG-4652",
       "type": "AUTHORIZATION",
-      "title": "Checkout accepts another customer's reserved plan price",
+      "title": "A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it",
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "FIXED",

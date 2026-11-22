@@ -46,6 +46,11 @@ import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';
 import { SubscriptionOrderService } from './subscription-order.service';
 import {
+  assertPubliclyPurchasable,
+  type PublicPurchasePrice,
+  withinWindow,
+} from '../public-purchase-eligibility';
+import {
   calculateSeatPricing,
   buildRecurringCheckoutLineItem,
   deriveCheckoutReadiness,
@@ -106,7 +111,9 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
-    this.assertPlanPriceCurrentlySellable(price);
+    // One policy, one refusal (BUG-4652): the sellability gate that used to run
+    // here threw a differently-worded error, which told an enumerator which ids
+    // exist. The policy covers it and answers exactly like an unknown id.
     this.assertSellableToAnonymousVisitor(price);
 
     const cardProviders = this.paymentGateways.availableProviders(
@@ -231,45 +238,25 @@ export class BillingService {
   }
 
   /**
-   * Refuse a price an anonymous visitor is not entitled to buy — BUG-1378.
+   * Refuse a price an anonymous visitor is not entitled to buy — BUG-1378,
+   * widened by BUG-4652.
    *
-   * `planPriceId` arrives from the client on both public write paths. The
-   * checks around this one establish that the price is real, active and
-   * published; none of them establishes that *this caller* may buy it. Flat
-   * rates carry `SALES_ASSISTED` precisely because they are negotiated by hand,
-   * and a self-service visitor must not be sold one at any price.
+   * The decision lives in `public-purchase-eligibility.ts`, one policy for every
+   * public path (payment options, onboarding, subscription submission and
+   * `openOrder`): active and published plan and price, both validity windows,
+   * self-service sales model, and a plan that is not reserved for a customer. It
+   * previously checked the sales model alone, so a SELF_SERVICE plan reserved for
+   * one customer was buyable by anyone who held its price id.
    *
-   * Filtering them out of `/public/plans` is not sufficient and never was.
-   * Those ids were published by that endpoint until this change, so they are
-   * known; and an id a caller supplies is not evidence of anything they are
-   * entitled to. **A read filter with no matching write check is a listing
-   * preference, not an access control** — which is the whole shape of this
-   * defect.
-   *
-   * `NotFoundException`, with the same message as an unknown id, on purpose: a
-   * distinct error would confirm that a given price exists and is merely
-   * off-limits, which tells an enumerator exactly which ids are worth having.
-   *
-   * Deliberately **not** applied to the authenticated `createCheckoutSession`.
-   * That path is a tenant administrator acting on their own subscription behind
-   * `BILLING_MANAGE`, not an anonymous visitor, and a tenant already on a
-   * hand-negotiated flat plan may legitimately need to act on it. Widening this
-   * to that path is a separate commercial decision, not a tidy-up.
+   * The refusal is the same `NotFoundException` an unknown id gets, so it neither
+   * confirms the id exists nor says why. It is deliberately NOT applied to the
+   * authenticated `createCheckoutSession`, which is a tenant acting on its own
+   * subscription; that path uses `assertTenantMayBuyPlan`, which exempts the
+   * tenant's current plan.
    */
-  private assertSellableToAnonymousVisitor(planPrice: {
-    salesModel: CommercialSalesModel;
-    plan: { salesModel: CommercialSalesModel };
-  }) {
-    const effective = narrowestSalesModel(
-      planPrice.plan.salesModel,
-      planPrice.salesModel,
-    );
-
-    if (effective !== CommercialSalesModel.SELF_SERVICE) {
-      throw new NotFoundException('Plan price not found.');
-    }
+  private assertSellableToAnonymousVisitor(planPrice: PublicPurchasePrice) {
+    assertPubliclyPurchasable(planPrice);
   }
-
   /**
    * @param context.tenantId Present only on the authenticated tenant path
    * (`GET /billing/plans`). When set, prices are additionally scoped to the
@@ -364,6 +351,9 @@ export class BillingService {
         // to; the query filter above already excludes DRAFT and unscoped rows
         // for both callers, so only the market MATCH is conditional here.
         if (!isPriceCurrentlySellable(plan, price)) return false;
+        // BUG-4652: the price's own validity window, the same one the purchase
+        // policy enforces, so the listing never offers what a purchase refuses.
+        if (!withinWindow(price.effectiveFrom, price.effectiveTo)) return false;
         if (
           narrowestSalesModel(plan.salesModel, price.salesModel) !==
           CommercialSalesModel.SELF_SERVICE
@@ -556,10 +546,9 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
-    // BUG-3334 — the price's own gate, never checked here before: a DRAFT or
-    // unscoped price reached this point as long as the plan was PUBLISHED.
-    this.assertPlanPriceCurrentlySellable(planPrice);
-
+    // BUG-3334 / BUG-4652 — the price's own gate (DRAFT, unscoped, inactive)
+    // is part of the public-purchase policy, so a refused price is refused with
+    // exactly the answer an unknown id gets.
     this.assertSellableToAnonymousVisitor(planPrice);
 
     const order = await this.subscriptionOrders.openOrder({
@@ -652,10 +641,9 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
-    // BUG-3334 — the price's own gate, never checked here before: a DRAFT or
-    // unscoped price reached this point as long as the plan was PUBLISHED.
-    this.assertPlanPriceCurrentlySellable(planPrice);
-
+    // BUG-3334 / BUG-4652 — the price's own gate (DRAFT, unscoped, inactive)
+    // is part of the public-purchase policy, so a refused price is refused with
+    // exactly the answer an unknown id gets.
     this.assertSellableToAnonymousVisitor(planPrice);
 
     const purchasedSeats = normalizePurchasedSeats(

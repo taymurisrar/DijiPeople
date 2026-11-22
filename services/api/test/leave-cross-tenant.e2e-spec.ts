@@ -258,7 +258,7 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
           alpha.admin,
           `leave-requests/${beta.leaveRequestId}/${verb}`,
         ).send({});
-        expect([403, 404]).toContain(res.status);
+        expect(res.status).toBe(404);
         const after = await betaRequest();
         expect(after.status).toBe('PENDING');
         expect(after.reason).toBe(beta.marker);
@@ -299,13 +299,13 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
         alpha.admin,
         `leave-types/${beta.leaveTypeId}`,
       ).send({ name: 'HIJACKED' });
-      expect([403, 404]).toContain(patch.status);
+      expect(patch.status).toBe(404);
       const del = await api(
         'delete',
         alpha.admin,
         `leave-types/${beta.leaveTypeId}`,
       );
-      expect([403, 404]).toContain(del.status);
+      expect(del.status).toBe(404);
       const after = await prisma.leaveType.findUniqueOrThrow({
         where: { id: beta.leaveTypeId },
       });
@@ -322,13 +322,13 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
         alpha.admin,
         `leave-policies/${beta.policyId}`,
       ).send({ name: 'HIJACKED' });
-      expect([403, 404]).toContain(patch.status);
+      expect(patch.status).toBe(404);
       const del = await api(
         'delete',
         alpha.admin,
         `leave-policies/${beta.policyId}`,
       );
-      expect([403, 404]).toContain(del.status);
+      expect(del.status).toBe(404);
       const after = await prisma.leavePolicy.findUniqueOrThrow({
         where: { id: beta.policyId },
       });
@@ -370,30 +370,51 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
       ).toBe(before);
     });
 
+    it('control: ALPHA can assign its OWN policy to its OWN employee with this body shape', async () => {
+      const res = await api(
+        'post',
+        alpha.admin,
+        'leave-policies/assignments',
+      ).send({
+        leavePolicyId: alpha.policyId,
+        scopeType: 'EMPLOYEE',
+        scopeId: alpha.employeeId,
+        employeeId: alpha.employeeId,
+        effectiveFrom: '2030-01-01',
+      });
+      expect(res.status).toBeLessThan(300);
+    });
+
     it('cannot assign a BETA policy, or assign to a BETA employee', async () => {
-      for (const body of [
-        // BETA policy, ALPHA scope.
+      const attempts = [
+        // BETA policy, ALPHA scope: the policy lookup is tenant-scoped.
         {
-          leavePolicyId: beta.policyId,
-          scopeType: 'TENANT',
-          effectiveFrom: '2030-01-01',
+          status: 404,
+          body: {
+            leavePolicyId: beta.policyId,
+            scopeType: 'TENANT',
+            effectiveFrom: '2030-01-01',
+          },
         },
-        // ALPHA policy, BETA employee as the scope.
+        // ALPHA policy, BETA employee as the scope: same shape as the control.
         {
-          leavePolicyId: alpha.policyId,
-          scopeType: 'EMPLOYEE',
-          scopeId: beta.employeeId,
-          employeeId: beta.employeeId,
-          effectiveFrom: '2030-01-01',
+          status: 400,
+          body: {
+            leavePolicyId: alpha.policyId,
+            scopeType: 'EMPLOYEE',
+            scopeId: beta.employeeId,
+            employeeId: beta.employeeId,
+            effectiveFrom: '2030-01-01',
+          },
         },
-      ]) {
+      ];
+      for (const attempt of attempts) {
         const res = await api(
           'post',
           alpha.admin,
           'leave-policies/assignments',
-        ).send(body);
-        expect(res.status).toBeGreaterThanOrEqual(400);
-        expect(res.status).toBeLessThan(500);
+        ).send(attempt.body);
+        expect(res.status).toBe(attempt.status);
       }
       expect(
         await prisma.leavePolicyAssignment.count({

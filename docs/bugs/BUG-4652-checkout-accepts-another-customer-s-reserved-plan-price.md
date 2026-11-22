@@ -1,7 +1,7 @@
 ---
 ID: BUG-4652
 aliases: [BUG-4652]
-Title: Checkout accepts another customer's reserved plan price
+Title: A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it
 Status: FIXED
 Severity: HIGH
 Priority: P1
@@ -22,7 +22,7 @@ UpdatedAt: 2026-11-22
 ResolvedAt:
 ---
 
-# BUG-4652 — Checkout accepts another customer's reserved plan price
+# BUG-4652 — A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it
 
 ## Summary
 
@@ -57,20 +57,22 @@ A tenant could start paying for, and so potentially take, a plan negotiated for 
 
 ## Affected Areas
 
-billing: checkout session creation. The public (anonymous) order paths use a different gate (`assertSellableToAnonymousVisitor`) and are tracked separately below.
+billing: seat quote and authenticated checkout (tenant path), and the ANONYMOUS public paths: `GET /public/payment-methods`, `POST /public/onboarding`, `POST /public/subscribe`, and `SubscriptionOrderService.openOrder`, which a service can reach without a controller.
 
 ## Proposed Resolution
 
-One private helper `assertTenantMayBuyPlan` used by both quote and checkout; only the eligibility refusal is translated to the generic code, so a database error is not mislabelled. Done. Follow-up: the public order paths do not check `eligibleCustomerAccountId`; a reserved SELF_SERVICE plan would pass them. Unit test and decision pending.
+Two policies, each in one place. Tenant path: `assertTenantMayBuyPlan` (quote and checkout), which exempts the tenant's current plan. Anonymous path: `services/api/src/modules/billing/public-purchase-eligibility.ts`, which requires an active published plan and price, both validity windows, a self-service sales model, a market-scoped price, and a plan NOT reserved for a customer; the refusal is the same `NotFoundException("Plan price not found.")` an unknown id gets. Applied to payment options, onboarding, subscribe and `openOrder`. The public listing also now honours the price's own validity window so it never offers what a purchase refuses. Done.
 
 ## Acceptance Criteria
 
-- Checkout for a price on another customer's reserved plan is refused with 404 and creates no invoice.
-- A tenant can still check out its own reserved plan and unreserved catalogue plans.
+- Anonymous payment-option lookup, onboarding and subscribe for a reserved, future-dated, expired, sales-assisted, draft, inactive or unscoped price are 404 with the unknown-id message, create no order, customer account, e-mail record or outbox event, and name nothing about the plan.
+- `openOrder` called directly refuses the same set.
+- A valid standard or custom public offer still works end to end.
+- A tenant already on a reserved or grandfathered plan can still quote and check out its own plan.
 
 ## Regression Coverage
 
-`services/api/test/billing-cross-tenant.e2e-spec.ts` ("BUG-4652"). REG-705, QA-BILLING-051.
+`services/api/test/public-purchase-eligibility.e2e-spec.ts` (58 tests: controls, 13 refused price shapes on three anonymous routes, a direct `openOrder` caller), `services/api/src/modules/billing/public-purchase-eligibility.spec.ts` (pure policy table), `billing-seat-quote.spec.ts`, and `billing-cross-tenant.e2e-spec.ts` (tenant checkout). Mutation-verified: removing the reservation clause turns 4 tests red; removing the `openOrder` guard turns 13 red. REG-705, QA-BILLING-051.
 
 ## Dependencies
 
@@ -82,11 +84,13 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
-Fixed on branch `agent/dependency-alert-remediation` (SESSION-0137, WP3).
+Fixed on branch `agent/dependency-alert-remediation` (SESSION-0137, WP3). Also found while testing: draft and unscoped prices answered through `AppError` with the text "Plan price not found" (no full stop, plus an error code) while unknown ids answered "Plan price not found.", which let an enumerator tell existing-but-unsellable ids from unknown ones. All anonymous refusals now come from the one policy and are identical.
+
+Not changed: the authenticated tenant path still allows an unreserved SALES_ASSISTED custom plan to be quoted (it cannot be MOVED onto; `PlanChangeService` refuses that). Recorded, low impact.
 
 ## QA Retest
 
-QA-BILLING-051 on the isolated database, 2026-11-22: passing with the fix, failing with the guard removed. Independent review of the fix pending.
+QA-BILLING-051 on the isolated database, 2026-11-22: public suite 58/58 with the fix; 4 and 13 failures with the two guards removed in turn. Independent review of the public-path change pending.
 
 ## History
 

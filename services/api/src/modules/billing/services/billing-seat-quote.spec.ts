@@ -198,6 +198,26 @@ describe('BillingService.getSeatQuote', () => {
     ).resolves.toMatchObject({ seats: 25 });
   });
 
+  it('still quotes a grandfathered plan the tenant is already on, even if reserved for another customer', async () => {
+    const service = buildService({
+      planPrice: planPriceFixture(),
+      tenantMarketId: MARKET_ID,
+      currentPlanId: 'plan-1',
+      plan: {
+        name: 'Legacy',
+        kind: 'CUSTOM',
+        salesModel: 'SALES_ASSISTED',
+        eligibleCustomerAccountId: 'cust-other',
+        effectiveFrom: null,
+        effectiveUntil: null,
+      },
+    });
+
+    await expect(
+      service.getSeatQuote('tenant-1', 'price-1', 25),
+    ).resolves.toMatchObject({ seats: 25 });
+  });
+
   it('refuses a DRAFT price', async () => {
     const service = buildService({
       planPrice: planPriceFixture({

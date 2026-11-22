@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 31** · scenarios across them: 511
+**Plans: 31** · scenarios across them: 512
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -30,7 +30,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-038](../../../docs/qa/test-plans/PLAN-038-notifications.md) | notifications | HIGH | DRAFT | 11 | BUG-3375, BUG-3379 | `f5f43805` |
 | [PLAN-014](../../../docs/qa/test-plans/PLAN-014-outbox.md) | outbox | HIGH | CURRENT | 2 | BUG-0070 | `bd0fb36` |
 | [PLAN-006](../../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | partner-lifecycle | HIGH | CURRENT | 15 | BUG-0016, BUG-0019, BUG-0025, BUG-0048 | `287612d` |
-| [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | CURRENT | 7 | BUG-0001, BUG-0039 | `287612d` |
+| [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | CURRENT | 8 | BUG-0001, BUG-0039 | `287612d` |
 | [PLAN-019](../../../docs/qa/test-plans/PLAN-019-platform-admin.md) | platform-admin | HIGH | CURRENT | 87 | BUG-0073, BUG-0074, BUG-1419, BUG-1420, BUG-1421, BUG-1422, BUG-1423, BUG-1424, BUG-1425 | `4290c03` |
 | [PLAN-034](../../../docs/qa/test-plans/PLAN-034-reports.md) | reports | HIGH | CURRENT | 11 | BUG-2623, BUG-2624, BUG-2625, BUG-2626 | `091bb375` |
 | [PLAN-031](../../../docs/qa/test-plans/PLAN-031-routing.md) | routing | MEDIUM | CURRENT | 1 | BUG-2461 | `39d8ddc4` |

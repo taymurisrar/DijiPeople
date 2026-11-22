@@ -140,12 +140,17 @@ describeWithDatabase()(
     });
 
     afterAll(async () => {
-      await prisma.employee.deleteMany({
-        where: { tenantId: { in: [alphaTenantId, betaTenantId] } },
-      });
-      await actors.cleanup();
-      await fixtures.cleanup();
-      await app.close();
+      // try/finally so a cleanup failure can never leave the Nest app open and
+      // the jest process hanging (CI has no --forceExit).
+      try {
+        await prisma.employee.deleteMany({
+          where: { tenantId: { in: [alphaTenantId, betaTenantId] } },
+        });
+        await actors.cleanup();
+        await fixtures.cleanup();
+      } finally {
+        await app.close();
+      }
     });
 
     const subResources = [

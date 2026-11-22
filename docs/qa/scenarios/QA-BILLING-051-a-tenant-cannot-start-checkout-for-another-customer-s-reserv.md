@@ -1,13 +1,13 @@
 ---
 SCENARIO_ID: QA-BILLING-051
 aliases: [QA-BILLING-051]
-TITLE: A tenant cannot start checkout for another customer's reserved plan price
+TITLE: A caller not entitled to a reserved or out-of-window plan price cannot quote, check out or order it
 AREA: billing
 MODULE: services/api/src/modules/billing
 TYPE: SECURITY
 RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
-TEST_REFERENCE: services/api/test/billing-cross-tenant.e2e-spec.ts
+TEST_REFERENCE: services/api/test/public-purchase-eligibility.e2e-spec.ts
 RELATED_BUGS: [BUG-4652]
 RELATED_REGRESSIONS: [REG-705]
 LAST_RUN: 
@@ -16,20 +16,21 @@ CREATED_AT: 2026-11-22
 UPDATED_AT: 2026-11-22
 ---
 
-# QA-BILLING-051 — A tenant cannot start checkout for another customer's reserved plan price
+# QA-BILLING-051 — A caller not entitled to a reserved or out-of-window plan price cannot quote, check out or order it
 
 ## Preconditions
 
-Two tenants in one market; BETA's customer has a CUSTOM plan reserved to it with a PUBLISHED price. ALPHA has its own plan and subscription.
+Two tenants in one market; BETA's customer has a CUSTOM plan reserved to it with a PUBLISHED price. A valid public self-service price exists. Further prices differ from the valid one in one respect: future or expired plan or price, sales-assisted, draft, inactive, unscoped.
 
 ## Steps
 
-1. As ALPHA's admin POST `/api/billing/checkout-sessions` with BETA's reserved price id and `seatQuantity` 3.
-2. Count ALPHA's invoices before and after.
+1. As an anonymous caller, GET `/api/public/payment-methods?planPriceId=<refused price>`, POST `/api/public/onboarding` and `/api/public/subscribe` with a valid body.
+2. As an ALPHA tenant admin POST `/api/billing/checkout-sessions` with BETA's reserved price.
+3. Repeat step 1 with the valid public price (control).
 
 ## Expected Result
 
-HTTP 404, no BETA unit price in the body, ALPHA's invoice count and plan unchanged.
+Steps 1 and 2 are 404 with the same answer an unknown price id gets, naming no plan or customer, and create no order, invoice, customer account, e-mail record or event. Step 3 succeeds.
 
 ## Notes
 

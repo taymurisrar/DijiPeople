@@ -113,10 +113,15 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    await prisma.applicationRelease.deleteMany({ where: { appKey } });
-    await actors.cleanup();
-    await fixtures.cleanup();
-    await app.close();
+    // try/finally so a cleanup failure can never leave the Nest app open and the
+    // jest process hanging (CI has no --forceExit).
+    try {
+      await prisma.applicationRelease.deleteMany({ where: { appKey } });
+      await actors.cleanup();
+      await fixtures.cleanup();
+    } finally {
+      await app.close();
+    }
   });
 
   it('control: a platform super admin can disable and re-enable a release', async () => {
@@ -228,7 +233,7 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
 
     it('refuses a request with no token', async () => {
       const res = await publish({});
-      expect([401, 403]).toContain(res.status);
+      expect(res.status).toBe(401);
       expect(await stable()).toBe(0);
     });
 
@@ -236,7 +241,7 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
       const res = await publish({
         Authorization: `Bearer ${tenantAdmin.token}`,
       });
-      expect([401, 403]).toContain(res.status);
+      expect(res.status).toBe(401);
       expect(await stable()).toBe(0);
     });
 
@@ -244,7 +249,7 @@ describeWithDatabase()('App release authority (e2e, HTTP)', () => {
       const res = await publish({
         'x-dijipeople-release-token': 'a'.repeat(48),
       });
-      expect([401, 403]).toContain(res.status);
+      expect(res.status).toBe(401);
       expect(await stable()).toBe(0);
     });
   });

@@ -42,6 +42,10 @@ const PLAN = {
   isActive: true,
   publicationStatus: CommercialPublicationStatus.PUBLISHED,
   salesModel: CommercialSalesModel.SELF_SERVICE,
+  // Public-purchase eligibility (BUG-4652) needs these to be explicit.
+  eligibleCustomerAccountId: null,
+  effectiveFrom: null,
+  effectiveUntil: null,
 };
 
 function planPrice(overrides: Record<string, unknown> = {}) {
