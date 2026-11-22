@@ -181,23 +181,28 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    // Correction requests restrict deleting the user that raised them, so they
-    // (and the entries they point at) go first.
-    const tenantIds = [alpha?.tenantId, beta?.tenantId].filter(
-      (id): id is string => Boolean(id),
-    );
-    await prisma.approvalRequest.deleteMany({
-      where: { tenantId: { in: tenantIds } },
-    });
-    await prisma.attendanceCorrectionRequest.deleteMany({
-      where: { tenantId: { in: tenantIds } },
-    });
-    await prisma.attendanceEntry.deleteMany({
-      where: { tenantId: { in: tenantIds } },
-    });
-    await actors.cleanup();
-    await fixtures.cleanup();
-    await app.close();
+    // try/finally so a cleanup failure can never leave the Nest app open and the
+    // jest process hanging.
+    try {
+      // Correction requests restrict deleting the user that raised them, so they
+      // (and the entries they point at) go first.
+      const tenantIds = [alpha?.tenantId, beta?.tenantId].filter(
+        (id): id is string => Boolean(id),
+      );
+      await prisma.approvalRequest.deleteMany({
+        where: { tenantId: { in: tenantIds } },
+      });
+      await prisma.attendanceCorrectionRequest.deleteMany({
+        where: { tenantId: { in: tenantIds } },
+      });
+      await prisma.attendanceEntry.deleteMany({
+        where: { tenantId: { in: tenantIds } },
+      });
+      await actors.cleanup();
+      await fixtures.cleanup();
+    } finally {
+      await app.close();
+    }
   });
 
   describe('controls (BETA admin on BETA rows)', () => {

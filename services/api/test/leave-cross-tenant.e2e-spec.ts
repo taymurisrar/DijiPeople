@@ -158,9 +158,21 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
   });
 
   afterAll(async () => {
-    await actors.cleanup();
-    await fixtures.cleanup();
-    await app.close();
+    // Filing a request creates an ApprovalRequest that restricts deleting its
+    // submitter, so those go first. try/finally so a cleanup failure can never
+    // leave the Nest app open and the jest process hanging.
+    try {
+      const tenantIds = [alpha?.tenantId, beta?.tenantId].filter(
+        (id): id is string => Boolean(id),
+      );
+      await prisma.approvalRequest.deleteMany({
+        where: { tenantId: { in: tenantIds } },
+      });
+      await actors.cleanup();
+      await fixtures.cleanup();
+    } finally {
+      await app.close();
+    }
   });
 
   describe('controls (BETA admin on BETA rows)', () => {
