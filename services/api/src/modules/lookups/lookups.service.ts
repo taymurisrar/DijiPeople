@@ -19,6 +19,9 @@ import {
 } from './lookups.catalog';
 import { GeographicLookupService } from './geographic-lookup.service';
 
+/** Deadline for the exchange-rate provider call (BUG-3199). */
+const EXCHANGE_RATE_FETCH_TIMEOUT_MS = 4_000;
+
 @Injectable()
 export class LookupsService {
   constructor(
@@ -896,8 +899,11 @@ export class LookupsService {
     fromCurrency: string,
     toCurrency: string,
   ) {
+    // BUG-3199. No deadline meant a hung provider held this authenticated
+    // request open for undici's default; every other outbound call here has one.
     const response = await fetch(
       `https://open.er-api.com/v6/latest/${encodeURIComponent(fromCurrency)}`,
+      { signal: AbortSignal.timeout(EXCHANGE_RATE_FETCH_TIMEOUT_MS) },
     );
     if (!response.ok) {
       throw new BadRequestException(

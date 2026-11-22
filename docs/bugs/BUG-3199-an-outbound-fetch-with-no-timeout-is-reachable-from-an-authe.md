@@ -2,7 +2,7 @@
 ID: BUG-3199
 aliases: [BUG-3199]
 Title: An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-714
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3199 — An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker
@@ -95,7 +95,7 @@ Full finding text: RES-05 in `docs/engineering/audits/2026-09-10-full-technical-
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The exchange-rate fetch had no signal, and the Stripe client used the SDK default 80-second timeout.
 
 ## Impact
 
@@ -125,7 +125,7 @@ add `signal: AbortSignal.timeout(3_000)` to
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: RES-05=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/src/common/http/outbound-fetch-has-deadline.spec.ts. REG-714, QA-PLATFORM-066. Removing the signal fails the guard and names the file and line.
 
 ## Dependencies
 
@@ -137,11 +137,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+The rate fetch aborts after 4 seconds (its caller already degrades to the stored rate) and the Stripe client has a 20-second timeout with one network retry. A source guard fails any production fetch( without a signal.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-PLATFORM-066 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
 ## History
 
@@ -152,5 +154,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[billing]]
+- Regression — REG-714 (see the regression register)
 
 <!-- GRAPH:END -->

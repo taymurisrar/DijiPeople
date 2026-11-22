@@ -71,6 +71,12 @@ export const AUDIT_ACTIONS = {
   EMPLOYEE_CREATED: 'EMPLOYEE_CREATED',
   EMPLOYEE_UPDATED: 'EMPLOYEE_UPDATED',
   EMPLOYEE_REPORTING_MANAGER_ASSIGNED: 'EMPLOYEE_REPORTING_MANAGER_ASSIGNED',
+  /* BUG-3184: termination changes employment status and ends payroll eligibility. */
+  EMPLOYEE_TERMINATED: 'EMPLOYEE_TERMINATED',
+
+  /* BUG-3185: who opened a stored document. */
+  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED',
+  DOCUMENT_DOWNLOADED: 'DOCUMENT_DOWNLOADED',
 
   /* Organizational placement — BUG-2044. */
   /*

@@ -2,7 +2,7 @@
 ID: BUG-3196
 aliases: [BUG-3196]
 Title: Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/payroll]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-713
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3196 — Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery
@@ -108,7 +108,7 @@ Full finding text: RES-02 in `docs/engineering/audits/2026-09-10-full-technical-
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The run status guard was a plain read, so concurrent requests both calculated and the second clearRunDraftData deleted rows the first was writing; a crashed process left the run CALCULATING forever.
 
 ## Impact
 
@@ -139,8 +139,7 @@ add `CALCULATING` to the rejected-status list in
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: RES-02=MEDIUM — the frontend currently expects the finished run
-  in the response body.. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/payroll-cross-tenant.e2e-spec.ts. REG-713, QA-PAYROLL-003. Disabling the refusal fails the in-progress test.
 
 ## Dependencies
 
@@ -152,11 +151,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+The move into CALCULATING is a conditional updateMany. A run already being calculated is refused with 409; a claim older than 30 minutes is taken over, which recovers a crashed calculation. Making calculation asynchronous is a larger, plan-required change and stays open.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-PAYROLL-003 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
 ## History
 
@@ -167,5 +168,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[payroll]]
+- Regression — REG-713 (see the regression register)
 
 <!-- GRAPH:END -->

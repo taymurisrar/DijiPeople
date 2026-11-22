@@ -1344,7 +1344,7 @@ export class BillingService {
     if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
-    await this.assertTenantMayBuyPlan(input.tenantId, planPrice.planId);
+    await this.assertTenantMayBuyPrice(input.tenantId, planPrice);
 
     const purchasedSeats = normalizePurchasedSeats(
       input.seatQuantity,
@@ -1685,6 +1685,62 @@ export class BillingService {
   }
 
   /**
+   * BUG-4638 / BUG-4652. A price id alone must not let a tenant quote or start a
+   * purchase it is not entitled to. Three rules, one place:
+   *
+   * 1. The price is inside its own validity window (an expired or not-yet-
+   *    effective price cannot be NEWLY bought).
+   * 2. The plan is not reserved for another customer and is inside its own
+   *    window (`assertPlanAssignableToTenant`, the rule every plan move applies).
+   * 3. Unless the plan is the one the tenant is already on, the price is a
+   *    self-service offer: a sales-assisted or custom-contract price is arranged
+   *    by DijiPeople, and a tenant cannot start it by itself.
+   *
+   * A tenant's CURRENT plan is exempt from 2 and 3 so legitimate and grandfathered
+   * subscriptions keep working. Existing contractual entitlement to stay active is
+   * not entitlement to start a new purchase on an expired price, so rule 1 has no
+   * exemption. Every refusal reuses the generic unavailable code so it does not
+   * confirm the plan exists. Only these refusals are translated: a database error
+   * surfaces as a failure instead of being mislabelled "unavailable".
+   */
+  private async assertTenantMayBuyPrice(
+    tenantId: string,
+    planPrice: {
+      planId: string;
+      salesModel: CommercialSalesModel;
+      effectiveFrom: Date | null;
+      effectiveTo: Date | null;
+      plan: { salesModel: CommercialSalesModel };
+    },
+  ) {
+    if (!withinWindow(planPrice.effectiveFrom, planPrice.effectiveTo)) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+    }
+    try {
+      await assertPlanAssignableToTenant(
+        this.prisma,
+        tenantId,
+        planPrice.planId,
+      );
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+      }
+      throw error;
+    }
+    const current = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+      select: { planId: true },
+    });
+    if (
+      current?.planId !== planPrice.planId &&
+      narrowestSalesModel(planPrice.plan.salesModel, planPrice.salesModel) !==
+        CommercialSalesModel.SELF_SERVICE
+    ) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+    }
+  }
+  /**
    * The seat total the browser must not compute a second time — BUG-3330.
    *
    * `calculateSeatPricing`/`resolveBillableSeats` already had to be
@@ -1699,25 +1755,6 @@ export class BillingService {
    * so this cannot be used to price a foreign-market or unpublished row
    * either.
    */
-  /**
-   * BUG-4638 / BUG-4652. A price id alone must not let a tenant quote or buy a
-   * plan reserved for another customer or outside its validity window. This is
-   * the same rule every plan MOVE applies (`assertPlanAssignableToTenant`), and a
-   * tenant's own current plan is exempt inside it. The refusal reuses the generic
-   * unavailable code so it does not confirm the plan exists. Only the eligibility
-   * refusal is translated: a database error must surface as a failure, not be
-   * mislabelled "unavailable".
-   */
-  private async assertTenantMayBuyPlan(tenantId: string, planId: string) {
-    try {
-      await assertPlanAssignableToTenant(this.prisma, tenantId, planId);
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
-      }
-      throw error;
-    }
-  }
   async getSeatQuote(tenantId: string, planPriceId: string, seats: number) {
     const planPrice = await this.prisma.planPrice.findFirst({
       where: { id: planPriceId },
@@ -1734,7 +1771,7 @@ export class BillingService {
     if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
-    await this.assertTenantMayBuyPlan(tenantId, planPrice.planId);
+    await this.assertTenantMayBuyPrice(tenantId, planPrice);
 
     let normalizedSeats: number;
     try {

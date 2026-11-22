@@ -2340,6 +2340,24 @@ export class EmployeesService {
       updatedById: actorId,
     });
 
+    // BUG-3184. Termination is among the most consequential employee changes (it
+    // ends payroll eligibility) and used to leave no audit row at all.
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actorId,
+      action: AUDIT_ACTIONS.EMPLOYEE_TERMINATED,
+      entityType: AUDIT_ENTITY_TYPES.EMPLOYEE,
+      entityId: employeeId,
+      beforeSnapshot: {
+        employmentStatus: employee.employmentStatus,
+        terminationDate: employee.terminationDate ?? null,
+      },
+      afterSnapshot: {
+        employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+        terminationDate,
+      },
+    });
+
     return this.findById(tenantId, employeeId);
   }
 

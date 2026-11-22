@@ -7776,3 +7776,115 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — with a run-pair unique index re-added, five tests fail (mutation-verified). |
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation`, migration 20261122100000 |
 | **Active** | yes |
+
+### REG-707 — The forgot-password flow never stores the reset link in the delivery log
+
+| | |
+|---|---|
+| **Bug class** | `secret-exposure` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3137 |
+| **Root cause** | requestPasswordReset passed the live reset URL in email metadata, which the tenant-readable delivery-log API returns. |
+| **Regression test** | `services/api/test/auth-session-hardening.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-024 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-708 — A password reset never reactivates a disabled account
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3138 |
+| **Root cause** | resetPassword wrote status ACTIVE unconditionally and never checked the account or tenant status. |
+| **Regression test** | `services/api/test/auth-session-hardening.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-025 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-709 — The agent refresh flag cannot extend the absolute session lifetime
+
+| | |
+|---|---|
+| **Bug class** | `session-lifetime` |
+| **Module** | `services/api/src/modules/agent` |
+| **Bug record** | BUG-3140 |
+| **Root cause** | The client-supplied startNewSession flag skipped both the idle and the absolute expiry checks and minted a fresh 30-day lifetime, on a public route. |
+| **Regression test** | `services/api/test/auth-session-hardening.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-026 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-710 — The tenant-resolve cache key carries every selector
+
+| | |
+|---|---|
+| **Bug class** | `cache-poisoning` |
+| **Module** | `services/api/src/modules/tenants` |
+| **Bug record** | BUG-3162 |
+| **Root cause** | The cache was keyed on the first selector present while the resolver reads several, so slug=victim with host=<attacker domain> cached the attacker tenant under the victim slug. |
+| **Regression test** | `services/api/src/modules/tenants/public-tenants-cache-key.spec.ts` |
+| **Scenario** | QA-AUTH-027 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-711 — Terminating an employee writes an audit row
+
+| | |
+|---|---|
+| **Bug class** | `audit-gap` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-3184 |
+| **Root cause** | terminate() updated the status and wrote no audit row, and the coverage spec pattern could not see a method named terminate. |
+| **Regression test** | `services/api/test/audit-trail-reads.e2e-spec.ts` |
+| **Scenario** | QA-AUDIT-001 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-712 — Viewing or downloading a document is recorded
+
+| | |
+|---|---|
+| **Bug class** | `audit-gap` |
+| **Module** | `services/api/src/modules/documents` |
+| **Bug record** | BUG-3185 |
+| **Root cause** | openForView and openForDownload audited nothing. |
+| **Regression test** | `services/api/test/audit-trail-reads.e2e-spec.ts` |
+| **Scenario** | QA-AUDIT-002 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-713 — Payroll calculation is claimed atomically
+
+| | |
+|---|---|
+| **Bug class** | `race-condition` |
+| **Module** | `services/api/src/modules/payroll` |
+| **Bug record** | BUG-3196 |
+| **Root cause** | The run status guard was a plain read, so concurrent requests both calculated and the second clearRunDraftData deleted rows the first was writing; a crashed process left the run CALCULATING forever. |
+| **Regression test** | `services/api/test/payroll-cross-tenant.e2e-spec.ts` |
+| **Scenario** | QA-PAYROLL-003 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-714 — Every outbound fetch carries a deadline and Stripe has a bounded timeout
+
+| | |
+|---|---|
+| **Bug class** | `missing-timeout` |
+| **Module** | `services/api/src/modules/lookups` |
+| **Bug record** | BUG-3199 |
+| **Root cause** | The exchange-rate fetch had no signal, and the Stripe client used the SDK default 80-second timeout. |
+| **Regression test** | `services/api/src/common/http/outbound-fetch-has-deadline.spec.ts` |
+| **Scenario** | QA-PLATFORM-066 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |

@@ -2,7 +2,7 @@
 ID: BUG-3184
 aliases: [BUG-3184]
 Title: Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-711
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3184 — Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
@@ -82,7 +82,7 @@ Full finding text: OBS-15 in `docs/engineering/audits/2026-09-10-full-technical-
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+terminate() updated the status and wrote no audit row, and the coverage spec pattern could not see a method named terminate.
 
 ## Impact
 
@@ -104,7 +104,7 @@ Add an `AuditService.log` call in `EmployeesService.terminate` using `AUDIT_ACTI
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: OBS-15=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/audit-trail-reads.e2e-spec.ts. REG-711, QA-AUDIT-001. Logging a different action fails the control.
 
 ## Dependencies
 
@@ -116,11 +116,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+terminate() logs EMPLOYEE_TERMINATED with before and after snapshots. The coverage spec has a per-service pattern including terminate so the next such method is caught.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-AUDIT-001 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
 ## History
 
@@ -131,5 +133,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[employees]]
+- Regression — REG-711 (see the regression register)
 
 <!-- GRAPH:END -->

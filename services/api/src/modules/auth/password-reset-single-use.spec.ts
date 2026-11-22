@@ -11,7 +11,12 @@ function build(passwordChangedAt: Date | null) {
   const token = (claims: Record<string, unknown>) => JSON.stringify(claims);
 
   const userApi = {
-    findFirst: jest.fn(async () => ({ passwordChangedAt: current })),
+    // The reset also checks the account and tenant are active (BUG-3138).
+    findFirst: jest.fn(async () => ({
+      passwordChangedAt: current,
+      status: 'ACTIVE',
+      tenant: { status: 'ACTIVE' },
+    })),
     findUnique: jest.fn(async () => ({ identityId: null })),
     // Conditional write: matches only while the credential is unchanged.
     updateMany: jest.fn(

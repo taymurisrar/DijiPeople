@@ -75,7 +75,12 @@ const COVERAGE: readonly Coverage[] = [
       'importEmployees',
       'provisionAccess',
       'provisionEmployeeUserAccess',
+      'terminate',
     ],
+    // 	erminate is not in the shared pattern; a per-entry pattern keeps the
+    // other services' false-positive surface unchanged (BUG-3184).
+    pattern:
+      /^(create|update|delete|assign|submit|cancel|archive|deactivate|provision|import|restore|terminate)/,
     exempt: {
       assignDefaultBenefitsSafely:
         'Audits its own failure path as EMPLOYEE_DEFAULT_BENEFITS_ASSIGNMENT_FAILED. The success path is part of employee creation, which is audited, and a second row per hire would be noise of exactly the kind REG-308 records.',

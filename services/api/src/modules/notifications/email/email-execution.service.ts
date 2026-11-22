@@ -642,8 +642,21 @@ export class EmailExecutionService {
     input: SendTemplateEmailInput,
     diagnostics: Record<string, unknown>,
   ) {
+    /*
+     * BUG-3137. For the auth events a link or token in caller-supplied metadata
+     * is a bearer credential, and this row is readable through the tenant
+     * delivery-log API. The two known callers were fixed to stop passing one;
+     * this makes the next caller unable to reintroduce it.
+     */
+    const callerMetadata = AUTH_NOTIFICATION_EVENTS.has(input.eventCode)
+      ? Object.fromEntries(
+          Object.entries(input.metadata ?? {}).filter(
+            ([key]) => !/(url|link|token)/i.test(key),
+          ),
+        )
+      : (input.metadata ?? {});
     return {
-      ...(input.metadata ?? {}),
+      ...callerMetadata,
       requestedByUserId: input.requestedByUserId ?? null,
       sourceModule:
         typeof input.metadata?.sourceModule === 'string'

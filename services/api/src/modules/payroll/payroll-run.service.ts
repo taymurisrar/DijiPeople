@@ -87,6 +87,13 @@ const runDetailInclude = {
   },
 } satisfies Prisma.PayrollRunInclude;
 
+/**
+ * How long a CALCULATING claim is honoured before another request may take it
+ * over (BUG-3196). A calculation that is still running has just set its start
+ * time; one older than this was abandoned by a crashed or restarted process.
+ */
+const PAYROLL_CALCULATION_STALE_MS = 30 * 60 * 1000;
+
 @Injectable()
 export class PayrollRunService {
   constructor(
@@ -991,13 +998,52 @@ export class PayrollRunService {
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
 
-    await this.prisma.payrollRun.update({
-      where: { id },
+    /*
+     * BUG-3196. The status guard above is a plain read, so two requests on one run
+     * both passed it, and the second one's clearRunDraftData deleted the rows the
+     * first was still writing. The claim is a conditional write: only one caller
+     * moves the run into CALCULATING. A run already CALCULATING is refused, unless
+     * its claim is older than the stale window, which is how a run left behind by a
+     * crashed process (nothing else ever moves it out) is recovered.
+     */
+    const claimed = await this.prisma.payrollRun.updateMany({
+      where: {
+        id,
+        tenantId: user.tenantId,
+        OR: [
+          {
+            status: {
+              notIn: [
+                PayrollRunStatus.CALCULATING,
+                PayrollRunStatus.APPROVED,
+                PayrollRunStatus.PAID,
+                PayrollRunStatus.LOCKED,
+              ],
+            },
+          },
+          {
+            status: PayrollRunStatus.CALCULATING,
+            OR: [
+              { calculationStartedAt: null },
+              {
+                calculationStartedAt: {
+                  lt: new Date(Date.now() - PAYROLL_CALCULATION_STALE_MS),
+                },
+              },
+            ],
+          },
+        ],
+      },
       data: {
         status: PayrollRunStatus.CALCULATING,
         calculationStartedAt: new Date(),
       },
     });
+    if (claimed.count !== 1) {
+      throw new ConflictException(
+        'This payroll run is already being calculated.',
+      );
+    }
 
     await this.clearRunDraftData(user.tenantId, id, user.userId);
 

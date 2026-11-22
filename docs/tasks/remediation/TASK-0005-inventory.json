@@ -15414,7 +15414,7 @@
       "title": "Live password-reset links and invite tokens sit in the tenant-readable email delivery log",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md",
@@ -15422,13 +15422,17 @@
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/notifications"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-707"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-024"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -15452,7 +15456,7 @@
       "title": "Password reset unconditionally reactivates a disabled account",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md",
@@ -15460,13 +15464,17 @@
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/auth"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-708"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-025"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -15528,7 +15536,7 @@
       "title": "Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md",
@@ -15536,14 +15544,18 @@
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/auth",
         "services/api/src/modules/agent"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-709"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-026"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -16236,7 +16248,7 @@
       "title": "Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation)",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele.md",
@@ -16244,13 +16256,17 @@
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/tenants"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-710"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-027"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -17086,7 +17102,7 @@
       "title": "Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3184-employee-termination-writes-no-audit-row-invisible-to-the-co.md",
@@ -17094,13 +17110,17 @@
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/employees"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-711"
+      ],
+      "qa_scenarios": [
+        "QA-AUDIT-001"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -17124,7 +17144,7 @@
       "title": "Reading or downloading a document is recorded nowhere",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere.md",
@@ -17132,13 +17152,17 @@
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/documents"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-712"
+      ],
+      "qa_scenarios": [
+        "QA-AUDIT-002"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -17352,21 +17376,25 @@
       "title": "Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/payroll"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-713"
+      ],
+      "qa_scenarios": [
+        "QA-PAYROLL-003"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -17466,7 +17494,7 @@
       "title": "An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe.md",
@@ -17474,13 +17502,17 @@
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-11-22"
       },
       "affected_modules": [
         "services/api/src/modules/billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-714"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-066"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

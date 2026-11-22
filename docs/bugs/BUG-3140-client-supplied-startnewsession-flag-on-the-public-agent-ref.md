@@ -2,7 +2,7 @@
 ID: BUG-3140
 aliases: [BUG-3140]
 Title: Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/auth, services/api/src/modules/agent]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-709
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3140 — Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime
@@ -77,7 +77,7 @@ Full finding text: AUTH-05 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The client-supplied startNewSession flag skipped both the idle and the absolute expiry checks and minted a fresh 30-day lifetime, on a public route.
 
 ## Impact
 
@@ -99,7 +99,7 @@ Remove `startNewSession` from `AgentRefreshDto`. If the agent genuinely needs to
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: AUTH-05=MEDIUM (deployed agents send this field; per `BUG-0035`, tightening a DTO the fleet already sends breaks them — remove the *behaviour*, keep the field accepted and ignored). Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/auth-session-hardening.e2e-spec.ts. REG-709, QA-AUTH-026. Skipping the absolute check when the flag is set fails the test.
 
 ## Dependencies
 
@@ -111,11 +111,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+The flag now relaxes only the idle timeout, which the desktop needs to resume after a restart. The absolute expiry is always enforced and the original absolute expiry is carried forward. After the absolute limit the user signs in with credentials again.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-AUTH-026 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
 ## History
 
@@ -126,5 +128,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[auth]], [[desktop-agent-architecture]]
+- Regression — REG-709 (see the regression register)
 
 <!-- GRAPH:END -->

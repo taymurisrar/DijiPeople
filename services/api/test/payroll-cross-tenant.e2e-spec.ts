@@ -1186,6 +1186,68 @@ describeWithDatabase()('Payroll cross-tenant (e2e, HTTP)', () => {
     ]);
   });
 
+  // ------------------------------------- 3a. calculation claim (BUG-3196)
+
+  describe('payroll calculation is claimed atomically (BUG-3196)', () => {
+    const calculate = (runId: string) =>
+      call('post', beta.admin, `payroll/runs/${runId}/calculate`);
+    const stateOf = (runId: string) =>
+      prisma.payrollRun.findUniqueOrThrow({
+        where: { id: runId },
+        select: { status: true, calculationStartedAt: true },
+      });
+
+    it('control: a normal run calculates', async () => {
+      const fx = await newRun(beta, { empty: true });
+      expectOk(await calculate(fx.runId));
+      expect((await stateOf(fx.runId)).status).not.toBe(
+        PayrollRunStatus.CALCULATING,
+      );
+    });
+
+    it('refuses a run another request is calculating right now, and leaves its claim alone', async () => {
+      const fx = await newRun(beta, { empty: true });
+      const startedAt = new Date();
+      await prisma.payrollRun.update({
+        where: { id: fx.runId },
+        data: {
+          status: PayrollRunStatus.CALCULATING,
+          calculationStartedAt: startedAt,
+        },
+      });
+      const res = await calculate(fx.runId);
+      expectStatus(res, 409);
+      const after = await stateOf(fx.runId);
+      expect(after.status).toBe(PayrollRunStatus.CALCULATING);
+      expect(after.calculationStartedAt?.getTime()).toBe(startedAt.getTime());
+    });
+
+    it('recovers a run whose claim is older than the stale window (a crashed process)', async () => {
+      const fx = await newRun(beta, { empty: true });
+      await prisma.payrollRun.update({
+        where: { id: fx.runId },
+        data: {
+          status: PayrollRunStatus.CALCULATING,
+          calculationStartedAt: new Date(Date.now() - 2 * 3600_000),
+        },
+      });
+      expectOk(await calculate(fx.runId));
+      expect((await stateOf(fx.runId)).status).not.toBe(
+        PayrollRunStatus.CALCULATING,
+      );
+    });
+
+    it('still refuses an approved run', async () => {
+      const fx = await newRun(beta, {
+        status: PayrollRunStatus.APPROVED,
+        empty: true,
+      });
+      const res = await calculate(fx.runId);
+      expectStatus(res, 400);
+      expect((await stateOf(fx.runId)).status).toBe(PayrollRunStatus.APPROVED);
+    });
+  });
+
   // ------------------------------------------- 3b. reversal (BUG-4639)
 
   describe('journal reversal after the run-pair unique indexes were dropped (BUG-4639)', () => {

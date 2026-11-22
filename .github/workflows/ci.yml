@@ -928,6 +928,10 @@ jobs:
             echo "::error title=Database e2e failed::jest exited $code. See the job summary for the RESULT line and the failing suites."
             exit "$code"
           fi
+          # BUG-3168. Exit 0 is not proof anything ran: with DATABASE_URL unset every
+          # suite becomes describe.skip and jest still exits 0. Refuse a report with
+          # zero passed tests or any skipped suite or test.
+          node scripts/assert-jest-executed.mjs e2e-report.txt
           echo "Database e2e passed."
 
   build:
@@ -1218,7 +1222,9 @@ jobs:
           for url in http://localhost:4000/api/health http://localhost:3000 http://localhost:3002/login http://localhost:3001/login; do
             for i in $(seq 1 60); do
               if curl -sf -o /dev/null "$url"; then echo "ready: $url"; break; fi
-              if [ "$i" = "60" ]; then echo "::warning::$url never became ready"; fi
+              # BUG-3168. This used to only warn, so an unreachable server let the job
+              # run its tests against nothing and skip the ones that need it.
+              if [ "$i" = "60" ]; then echo "::error::$url never became ready"; exit 1; fi
               sleep 5
             done
           done

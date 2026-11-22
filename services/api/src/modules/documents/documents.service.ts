@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -12,6 +13,7 @@ import {
   SecurityPrivilege,
 } from '@prisma/client';
 import { extname } from 'path';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
@@ -68,6 +70,8 @@ const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
 
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
+
   constructor(
     private readonly documentsRepository: DocumentsRepository,
     private readonly prisma: PrismaService,
@@ -476,7 +480,11 @@ export class DocumentsService {
    * both routes ultimately call, rather than being duplicated (and therefore
    * driftable) at each call site (FILE-11).
    */
-  async openForView(currentUser: AuthenticatedUser, documentId: string) {
+  async openForView(
+    currentUser: AuthenticatedUser,
+    documentId: string,
+    mode: 'VIEWED' | 'DOWNLOADED' = 'VIEWED',
+  ) {
     const document = await this.documentsRepository.findById(
       currentUser.tenantId,
       documentId,
@@ -486,6 +494,9 @@ export class DocumentsService {
       throw new NotFoundException('Document was not found for this tenant.');
     }
 
+    // The tenant's own published branding asset is read by every signed-in user on
+    // every page; recording that would be noise, not an access trail.
+    let brandingBypass = false;
     try {
       await this.assertDocumentReadAccess(currentUser, document);
     } catch (error) {
@@ -501,7 +512,7 @@ export class DocumentsService {
         error instanceof NotFoundException &&
         (await this.isPublishedBrandingAsset(currentUser.tenantId, documentId))
       ) {
-        // fall through to serving the bytes
+        brandingBypass = true;
       } else {
         throw error;
       }
@@ -517,13 +528,40 @@ export class DocumentsService {
       );
     }
 
-    return {
-      document,
-      file: await this.storageService.openFile(document.storageKey, {
-        kind: 'tenant',
-        tenantId: currentUser.tenantId,
-      }),
-    };
+    const file = await this.storageService.openFile(document.storageKey, {
+      kind: 'tenant',
+      tenantId: currentUser.tenantId,
+    });
+
+    /*
+     * BUG-3185. Reading a document was recorded nowhere, so \who opened this
+     * contract / ID / payslip\ could not be answered. Recorded only after access
+     * was granted and the bytes opened, so a refusal writes nothing. The row names
+     * the document, never its content. An audit failure is logged and never blocks
+     * the read: this is an access trail, not a gate.
+     */
+    if (!brandingBypass) {
+      try {
+        await this.auditService.log({
+          tenantId: currentUser.tenantId,
+          actorUserId: currentUser.userId,
+          action:
+            mode === 'DOWNLOADED'
+              ? AUDIT_ACTIONS.DOCUMENT_DOWNLOADED
+              : AUDIT_ACTIONS.DOCUMENT_VIEWED,
+          entityType: 'Document',
+          entityId: document.id,
+          sourceModule: 'documents',
+        });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'unknown error';
+        this.logger.warn(
+          `Could not record ${mode.toLowerCase()} of document ${document.id}: ${reason}`,
+        );
+      }
+    }
+
+    return { document, file };
   }
 
   private async isPublishedBrandingAsset(tenantId: string, documentId: string) {
@@ -541,7 +579,7 @@ export class DocumentsService {
   }
 
   async openForDownload(currentUser: AuthenticatedUser, documentId: string) {
-    return this.openForView(currentUser, documentId);
+    return this.openForView(currentUser, documentId, 'DOWNLOADED');
   }
 
   private buildDocumentReadWhere(

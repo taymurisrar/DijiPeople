@@ -302,12 +302,21 @@ export class AgentService {
       throw new UnauthorizedException('Agent device is not registered.');
     }
 
+    /*
+     * BUG-3140. `startNewSession` is client-supplied on a public route, so it
+     * may only relax the IDLE timeout (the desktop resumes a saved session after
+     * the app was closed for a while). It must never extend the ABSOLUTE session
+     * lifetime: that is fixed when the user signs in with credentials, and is
+     * carried forward unchanged below. Previously the flag skipped both checks
+     * and minted a fresh 30-day lifetime, so a refresh-token holder could stay
+     * signed in indefinitely.
+     */
     const startsNewSession = dto.startNewSession === true;
     const tokenRecord = await this.findMatchingRefreshToken(
       user.id,
       device.id,
       dto.refreshToken,
-      { allowExpiredActiveSession: startsNewSession },
+      { ignoreIdleTimeout: startsNewSession },
     );
 
     if (!tokenRecord) {
@@ -338,9 +347,8 @@ export class AgentService {
       email: user.email,
       deviceId: device.id,
       sessionId: startsNewSession ? undefined : payload.sessionId,
-      absoluteExpiresAt: startsNewSession
-        ? undefined
-        : tokenRecord.absoluteExpiresAt,
+      // Always the original lifetime, never a fresh one (BUG-3140).
+      absoluteExpiresAt: tokenRecord.absoluteExpiresAt,
     });
 
     return {
@@ -1497,7 +1505,7 @@ export class AgentService {
     userId: string,
     deviceId: string,
     refreshToken: string,
-    options: { allowExpiredActiveSession?: boolean } = {},
+    options: { ignoreIdleTimeout?: boolean } = {},
   ) {
     const records = await this.prisma.agentRefreshToken.findMany({
       where: {
@@ -1511,9 +1519,10 @@ export class AgentService {
 
     for (const record of records) {
       if (await bcrypt.compare(refreshToken, record.tokenHash)) {
-        if (!options.allowExpiredActiveSession) {
-          this.assertAgentRefreshSessionActive(record);
-        }
+        // The absolute expiry is always enforced.
+        this.assertAgentRefreshSessionActive(record, {
+          ignoreIdleTimeout: options.ignoreIdleTimeout,
+        });
         return record;
       }
     }
@@ -1578,10 +1587,13 @@ export class AgentService {
     }
   }
 
-  private assertAgentRefreshSessionActive(tokenRecord: {
-    absoluteExpiresAt: Date | null;
-    lastActivityAt: Date | null;
-  }) {
+  private assertAgentRefreshSessionActive(
+    tokenRecord: {
+      absoluteExpiresAt: Date | null;
+      lastActivityAt: Date | null;
+    },
+    options: { ignoreIdleTimeout?: boolean } = {},
+  ) {
     const now = Date.now();
 
     if (
@@ -1592,6 +1604,7 @@ export class AgentService {
     }
 
     if (
+      !options.ignoreIdleTimeout &&
       tokenRecord.lastActivityAt &&
       now - tokenRecord.lastActivityAt.getTime() >
         getAgentSessionIdleTimeoutMs(this.configService)
