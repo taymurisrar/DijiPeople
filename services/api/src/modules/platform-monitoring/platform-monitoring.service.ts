@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createReadStream } from 'fs';
@@ -53,6 +54,7 @@ const TENANT_SEARCH_LIMIT = 50;
 
 @Injectable()
 export class PlatformMonitoringService {
+  private readonly logger = new Logger(PlatformMonitoringService.name);
   private readonly logDir = resolveLogDir();
 
   constructor(
@@ -609,14 +611,27 @@ export class PlatformMonitoringService {
 
   private assertSuperAdmin(user: AuthenticatedUser) {
     if (!userHasPlatformPermission(user, 'platform.monitoring.administer')) {
-      void this.auditService.log({
-        tenantId: 'platform',
-        actorUserId: user.platform?.id ?? user.userId ?? null,
-        action: 'PLATFORM_ERROR_LOG_ACCESS_DENIED',
-        entityType: 'PlatformLogFile',
-        entityId: 'logs',
-        sourceModule: 'platform-monitoring',
-      });
+      // An unauthorised tenant user is not a PlatformUser. A tenant ID
+      // cannot be used as PlatformAuditLog.platformActorUserId; doing so made
+      // the FK write fail inside a discarded promise and crashed the process.
+      // Keep each actor in its own audit domain and catch failed side effects.
+      const platformCaller = Boolean(user.platform?.id);
+      void this.auditService
+        .log({
+          tenantId: platformCaller ? 'platform' : user.tenantId,
+          actorUserId: platformCaller ? user.platform?.id : user.userId,
+          action: 'PLATFORM_ERROR_LOG_ACCESS_DENIED',
+          entityType: 'PlatformLogFile',
+          entityId: 'logs',
+          sourceModule: 'platform-monitoring',
+        })
+        .catch(() => {
+          // Do not log a raw database error containing a SQL statement or
+          // potentially sensitive tenant data in the server error stream.
+          this.logger.error(
+            'Could not persist denied platform log access audit.',
+          );
+        });
       throw new ForbiddenException({
         code: 'PLATFORM_SUPER_ADMIN_REQUIRED',
         message: 'Only Platform Super Admin can access platform monitoring.',

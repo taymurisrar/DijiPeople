@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
@@ -109,6 +110,20 @@ class PublishReleaseDto {
  * applied inside the query — see AppReleaseService. `appDownloads.read` gates
  * the catalogue; individual artefacts may require more.
  */
+/**
+ * Global application releases can be installed by every tenant's desktop agent.
+ * Elevated tenant roles bypass fine-grained PermissionsGuard keys, so managing
+ * releases also requires a real platform-authenticated subject.
+ */
+function assertPlatformSubject(user: AuthenticatedUser): void {
+  if (!user.platform?.id) {
+    throw new ForbiddenException({
+      code: 'PLATFORM_ACCESS_REQUIRED',
+      message: 'Managing application releases is a platform action.',
+    });
+  }
+}
+
 @Controller('app-releases')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AppReleaseController {
@@ -140,7 +155,8 @@ export class AppReleaseController {
   @Get('manage')
   @Permissions('appDownloads.manage')
   @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
-  manage() {
+  manage(@CurrentUser() user: AuthenticatedUser) {
+    assertPlatformSubject(user);
     return this.service.listForManagement();
   }
 
@@ -194,6 +210,7 @@ export class AppReleaseController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: PublishReleaseDto,
   ) {
+    assertPlatformSubject(user);
     return this.service.publish(user, dto);
   }
 
@@ -204,6 +221,7 @@ export class AppReleaseController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertPlatformSubject(user);
     return this.service.setActive(user, id, false);
   }
 
@@ -214,6 +232,7 @@ export class AppReleaseController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertPlatformSubject(user);
     return this.service.setActive(user, id, true);
   }
 
@@ -231,6 +250,7 @@ export class AppReleaseController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: PromoteReleaseChannelDto,
   ) {
+    assertPlatformSubject(user);
     return this.service.promote(user, id, dto.channel);
   }
 }
