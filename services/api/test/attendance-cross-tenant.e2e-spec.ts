@@ -39,6 +39,7 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
     employeeId: string;
     entryId: string;
     shiftId: string;
+    locationId: string;
     correctionId: string;
     marker: string;
   }
@@ -79,6 +80,9 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
     const employee = await prisma.employee.create({
       data: {
         tenantId: tenant.id,
+        // Linked to the admin: corrections and self-service need a current
+        // employee, or they are refused for that reason alone.
+        userId: admin.id,
         employeeCode: `AT-${label}-${suffix}`,
         firstName: 'Attend',
         lastName: label,
@@ -143,6 +147,7 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
       employeeId: employee.id,
       entryId: entry.id,
       shiftId: shift.id,
+      locationId: location.id,
       correctionId: correction.id,
       marker,
     };
@@ -181,6 +186,9 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
     const tenantIds = [alpha?.tenantId, beta?.tenantId].filter(
       (id): id is string => Boolean(id),
     );
+    await prisma.approvalRequest.deleteMany({
+      where: { tenantId: { in: tenantIds } },
+    });
     await prisma.attendanceCorrectionRequest.deleteMany({
       where: { tenantId: { in: tenantIds } },
     });
@@ -318,19 +326,49 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
   });
 
   describe('foreign parent ids on create', () => {
+    const validManual = (employeeId: string, day: string) => ({
+      employeeId,
+      date: day,
+      checkInTime: '09:00',
+      checkOutTime: '17:00',
+      attendanceMode: 'OFFICE',
+      officeLocationId: alpha.locationId,
+      shiftTemplateId: alpha.shiftId,
+      adjustmentReason: 'isolation test',
+    });
+
+    it('control: ALPHA can create a manual entry for its OWN employee with this exact body', async () => {
+      const res = await api('post', alpha.admin, 'attendance/manual').send(
+        validManual(alpha.employeeId, '2026-10-08'),
+      );
+      expect(res.status).toBeLessThan(300);
+    });
+
+    it('control: ALPHA can raise a correction against its OWN entry', async () => {
+      const res = await api(
+        'post',
+        alpha.admin,
+        'attendance/correction-requests',
+      ).send({
+        attendanceEntryId: alpha.entryId,
+        correctionType: 'MISSED_CHECK_OUT',
+        requestedCheckOutAtUtc: '2030-02-04T13:00:00.000Z',
+        reason: 'own entry control',
+      });
+      expect(res.status).toBeLessThan(300);
+    });
+
     it('cannot create a manual entry for a BETA employee', async () => {
       const before = await prisma.attendanceEntry.count({
         where: { employeeId: beta.employeeId },
       });
-      const res = await api('post', alpha.admin, 'attendance/manual').send({
-        employeeId: beta.employeeId,
-        date: '2030-05-06',
-        checkInTime: '09:00',
-        checkOutTime: '17:00',
-        attendanceMode: 'OFFICE',
-      });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      const res = await api('post', alpha.admin, 'attendance/manual').send(
+        validManual(beta.employeeId, '2026-10-06'),
+      );
+      expect(res.status).toBe(400);
+      expect((res.body as { message?: string }).message).toBe(
+        'Selected employee does not belong to this tenant.',
+      );
       expect(
         await prisma.attendanceEntry.count({
           where: { employeeId: beta.employeeId },
@@ -344,8 +382,10 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
         alpha.admin,
         `attendance/manual/${alpha.entryId}`,
       ).send({ employeeId: beta.employeeId });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(400);
+      expect((res.body as { message?: string }).message).toBe(
+        'Selected employee does not belong to this tenant.',
+      );
       expect(
         (
           await prisma.attendanceEntry.findUniqueOrThrow({
@@ -366,10 +406,10 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
       ).send({
         attendanceEntryId: beta.entryId,
         correctionType: 'MISSED_CHECK_OUT',
+        requestedCheckOutAtUtc: '2030-02-04T13:00:00.000Z',
         reason: 'foreign entry',
       });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(404);
       expect(
         await prisma.attendanceCorrectionRequest.count({
           where: { attendanceEntryId: beta.entryId },
@@ -379,11 +419,8 @@ describeWithDatabase()('Attendance cross-tenant (e2e, HTTP)', () => {
 
     it('rejects tenantId and status in a manual entry body (mass assignment)', async () => {
       const res = await api('post', alpha.admin, 'attendance/manual').send({
-        employeeId: alpha.employeeId,
-        date: '2030-05-07',
-        attendanceMode: 'OFFICE',
+        ...validManual(alpha.employeeId, '2026-10-07'),
         tenantId: beta.tenantId,
-        status: 'PRESENT',
       });
       expect(res.status).toBe(400);
     });

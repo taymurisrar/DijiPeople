@@ -31,7 +31,9 @@ describe('installUnhandledRejectionHandler', () => {
     const [message, stack] = logger.error.mock.calls[0] as [string, string];
     expect(message).toContain('process kept alive');
     expect(message).toContain('insert violates foreign key');
-    expect(stack).toContain('Error: insert violates foreign key');
+    // Frames only: the message lines above them are not repeated in the stack.
+    expect(stack).toMatch(/^\s+at /);
+    expect(stack).not.toContain('insert violates foreign key');
   });
 
   it('copes with a non-Error reason, including one that cannot be serialised', () => {
@@ -68,9 +70,33 @@ describe('installUnhandledRejectionHandler', () => {
 });
 
 describe('describeRejection', () => {
-  it('keeps an Error message and stack', () => {
+  it('keeps the class and a one-line message, and the stack frames', () => {
     const described = describeRejection(new Error('boom'));
-    expect(described.message).toBe('boom');
-    expect(described.stack).toContain('boom');
+    expect(described.message).toBe('Error: boom');
+    expect(described.stack).toMatch(/^\s+at /);
+  });
+
+  it('never logs SQL or values from the later lines of a multi-line error', () => {
+    const prismaLike = Object.assign(
+      new Error(
+        "Invalid `prisma.x.create()` invocation:\nINSERT INTO t VALUES ('secret-ssn-123')",
+      ),
+      { code: 'P2003' },
+    );
+    const described = describeRejection(prismaLike);
+    expect(described.message).toContain('P2003');
+    expect(described.message).not.toContain('INSERT');
+    expect(described.message).not.toContain('secret-ssn-123');
+    expect(described.stack ?? '').not.toContain('secret-ssn-123');
+  });
+
+  it('redacts a credential in a string rejection', () => {
+    const described = describeRejection('failed: Bearer abc.def.ghi');
+    expect(described.message).not.toContain('abc.def.ghi');
+  });
+
+  it('does not serialise an arbitrary object', () => {
+    const described = describeRejection({ password: 'hunter2' });
+    expect(described.message).not.toContain('hunter2');
   });
 });

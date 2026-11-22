@@ -1356,6 +1356,7 @@ export class BillingService {
     if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
+    await this.assertTenantMayBuyPlan(input.tenantId, planPrice.planId);
 
     const purchasedSeats = normalizePurchasedSeats(
       input.seatQuantity,
@@ -1710,6 +1711,25 @@ export class BillingService {
    * so this cannot be used to price a foreign-market or unpublished row
    * either.
    */
+  /**
+   * BUG-4638 / BUG-4652. A price id alone must not let a tenant quote or buy a
+   * plan reserved for another customer or outside its validity window. This is
+   * the same rule every plan MOVE applies (`assertPlanAssignableToTenant`), and a
+   * tenant's own current plan is exempt inside it. The refusal reuses the generic
+   * unavailable code so it does not confirm the plan exists. Only the eligibility
+   * refusal is translated: a database error must surface as a failure, not be
+   * mislabelled "unavailable".
+   */
+  private async assertTenantMayBuyPlan(tenantId: string, planId: string) {
+    try {
+      await assertPlanAssignableToTenant(this.prisma, tenantId, planId);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+      }
+      throw error;
+    }
+  }
   async getSeatQuote(tenantId: string, planPriceId: string, seats: number) {
     const planPrice = await this.prisma.planPrice.findFirst({
       where: { id: planPriceId },
@@ -1726,19 +1746,7 @@ export class BillingService {
     if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
-    // A price on a plan reserved for another customer (or outside its window)
-    // must not be quotable: the quote carries that customer's negotiated unit
-    // price. The refusal reuses the generic code so it does not confirm the
-    // plan exists. A tenant's own current plan is exempt inside the helper.
-    try {
-      await assertPlanAssignableToTenant(
-        this.prisma,
-        tenantId,
-        planPrice.planId,
-      );
-    } catch {
-      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
-    }
+    await this.assertTenantMayBuyPlan(tenantId, planPrice.planId);
 
     let normalizedSeats: number;
     try {

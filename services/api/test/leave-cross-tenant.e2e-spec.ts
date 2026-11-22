@@ -74,6 +74,9 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
     const employee = await prisma.employee.create({
       data: {
         tenantId: tenant.id,
+        // Linked to the admin user: submitting a request needs a current employee,
+        // and without one every submit is refused for that reason alone.
+        userId: admin.id,
         employeeCode: `LV-${label}-${suffix}`,
         firstName: 'Leave',
         lastName: label,
@@ -91,6 +94,16 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
         category: 'ANNUAL',
       },
       select: { id: true },
+    });
+    // A balance, or an own-type submit is refused for insufficient balance.
+    await prisma.leaveBalance.create({
+      data: {
+        tenantId: tenant.id,
+        employeeId: employee.id,
+        leaveTypeId: leaveType.id,
+        totalAllocated: 30,
+        totalRemaining: 30,
+      },
     });
     const leaveRequest = await prisma.leaveRequest.create({
       data: {
@@ -313,7 +326,17 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
   });
 
   describe('foreign parent ids on create', () => {
-    it('cannot file a request against a BETA leave type', async () => {
+    it('control: ALPHA can file a request against its OWN leave type', async () => {
+      const res = await api('post', alpha.admin, 'leave-requests').send({
+        leaveTypeId: alpha.leaveTypeId,
+        startDate: '2030-06-10',
+        endDate: '2030-06-10',
+        reason: 'own type control',
+      });
+      expect(res.status).toBeLessThan(300);
+    });
+
+    it('cannot file a request against a BETA leave type (exactly the foreign-type refusal)', async () => {
       const before = await prisma.leaveRequest.count({
         where: { leaveTypeId: beta.leaveTypeId },
       });
@@ -323,8 +346,11 @@ describeWithDatabase()('Leave cross-tenant (e2e, HTTP)', () => {
         endDate: '2030-06-03',
         reason: 'foreign type',
       });
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      // The tenant-scoped type lookup is what refuses, not a missing employee or balance.
+      expect(res.status).toBe(400);
+      expect((res.body as { message?: string }).message).toBe(
+        'Selected leave type is not active for this tenant.',
+      );
       expect(
         await prisma.leaveRequest.count({
           where: { leaveTypeId: beta.leaveTypeId },

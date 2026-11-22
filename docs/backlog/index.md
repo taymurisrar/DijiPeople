@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**824 records** — 586 bugs under [`docs/bugs/`](../bugs/), 238 non-bug items under [`items/`](items/).
+**825 records** — 587 bugs under [`docs/bugs/`](../bugs/), 238 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 322 |
+| Open (active work) | 323 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **10** |
-| **Open HIGH** | **127** |
+| **Open HIGH** | **128** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 10 |
-| HIGH | 127 |
+| HIGH | 128 |
 | MEDIUM | 151 |
 | LOW | 31 |
 
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 21 |
+| AUTHORIZATION | 22 |
 | BUG | 104 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 29 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 234 |
+| FIXED | 235 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -341,6 +341,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4447](../../docs/bugs/BUG-4447-employee-record-lookup-editor-department-designation-reporti.md) | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | P1 | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | FIXED | — | FIX_NOW |
 | [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | FIXED | services/api/src/common/guards | PLAN_REQUIRED |
+| [BUG-4652](../../docs/bugs/BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price.md) | Checkout accepts another customer's reserved plan price | AUTHORIZATION | HIGH | P1 | FIXED | billing | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

@@ -7748,3 +7748,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the route answers 200 with the other customer's unit price. |
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
+
+### REG-705 — A tenant could start a checkout for another customer's reserved plan price
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-4652 |
+| **Root cause** | Plan eligibility was applied to plan moves only; the checkout path that takes a price id never applied it. |
+| **Regression test** | `services/api/test/billing-cross-tenant.e2e-spec.ts` |
+| **Scenario** | QA-BILLING-051 |
+| **Fails without the fix** | Yes — with the guard removed the request is not refused with the 404 (mutation-verified). |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |

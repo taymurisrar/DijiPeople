@@ -799,6 +799,11 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
         toPlanId: betaReservedPlanId,
       });
       expect(res.status).toBe(400);
+      // The opaque refusal, not some other plan-change validation: it must not
+      // say the plan is reserved for someone else.
+      expect((res.body as { message?: string }).message).toBe(
+        'That plan is not available.',
+      );
       const mine = await prisma.subscription.findUniqueOrThrow({
         where: { id: alpha.subscriptionId },
         select: { planId: true },
@@ -832,10 +837,30 @@ describeWithDatabase()('Billing cross-tenant (e2e, HTTP)', () => {
         alpha.admin,
         `billing/plan-prices/${betaReservedPriceId}/seat-quote?seats=3`,
       );
-      // DEFECT PROBE: a price reserved for another customer must not be quoted.
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      // BUG-4638: a price reserved for another customer must not be quoted. The
+      // refusal is the generic unavailable answer, not a validation error.
+      expect(res.status).toBe(404);
       expect(asText(res)).not.toContain('7.77');
+    });
+
+    it("BUG-4652: ALPHA cannot start a checkout for BETA's reserved price, and no invoice is created", async () => {
+      const invoicesBefore = await prisma.invoice.count({
+        where: { tenantId: alpha.tenantId },
+      });
+      const res = await send('post', alpha.admin, 'billing/checkout-sessions', {
+        planPriceId: betaReservedPriceId,
+        seatQuantity: 3,
+      });
+      expect(res.status).toBe(404);
+      expect(asText(res)).not.toContain('7.77');
+      expect(
+        await prisma.invoice.count({ where: { tenantId: alpha.tenantId } }),
+      ).toBe(invoicesBefore);
+      const mine = await prisma.subscription.findUniqueOrThrow({
+        where: { id: alpha.subscriptionId },
+        select: { planId: true },
+      });
+      expect(mine.planId).toBe(alpha.planId);
     });
 
     it('billing portal / reconcile / health answer for ALPHA and carry no BETA marker', async () => {

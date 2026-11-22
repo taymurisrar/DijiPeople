@@ -283,23 +283,27 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
       expect(res.status).toBeLessThan(300);
     });
 
-    it('cannot attach a file to a BETA employee, and no BETA link is created', async () => {
-      const before = await prisma.documentLink.count({
-        where: { tenantId: beta.tenantId },
+    it('cannot attach a file to a BETA employee, and no document or link exists anywhere for it', async () => {
+      // A leak would write the Document/DocumentLink under ALPHA's tenantId with
+      // entityId = BETA's employee, so count by entity and title across tenants.
+      const linksBefore = await prisma.documentLink.count({
+        where: { entityId: beta.employeeId },
       });
       const res = await upload(alpha.admin, beta.employeeId, 'planted');
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      const message = (res.body as { message?: string }).message;
+      expect({ status: res.status, message }).toEqual({
+        status: 400,
+        message: 'Selected employee does not belong to this tenant.',
+      });
       expect(
-        await prisma.documentLink.count({ where: { tenantId: beta.tenantId } }),
-      ).toBe(before);
-      expect(
-        await prisma.document.count({
-          where: { tenantId: beta.tenantId, title: 'Doc planted' },
+        await prisma.documentLink.count({
+          where: { entityId: beta.employeeId },
         }),
+      ).toBe(linksBefore);
+      expect(
+        await prisma.document.count({ where: { title: 'Doc planted' } }),
       ).toBe(0);
     });
-
     it('cannot upload with a BETA document type', async () => {
       const res = await upload(alpha.admin, alpha.employeeId, 'foreign-type', {
         documentTypeId: beta.typeId,
