@@ -47,15 +47,40 @@ export class AuditService {
     const traceId = input.traceId ?? ambientTraceId;
 
     if (input.tenantId === 'platform') {
+      /*
+       * BUG-4625 (structural half). `PlatformAuditLog.platformActorUserId` is a
+       * foreign key to platform users, but several callers pass whatever
+       * `user.userId` they hold, and a tenant user's id is not a platform user.
+       * The insert then fails with a foreign-key violation, which — from a
+       * fire-and-forget call — ended the API process. Resolving the actor first
+       * means a mis-attributed caller still leaves an audit row (the unresolved
+       * id is kept in `scope`, so nothing is hidden) instead of no row and an
+       * error. One primary-key lookup per platform audit; these are rare.
+       */
+      const actorId = input.actorUserId ?? null;
+      const resolvedActor = actorId
+        ? db
+          ? await this.auditRepository.findPlatformActor(actorId, db)
+          : await this.auditRepository.findPlatformActor(actorId)
+        : null;
+      const actorUnresolved = Boolean(actorId) && !resolvedActor;
+      const baseScope = normalizeSnapshot(input.scope);
       const data = {
-        platformActorUserId: input.actorUserId ?? null,
+        platformActorUserId: resolvedActor ? actorId : null,
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
         requestId,
         traceId,
         sourceModule: input.sourceModule ?? null,
-        scope: normalizeSnapshot(input.scope),
+        scope: actorUnresolved
+          ? {
+              ...(baseScope && typeof baseScope === 'object'
+                ? (baseScope as Record<string, unknown>)
+                : {}),
+              unresolvedActorUserId: actorId,
+            }
+          : baseScope,
         beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
         afterSnapshot: normalizeSnapshot(input.afterSnapshot),
       };
