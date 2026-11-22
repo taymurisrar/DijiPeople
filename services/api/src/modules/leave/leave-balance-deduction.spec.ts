@@ -53,6 +53,7 @@ function build(initial: Balance, opts: { consumesBalance?: boolean } = {}) {
           return { count: 1 };
         },
       ),
+      count: jest.fn(async () => (balance ? 1 : 0)),
       upsert: jest.fn(
         async ({
           create,
@@ -88,16 +89,21 @@ function build(initial: Balance, opts: { consumesBalance?: boolean } = {}) {
     string,
     unknown
   >;
-  const approve = (id: string, negativeAllowed = false) =>
+  /** maxNegative is the overdraft ceiling in days, or null when not allowed. */
+  const approve = (id: string, maxNegative: number | null = null) =>
     (
       service as unknown as {
         recordApprovedLeaveConsumption: (
           r: unknown,
           d: unknown,
-          n: boolean,
+          n: Prisma.Decimal | null,
         ) => Promise<void>;
       }
-    ).recordApprovedLeaveConsumption(request(id), db, negativeAllowed);
+    ).recordApprovedLeaveConsumption(
+      request(id),
+      db,
+      maxNegative === null ? null : new Prisma.Decimal(maxNegative),
+    );
 
   return { approve, db, get: () => balance };
 }
@@ -134,16 +140,48 @@ describe('approving leave deducts the balance atomically (DP-QA-029)', () => {
     expect(h.get()).toBeNull();
   });
 
-  it('allows an overdraft only when the policy rule says so', async () => {
+  it('allows an overdraft only when the policy rule says so, up to its ceiling', async () => {
     const h = build({ totalUsed: 2, totalRemaining: 0 });
-    await h.approve('r1', true);
+    await h.approve('r1', 2);
     expect(h.get()).toEqual({ totalUsed: 3, totalRemaining: -1 });
   });
 
-  it('creates an overdrawn balance when overdraft is allowed and none exists', async () => {
+  it('stops at the overdraft ceiling instead of going arbitrarily negative (BUG-3197)', async () => {
+    const h = build({ totalUsed: 2, totalRemaining: 0 });
+    await h.approve('r1', 2);
+    await h.approve('r2', 2);
+    await expect(h.approve('r3', 2)).rejects.toBeInstanceOf(ConflictException);
+    expect(h.get()).toEqual({ totalUsed: 4, totalRemaining: -2 });
+  });
+
+  it('lets exactly the ceiling worth of concurrent approvals through', async () => {
+    const h = build({ totalUsed: 2, totalRemaining: 0 });
+    const results = await Promise.allSettled([
+      h.approve('r1', 2),
+      h.approve('r2', 2),
+      h.approve('r3', 2),
+      h.approve('r4', 2),
+    ]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
+    expect(h.get()?.totalRemaining).toBe(-2);
+  });
+
+  it('an allowed overdraft with a ceiling of zero behaves like no overdraft', async () => {
+    const h = build({ totalUsed: 2, totalRemaining: 0 });
+    await expect(h.approve('r1', 0)).rejects.toBeInstanceOf(ConflictException);
+    expect(h.get()).toEqual({ totalUsed: 2, totalRemaining: 0 });
+  });
+
+  it('creates an overdrawn balance when overdraft is allowed, none exists, and the days fit the ceiling', async () => {
     const h = build(null);
-    await h.approve('r1', true);
+    await h.approve('r1', 2);
     expect(h.get()).toEqual({ totalUsed: 1, totalRemaining: -1 });
+  });
+
+  it('refuses to create an overdrawn balance that already exceeds the ceiling', async () => {
+    const h = build(null);
+    await expect(h.approve('r1', 0)).rejects.toBeInstanceOf(ConflictException);
+    expect(h.get()).toBeNull();
   });
 
   it('does not touch the balance for a leave type that does not consume it', async () => {

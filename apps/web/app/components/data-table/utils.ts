@@ -123,10 +123,12 @@ export function sortRows<T>(
       return (leftValue - rightValue) * multiplier;
     }
 
-    return String(leftValue).localeCompare(String(rightValue), undefined, {
-      numeric: true,
-      sensitivity: "base",
-    }) * multiplier;
+    return (
+      String(leftValue).localeCompare(String(rightValue), undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }) * multiplier
+    );
   });
 }
 
@@ -234,7 +236,9 @@ export function searchRows<T>(
   }
 
   const searchableColumns = columns.filter(
-    (column) => column.searchable !== false && (column.searchAccessor || column.filterAccessor || column.sortAccessor),
+    (column) =>
+      column.searchable !== false &&
+      (column.searchAccessor || column.filterAccessor || column.sortAccessor),
   );
 
   return rows.filter((row) =>
@@ -275,4 +279,27 @@ export function emptyStateMessage(hasActiveSearchOrFilters: boolean): string {
   return hasActiveSearchOrFilters
     ? "No records match the selected search or filters."
     : "No records yet.";
+}
+
+/**
+ * BUG-3176. In server mode the search box has to reach the backend: the rows on
+ * screen are one page of a larger result, so filtering them locally can only ever
+ * find matches that happen to be on the current page.
+ *
+ * Returns the URL to navigate to for the typed text, or null when it already
+ * matches the URL (so typing and then returning to the same value does nothing,
+ * and the initial render never navigates). A new search always returns to page 1.
+ */
+export function serverSearchHref(
+  pathname: string,
+  current: URLSearchParams,
+  typed: string,
+): string | null {
+  const next = typed.trim();
+  if (next === (current.get("search") ?? "")) return null;
+  const params = new URLSearchParams(current.toString());
+  if (next) params.set("search", next);
+  else params.delete("search");
+  params.set("page", "1");
+  return `${pathname}?${params.toString()}`;
 }
