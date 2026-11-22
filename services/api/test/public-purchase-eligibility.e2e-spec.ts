@@ -130,10 +130,20 @@ describeWithDatabase()('Public purchase eligibility (e2e, HTTP)', () => {
     emails: await prisma.emailDeliveryLog.count({
       where: { recipient: attackerEmail },
     }),
+    // Scoped to THIS suite's orders (an event is about an order), so another
+    // suite creating orders in the same database cannot disturb the count.
     outbox: await prisma.outboxEvent.count({
       where: {
         createdAt: { gte: startedAt },
         aggregateType: 'SubscriptionOrder',
+        aggregateId: {
+          in: (
+            await prisma.subscriptionOrder.findMany({
+              where: { planPriceId: { in: priceIds } },
+              select: { id: true },
+            })
+          ).map((order) => order.id),
+        },
       },
     }),
   });

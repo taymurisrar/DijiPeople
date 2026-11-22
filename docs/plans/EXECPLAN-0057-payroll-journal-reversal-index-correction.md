@@ -37,7 +37,7 @@ A database built only from the migration history can hold an ORIGINAL journal an
 
 ## Business requirement
 
-A posted payroll journal can be reversed with a reason, producing a mirror-image journal linked to the original. TODO: Confirm product/business rule for ADJUSTMENT journals: the enum value exists and the schema comment says original, reversal and adjustment journals coexist, but no service path creates one today. This plan removes the database obstacle; it does not add an adjustment feature.
+A posted payroll journal can be reversed with a reason, producing a mirror-image journal linked to the original. ADJUSTMENT journals: the enum value exists and the schema comment says original, reversal and adjustment journals coexist, but no service path creates one today. This plan removes the database obstacle only; an adjustment feature is out of scope and any rule for it (who may post one, how it links to its original) is a separate product decision recorded when that feature is planned.
 
 ## Existing behavior
 
@@ -85,7 +85,9 @@ Verified on the migration-built isolated database before writing this plan (cata
 
 Locking: `DROP INDEX` takes a brief `ACCESS EXCLUSIVE` lock on `PayrollJournalEntry`. The table holds at most one row per posted payroll run per tenant, so it is small; the lock is short. `CONCURRENTLY` is not used because it cannot run in a transaction block, and `prisma migrate deploy` runs each migration in one. No backfill, no data change.
 
-Intended uniqueness after the change: `id` (primary key), `(id, tenantId)` (composite FK target). Uniqueness of the ORIGINAL journal per run is a service rule (`generateJournal`), unchanged. A partial unique index on `(tenantId, payrollRunId) WHERE journalType = 'ORIGINAL'` would also enforce it in the database, but Prisma cannot declare it, so `migrate diff` would report permanent drift; recorded as a deliberate non-goal, with the service rule and the existing test as the control.
+Intended uniqueness after the change: `id` (primary key), `(id, tenantId)` (composite FK target). Uniqueness of the ORIGINAL journal per run, and of the single REVERSAL per journal, is a service rule.
+
+**Independent review finding (2026-11-22, MAJOR, fixed in this change):** as first written, that service rule was NOT concurrency-safe. `generateJournalForPayrollRun` and `reverseJournal` did a plain find-then-create, and the unique index being dropped had been the only atomic guard, so two simultaneous requests could create two ORIGINAL journals or double-reverse the general ledger. Both now take a row lock (`SELECT ... FOR UPDATE` on the payroll run, and on the original journal) inside the transaction and re-check under the lock, so the second caller waits and then sees the first's row. Tests: three simultaneous reversals give exactly one 201 and two 409 and one REVERSAL row; three simultaneous generates give one ORIGINAL row. Mutation (lock and re-check removed): the reversal test fails 3 of 3 runs. A partial unique index on `(tenantId, payrollRunId) WHERE journalType = 'ORIGINAL'` would also enforce it in the database, but Prisma cannot declare it, so `migrate diff` would report permanent drift; recorded as a deliberate non-goal, with the service rule and the existing test as the control.
 
 ## Backend impact
 

@@ -88,6 +88,14 @@ Fixed on branch `agent/dependency-alert-remediation` (SESSION-0137, WP3). Also f
 
 Not changed: the authenticated tenant path still allows an unreserved SALES_ASSISTED custom plan to be quoted (it cannot be MOVED onto; `PlanChangeService` refuses that). Recorded, low impact.
 
+**Independent review (2026-11-22): APPROVE WITH CHANGES, no blockers.** Confirmed: every anonymous route that takes a price id is behind the policy; `openOrder` has exactly two callers, both public; no super-admin, lead or partner flow legitimately opens an order for a reserved or sales-assisted plan, so none breaks; refusal is the same exception class and message as an unknown id, with no write or provider call before it.
+
+Open items for the Architect, not defects:
+- **Legacy orders.** An order opened for a reserved price BEFORE this fix is reusable (the idempotent lookup precedes the policy) and can progress through order-bound routes (bank-transfer issue-invoice, verify-email checkout). A one-off read-only query on the target database should list open `SubscriptionOrder` rows whose price's plan has `eligibleCustomerAccountId` set; expire any found. Not run: no production access.
+- **Authenticated tenant path** (`assertTenantMayBuyPlan`) checks the plan, not the price's own window or sales model, so a tenant could still buy an expired or SALES_ASSISTED price on a plan it may use. The code comment records widening that as a separate commercial decision; flagged for owner decision.
+- **Behaviour change:** `getPublicPlans` also backs the authenticated `/billing/plans`, so the price-window filter applies there too.
+- **Test isolation:** `plan-draft`, `plan-inactive`, `price-inactive`, `assisted`, `price-assisted`, `price-draft`, `price-unscoped` and `reserved-assisted` would also be refused by older inline checks; the cases that exercise only the new policy are `reserved-self`, `plan-future`, `plan-expired`, `price-future`, `price-expired`, and the pure unit spec isolates every dimension. Byte-identity of the refusal with an unknown id is established statically through the shared exception path; the e2e app has no production exception filter.
+
 ## QA Retest
 
 QA-BILLING-051 on the isolated database, 2026-11-22: public suite 58/58 with the fix; 4 and 13 failures with the two guards removed in turn. Independent review of the public-path change pending.

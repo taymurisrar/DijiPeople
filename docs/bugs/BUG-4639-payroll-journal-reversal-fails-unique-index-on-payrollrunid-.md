@@ -95,6 +95,8 @@ Locking: plain `DROP INDEX` (brief ACCESS EXCLUSIVE lock on a small table); `CON
 
 Rollback: NOT safely reversible once any reversal or adjustment journal exists, because the unique indexes cannot be recreated over valid duplicate rows. Before any reversal exists the indexes can be recreated by hand. After, roll back the API, not the schema.
 
+**Independent review (2026-11-22): APPROVE WITH CHANGES; the MAJOR finding is fixed.** Dropping the two unique indexes also removed the only atomic guard against double-writes: generate and reverse did a plain find-then-create, so two simultaneous requests could create two ORIGINAL journals or double-reverse the ledger. Both now lock a row (the payroll run, and the original journal) with `SELECT ... FOR UPDATE` inside the transaction and re-check under the lock. Tests: three simultaneous reversals give one 201, two 409 and one REVERSAL row; three simultaneous generates give one ORIGINAL row; mutation (lock and re-check removed) fails 3 of 3 runs. The audit assertion now requires a PAYROLL_JOURNAL_REVERSED audit row. Not verified by the reviewer: that the Render pre-deploy `release` script runs `migrate deploy`; the 2026-11-03 release recipe says it does.
+
 ## QA Retest
 
 QA-PAYROLL-002 on the isolated database, 2026-11-22: passing with the migration, failing with an index re-added. Status stays OPEN until the independent QA/Security review of the migration and exact-SHA CI pass.

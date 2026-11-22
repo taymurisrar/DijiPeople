@@ -1274,6 +1274,71 @@ describeWithDatabase()('Payroll cross-tenant (e2e, HTTP)', () => {
           where: { tenantId: beta.tenantId, entityId: fx.journalId },
         }),
       ).toBeGreaterThanOrEqual(auditBefore);
+      // And the reversal itself is on the record (the write is not awaited by the
+      // request, so poll for it).
+      let reversedAudit = null;
+      for (let attempt = 0; attempt < 20 && !reversedAudit; attempt += 1) {
+        reversedAudit = await prisma.auditLog.findFirst({
+          where: {
+            tenantId: beta.tenantId,
+            entityId: fx.journalId,
+            action: 'PAYROLL_JOURNAL_REVERSED',
+          },
+        });
+        if (!reversedAudit) {
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+      }
+      expect(reversedAudit).not.toBeNull();
+    });
+
+    it('two simultaneous reversals of one journal create exactly one reversal (the row lock replaces the dropped unique index)', async () => {
+      const fx = await newRun(beta, {
+        ...earnings,
+        journal: PayrollJournalEntryStatus.POSTED,
+      });
+      const attempt = () =>
+        call('post', beta.admin, `payroll/runs/${fx.runId}/journal/reverse`, {
+          reason: 'concurrent',
+        });
+      const results = await Promise.all([attempt(), attempt(), attempt()]);
+      const statuses = results.map((r) => r.status).sort();
+      expect(statuses).toEqual([201, 409, 409]);
+      expect(
+        await prisma.payrollJournalEntry.count({
+          where: { payrollRunId: fx.runId, journalType: 'REVERSAL' },
+        }),
+      ).toBe(1);
+      expect(
+        await prisma.payrollJournalEntry.count({
+          where: { payrollRunId: fx.runId },
+        }),
+      ).toBe(2);
+    });
+
+    it('two simultaneous generates for one run create exactly one ORIGINAL journal', async () => {
+      const fx = await newRun(beta, {
+        status: PayrollRunStatus.CALCULATED,
+        employee: true,
+      });
+      const attempt = () =>
+        call('post', beta.admin, `payroll/runs/${fx.runId}/journal/generate`);
+      const results = await Promise.all([attempt(), attempt(), attempt()]);
+      for (const res of results) {
+        expect({ status: res.status, body: brief(res) }).toEqual({
+          status: 201,
+          body: expect.any(String) as string,
+        });
+      }
+      expect(
+        await prisma.payrollJournalEntry.count({
+          where: {
+            payrollRunId: fx.runId,
+            journalType: 'ORIGINAL',
+            originalJournalId: null,
+          },
+        }),
+      ).toBe(1);
     });
 
     it('refuses a second reversal of the same journal with 409 and creates no third journal', async () => {
