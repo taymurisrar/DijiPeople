@@ -44,6 +44,11 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
   let alpha: Side;
   let beta: Side;
 
+  // Binary responses arrive as a Buffer, text ones as `text`; either way the
+  // marker must be readable from the owner's own download.
+  const bodyText = (res: { text?: string; body: unknown }): string =>
+    Buffer.isBuffer(res.body) ? res.body.toString('utf8') : (res.text ?? '');
+
   const asWeb = (as: HttpActor) => ({
     Authorization: `Bearer ${as.token}`,
     'X-DijiPeople-App': 'web',
@@ -184,14 +189,14 @@ describeWithDatabase()('Documents cross-tenant (e2e, HTTP)', () => {
         `documents/${beta.documentId}/view`,
       ).buffer(true);
       expect(view.status).toBe(200);
-      expect(view.text ?? view.body.toString()).toContain(betaSecret);
+      expect(bodyText(view)).toContain(betaSecret);
       const dl = await api(
         'get',
         beta.admin,
         `documents/${beta.documentId}/download`,
       ).buffer(true);
       expect(dl.status).toBe(200);
-      expect(dl.text ?? dl.body.toString()).toContain(betaSecret);
+      expect(bodyText(dl)).toContain(betaSecret);
     });
 
     it('the owner lists its documents for its own employee', async () => {

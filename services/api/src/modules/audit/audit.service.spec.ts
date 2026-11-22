@@ -173,10 +173,10 @@ describe('AuditService platform actor resolution (BUG-4625, structural)', () => 
   it('writes a tenant user id as null actor and preserves it in scope, never as an FK value', async () => {
     const { service, createPlatform } = build(null);
     await service.log(entry('tenant-user-9'));
-    const data = createPlatform.mock.calls[0][0] as {
-      platformActorUserId: unknown;
-      scope: Record<string, unknown>;
-    };
+    const calls = createPlatform.mock.calls as Array<
+      [{ platformActorUserId: unknown; scope: Record<string, unknown> }]
+    >;
+    const data = calls[0][0];
     expect(data.platformActorUserId).toBeNull();
     expect(data.scope).toEqual({
       note: 'kept',
