@@ -343,7 +343,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#GET app-releases",
   "module": "app-releases",
-  "line": 117,
+  "line": 132,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -355,7 +355,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#GET app-releases/latest",
   "module": "app-releases",
-  "line": 127,
+  "line": 142,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -367,7 +367,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#GET app-releases/manage",
   "module": "app-releases",
-  "line": 140,
+  "line": 155,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -379,7 +379,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#GET app-releases/:id",
   "module": "app-releases",
-  "line": 147,
+  "line": 162,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -391,7 +391,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#GET app-releases/:id/download",
   "module": "app-releases",
-  "line": 161,
+  "line": 176,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -403,7 +403,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#POST app-releases",
   "module": "app-releases",
-  "line": 190,
+  "line": 205,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -415,7 +415,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#POST app-releases/:id/disable",
   "module": "app-releases",
-  "line": 200,
+  "line": 215,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -427,7 +427,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#POST app-releases/:id/enable",
   "module": "app-releases",
-  "line": 210,
+  "line": 225,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -439,7 +439,7 @@
  {
   "route": "services/api/src/modules/app-releases/app-release.controller.ts#POST app-releases/:id/promote",
   "module": "app-releases",
-  "line": 226,
+  "line": 241,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
