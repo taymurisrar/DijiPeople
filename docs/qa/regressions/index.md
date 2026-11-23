@@ -8056,3 +8056,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes - take/skip were absent. |
 | **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
 | **Active** | yes |
+
+### REG-727 — The pg pool ran on defaults, so a saturated pool made every request wait forever for a connection.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/common/prisma` |
+| **Bug record** | BUG-3195 |
+| **Root cause** | The pg pool ran on defaults, so a saturated pool made every request wait forever for a connection. |
+| **Regression test** | `services/api/src/common/prisma/pool-config.spec.ts` |
+| **Scenario** | QA-PLATFORM-070 |
+| **Fails without the fix** | Not mutation-verified - the spec asserts a bounded default connect timeout. Residual: statement_timeout is opt-in and not set (ITEM-0242). |
+| **Fixed** | 2026-11-24, commit b7ddb808 |
+| **Active** | yes |
+
+### REG-728 — The health endpoint was a static ok payload, so a dead database still reported healthy.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/common/health` |
+| **Bug record** | BUG-3198 |
+| **Root cause** | The health endpoint was a static ok payload, so a dead database still reported healthy. |
+| **Regression test** | `services/api/src/common/health/readiness.spec.ts` |
+| **Scenario** | QA-PLATFORM-071 |
+| **Fails without the fix** | Not mutation-verified - the spec asserts a failing or hanging probe reports not ready. Residuals: render.yaml healthCheckPath stays /api by design; no per-worker lastTickAt (ITEM-0242). |
+| **Fixed** | 2026-11-24, commit b7ddb808 |
+| **Active** | yes |

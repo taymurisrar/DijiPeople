@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**828 records** — 587 bugs under [`docs/bugs/`](../bugs/), 241 non-bug items under [`items/`](items/).
+**829 records** — 587 bugs under [`docs/bugs/`](../bugs/), 242 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 326 |
 | Blocked | 4 |
-| Deferred | 125 |
+| Deferred | 126 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **10** |
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 35 |
+| OPEN | 33 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
-| DEFERRED | 125 |
+| DEFERRED | 126 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 255 |
+| FIXED | 257 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -281,10 +281,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3187](../../docs/bugs/BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte.md) | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
 | [BUG-3188](../../docs/bugs/BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so.md) | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
 | [BUG-3189](../../docs/bugs/BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on.md) | One unauthenticated login request costs about 1.1s of CPU on a single-instance API | PERFORMANCE | HIGH | P1 | OPEN | api:auth | PLAN_REQUIRED |
-| [BUG-3195](../../docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md) | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | P1 | OPEN | services/api/src/common | FIX_NOW |
+| [BUG-3195](../../docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md) | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
 | [BUG-3196](../../docs/bugs/BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl.md) | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | P1 | FIXED | api:payroll | FIX_NOW |
 | [BUG-3197](../../docs/bugs/BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap.md) | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | P1 | OPEN | api:leave | FIX_NOW |
-| [BUG-3198](../../docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md) | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | P1 | OPEN | services/api/src/common | FIX_NOW |
+| [BUG-3198](../../docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md) | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
 | [BUG-3199](../../docs/bugs/BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe.md) | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | P1 | FIXED | api:billing | FIX_NOW |
 | [BUG-3200](../../docs/bugs/BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan.md) | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | PLAN_REQUIRED |
 | [BUG-3201](../../docs/bugs/BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti.md) | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | P1 | FIXED | api:tenants | FIX_NOW |
@@ -743,6 +743,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0238](../../docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md) | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 | [ITEM-0239](../../docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md) | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0242](../../docs/backlog/items/ITEM-0242-set-a-measured-statement-timeout-with-tenant-erasure-and-pay.md) | Set a measured statement_timeout with tenant-erasure and payroll exemptions, and report worker lastTickAt in readiness | TECH_DEBT | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

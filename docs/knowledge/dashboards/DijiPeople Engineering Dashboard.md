@@ -12,7 +12,7 @@
 | Open total | 326 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
-| Deferred | 125 |
+| Deferred | 126 |
 | Completed | 357 |
 | Awaiting Architect triage | 3 |
 
@@ -101,10 +101,10 @@
 | [[BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte|BUG-3187]] | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so|BUG-3188]] | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on|BUG-3189]] | One unauthenticated login request costs about 1.1s of CPU on a single-instance API | PERFORMANCE | HIGH | OPEN | api:auth | PLAN_REQUIRED |
-| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | OPEN | services/api/src/common | FIX_NOW |
+| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl|BUG-3196]] | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | FIXED | api:payroll | FIX_NOW |
 | [[BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap|BUG-3197]] | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | OPEN | api:leave | FIX_NOW |
-| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | FIX_NOW |
+| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe|BUG-3199]] | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | FIXED | api:billing | FIX_NOW |
 | [[BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan|BUG-3200]] | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | OPEN | api:notifications | PLAN_REQUIRED |
 | [[BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti|BUG-3201]] | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | FIXED | api:tenants | FIX_NOW |
@@ -217,7 +217,7 @@
 | [[BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi|BUG-3166]] | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
-| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | FIX_NOW |
+| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -409,7 +409,9 @@
 | [[BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere|BUG-3185]] | Reading or downloading a document is recorded nowhere | DATA_INTEGRITY | HIGH | FIXED | api:documents | FIX_NOW |
 | [[BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte|BUG-3187]] | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so|BUG-3188]] | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
+| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl|BUG-3196]] | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | FIXED | api:payroll | FIX_NOW |
+| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe|BUG-3199]] | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | FIXED | api:billing | FIX_NOW |
 | [[BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti|BUG-3201]] | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | FIXED | api:tenants | FIX_NOW |
 | [[BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a|BUG-3202]] | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | FIXED | api:payroll | FIX_NOW |
@@ -979,7 +981,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 587 |
-| Backlog items | 241 |
+| Backlog items | 242 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |

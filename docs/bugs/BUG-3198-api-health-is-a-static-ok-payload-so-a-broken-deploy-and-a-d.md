@@ -2,7 +2,7 @@
 ID: BUG-3198
 aliases: [BUG-3198]
 Title: api/health is a static ok payload, so a broken deploy and a dead database both report healthy
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/common]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-728
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: b7ddb808
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3198 — api/health is a static ok payload, so a broken deploy and a dead database both report healthy
@@ -122,11 +122,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Commit b7ddb808. `services/api/src/common/health/readiness.ts` runs a database probe under a 3 s timeout and reports ready or not; `GET /api/health/ready` in `main.ts` answers 503 when the probe fails or times out, never leaks the driver message, and shares one in-flight probe between callers. `liveness.ts` serves `GET /api/health/live` from no dependency at all. `readiness.spec.ts` and `liveness.spec.ts` assert these. Verified by running jest on `src/common/health` (all pass; 19 tests across the three suites with the pool spec).
+
+Residuals, stated honestly: `render.yaml` `healthCheckPath` intentionally stays `/api` (liveness-style), so Render still does not gate a deploy or rotation on the database, which avoids a restart loop on a database blip; the ready route is for monitors and operators. Per-worker `lastTickAt` is not reported, so a stalled outbox or scheduler remains invisible. Tracked as ITEM-0242.
 
 ## QA Retest
 
-Not yet retested.
+QA-PLATFORM-071 (automated unit scenario). Not retested against a live database outage.
 
 ## History
 
@@ -137,5 +139,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[api-architecture]]
+- Regression — REG-728 (see the regression register)
 
 <!-- GRAPH:END -->

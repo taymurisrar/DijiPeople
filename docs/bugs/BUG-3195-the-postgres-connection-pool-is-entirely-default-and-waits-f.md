@@ -2,7 +2,7 @@
 ID: BUG-3195
 aliases: [BUG-3195]
 Title: The Postgres connection pool is entirely default and waits forever for a connection
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/common]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-727
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: b7ddb808
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3195 — The Postgres connection pool is entirely default and waits forever for a connection
@@ -130,11 +130,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Commit b7ddb808. `services/api/src/common/prisma/pool-config.ts` resolves the pool bounds and `prisma.service.ts` spreads them into `PrismaPg`. The connect wait is now bounded (`connectionTimeoutMillis` defaults to 15 s instead of 0 = wait forever), so pool starvation fails fast; `DATABASE_POOL_MAX`, `DATABASE_POOL_IDLE_TIMEOUT_MS` and `DATABASE_POOL_CONNECTION_TIMEOUT_MS` are env-tunable. `pool-config.spec.ts` asserts the default bound. Verified by running that spec (4 tests pass).
+
+Residual, stated honestly: `statement_timeout` is deliberately NOT set by default (it is opt-in via `DATABASE_STATEMENT_TIMEOUT_MS`). The audit said to set it only after measuring, and to exempt tenant erasure and the payroll calculation. A runaway query can therefore still hold a connection. `max` is also left at the driver default unless the env var is set. Tracked as ITEM-0242.
 
 ## QA Retest
 
-Not yet retested.
+QA-PLATFORM-070 (automated unit scenario). Not retested against a saturated live pool.
 
 ## History
 
@@ -144,6 +146,8 @@ Not yet retested.
 
 ## Related
 
+- Referenced by — [[ITEM-0242]]
 - Modules — [[api-architecture]]
+- Regression — REG-727 (see the regression register)
 
 <!-- GRAPH:END -->

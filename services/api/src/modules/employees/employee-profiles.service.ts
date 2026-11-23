@@ -1885,7 +1885,20 @@ export class EmployeeProfilesService {
     data: Prisma.EmployeeUncheckedUpdateInput,
     action: string,
   ) {
-    await this.assertEmployeeWriteAccess(currentUser, employeeId);
+    const stored = await this.assertEmployeeWriteAccess(
+      currentUser,
+      employeeId,
+    );
+    // BUG-3155 — address, emergency-contact and reporting-line writes share
+    // this helper, so one screen covers them. `data` is keyed by column, which
+    // is what a field policy names; an echoed mask is dropped, a real change to
+    // a restricted column is a 403.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employees',
+      data as object,
+      stored as unknown as object,
+    );
     const before = await this.getProfile(currentUser, employeeId);
     const result = await this.prisma.employee.updateMany({
       where: { id: employeeId, tenantId: currentUser.tenantId },
