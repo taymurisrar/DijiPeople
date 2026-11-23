@@ -337,12 +337,17 @@ export class BillingService {
      * the same value, and was then reported as "unable to generate a unique
      * invoice number".
      *
-     * The number is unique per tenant, so the check is one indexed lookup. A race
-     * between the check and the insert needs two invoices for one tenant to draw
-     * the same four digits in the same instant; if it ever happens the unique
-     * index still refuses the second and the caller sees the error, which is
-     * retryable, rather than a silent wrong answer.
+     * The pre-insert lookup only avoids the common collision; it is NOT what
+     * guarantees uniqueness. The unique index stays authoritative: if two
+     * callers draw the same number between the check and the insert, the second
+     * insert is refused. Inside a transaction the insert runs under a SAVEPOINT
+     * so that refusal can be rolled back locally and the loop can draw again;
+     * outside one a failed statement poisons nothing. A refusal is retried ONLY
+     * when the number is now held by another row; any other unique violation
+     * (a duplicate `stripeInvoiceId`) is rethrown untouched.
      */
+    const txClient =
+      '$transaction' in db ? null : (db as Prisma.TransactionClient);
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const entropy = String(Math.floor(Math.random() * 10_000)).padStart(
         4,
@@ -356,21 +361,41 @@ export class BillingService {
       });
       if (taken) continue;
 
-      return db.invoice.create({
-        data: {
-          tenantId: input.tenantId,
-          subscriptionId: input.subscriptionId,
-          invoiceNumber,
-          amount: input.amount,
-          currency: input.currency,
-          issueDate,
-          dueDate,
-          status: input.status ?? InvoiceStatus.ISSUED,
-          stripeInvoiceId: input.stripeInvoiceId ?? null,
-          createdById: input.actorUserId,
-          updatedById: input.actorUserId,
-        },
-      });
+      if (txClient) await txClient.$executeRaw`SAVEPOINT invoice_number_insert`;
+      try {
+        const created = await db.invoice.create({
+          data: {
+            tenantId: input.tenantId,
+            subscriptionId: input.subscriptionId,
+            invoiceNumber,
+            amount: input.amount,
+            currency: input.currency,
+            issueDate,
+            dueDate,
+            status: input.status ?? InvoiceStatus.ISSUED,
+            stripeInvoiceId: input.stripeInvoiceId ?? null,
+            createdById: input.actorUserId,
+            updatedById: input.actorUserId,
+          },
+        });
+        if (txClient) {
+          await txClient.$executeRaw`RELEASE SAVEPOINT invoice_number_insert`;
+        }
+        return created;
+      } catch (error) {
+        const isUnique =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002';
+        if (!isUnique) throw error;
+        if (txClient) {
+          await txClient.$executeRaw`ROLLBACK TO SAVEPOINT invoice_number_insert`;
+        }
+        const nowTaken = await db.invoice.findFirst({
+          where: { tenantId: input.tenantId, invoiceNumber },
+          select: { id: true },
+        });
+        if (!nowTaken) throw error;
+      }
     }
 
     throw new BadRequestException(
