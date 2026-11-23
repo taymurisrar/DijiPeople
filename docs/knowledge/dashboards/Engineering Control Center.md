@@ -15,8 +15,8 @@
 | Open questions | 1 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **10** |
-| Open HIGH | 128 |
-| Awaiting Architect triage | 0 |
+| Open HIGH | 129 |
+| Awaiting Architect triage | 3 |
 | Owner decisions pending | 16 |
 | QA coverage gaps | 167 |
 | Scenarios blocked by infrastructure | 0 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 323 |
-| No next action | 323 |
+| No acceptance criteria | 326 |
+| No next action | 326 |
 | Aging — 7d / 30d / 90d | 297 / 295 / 12 |
 | Architecture and technical debt | 8 |
 | Security gaps | 58 |
@@ -316,13 +316,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 323 |
+| Open total | 326 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 3 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 
