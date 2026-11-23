@@ -4,7 +4,7 @@ import { BillingService } from './billing.service';
 
 type Db = {
   invoice: { findFirst: jest.Mock; create: jest.Mock };
-  $transaction?: jest.Mock;
+  $connect?: jest.Mock;
   $executeRaw?: jest.Mock;
 };
 
@@ -26,13 +26,13 @@ describe('BillingService.createInvoice (BUG-3201)', () => {
     issueDate: new Date('2026-11-23T00:00:00Z'),
   };
 
-  // A root client has $transaction; a transaction client does not.
+  // A root client has $connect; a transaction client does not.
   const build = (taken: boolean[], tx = false): Db => ({
     ...(tx
       ? {
           $executeRaw: jest.fn(async () => 0),
         }
-      : { $transaction: jest.fn() }),
+      : { $connect: jest.fn() }),
     invoice: {
       findFirst: jest.fn(async () => (taken.shift() ? { id: 'x' } : null)),
       create: jest.fn(async ({ data }: { data: object }) => ({

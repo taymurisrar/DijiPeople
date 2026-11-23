@@ -346,8 +346,9 @@ export class BillingService {
      * when the number is now held by another row; any other unique violation
      * (a duplicate `stripeInvoiceId`) is rethrown untouched.
      */
-    const txClient =
-      '$transaction' in db ? null : (db as Prisma.TransactionClient);
+    // A Prisma transaction client has no $connect (it DOES expose $transaction,
+    // so that is not a usable test); the root client has both.
+    const txClient = '$connect' in db ? null : db;
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const entropy = String(Math.floor(Math.random() * 10_000)).padStart(
         4,
