@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { FieldAccess } from '../tenant-settings/field-access.interceptor';
 import {
   Permissions,
   RequirePermission,
@@ -63,6 +64,7 @@ export class PayslipsController {
   }
 
   @Get('payslips')
+  @FieldAccess({ tableKey: 'employees', paths: ['employee'] })
   @Permissions('payslips.read-all')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   listPayslips(
@@ -76,6 +78,7 @@ export class PayslipsController {
   }
 
   @Get('payslips/:id')
+  @FieldAccess({ tableKey: 'employees', paths: ['employee'] })
   @Permissions('payslips.read-all')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getPayslip(

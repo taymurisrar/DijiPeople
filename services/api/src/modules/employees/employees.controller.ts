@@ -21,6 +21,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Response } from 'express';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { FieldAccess } from '../tenant-settings/field-access.interceptor';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   Permissions,
@@ -84,6 +85,7 @@ export class EmployeesController {
    * EmployeesService (TASK-0034), inside the create transaction.
    */
   @CustomFields('employees', 'list')
+  @FieldAccess({ tableKey: 'employees' })
   @Permissions('employees.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findAll(
@@ -226,6 +228,10 @@ export class EmployeesController {
   }
 
   @Get(':employeeId')
+  @FieldAccess({
+    tableKey: 'employees',
+    paths: ['personalInfo', 'employmentInfo'],
+  })
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findOne(
@@ -299,6 +305,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/hierarchy')
+  @FieldAccess({ tableKey: 'employees', paths: ['employee'] })
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getHierarchy(
