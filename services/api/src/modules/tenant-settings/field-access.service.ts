@@ -137,6 +137,13 @@ export class FieldAccessService {
     user: AuthenticatedUser,
     tableKey: string,
   ): Promise<Array<ApplicablePolicy & { id: string }>> {
+    // Most tenants configure nothing for most tables. One flat statement answers
+    // that; the include below costs one statement per relation (no relationJoins).
+    const anyPolicy = await this.prisma.fieldSecurityPolicy.findFirst({
+      where: { tenantId: user.tenantId, entityKey: tableKey, isActive: true },
+      select: { id: true },
+    });
+    if (!anyPolicy) return [];
     const policies = await this.prisma.fieldSecurityPolicy.findMany({
       where: { tenantId: user.tenantId, entityKey: tableKey, isActive: true },
       include: {

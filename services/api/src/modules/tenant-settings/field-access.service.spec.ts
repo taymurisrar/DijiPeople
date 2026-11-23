@@ -126,9 +126,12 @@ describe('FieldAccessDecision (BUG-3155)', () => {
 describe('FieldAccessService.applicablePolicies (BUG-3155)', () => {
   const makePrisma = (policies: unknown[]) => {
     const findMany = jest.fn().mockResolvedValue(policies);
+    const findFirst = jest
+      .fn()
+      .mockResolvedValue(policies.length ? { id: 'any' } : null);
     return {
       findMany,
-      prisma: { fieldSecurityPolicy: { findMany } },
+      prisma: { fieldSecurityPolicy: { findMany, findFirst } },
     };
   };
   const user = {
@@ -140,6 +143,17 @@ describe('FieldAccessService.applicablePolicies (BUG-3155)', () => {
 
   it('always scopes the policy query to the caller tenant', async () => {
     const { prisma, findMany } = makePrisma([]);
+    await new FieldAccessService(prisma as never).applicablePolicies(
+      user,
+      'employees',
+    );
+    expect(findMany).not.toHaveBeenCalled(); // no policy: one flat statement
+  });
+
+  it('scopes the full policy query to the caller tenant', async () => {
+    const { prisma, findMany } = makePrisma([
+      { id: 'p', rules: [], roles: [], teams: [] },
+    ]);
     await new FieldAccessService(prisma as never).applicablePolicies(
       user,
       'employees',
@@ -189,6 +203,7 @@ describe('FieldAccessService.applicablePolicies (BUG-3155)', () => {
     await service.forRequest(user, 'employees');
     await service.forRequest(user, 'employees');
     await service.forRequest(user, 'employeeCompensations');
-    expect(findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.fieldSecurityPolicy.findFirst).toHaveBeenCalledTimes(2);
+    expect(findMany).not.toHaveBeenCalled();
   });
 });
