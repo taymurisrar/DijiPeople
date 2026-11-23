@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   CompensationPayFrequency,
@@ -20,6 +21,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { ConfigurationResolverService } from '../tenant-settings/configuration-resolver.service';
 import { EmployeesRepository } from '../employees/employees.repository';
+import { FieldAccessService } from '../tenant-settings/field-access.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { CreateEmployeeCompensationDto } from './dto/create-employee-compensation.dto';
 import {
@@ -148,6 +150,7 @@ export class PayrollService {
     private readonly configurationResolverService: ConfigurationResolverService,
     private readonly compensationFormulaService: CompensationFormulaService,
     private readonly auditService: AuditService,
+    @Optional() private readonly fieldAccess?: FieldAccessService,
   ) {}
 
   async listCycles(tenantId: string, query: PayrollCycleQueryDto) {
@@ -611,6 +614,14 @@ export class PayrollService {
     currentUser: AuthenticatedUser,
     dto: CreateEmployeeCompensationDto,
   ) {
+    // BUG-3155 — a caller who cannot change a compensation field cannot set it
+    // on create either: there is no stored value they were shown to echo.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employeeCompensations',
+      dto,
+      {},
+    );
     await this.ensureEmployeeBelongsToTenant(
       currentUser.tenantId,
       dto.employeeId,
@@ -723,6 +734,21 @@ export class PayrollService {
         'Employee compensation was not found for this tenant.',
       );
     }
+
+    // BUG-3155 — echoing what the caller was shown is not a change; anything
+    // else against a field they may not write is refused, never discarded.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employeeCompensations',
+      dto,
+      {
+        employeeId: existing.employeeId,
+        basicSalary: existing.baseAmount,
+        payFrequency: existing.payFrequency,
+        currency: existing.currencyCode,
+        notes: existing.notes,
+      },
+    );
 
     if (dto.employeeId) {
       await this.ensureEmployeeBelongsToTenant(

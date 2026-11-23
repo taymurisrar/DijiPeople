@@ -449,6 +449,35 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
       ).toBe(0);
     });
 
+    it('the payroll compensation write routes refuse a real change to a hidden salary', async () => {
+      const changed = await call(
+        'patch',
+        alpha.admin,
+        `payroll/compensations/${alpha.compensationId}`,
+        { basicSalary: '1.00' },
+      );
+      expect(changed.status).toBe(403);
+      const created = await call('post', alpha.admin, 'payroll/compensations', {
+        employeeId: alpha.employeeId,
+        basicSalary: '1.00',
+        payFrequency: 'MONTHLY',
+        effectiveDate: '2025-03-01',
+      });
+      expect(created.status).toBe(403);
+      const stored = await prisma.employeeCompensation.findFirstOrThrow({
+        where: { id: alpha.compensationId },
+        select: { basicSalary: true },
+      });
+      expect(String(stored.basicSalary)).toBe(SALARY);
+      // Control: a tenant with no policy on this field is not refused by the screen.
+      const control = await call(
+        'get',
+        beta.admin,
+        `payroll/compensations/${beta.compensationId}`,
+      );
+      expect(control.status).toBe(200);
+    });
+
     it('the work-email alias and a real sort string are both enforced', async () => {
       const aliased = await call(
         'patch',
