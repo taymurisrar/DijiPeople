@@ -6592,7 +6592,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/export",
   "module": "employees",
-  "line": 139,
+  "line": 140,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6604,7 +6604,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/import",
   "module": "employees",
-  "line": 156,
+  "line": 157,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6616,7 +6616,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/export-template",
   "module": "employees",
-  "line": 167,
+  "line": 168,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6628,7 +6628,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/linking-search",
   "module": "employees",
-  "line": 180,
+  "line": 181,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6640,7 +6640,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/me/context",
   "module": "employees",
-  "line": 190,
+  "line": 192,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6652,7 +6652,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/me/direct-reports",
   "module": "employees",
-  "line": 211,
+  "line": 214,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6664,7 +6664,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/custom-fields",
   "module": "employees",
-  "line": 223,
+  "line": 227,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6676,7 +6676,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId",
   "module": "employees",
-  "line": 230,
+  "line": 234,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6688,7 +6688,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/export",
   "module": "employees",
-  "line": 244,
+  "line": 248,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6700,7 +6700,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/assign-owner",
   "module": "employees",
-  "line": 264,
+  "line": 268,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6712,7 +6712,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId",
   "module": "employees",
-  "line": 279,
+  "line": 283,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6724,7 +6724,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/hierarchy",
   "module": "employees",
-  "line": 307,
+  "line": 311,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6736,7 +6736,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/reporting-structure",
   "module": "employees",
-  "line": 318,
+  "line": 322,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6748,7 +6748,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/direct-reports",
   "module": "employees",
-  "line": 331,
+  "line": 336,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6760,7 +6760,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees",
   "module": "employees",
-  "line": 341,
+  "line": 347,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6772,7 +6772,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId",
   "module": "employees",
-  "line": 351,
+  "line": 357,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6784,7 +6784,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/provision-access",
   "module": "employees",
-  "line": 362,
+  "line": 368,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6796,7 +6796,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/resend-invite",
   "module": "employees",
-  "line": 373,
+  "line": 379,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6808,7 +6808,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/reporting-manager",
   "module": "employees",
-  "line": 383,
+  "line": 389,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6820,7 +6820,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/manager",
   "module": "employees",
-  "line": 402,
+  "line": 408,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6832,7 +6832,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/personal-info",
   "module": "employees",
-  "line": 421,
+  "line": 427,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6844,7 +6844,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/address",
   "module": "employees",
-  "line": 436,
+  "line": 442,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6856,7 +6856,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/emergency-contact",
   "module": "employees",
-  "line": 447,
+  "line": 453,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6868,7 +6868,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/history",
   "module": "employees",
-  "line": 462,
+  "line": 468,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6880,7 +6880,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/history",
   "module": "employees",
-  "line": 472,
+  "line": 478,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6892,7 +6892,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/education",
   "module": "employees",
-  "line": 483,
+  "line": 489,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6904,7 +6904,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/compensation",
   "module": "employees",
-  "line": 494,
+  "line": 500,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6916,7 +6916,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PUT employees/:employeeId/compensation",
   "module": "employees",
-  "line": 508,
+  "line": 515,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6928,7 +6928,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/previous-employments",
   "module": "employees",
-  "line": 524,
+  "line": 531,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6940,7 +6940,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/previous-employments",
   "module": "employees",
-  "line": 538,
+  "line": 545,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6952,7 +6952,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/previous-employments/:previousEmploymentId",
   "module": "employees",
-  "line": 553,
+  "line": 560,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6964,7 +6964,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId/previous-employments/:previousEmploymentId",
   "module": "employees",
-  "line": 572,
+  "line": 579,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6976,7 +6976,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/education",
   "module": "employees",
-  "line": 588,
+  "line": 595,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -6988,7 +6988,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/education/:educationId",
   "module": "employees",
-  "line": 599,
+  "line": 606,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7000,7 +7000,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId/education/:educationId",
   "module": "employees",
-  "line": 617,
+  "line": 624,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7012,7 +7012,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/documents",
   "module": "employees",
-  "line": 632,
+  "line": 639,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7024,7 +7024,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/documents/upload",
   "module": "employees",
-  "line": 642,
+  "line": 649,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7036,7 +7036,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#PATCH employees/:employeeId/documents/:documentId",
   "module": "employees",
-  "line": 660,
+  "line": 667,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7048,7 +7048,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/documents/:documentId/download",
   "module": "employees",
-  "line": 680,
+  "line": 687,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7060,7 +7060,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/documents/:documentId/view",
   "module": "employees",
-  "line": 706,
+  "line": 713,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7072,7 +7072,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#DELETE employees/:employeeId/documents/:documentId",
   "module": "employees",
-  "line": 732,
+  "line": 739,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7084,7 +7084,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/profile-image/upload",
   "module": "employees",
-  "line": 747,
+  "line": 754,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7096,7 +7096,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/profile-image",
   "module": "employees",
-  "line": 763,
+  "line": 770,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7108,7 +7108,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/leave-history",
   "module": "employees",
-  "line": 779,
+  "line": 786,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7120,7 +7120,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/attendance-history",
   "module": "employees",
-  "line": 792,
+  "line": 799,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7132,7 +7132,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/timesheet-history",
   "module": "employees",
-  "line": 805,
+  "line": 812,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7144,7 +7144,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#GET employees/:employeeId/project-allocations",
   "module": "employees",
-  "line": 818,
+  "line": 825,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7156,7 +7156,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/send-reset-password-link",
   "module": "employees",
-  "line": 828,
+  "line": 835,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -7168,7 +7168,7 @@
  {
   "route": "services/api/src/modules/employees/employees.controller.ts#POST employees/:employeeId/terminate",
   "module": "employees",
-  "line": 838,
+  "line": 845,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -11624,7 +11624,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#GET payslips/:id",
   "module": "payslips",
-  "line": 80,
+  "line": 91,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11637,7 +11637,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#POST payslips/:id/publish",
   "module": "payslips",
-  "line": 95,
+  "line": 110,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11650,7 +11650,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#POST payslips/:id/void",
   "module": "payslips",
-  "line": 110,
+  "line": 125,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11663,7 +11663,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#POST payslips/:id/regenerate",
   "module": "payslips",
-  "line": 127,
+  "line": 142,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11676,7 +11676,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#POST payslips/:id/deliver",
   "module": "payslips",
-  "line": 142,
+  "line": 157,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11689,7 +11689,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#GET payslips/:id/download",
   "module": "payslips",
-  "line": 157,
+  "line": 172,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11702,7 +11702,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#GET me/payslips",
   "module": "payslips",
-  "line": 180,
+  "line": 195,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11715,7 +11715,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#GET me/payslips/:id",
   "module": "payslips",
-  "line": 195,
+  "line": 214,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -11728,7 +11728,7 @@
  {
   "route": "services/api/src/modules/payslips/payslips.controller.ts#GET me/payslips/:id/download",
   "module": "payslips",
-  "line": 209,
+  "line": 232,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
