@@ -1,0 +1,108 @@
+{
+  "programId": "SESSION-0137-MASTER-HARDENING",
+  "description": "Gate manifest for the DijiPeople master hardening program. It declares WHICH evidence each gate needs; it carries no done flag. `node scripts/program-completion.mjs` evaluates the evidence. The narrative register stays docs/engineering/enterprise-hardening-register.md.",
+  "candidate": { "branch": "develop", "sha": null },
+  "acceptedOrOwnerGated": ["BUG-3110", "BUG-3156", "BUG-3166", "BUG-3186", "BUG-3205", "BUG-3154", "BUG-3189"],
+  "ownerDecisions": [
+    { "id": "OD-3110-ROTATION", "status": "OPEN", "title": "Approve live Neon/Render credential rotation (BUG-3110)", "recommendation": "Approve a scheduled cutover using the runbook in the bug record" },
+    { "id": "OD-FIELD-DEFAULTS", "status": "OPEN", "title": "Baseline field-access defaults D1-D5 (EXECPLAN-0058)", "recommendation": "HR/payroll/self see identity and pay; bank last-4 in JSON; most restrictive wins" }
+  ],
+  "externalBlockers": [],
+  "gates": [
+    {
+      "id": "WP1",
+      "title": "Dependencies and supply chain",
+      "checks": [
+        { "type": "review", "gate": "WP1", "role": "security" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    },
+    {
+      "id": "WP2",
+      "title": "Desktop agent hardening (approved testable scope)",
+      "checks": [
+        { "type": "review", "gate": "WP2", "role": "security" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    },
+    {
+      "id": "WP3",
+      "title": "Tenant isolation and authorization incl. field-level (BUG-3155)",
+      "checks": [
+        { "type": "records-status", "ids": ["BUG-3155"], "statuses": ["FIXED", "VERIFIED", "CLOSED"] },
+        { "type": "review", "gate": "WP3", "role": "security" },
+        { "type": "review", "gate": "WP3", "role": "qa" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    },
+    {
+      "id": "WP4",
+      "title": "Backend, database, Render and Neon efficiency (measured)",
+      "checks": [
+        { "type": "records-status", "ids": ["BUG-3165", "BUG-3175"], "statuses": ["FIXED", "VERIFIED", "CLOSED"] },
+        { "type": "review", "gate": "WP4", "role": "qa" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    },
+    {
+      "id": "WP5",
+      "title": "Frontend performance, UX, accessibility, RTL (real browser)",
+      "checks": [
+        { "type": "review", "gate": "WP5", "role": "qa" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    },
+    {
+      "id": "WP6",
+      "title": "Agent-workforce efficiency",
+      "checks": [{ "type": "review", "gate": "WP6", "role": "qa" }]
+    },
+    {
+      "id": "WP7",
+      "title": "Observability, runbooks, recovery",
+      "checks": [{ "type": "review", "gate": "WP7", "role": "qa" }]
+    },
+    {
+      "id": "WP8",
+      "title": "Technical compliance readiness evidence",
+      "checks": [{ "type": "review", "gate": "WP8", "role": "security" }]
+    },
+    {
+      "id": "BACKLOG",
+      "title": "No actionable P0/P1 record left open",
+      "checks": [{ "type": "no-open-records", "priorities": ["P0", "P1"] }]
+    },
+    {
+      "id": "CREDENTIAL-INCIDENT",
+      "title": "BUG-3110 credential invalidated and verified",
+      "waitsOnOwnerDecisions": ["OD-3110-ROTATION"],
+      "checks": [{ "type": "records-status", "ids": ["BUG-3110"], "statuses": ["FIXED", "VERIFIED", "CLOSED"] }]
+    },
+    {
+      "id": "QUALITY",
+      "title": "Framework validation, governance and independent QA on the candidate",
+      "checks": [
+        { "type": "command", "command": "node scripts/validate-framework.mjs" },
+        { "type": "review", "gate": "QUALITY", "role": "qa" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    },
+    {
+      "id": "RELEASE-CANDIDATE",
+      "title": "Release assessment, deployment order and rollback documented",
+      "checks": [
+        { "type": "review", "gate": "RELEASE-CANDIDATE", "role": "release" },
+        { "type": "ci", "sha": "CANDIDATE" }
+      ]
+    }
+  ],
+  "handoff": {
+    "worktree": "D:/My Work/hrm-dijipeople/dijipeople-perf-reliability",
+    "agentBranch": "agent/dependency-alert-remediation",
+    "lastVerifiedDevelopSha": "2535c42b3a3b32373f965da9c4cf97ea7495e789",
+    "mainUntouchedAt": "53517ab4dacb39c3a68bff48a7a5b98089b3c5d6",
+    "isolatedPostgres": "127.0.0.1:5433 (dp_isolation_test / dijipeople_isolation_test)",
+    "nextTask": "BUG-3155: filter/sort/search refusal, remaining routes (see EXECPLAN-0058), then WP4-WP8",
+    "recovery": "node scripts/program-completion.mjs shows unmet gates; node scripts/program-resume.mjs run resumes under a bounded retry"
+  }
+}
