@@ -306,3 +306,46 @@ describe('FieldAccessDecision.screenWrite aliases and typed echoes (BUG-3155)', 
     ]);
   });
 });
+
+describe('read-only echo comparison is not lossy (BUG-3155)', () => {
+  const ro = new FieldAccessDecision([
+    {
+      id: 'p',
+      rules: [
+        rule('customData', 'VISIBLE', { accessMode: 'READ_ONLY' }),
+        rule('amount', 'VISIBLE', { accessMode: 'READ_ONLY' }),
+        rule('flag', 'VISIBLE', { accessMode: 'READ_ONLY' }),
+      ],
+    },
+  ]);
+  const screen = (
+    payload: Record<string, unknown>,
+    stored: Record<string, unknown>,
+  ) => ro.screenWrite(payload, stored, Object.keys(payload));
+
+  it('a changed JSON object or array is a change, an identical one is an echo', () => {
+    expect(screen({ customData: { a: 2 } }, { customData: { a: 1 } })).toEqual([
+      'customData',
+    ]);
+    expect(screen({ customData: [1, 2] }, { customData: '1,2' })).toEqual([
+      'customData',
+    ]);
+    expect(screen({ customData: { a: 1 } }, { customData: { a: 1 } })).toEqual(
+      [],
+    );
+  });
+
+  it('decimals that differ past 15 digits are different; trailing zeros are not', () => {
+    expect(screen({ amount: '1000.00' }, { amount: '1000' })).toEqual([]);
+    expect(
+      screen(
+        { amount: '1234567890.1234567' },
+        { amount: '1234567890.1234568' },
+      ),
+    ).toEqual(['amount']);
+  });
+
+  it('a boolean never equals its string form', () => {
+    expect(screen({ flag: 'true' }, { flag: true })).toEqual(['flag']);
+  });
+});

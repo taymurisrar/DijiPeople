@@ -202,23 +202,36 @@ export class FieldAccessDecision {
 function sameValue(posted: unknown, stored: unknown): boolean {
   if (posted === stored) return true;
   if (posted === null || stored === null) return false;
+  if (typeof posted === 'boolean' || typeof stored === 'boolean') return false;
+  const isStructured = (value: unknown) =>
+    Array.isArray(value) ||
+    (typeof value === 'object' &&
+      value !== null &&
+      Object.getPrototypeOf(value) === Object.prototype);
+  // JSON-like columns: compare structure, never a lossy toString().
+  if (isStructured(posted) || isStructured(stored)) {
+    return isStructured(posted) && isStructured(stored)
+      ? JSON.stringify(posted) === JSON.stringify(stored)
+      : false;
+  }
   const text = (value: unknown): string =>
     value instanceof Date
       ? value.toISOString()
       : typeof value === 'object'
-        ? (value as { toString(): string }).toString()
-        : String(value as string | number | boolean);
+        ? (value as { toString(): string }).toString() // Prisma.Decimal
+        : String(value as string | number);
   const a = text(posted);
   const b = text(stored);
   if (a === b) return true;
   if (stored instanceof Date && /^\d{4}-\d{2}-\d{2}$/.test(a)) {
     return b.slice(0, 10) === a;
   }
-  return (
-    /^-?\d+(\.\d+)?$/.test(a) &&
-    /^-?\d+(\.\d+)?$/.test(b) &&
-    Number(a) === Number(b)
-  );
+  // Decimals: equal when the digits are, ignoring trailing zeros. Never via
+  // Number(), which would merge values that differ past 15 digits.
+  const numeric = /^-?\d+(\.\d+)?$/;
+  const canonical = (value: string) =>
+    value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
+  return numeric.test(a) && numeric.test(b) && canonical(a) === canonical(b);
 }
 
 const rank = (effect: FieldEffect) =>

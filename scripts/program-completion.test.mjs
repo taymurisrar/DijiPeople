@@ -216,7 +216,11 @@ UpdatedAt: 2026-01-01
   assert.equal(verifyProgram(a.root, {}).verdict, 'VALIDATION_FAILED');
   const b = fixture({ gates: [gate], ownerDecisions: [{ id: 'D', status: 'OPEN', covers: ['BUG-9002'] }] });
   writeFileSync(join(b.root, 'docs/bugs/BUG-9002-t.md'), open);
-  assert.equal(verifyProgram(b.root, {}).verdict, 'READY_TO_MERGE_MAIN');
+  // Covered by a decision that is still OPEN: waiting on the owner, not done.
+  assert.equal(verifyProgram(b.root, {}).verdict, 'BLOCKED_OWNER_ACTION');
+  const d = fixture({ gates: [gate], ownerDecisions: [{ id: 'D', status: 'ACCEPTED_RISK', covers: ['BUG-9002'] }] });
+  writeFileSync(join(d.root, 'docs/bugs/BUG-9002-t.md'), open);
+  assert.equal(verifyProgram(d.root, {}).verdict, 'READY_TO_MERGE_MAIN');
   const c = fixture({ gates: [gate] });
   writeFileSync(join(c.root, 'docs/bugs/BUG-9002-t.md'), open);
   assert.equal(verifyProgram(c.root, {}).verdict, 'IN_PROGRESS');

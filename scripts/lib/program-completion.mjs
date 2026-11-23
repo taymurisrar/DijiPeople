@@ -108,16 +108,22 @@ export function ghCiLookup(root, sha, workflow = 'CI') {
   return { state: 'UNKNOWN' };
 }
 
-function loadReviews(root) {
-  const dir = join(root, REVIEW_DIR);
-  if (!existsSync(dir)) return [];
+/**
+ * Reviews are read from the CANDIDATE COMMIT, never from the working tree: a
+ * file edited after the fact, or never committed, is not evidence.
+ */
+function loadReviews(root, candidateSha) {
+  if (!candidateSha) return [];
+  const listing = git(root, ['ls-tree', '--name-only', candidateSha, `${REVIEW_DIR}/`]);
+  if (!listing) return [];
   const reviews = [];
-  for (const name of readdirSync(dir)) {
-    if (!name.endsWith('.json')) continue;
+  for (const path of listing.split(/\r?\n/).filter((name) => name.endsWith('.json'))) {
+    const file = path.slice(REVIEW_DIR.length + 1);
+    const blob = git(root, ['show', `${candidateSha}:${path}`]);
     try {
-      reviews.push({ file: name, ...JSON.parse(readFileSync(join(dir, name), 'utf8')) });
+      reviews.push({ file, ...JSON.parse(blob ?? '') });
     } catch {
-      reviews.push({ file: name, malformed: true });
+      reviews.push({ file, malformed: true });
     }
   }
   return reviews;
@@ -170,14 +176,6 @@ function checkReview(ctx, check) {
     if (!review.reviewer || review.reviewer === review.implementer) continue;
     // A review that names no paths could never go stale, so it is not evidence.
     if (!Array.isArray(review.paths) || review.paths.length === 0) continue;
-    // It must be part of the candidate's history, not a file in a working tree.
-    if (
-      ctx.candidateSha &&
-      git(ctx.root, ['cat-file', '-e', `${ctx.candidateSha}:${REVIEW_DIR}/${review.file}`]) === null
-    ) {
-      continue;
-    }
-    if (!ctx.candidateSha) return [FAIL, 'no candidate sha to compare the review against'];
     const inside = isAncestor(ctx.root, review.sha, ctx.candidateSha);
     if (inside === null) return [UNVERIFIED, `${review.sha} unknown to this clone`];
     if (!inside) continue;
@@ -207,12 +205,21 @@ function checkRecordsStatus(ctx, check) {
 }
 
 /** No actionable record at or above a priority may remain open. */
+const DECIDED = new Set(['APPROVED', 'ACCEPTED_RISK', 'DEFERRED_BY_OWNER']);
+
 function checkNoOpenRecords(ctx, check) {
   const priorities = new Set(check.priorities ?? ['P0', 'P1']);
-  // An exemption is only as good as the owner decision that covers it.
+  // A record is exempt only when the owner has DECIDED so; one covered by a
+  // decision that is still OPEN is waiting on the owner, which is a different
+  // thing from being done.
+  const decisions = ctx.manifest.ownerDecisions ?? [];
   const exempt = new Set(
-    (ctx.manifest.ownerDecisions ?? []).flatMap((decision) => decision.covers ?? []),
+    decisions.filter((d) => DECIDED.has(d.status)).flatMap((d) => d.covers ?? []),
   );
+  const waiting = new Map();
+  for (const decision of decisions.filter((d) => d.status === 'OPEN')) {
+    for (const id of decision.covers ?? []) waiting.set(id, decision.id);
+  }
   const open = ctx.records.filter(
     (record) =>
       isActive(record) &&
@@ -220,9 +227,12 @@ function checkNoOpenRecords(ctx, check) {
       !exempt.has(record.id) &&
       !['BLOCKED', 'DEFERRED', 'PRODUCT_DECISION'].includes(record.status),
   );
-  return open.length === 0
-    ? [PASS, `no open ${[...priorities].join('/')} actionable records`]
-    : [FAIL, `${open.length} open: ${open.slice(0, 5).map((record) => record.id).join(', ')}${open.length > 5 ? ', …' : ''}`];
+  if (open.length === 0) return [PASS, `no open ${[...priorities].join('/')} actionable records`];
+  const actionable = open.filter((record) => !waiting.has(record.id));
+  const label = (list) => `${list.length} open: ${list.slice(0, 5).map((record) => record.id).join(', ')}${list.length > 5 ? ', …' : ''}`;
+  if (actionable.length > 0) return [FAIL, label(actionable)];
+  const ids = [...new Set(open.map((record) => waiting.get(record.id)))];
+  return [FAIL, `only owner-gated records remain (${label(open)})`, { waitsOnOwner: ids }];
 }
 
 function checkCommand(ctx, check) {
@@ -306,7 +316,7 @@ export function verifyProgram(root, options = {}) {
     manifest,
     candidateSha,
     records,
-    reviews: loadReviews(root),
+    reviews: loadReviews(root, candidateSha),
     ci: options.ci ?? ghCiLookup,
     allowCommands: options.allowCommands ?? false,
   };
@@ -320,8 +330,8 @@ export function verifyProgram(root, options = {}) {
 
   const gates = manifest.gates.map((gate) => {
     const results = gate.checks.map((check) => {
-      const [state, detail] = CHECKS[check.type](ctx, check);
-      return { type: check.type, state, detail };
+      const [state, detail, extra] = CHECKS[check.type](ctx, check);
+      return { type: check.type, state, detail, waitsOnOwner: extra?.waitsOnOwner ?? [] };
     });
     const state = results.some((result) => result.state === CONTRADICTED)
       ? CONTRADICTED
@@ -330,7 +340,19 @@ export function verifyProgram(root, options = {}) {
         : results.some((result) => result.state === UNVERIFIED)
           ? UNVERIFIED
           : FAIL;
-    const waitingOwner = (gate.waitsOnOwnerDecisions ?? []).filter((id) => openDecisions.has(id));
+    const failing = results.filter((result) => result.state !== PASS);
+    // A gate whose every unmet check waits on an open owner decision is blocked
+    // on the owner, however that was declared.
+    const derivedOwner =
+      failing.length > 0 && failing.every((result) => result.waitsOnOwner.length > 0)
+        ? [...new Set(failing.flatMap((result) => result.waitsOnOwner))]
+        : [];
+    const waitingOwner = [
+      ...new Set([
+        ...(gate.waitsOnOwnerDecisions ?? []).filter((id) => openDecisions.has(id)),
+        ...derivedOwner,
+      ]),
+    ];
     const waitingExternal = (gate.waitsOnExternal ?? []).filter((id) => externalOpen.has(id));
     return { id: gate.id, title: gate.title ?? '', state, results, waitingOwner, waitingExternal };
   });
