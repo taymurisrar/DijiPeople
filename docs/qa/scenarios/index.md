@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 526** · automated: 436 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 527** · automated: 437 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -85,6 +85,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTH-026](../../../docs/qa/scenarios/QA-AUTH-026-the-agent-refresh-flag-cannot-extend-the-absolute-session-li.md) | The agent refresh flag cannot extend the absolute session lifetime | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/test/auth-session-hardening.e2e-spec.ts` | BUG-3140 | REG-709 |
 | [QA-AUTH-027](../../../docs/qa/scenarios/QA-AUTH-027-the-tenant-resolve-cache-key-carries-every-selector.md) | The tenant-resolve cache key carries every selector | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/src/modules/tenants/public-tenants-cache-key.spec.ts` | BUG-3162 | REG-710 |
 | [QA-AUTH-028](../../../docs/qa/scenarios/QA-AUTH-028-password-reset-links-are-single-use.md) | Password-reset links are single-use | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/src/modules/auth/password-reset-single-use.spec.ts` | BUG-3139 | REG-717 |
+| [QA-AUTH-029](../../../docs/qa/scenarios/QA-AUTH-029-anonymous-reads-are-rate-limited-and-the-invariant-covers-th.md) | Anonymous reads are rate limited and the invariant covers them | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/test/public-read-rate-limit.e2e-spec.ts` | BUG-3187 | REG-721 |
 | [QA-AUTHZ-001](../../../docs/qa/scenarios/QA-AUTHZ-001-every-permission-gated-route-declares-both-permission-famili.md) | Every permission-gated route declares both permission families | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/constants/wiring-invariants.spec.ts` | BUG-0049, ITEM-0043 | REG-040 |
 | [QA-AUTHZ-002](../../../docs/qa/scenarios/QA-AUTHZ-002-no-unguarded-duplicate-of-a-permission-gated-route-exists.md) | No unguarded duplicate of a permission-gated route exists | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/constants/wiring-invariants.spec.ts` | BUG-0007 | REG-007 |
 | [QA-AUTHZ-003](../../../docs/qa/scenarios/QA-AUTHZ-003-a-team-scoped-role-cannot-read-outside-its-subtree.md) | A TEAM-scoped role cannot read outside its subtree | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/modules/employees/employee-access.service.spec.ts` | BUG-0003 | REG-003 |

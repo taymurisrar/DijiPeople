@@ -21,6 +21,7 @@ import {
   RequirePermission,
 } from '../../common/decorators/permissions.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -91,6 +92,7 @@ export class TenantSettingsController {
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Get('public-branding')
   async getPublicBranding(@Query('tenantSlug') tenantSlug?: string) {
     return this.service.getPublicBranding(tenantSlug);

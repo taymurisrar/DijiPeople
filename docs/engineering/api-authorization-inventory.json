@@ -16976,8 +16976,10 @@
  {
   "route": "services/api/src/modules/tenant-domains/workspace.controller.ts#GET workspaces/resolve",
   "module": "tenant-domains",
-  "line": 32,
-  "guards": [],
+  "line": 34,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
   "cls": "PUBLIC_DECLARED",
   "declared": true,
   "why": "@Public()"
@@ -16985,7 +16987,7 @@
  {
   "route": "services/api/src/modules/tenant-domains/workspace.controller.ts#GET workspaces/mine",
   "module": "tenant-domains",
-  "line": 41,
+  "line": 43,
   "guards": [
    "JwtAuthGuard"
   ],
@@ -17006,7 +17008,7 @@
  {
   "route": "services/api/src/modules/tenant-domains/workspace.controller.ts#GET workspaces/access-check",
   "module": "tenant-domains",
-  "line": 54,
+  "line": 56,
   "guards": [
    "JwtAuthGuard"
   ],
@@ -17700,10 +17702,11 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-branding.controller.ts#GET tenant-branding/resolved",
   "module": "tenant-settings",
-  "line": 29,
+  "line": 31,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "PublicRateLimitGuard"
   ],
   "cls": "PUBLIC_DECLARED",
   "declared": true,
@@ -17712,7 +17715,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-branding.controller.ts#PATCH tenant-branding",
   "module": "tenant-settings",
-  "line": 34,
+  "line": 36,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17724,7 +17727,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#POST tenant-settings/branding-assets",
   "module": "tenant-settings",
-  "line": 60,
+  "line": 61,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17736,7 +17739,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings",
   "module": "tenant-settings",
-  "line": 76,
+  "line": 77,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17748,7 +17751,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/resolved",
   "module": "tenant-settings",
-  "line": 83,
+  "line": 84,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17760,10 +17763,11 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/public-branding",
   "module": "tenant-settings",
-  "line": 94,
+  "line": 96,
   "guards": [
    "JwtAuthGuard",
-   "PermissionsGuard"
+   "PermissionsGuard",
+   "PublicRateLimitGuard"
   ],
   "cls": "PUBLIC_DECLARED",
   "declared": true,
@@ -17772,7 +17776,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings",
   "module": "tenant-settings",
-  "line": 99,
+  "line": 101,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17784,7 +17788,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/organizations",
   "module": "tenant-settings",
-  "line": 113,
+  "line": 115,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17796,7 +17800,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/organizations/:organizationId/settings",
   "module": "tenant-settings",
-  "line": 120,
+  "line": 122,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17808,7 +17812,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings/organizations/:organizationId/settings",
   "module": "tenant-settings",
-  "line": 133,
+  "line": 135,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17820,7 +17824,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/features",
   "module": "tenant-settings",
-  "line": 148,
+  "line": 150,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17832,7 +17836,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/features/availability",
   "module": "tenant-settings",
-  "line": 184,
+  "line": 186,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17844,7 +17848,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings/features",
   "module": "tenant-settings",
-  "line": 195,
+  "line": 197,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17856,7 +17860,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#GET tenant-settings/:category",
   "module": "tenant-settings",
-  "line": 205,
+  "line": 207,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17868,7 +17872,7 @@
  {
   "route": "services/api/src/modules/tenant-settings/tenant-settings.controller.ts#PATCH tenant-settings/:category",
   "module": "tenant-settings",
-  "line": 217,
+  "line": 219,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"
@@ -17880,8 +17884,10 @@
  {
   "route": "services/api/src/modules/tenants/public-tenants.controller.ts#GET public/tenants/resolve",
   "module": "tenants",
-  "line": 19,
-  "guards": [],
+  "line": 25,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
   "cls": "PUBLIC_DECLARED",
   "declared": true,
   "why": "@Public()"
@@ -17889,8 +17895,10 @@
  {
   "route": "services/api/src/modules/tenants/public-tenants.controller.ts#GET public/tenants/:tenantSlug/assets/:assetType",
   "module": "tenants",
-  "line": 35,
-  "guards": [],
+  "line": 41,
+  "guards": [
+   "PublicRateLimitGuard"
+  ],
   "cls": "PUBLIC_DECLARED",
   "declared": true,
   "why": "@Public()"

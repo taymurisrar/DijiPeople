@@ -2,6 +2,7 @@ import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { resolveRequestHostname } from './request-hostname';
@@ -29,6 +30,7 @@ export class WorkspaceController {
    * answer contains no tenant data.
    */
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Get('resolve')
   resolve(@Req() request: Request, @Query('host') host?: string) {
     return this.workspaces.resolveRoute(

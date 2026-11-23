@@ -6,11 +6,17 @@ import {
   Query,
   Res,
   StreamableFile,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 import { PublicTenantsService } from './public-tenants.service';
 
+// Class level (BUG-3187): every handler here is anonymous, and a handler added later
+// inherits the limit. Both are reads, called on every page load of a workspace, so
+// the per-route budgets in the guard are deliberately generous.
+@UseGuards(PublicRateLimitGuard)
 @Controller('public/tenants')
 export class PublicTenantsController {
   constructor(private readonly publicTenantsService: PublicTenantsService) {}

@@ -52,6 +52,24 @@ const ROUTE_LIMITS: ReadonlyArray<{ suffix: string; limit: number }> = [
    */
   { suffix: '/auth/mfa/verify', limit: 10 },
   { suffix: '/auth/mfa/challenge/setup/confirm', limit: 10 },
+  /*
+   * BUG-3187. Anonymous READS that every page load of a workspace makes: the
+   * tenant-resolve and branding lookups the login screen and shell depend on.
+   * They were unguarded, and the invariant that guards public writes could not
+   * see them. The default read budget (120 per window) would be too tight for a
+   * 50-person office behind one NAT address that opens a few pages each, and a
+   * 429 on these shows up as a broken login for everyone in the office. 600 per
+   * window and route is far above any person and far below a scraper. The key
+   * uses the path without the query string, so rotating ?slug= does not buy a
+   * fresh bucket.
+   */
+  { suffix: '/public/tenants/resolve', limit: 600 },
+  { suffix: '/workspaces/resolve', limit: 600 },
+  { suffix: '/tenant-branding/resolved', limit: 600 },
+  { suffix: '/tenant-settings/public-branding', limit: 600 },
+  { suffix: '/assets/logo', limit: 600 },
+  { suffix: '/assets/favicon', limit: 600 },
+  { suffix: '/assets/login-image', limit: 600 },
 ];
 
 @Injectable()

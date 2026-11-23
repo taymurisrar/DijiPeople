@@ -7972,3 +7972,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — mutation-verified. |
 | **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
+
+### REG-721 — Anonymous reads are rate limited and the invariant covers them
+
+| | |
+|---|---|
+| **Bug class** | `missing-rate-limit` |
+| **Module** | `services/api/src/common/guards` |
+| **Bug record** | BUG-3187 |
+| **Root cause** | The rate-limit invariant was written for public writes and looked only at Post, Put, Patch and Delete, so every unprotected public surface that was left turned out to be a read. Five public GET handlers had no guard. |
+| **Regression test** | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts`; `services/api/test/public-read-rate-limit.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-029 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
