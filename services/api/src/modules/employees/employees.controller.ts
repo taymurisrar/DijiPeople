@@ -120,6 +120,7 @@ export class EmployeesController {
   }
 
   @Get('owner-options')
+  @FieldAccess({ tableKey: 'employees', deep: true })
   @Permissions('employees.assign')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'assign')
   ownerOptions(
@@ -178,6 +179,7 @@ export class EmployeesController {
   }
 
   @Get('linking-search')
+  @FieldAccess({ tableKey: 'employees', deep: true })
   @Permissions('employees.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   searchForLinking(
@@ -188,6 +190,7 @@ export class EmployeesController {
   }
 
   @Get('me/context')
+  @FieldAccess({ tableKey: 'employees', deep: true })
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getCurrentEmployeeContext(@CurrentUser() user: AuthenticatedUser) {
@@ -209,6 +212,7 @@ export class EmployeesController {
    * hard to see: one `me/` route worked and the other did not.
    */
   @Get('me/direct-reports')
+  @FieldAccess({ tableKey: 'employees', deep: true })
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getMyDirectReports(@CurrentUser() user: AuthenticatedUser) {
@@ -316,6 +320,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/reporting-structure')
+  @FieldAccess({ tableKey: 'employees', deep: true })
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getReportingStructure(
@@ -329,6 +334,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/direct-reports')
+  @FieldAccess({ tableKey: 'employees', deep: true })
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getDirectReports(
@@ -492,6 +498,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/compensation')
+  @FieldAccess({ tableKey: 'employeeCompensations', deep: true })
   @CustomFields('employeeCompensations', 'read')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')

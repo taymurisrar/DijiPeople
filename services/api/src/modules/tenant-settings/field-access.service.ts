@@ -81,6 +81,21 @@ export class FieldAccessDecision {
   }
 
   /**
+   * Fail-closed sweep: applies the decision to EVERY object in the response tree,
+   * whatever the envelope or nesting. For hierarchical and composite responses
+   * where listing nested paths would silently miss one.
+   */
+  applyDeep(value: unknown): void {
+    if (Array.isArray(value)) {
+      for (const item of value) this.applyDeep(item);
+      return;
+    }
+    if (!isRow(value)) return;
+    this.apply(value);
+    for (const child of Object.values(value)) this.applyDeep(child);
+  }
+
+  /**
    * Write-back screen. For each named field present in `payload`:
    *  - equal to what this caller was shown (the mask, `null`/empty for hidden,
    *    the stored value for read-only) → an echo of the UI, dropped from the

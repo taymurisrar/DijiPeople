@@ -364,6 +364,32 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
       expect(allowed.body.items.length).toBeGreaterThan(0);
     });
 
+    it('the per-employee compensation route masks the salary (control: unmasked elsewhere)', async () => {
+      const masked = await call(
+        'get',
+        alpha.admin,
+        `employees/${alpha.employeeId}/compensation`,
+      );
+      expect(masked.status).toBe(200);
+      expect(JSON.stringify(masked.body)).not.toContain(SALARY);
+      const control = await call(
+        'get',
+        beta.admin,
+        `employees/${beta.employeeId}/compensation`,
+      );
+      expect(JSON.stringify(control.body)).toContain(SALARY);
+    });
+
+    it('linking search never carries a hidden identity value', async () => {
+      const res = await call(
+        'get',
+        alpha.admin,
+        'employees/linking-search?q=Field',
+      );
+      expect(res.status).toBe(200);
+      expect(JSON.stringify(res.body)).not.toContain(CNIC);
+    });
+
     it("another tenant's policies never affect this tenant (control already shows BETA unmasked)", async () => {
       const res = await call('get', beta.admin, 'employees');
       expect(JSON.stringify(res.body)).toContain(CNIC);

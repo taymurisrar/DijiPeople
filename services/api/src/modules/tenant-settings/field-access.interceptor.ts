@@ -21,6 +21,8 @@ export const FIELD_ACCESS_KEY = 'fieldAccessBindings';
 export type FieldAccessBinding = {
   readonly tableKey: string;
   readonly paths?: readonly string[];
+  /** Sweep the whole response tree instead of named paths (hierarchies, composites). */
+  readonly deep?: boolean;
 };
 
 /**
@@ -71,9 +73,16 @@ export class FieldAccessInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       mergeMap(async (response: unknown) => {
+        for (const binding of bindings) {
+          if (!binding.deep) continue;
+          const decision = await this.access.forRequest(user, binding.tableKey);
+          if (decision.restrictedFields().length > 0)
+            decision.applyDeep(response);
+        }
         const records = recordsOf(response);
         if (records.length === 0) return response;
         for (const binding of bindings) {
+          if (binding.deep) continue;
           const decision = await this.access.forRequest(user, binding.tableKey);
           if (decision.restrictedFields().length === 0) continue;
           for (const record of records) {
