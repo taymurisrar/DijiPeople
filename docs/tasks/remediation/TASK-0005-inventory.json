@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 828,
+    "total_records": 829,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -17376,21 +17376,25 @@
       "title": "The Postgres connection pool is entirely default and waits forever for a connection",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-11-24",
+        "resolved_at": "2026-11-24"
       },
       "affected_modules": [
         "services/api/src/common"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-727"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-070"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -17494,21 +17498,25 @@
       "title": "api/health is a static ok payload, so a broken deploy and a dead database both report healthy",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-11-24",
+        "resolved_at": "2026-11-24"
       },
       "affected_modules": [
         "services/api/src/common"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-728"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-071"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -36359,6 +36367,44 @@
           "services/api"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0242",
+      "type": "TECH_DEBT",
+      "title": "Set a measured statement_timeout with tenant-erasure and payroll exemptions, and report worker lastTickAt in readiness",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0242-set-a-measured-statement-timeout-with-tenant-erasure-and-pay.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-23",
+        "updated_at": "2026-11-24",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0242-set-a-measured-statement-timeout-with-tenant-erasure-and-pay.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
