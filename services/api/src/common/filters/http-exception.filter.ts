@@ -16,6 +16,7 @@ import { ErrorCode, getErrorCatalogEntry } from '../errors/error-catalog';
 import { getErrorFrameworkConfig } from '../errors/error-config';
 import { deriveErrorModule } from '../errors/derive-error-module';
 import { sanitizeForErrorLog } from '../errors/sanitize-error-log';
+import { RateLimitPersistSampler } from './rate-limit-persist-sampler';
 import type { AuthenticatedUser } from '../interfaces/authenticated-request.interface';
 import type { RequestWithId } from '../middleware/request-id.middleware';
 import { toErrorMessage } from '../utils/display-string';
@@ -43,6 +44,8 @@ type StandardErrorContract = {
 @Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
+  /** Shared across instances: one process, one budget of 429 rows (BUG-3188). */
+  private static readonly rateLimitSampler = new RateLimitPersistSampler();
 
   constructor(
     private readonly configService: ConfigService,
@@ -122,6 +125,38 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.warn(JSON.stringify(logContext));
     }
 
+    /*
+     * BUG-3188. A 429 is persisted once per error code, address and path per
+     * window instead of once per rejected request, so a flood cannot turn the
+     * limiter into a database write amplifier. Every rejection is still in the
+     * warn log above. Other statuses are persisted in full: the monitoring queue
+     * and support's trace-id lookup depend on those rows.
+     */
+    const persistRow =
+      normalized.statusCode !== 429 ||
+      HttpExceptionFilter.rateLimitSampler.shouldPersist(
+        `${normalized.errorCode}|${request.ip ?? ''}|${(request.originalUrl ?? request.url ?? '').split('?')[0]}`,
+      );
+
+    if (persistRow) {
+      await this.persistErrorLog({
+        traceId,
+        normalized,
+        details,
+        request,
+      });
+    }
+
+    response.status(normalized.statusCode).json(contract);
+  }
+
+  private async persistErrorLog(input: {
+    traceId: string;
+    normalized: ReturnType<HttpExceptionFilter['normalizeException']>;
+    details: unknown;
+    request: RequestWithId & { user?: AuthenticatedUser };
+  }) {
+    const { traceId, normalized, details, request } = input;
     await this.errorLogsService.persist({
       traceId,
       errorCode: normalized.errorCode,
@@ -149,8 +184,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
         normalized.message,
       ),
     });
-
-    response.status(normalized.statusCode).json(contract);
   }
 
   private normalizeException(exception: unknown): {

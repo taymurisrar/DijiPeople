@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 527** · automated: 437 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 529** · automated: 439 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -86,6 +86,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTH-027](../../../docs/qa/scenarios/QA-AUTH-027-the-tenant-resolve-cache-key-carries-every-selector.md) | The tenant-resolve cache key carries every selector | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/src/modules/tenants/public-tenants-cache-key.spec.ts` | BUG-3162 | REG-710 |
 | [QA-AUTH-028](../../../docs/qa/scenarios/QA-AUTH-028-password-reset-links-are-single-use.md) | Password-reset links are single-use | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/src/modules/auth/password-reset-single-use.spec.ts` | BUG-3139 | REG-717 |
 | [QA-AUTH-029](../../../docs/qa/scenarios/QA-AUTH-029-anonymous-reads-are-rate-limited-and-the-invariant-covers-th.md) | Anonymous reads are rate limited and the invariant covers them | authentication | SECURITY | MEDIUM | AUTOMATED | `services/api/test/public-read-rate-limit.e2e-spec.ts` | BUG-3187 | REG-721 |
+| [QA-AUTH-030](../../../docs/qa/scenarios/QA-AUTH-030-a-rate-limited-request-does-not-cost-a-database-write-per-re.md) | A rate-limited request does not cost a database write per rejection | authentication | INTEGRATION | MEDIUM | AUTOMATED | `services/api/src/common/filters/http-exception-filter-persistence.spec.ts` | BUG-3188 | REG-722 |
 | [QA-AUTHZ-001](../../../docs/qa/scenarios/QA-AUTHZ-001-every-permission-gated-route-declares-both-permission-famili.md) | Every permission-gated route declares both permission families | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/constants/wiring-invariants.spec.ts` | BUG-0049, ITEM-0043 | REG-040 |
 | [QA-AUTHZ-002](../../../docs/qa/scenarios/QA-AUTHZ-002-no-unguarded-duplicate-of-a-permission-gated-route-exists.md) | No unguarded duplicate of a permission-gated route exists | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/constants/wiring-invariants.spec.ts` | BUG-0007 | REG-007 |
 | [QA-AUTHZ-003](../../../docs/qa/scenarios/QA-AUTHZ-003-a-team-scoped-role-cannot-read-outside-its-subtree.md) | A TEAM-scoped role cannot read outside its subtree | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/modules/employees/employee-access.service.spec.ts` | BUG-0003 | REG-003 |
@@ -362,6 +363,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-066](../../../docs/qa/scenarios/QA-PLATFORM-066-every-outbound-fetch-carries-a-deadline-and-stripe-has-a-bou.md) | Every outbound fetch carries a deadline and Stripe has a bounded timeout | monitoring | SECURITY | MEDIUM | AUTOMATED | `services/api/src/common/http/outbound-fetch-has-deadline.spec.ts` | BUG-3199 | REG-714 |
 | [QA-PLATFORM-067](../../../docs/qa/scenarios/QA-PLATFORM-067-every-upload-endpoint-declares-a-multipart-size-limit.md) | Every upload endpoint declares a multipart size limit | tenant-isolation | SECURITY | MEDIUM | AUTOMATED | `services/api/src/common/storage/upload-endpoints-have-limits.spec.ts` | BUG-3179 | REG-716 |
 | [QA-PLATFORM-068](../../../docs/qa/scenarios/QA-PLATFORM-068-storage-reads-refuse-a-key-outside-the-caller-scope.md) | Storage reads refuse a key outside the caller scope | tenant-isolation | SECURITY | MEDIUM | AUTOMATED | `services/api/src/common/storage/storage.service.spec.ts` | BUG-3177 | REG-720 |
+| [QA-PLATFORM-069](../../../docs/qa/scenarios/QA-PLATFORM-069-unique-violation-recovery-works-inside-interactive-transacti.md) | Unique-violation recovery works inside interactive transactions | tenant-provisioning | INTEGRATION | MEDIUM | AUTOMATED | `services/api/test/identity-concurrent-create.e2e-spec.ts` | BUG-3201 | REG-723 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

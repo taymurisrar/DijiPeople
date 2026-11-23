@@ -2,7 +2,7 @@
 ID: BUG-3188
 aliases: [BUG-3188]
 Title: Every rejected rate-limited request writes a database row, so throttling costs more than serving
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/common]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-722
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-11-23
 ---
 
 # BUG-3188 — Every rejected rate-limited request writes a database row, so throttling costs more than serving
@@ -98,7 +98,7 @@ Full finding text: RATE-04 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The exception filter persisted an error-log row (a transaction with a find, an update or insert and an occurrence upsert) for every 429 on the request path, so a flood made refusing a request cost more than serving it and filled the error log with identical rows.
 
 ## Impact
 
@@ -131,7 +131,7 @@ In `ErrorLogsService.persist`, add a suppression set checked before the
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: RATE-04=LOW — `occurrenceCount` still records the volume.. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/src/common/filters/http-exception-filter-persistence.spec.ts; services/api/src/common/filters/rate-limit-persist-sampler.spec.ts. REG-722, QA-AUTH-030. Persisting every 429 again fails the flood test.
 
 ## Dependencies
 
@@ -143,11 +143,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+A 429 is persisted once per error code, address and path per minute (bounded in-memory sampler, 5,000 keys). Every rejection is still in the structured warn log. All other statuses are persisted in full because the monitoring queue and support trace-id lookup depend on those rows. Not measured: no load test was run, so the saving is stated as statements avoided per repeated rejection (all but one per minute), not as a latency figure.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it.
 
 ## QA Retest
 
-Not yet retested.
+QA-AUTH-030 on the isolated database, 2026-11-23: passing with the fix and failing with it removed. Independent review pending.
 
 ## History
 
@@ -158,5 +160,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[api-architecture]]
+- Regression — REG-722 (see the regression register)
 
 <!-- GRAPH:END -->

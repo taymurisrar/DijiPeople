@@ -7986,3 +7986,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — mutation-verified. |
 | **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
+
+### REG-722 — A rate-limited request does not cost a database write per rejection
+
+| | |
+|---|---|
+| **Bug class** | `write-amplification` |
+| **Module** | `services/api/src/common/filters` |
+| **Bug record** | BUG-3188 |
+| **Root cause** | The exception filter persisted an error-log row (a transaction with a find, an update or insert and an occurrence upsert) for every 429 on the request path, so a flood made refusing a request cost more than serving it and filled the error log with identical rows. |
+| **Regression test** | `services/api/src/common/filters/http-exception-filter-persistence.spec.ts` |
+| **Scenario** | QA-AUTH-030 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-723 — Unique-violation recovery works inside interactive transactions
+
+| | |
+|---|---|
+| **Bug class** | `transaction-abort` |
+| **Module** | `services/api/src/modules/users` |
+| **Bug record** | BUG-3201 |
+| **Root cause** | Three call sites inserted, caught a unique violation, and recovered by reading on the same client. Inside an interactive transaction Postgres aborts the whole transaction at the failed statement, so the recovery failed with "current transaction is aborted". Two of them also relied on error.meta.target, which Prisma 7 does not populate. |
+| **Regression test** | `services/api/test/identity-concurrent-create.e2e-spec.ts` |
+| **Scenario** | QA-PLATFORM-069 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |

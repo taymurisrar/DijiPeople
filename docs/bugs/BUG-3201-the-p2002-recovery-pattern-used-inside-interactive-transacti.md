@@ -2,7 +2,7 @@
 ID: BUG-3201
 aliases: [BUG-3201]
 Title: The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-723
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-11-23
 ---
 
 # BUG-3201 — The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path
@@ -102,7 +102,7 @@ Full finding text: RES-07 in `docs/engineering/audits/2026-09-10-full-technical-
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+Three call sites inserted, caught a unique violation, and recovered by reading on the same client. Inside an interactive transaction Postgres aborts the whole transaction at the failed statement, so the recovery failed with "current transaction is aborted". Two of them also relied on error.meta.target, which Prisma 7 does not populate.
 
 ## Impact
 
@@ -135,7 +135,7 @@ rewrite `ensureIdentityForEmail` to a raw
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: RES-07=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/identity-concurrent-create.e2e-spec.ts; services/api/src/modules/recruitment/recruitment-draft-employee-savepoint.spec.ts; services/api/src/modules/super-admin/billing-create-invoice.spec.ts. REG-723, QA-PLATFORM-069. Restoring the old identity implementation fails the deterministic uncommitted-winner test with "current transaction is aborted".
 
 ## Dependencies
 
@@ -147,11 +147,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Identity creation uses INSERT ... ON CONFLICT DO NOTHING followed by a read, which raises nothing. The recruitment draft employee insert is wrapped in a SAVEPOINT so a collision is rolled back locally and the recovery reads run. The invoice number is chosen free before inserting and a unique violation from the insert is no longer swallowed: it also swallowed a duplicate stripeInvoiceId five times and reported it as a numbering problem. Verified against real Postgres: the old identity code fails the deterministic test with the reported error, and the savepoint test shows both that the pattern works and that the unprotected sequence aborts. Not examined: other P2002 helper sites outside transactions, which were not part of the verified list.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it.
 
 ## QA Retest
 
-Not yet retested.
+QA-PLATFORM-069 on the isolated database, 2026-11-23: passing with the fix and failing with it removed. Independent review pending.
 
 ## History
 
@@ -162,5 +164,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[tenant-control-plane]]
+- Regression — REG-723 (see the regression register)
 
 <!-- GRAPH:END -->

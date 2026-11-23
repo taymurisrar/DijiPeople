@@ -1864,6 +1864,16 @@ export class RecruitmentService {
         sequenceNumber,
       ).padStart(sequenceLength, '0')}`;
 
+      /*
+       * BUG-3201. This runs inside the caller's interactive transaction, where a
+       * failed statement aborts the WHOLE transaction in Postgres: the recovery
+       * reads below used to fail with "current transaction is aborted". A
+       * savepoint makes the failed insert local: ROLLBACK TO leaves the
+       * transaction usable. (The old code also branched on `error.meta.target`,
+       * which Prisma 7 does not populate, so those branches never ran and every
+       * unique violation here simply threw.)
+       */
+      await params.tx.$executeRaw`SAVEPOINT draft_employee_create`;
       try {
         const draft = await params.tx.employee.create({
           data: {
@@ -1893,35 +1903,36 @@ export class RecruitmentService {
           select: { id: true },
         });
 
+        await params.tx.$executeRaw`RELEASE SAVEPOINT draft_employee_create`;
         return draft.id;
       } catch (error) {
-        if (
+        const uniqueViolation =
           error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
-          const target = Array.isArray(error.meta?.target)
-            ? error.meta.target.join(',')
-            : '';
-
-          if (target.includes('sourceApplicationId')) {
-            const winner = await params.tx.employee.findFirst({
-              where: {
-                tenantId: params.tenantId,
-                sourceApplicationId: params.application.id,
-              },
-              select: { id: true },
-            });
-
-            if (winner) {
-              return winner.id;
-            }
-          }
-
-          if (autoGenerateEmployeeId && target.includes('employeeCode')) {
-            continue;
-          }
+          error.code === 'P2002';
+        if (!uniqueViolation) {
+          throw error;
         }
 
+        // Undo only the failed insert; the transaction itself stays usable.
+        await params.tx
+          .$executeRaw`ROLLBACK TO SAVEPOINT draft_employee_create`;
+
+        // Decide by looking at the data, not at the error's shape: either another
+        // request already created this application's draft (take it), or the
+        // generated employee code collided (try the next one).
+        const winner = await params.tx.employee.findFirst({
+          where: {
+            tenantId: params.tenantId,
+            sourceApplicationId: params.application.id,
+          },
+          select: { id: true },
+        });
+        if (winner) {
+          return winner.id;
+        }
+        if (autoGenerateEmployeeId) {
+          continue;
+        }
         throw error;
       }
     }

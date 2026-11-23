@@ -327,6 +327,22 @@ export class BillingService {
       input.dueDate ?? new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     const datePart = issueDate.toISOString().slice(0, 10).replace(/-/g, '');
 
+    /*
+     * BUG-3201. Pick a number nobody holds BEFORE inserting, instead of inserting
+     * and recovering from a unique violation. The recovery cannot work where it
+     * matters: two callers run this inside an interactive transaction, in which a
+     * failed statement aborts the whole transaction, so the "retry on the same
+     * client" never ran. It also swallowed the wrong error: a duplicate
+     * `stripeInvoiceId` is a unique violation too, was retried five times with
+     * the same value, and was then reported as "unable to generate a unique
+     * invoice number".
+     *
+     * The number is unique per tenant, so the check is one indexed lookup. A race
+     * between the check and the insert needs two invoices for one tenant to draw
+     * the same four digits in the same instant; if it ever happens the unique
+     * index still refuses the second and the caller sees the error, which is
+     * retryable, rather than a silent wrong answer.
+     */
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const entropy = String(Math.floor(Math.random() * 10_000)).padStart(
         4,
@@ -334,30 +350,27 @@ export class BillingService {
       );
       const invoiceNumber = `INV-${datePart}-${entropy}`;
 
-      try {
-        return await db.invoice.create({
-          data: {
-            tenantId: input.tenantId,
-            subscriptionId: input.subscriptionId,
-            invoiceNumber,
-            amount: input.amount,
-            currency: input.currency,
-            issueDate,
-            dueDate,
-            status: input.status ?? InvoiceStatus.ISSUED,
-            stripeInvoiceId: input.stripeInvoiceId ?? null,
-            createdById: input.actorUserId,
-            updatedById: input.actorUserId,
-          },
-        });
-      } catch (error) {
-        const isUniqueViolation =
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002';
-        if (!isUniqueViolation) {
-          throw error;
-        }
-      }
+      const taken = await db.invoice.findFirst({
+        where: { tenantId: input.tenantId, invoiceNumber },
+        select: { id: true },
+      });
+      if (taken) continue;
+
+      return db.invoice.create({
+        data: {
+          tenantId: input.tenantId,
+          subscriptionId: input.subscriptionId,
+          invoiceNumber,
+          amount: input.amount,
+          currency: input.currency,
+          issueDate,
+          dueDate,
+          status: input.status ?? InvoiceStatus.ISSUED,
+          stripeInvoiceId: input.stripeInvoiceId ?? null,
+          createdById: input.actorUserId,
+          updatedById: input.actorUserId,
+        },
+      });
     }
 
     throw new BadRequestException(
