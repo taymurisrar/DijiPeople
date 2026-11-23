@@ -51,7 +51,9 @@ export function decide({ root, input, state, verify = verifyProgram }) {
   const fingerprint = progressFingerprint(verifyRoot, result);
   const next = { ...state };
   next.blocks = (state.blocks ?? 0) + 1;
-  const sameAsLast = Boolean(input?.stop_hook_active) && fingerprint === state.lastFingerprint;
+  // Not conditional on stop_hook_active: a fresh user turn after a release must
+  // not reset the counter while nothing has changed.
+  const sameAsLast = fingerprint === state.lastFingerprint;
   next.stagnant = sameAsLast ? (state.stagnant ?? 0) + 1 : 0;
   next.lastFingerprint = fingerprint;
 

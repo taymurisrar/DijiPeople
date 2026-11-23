@@ -25,7 +25,7 @@ import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PayslipQueryDto } from './dto/payslip-query.dto';
 import { VoidPayslipDto } from './dto/void-payslip.dto';
-import { PayslipsService } from './payslips.service';
+import { LIST_PAGE_SIZE_DEFAULT, PayslipsService } from './payslips.service';
 import type { Response } from 'express';
 
 @Controller()
@@ -71,14 +71,21 @@ export class PayslipsController {
   })
   @Permissions('payslips.read-all')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
-  listPayslips(
+  async listPayslips(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PayslipQueryDto,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.payslipsService.listPayslips({
+    const payslips = await this.payslipsService.listPayslips({
       tenantId: user.tenantId,
       ...query,
     });
+    // BUG-3172 — the list is bounded; a full page means there may be more.
+    // Callers that need every row page with `page` until this is false.
+    const pageSize = query.pageSize ?? LIST_PAGE_SIZE_DEFAULT;
+    response.setHeader('X-Page-Size', String(pageSize));
+    response.setHeader('X-Has-More', String(payslips.length >= pageSize));
+    return payslips;
   }
 
   @Get('payslips/:id')

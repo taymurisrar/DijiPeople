@@ -253,3 +253,56 @@ describe('FieldAccessService.applicablePolicies (BUG-3155)', () => {
     expect(findMany).not.toHaveBeenCalled();
   });
 });
+
+describe('FieldAccessDecision.screenWrite aliases and typed echoes (BUG-3155)', () => {
+  const d = new FieldAccessDecision([
+    {
+      id: 'p',
+      rules: [
+        rule('email', 'HIDDEN'),
+        rule('hireDate', 'VISIBLE', { accessMode: 'READ_ONLY' }),
+        rule('basicSalary', 'VISIBLE', { accessMode: 'READ_ONLY' }),
+      ],
+    },
+  ]);
+
+  it('screens a DTO key through its column alias (workEmail -> email)', () => {
+    const payload: Record<string, unknown> = { workEmail: 'new@example.com' };
+    const forbidden = d.screenWrite(
+      payload,
+      { email: 'old@example.com' },
+      ['workEmail'],
+      {
+        workEmail: 'email',
+      },
+    );
+    expect(forbidden).toEqual(['workEmail']);
+  });
+
+  it('without the alias the same key would slip through (why the alias exists)', () => {
+    const payload: Record<string, unknown> = { workEmail: 'new@example.com' };
+    expect(
+      d.screenWrite(payload, { email: 'old@example.com' }, ['workEmail']),
+    ).toEqual([]);
+  });
+
+  it('a read-only echo of a Date or Decimal-like value is accepted, a change is not', () => {
+    const stored = {
+      hireDate: new Date('2024-01-15T00:00:00.000Z'),
+      basicSalary: '1000.50',
+    };
+    const echo: Record<string, unknown> = {
+      hireDate: '2024-01-15',
+      basicSalary: 1000.5,
+    };
+    expect(d.screenWrite(echo, stored, Object.keys(echo))).toEqual([]);
+    const change: Record<string, unknown> = {
+      hireDate: '2024-01-16',
+      basicSalary: 1000.51,
+    };
+    expect(d.screenWrite(change, stored, Object.keys(change)).sort()).toEqual([
+      'basicSalary',
+      'hireDate',
+    ]);
+  });
+});

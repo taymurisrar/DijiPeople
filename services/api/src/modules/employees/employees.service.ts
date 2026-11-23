@@ -313,6 +313,11 @@ function csvCell(value: unknown) {
 }
 
 /* BUG-3155 — CSV export columns that carry each restricted employee column. */
+/* BUG-3155 — DTO keys whose policy column has another name. */
+export const EMPLOYEE_DTO_COLUMN_ALIASES: Readonly<Record<string, string>> = {
+  workEmail: 'email',
+};
+
 const EXPORT_FIELD_ALIASES: Record<string, readonly string[]> = {
   email: ['workEmail', 'ownerEmail'],
   personalEmail: ['personalEmail'],
@@ -390,7 +395,7 @@ export class EmployeesService {
     if (query.contactFilter) used.push('email', 'phone');
     if (query.hireDateFilter || query.hireDateFilterTo) used.push('hireDate');
     const sortColumn = query.orderBy?.match(
-      /^([A-Za-z][A-Za-z0-9_]*)s+(asc|desc)$/,
+      /^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/,
     )?.[1];
     if (sortColumn === 'email' || sortColumn === 'workEmail')
       used.push('email');
@@ -1146,7 +1151,13 @@ export class EmployeesService {
       await this.tenantSettingsResolverService.getEmployeeSettings(tenantId);
 
     // BUG-3155 — nothing was shown on create, so any restricted value is a change.
-    await this.fieldAccess?.screenWrite(currentUser, 'employees', dto, {});
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employees',
+      dto,
+      {},
+      EMPLOYEE_DTO_COLUMN_ALIASES,
+    );
 
     this.assertEmployeeSettingsRulesForCreate(dto, employeeSettings);
     await this.assertEmployeeDuplicateRules(tenantId, dto, employeeSettings);
@@ -1397,6 +1408,7 @@ export class EmployeesService {
       'employees',
       dto,
       employee as unknown as object,
+      EMPLOYEE_DTO_COLUMN_ALIASES,
     );
 
     const beforeSnapshot = {

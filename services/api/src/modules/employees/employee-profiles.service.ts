@@ -32,6 +32,7 @@ import { AuditService } from '../audit/audit.service';
 import { DocumentsRepository } from '../documents/documents.repository';
 import { EmailService } from '../notifications/email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EMPLOYEE_DTO_COLUMN_ALIASES } from './employees.service';
 import { FieldAccessService } from '../tenant-settings/field-access.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
@@ -391,6 +392,7 @@ export class EmployeeProfilesService {
       'employees',
       dto,
       employee as unknown as object,
+      EMPLOYEE_DTO_COLUMN_ALIASES,
     );
 
     if (

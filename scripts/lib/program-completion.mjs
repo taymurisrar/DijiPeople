@@ -168,6 +168,15 @@ function checkReview(ctx, check) {
   }
   for (const review of approving) {
     if (!review.reviewer || review.reviewer === review.implementer) continue;
+    // A review that names no paths could never go stale, so it is not evidence.
+    if (!Array.isArray(review.paths) || review.paths.length === 0) continue;
+    // It must be part of the candidate's history, not a file in a working tree.
+    if (
+      ctx.candidateSha &&
+      git(ctx.root, ['cat-file', '-e', `${ctx.candidateSha}:${REVIEW_DIR}/${review.file}`]) === null
+    ) {
+      continue;
+    }
     if (!ctx.candidateSha) return [FAIL, 'no candidate sha to compare the review against'];
     const inside = isAncestor(ctx.root, review.sha, ctx.candidateSha);
     if (inside === null) return [UNVERIFIED, `${review.sha} unknown to this clone`];
@@ -200,7 +209,10 @@ function checkRecordsStatus(ctx, check) {
 /** No actionable record at or above a priority may remain open. */
 function checkNoOpenRecords(ctx, check) {
   const priorities = new Set(check.priorities ?? ['P0', 'P1']);
-  const exempt = new Set(ctx.manifest.acceptedOrOwnerGated ?? []);
+  // An exemption is only as good as the owner decision that covers it.
+  const exempt = new Set(
+    (ctx.manifest.ownerDecisions ?? []).flatMap((decision) => decision.covers ?? []),
+  );
   const open = ctx.records.filter(
     (record) =>
       isActive(record) &&
@@ -250,6 +262,9 @@ export function loadManifest(root) {
   const problems = [];
   if (!manifest.programId) problems.push('programId is required');
   if (!Array.isArray(manifest.gates) || manifest.gates.length === 0) problems.push('gates must be a non-empty array');
+  if ('acceptedOrOwnerGated' in manifest) {
+    problems.push('acceptedOrOwnerGated is no longer honoured: list covered record ids under ownerDecisions[].covers');
+  }
   const ids = new Set();
   for (const gate of manifest.gates ?? []) {
     if (!gate.id) problems.push('a gate has no id');
@@ -360,6 +375,8 @@ export const STOPPABLE = new Set(['READY_TO_MERGE_MAIN', 'BLOCKED_OWNER_ACTION',
 
 /** Stable fingerprint of progress: changes whenever HEAD or any gate state does. */
 export function progressFingerprint(root, result) {
-  const head = git(root, ['rev-parse', 'HEAD']) ?? '';
-  return `${head}|${result.gates.map((gate) => `${gate.id}:${gate.state}`).join(',')}`;
+  // The TREE, not the commit: an empty commit is not progress.
+  const head = git(root, ['rev-parse', 'HEAD^{tree}']) ?? '';
+  const dirty = git(root, ['status', '--porcelain']) ?? '';
+  return `${head}|${dirty.length}|${result.gates.map((gate) => `${gate.id}:${gate.state}`).join(',')}`;
 }

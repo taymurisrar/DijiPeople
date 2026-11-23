@@ -32,7 +32,7 @@ import {
 } from '../super-admin/invoice-pdf.template';
 
 /** BUG-3172 — default and ceiling of one list response. */
-const LIST_PAGE_SIZE_DEFAULT = 200;
+export const LIST_PAGE_SIZE_DEFAULT = 200;
 
 const payslipInclude = {
   employee: {

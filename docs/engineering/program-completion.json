@@ -5,21 +5,15 @@
     "branch": "develop",
     "sha": null
   },
-  "acceptedOrOwnerGated": [
-    "BUG-3110",
-    "BUG-3156",
-    "BUG-3166",
-    "BUG-3186",
-    "BUG-3205",
-    "BUG-3154",
-    "BUG-3189"
-  ],
   "ownerDecisions": [
     {
       "id": "OD-3110-ROTATION",
       "status": "OPEN",
       "title": "Approve live Neon/Render credential rotation (BUG-3110)",
-      "recommendation": "Approve a scheduled cutover using the runbook in the bug record"
+      "recommendation": "Approve a scheduled cutover using the runbook in the bug record",
+      "covers": [
+        "BUG-3110"
+      ]
     },
     {
       "id": "OD-FIELD-DEFAULTS",
@@ -31,13 +25,29 @@
       "id": "OD-3156-GEOGRAPHY",
       "status": "OPEN",
       "title": "Who may mutate shared geography (BUG-3156 / QUESTION-3931)",
-      "recommendation": "Platform only; tenant admins add tenant-owned rows"
+      "recommendation": "Platform only; tenant admins add tenant-owned rows",
+      "covers": [
+        "BUG-3156"
+      ]
     },
     {
       "id": "OD-WORKTREE-JUNCTIONS",
       "status": "OPEN",
       "title": "Allow creating node_modules junctions for parallel agent worktrees (denied by the permission classifier)",
       "recommendation": "Add a Bash permission rule for the junction script, or run npm ci per worktree"
+    },
+    {
+      "id": "OD-DEFERRED-PLANS",
+      "status": "OPEN",
+      "title": "PLAN_REQUIRED items needing owner sign-off before implementation (schema/data migration, deploy gating, perf trade-offs)",
+      "recommendation": "Approve plans per item as they are drafted",
+      "covers": [
+        "BUG-3154",
+        "BUG-3186",
+        "BUG-3205",
+        "BUG-3189",
+        "BUG-3166"
+      ]
     }
   ],
   "externalBlockers": [],

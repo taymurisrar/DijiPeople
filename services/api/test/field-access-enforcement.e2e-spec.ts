@@ -172,6 +172,7 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
     gamma = await side('gamma');
     await policy(gamma.tenantId, `phone-${suffix}`, 'employees', 'EMPLOYEES', [
       { fieldKey: 'phone', visibility: 'HIDDEN' },
+      { fieldKey: 'email', visibility: 'HIDDEN' },
     ]);
 
     await policy(
@@ -446,6 +447,30 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
           where: { tenantId: alpha.tenantId, employeeCode: `NEW-${suffix}` },
         }),
       ).toBe(0);
+    });
+
+    it('the work-email alias and a real sort string are both enforced', async () => {
+      const aliased = await call(
+        'patch',
+        gamma.admin,
+        `employees/${gamma.employeeId}`,
+        {
+          workEmail: `changed-${suffix}@example.com`,
+        },
+      );
+      expect(aliased.status).toBe(403);
+      const sorted = await call(
+        'get',
+        gamma.admin,
+        'employees?orderBy=email%20asc',
+      );
+      expect(sorted.status).toBe(403);
+      const control = await call(
+        'get',
+        beta.admin,
+        'employees?orderBy=email%20asc',
+      );
+      expect(control.status).toBe(200);
     });
 
     it("another tenant's policies never affect this tenant (control already shows BETA unmasked)", async () => {

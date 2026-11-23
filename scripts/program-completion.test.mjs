@@ -11,7 +11,7 @@ import { decide } from './hooks/stop-completion.mjs';
 const git = (cwd, ...args) =>
   execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
-function fixture(manifest, { reviews = [] } = {}) {
+function fixture(manifest, { reviews = [], commitReviews = true } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'dp-program-'));
   git(root, 'init', '-q');
   git(root, 'config', 'user.email', 't@example.com');
@@ -19,18 +19,23 @@ function fixture(manifest, { reviews = [] } = {}) {
   git(root, 'config', 'core.autocrlf', 'false');
   mkdirSync(join(root, 'docs/engineering/reviews'), { recursive: true });
   mkdirSync(join(root, 'docs/bugs'), { recursive: true });
-  writeFileSync(join(root, 'src.txt'), 'one\n');
+  writeFileSync(join(root, 'src.txt'), 'one' + String.fromCharCode(10));
   git(root, 'add', '-A');
   git(root, 'commit', '-qm', 'base');
-  const sha = git(root, 'rev-parse', 'HEAD');
-  const full = { programId: 'T', candidate: { sha }, ...manifest };
-  writeFileSync(join(root, 'docs/engineering/program-completion.json'), JSON.stringify(full));
+  const reviewed = git(root, 'rev-parse', 'HEAD');
   for (const review of reviews) {
     writeFileSync(
       join(root, `docs/engineering/reviews/${review.name}.json`),
-      JSON.stringify({ sha, reviewer: 'dp-qa', implementer: 'dp-api', paths: ['src.txt'], ...review.body }),
+      JSON.stringify({ sha: reviewed, reviewer: 'dp-qa', implementer: 'dp-api', paths: ['src.txt'], ...review.body }),
     );
   }
+  if (commitReviews && reviews.length > 0) {
+    git(root, 'add', '-A');
+    git(root, 'commit', '-qm', 'reviews');
+  }
+  const sha = git(root, 'rev-parse', 'HEAD');
+  const full = { programId: 'T', candidate: { sha }, ...manifest };
+  writeFileSync(join(root, 'docs/engineering/program-completion.json'), JSON.stringify(full));
   return { root, sha };
 }
 
@@ -167,4 +172,67 @@ test('hook respects the total block budget', () => {
   const out = decide({ root, input: { cwd: root }, state: { ...active(root), blocks: 60 }, verify });
   assert.equal(out.action, 'allow');
   assert.match(out.why, /budget/);
+});
+
+test('a review that names no paths can never go stale, so it is not evidence', () => {
+  const { root } = fixture(
+    { gates: [gateWithReview] },
+    { reviews: [{ name: 'g-qa', body: { gate: 'G', role: 'qa', verdict: 'APPROVE', paths: [] } }] },
+  );
+  assert.equal(verifyProgram(root, { ci: green }).verdict, 'IN_PROGRESS');
+});
+
+test('a review file that is not part of the candidate commit is not evidence', () => {
+  const { root } = fixture(
+    { gates: [gateWithReview] },
+    { reviews: [{ name: 'g-qa', body: { gate: 'G', role: 'qa', verdict: 'APPROVE' } }], commitReviews: false },
+  );
+  assert.equal(verifyProgram(root, { ci: green }).verdict, 'IN_PROGRESS');
+});
+
+test('record exemptions need an owner decision covering them; the old free-form list is refused', () => {
+  const gate = { id: 'B', checks: [{ type: 'no-open-records', priorities: ['P0'] }] };
+  const open = `---
+ID: BUG-9002
+Title: t
+Status: OPEN
+Severity: HIGH
+Priority: P0
+Type: LOGIC
+Source: QA
+DetectedDate: 2026-01-01
+DetectedInSha: abc
+AffectedModules: [x]
+OwnerAgent: a
+ArchitectDisposition: FIX_NOW
+CreatedAt: 2026-01-01
+UpdatedAt: 2026-01-01
+---
+
+# BUG-9002
+`;
+  const a = fixture({ gates: [gate], acceptedOrOwnerGated: ['BUG-9002'] });
+  writeFileSync(join(a.root, 'docs/bugs/BUG-9002-t.md'), open);
+  assert.equal(verifyProgram(a.root, {}).verdict, 'VALIDATION_FAILED');
+  const b = fixture({ gates: [gate], ownerDecisions: [{ id: 'D', status: 'OPEN', covers: ['BUG-9002'] }] });
+  writeFileSync(join(b.root, 'docs/bugs/BUG-9002-t.md'), open);
+  assert.equal(verifyProgram(b.root, {}).verdict, 'READY_TO_MERGE_MAIN');
+  const c = fixture({ gates: [gate] });
+  writeFileSync(join(c.root, 'docs/bugs/BUG-9002-t.md'), open);
+  assert.equal(verifyProgram(c.root, {}).verdict, 'IN_PROGRESS');
+});
+
+test('an empty commit is not progress, and a fresh turn does not reset the stagnation count', () => {
+  const { root } = fixture({ gates: [gateWithReview] });
+  const verify = (r) => verifyProgram(r, { ci: green });
+  let state = active(root);
+  let out;
+  for (let i = 0; i < 6; i += 1) {
+    git(root, 'commit', '--allow-empty', '-qm', `empty ${i}`);
+    out = decide({ root, input: { cwd: root, stop_hook_active: false }, state, verify });
+    if (out.action === 'allow') break;
+    state = out.state;
+  }
+  assert.equal(out.action, 'allow');
+  assert.match(out.why, /NOT complete/);
 });

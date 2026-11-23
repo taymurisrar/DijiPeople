@@ -129,13 +129,17 @@ export class FieldAccessDecision {
     payload: Row,
     stored: Row,
     fieldKeys: readonly string[],
+    /** Payload key → policy column, where a DTO names a column differently (workEmail → email). */
+    aliases: Readonly<Record<string, string>> = {},
   ): string[] {
     const forbidden: string[] = [];
-    for (const fieldKey of fieldKeys) {
-      if (!(fieldKey in payload) || payload[fieldKey] === undefined) continue;
+    for (const payloadKey of fieldKeys) {
+      if (!(payloadKey in payload) || payload[payloadKey] === undefined)
+        continue;
+      const fieldKey = aliases[payloadKey] ?? payloadKey;
       if (!this.isWriteRestricted(fieldKey)) continue;
       const effect = this.effect(fieldKey);
-      const posted = payload[fieldKey];
+      const posted = payload[payloadKey];
       const storedValue = stored[fieldKey] ?? null;
       let shown: unknown;
       if (effect.kind === 'MASKED') {
@@ -148,11 +152,11 @@ export class FieldAccessDecision {
       const isEcho =
         posted === shown ||
         (effect.kind === 'HIDDEN' && (posted === null || posted === '')) ||
-        (effect.kind === 'VISIBLE' && posted === storedValue);
+        (effect.kind === 'VISIBLE' && sameValue(posted, storedValue));
       if (isEcho) {
-        delete payload[fieldKey];
+        delete payload[payloadKey];
       } else {
-        forbidden.push(fieldKey);
+        forbidden.push(payloadKey);
       }
     }
     return forbidden;
@@ -188,6 +192,33 @@ export class FieldAccessDecision {
       }
     }
   }
+}
+
+/**
+ * Equality for a read-only echo: a Date, a Decimal and a number come back from
+ * the API as strings, so strict `===` would refuse a legitimate unchanged save.
+ * Only an exact textual match (or a date-only match for a stored Date) counts.
+ */
+function sameValue(posted: unknown, stored: unknown): boolean {
+  if (posted === stored) return true;
+  if (posted === null || stored === null) return false;
+  const text = (value: unknown): string =>
+    value instanceof Date
+      ? value.toISOString()
+      : typeof value === 'object'
+        ? (value as { toString(): string }).toString()
+        : String(value as string | number | boolean);
+  const a = text(posted);
+  const b = text(stored);
+  if (a === b) return true;
+  if (stored instanceof Date && /^\d{4}-\d{2}-\d{2}$/.test(a)) {
+    return b.slice(0, 10) === a;
+  }
+  return (
+    /^-?\d+(\.\d+)?$/.test(a) &&
+    /^-?\d+(\.\d+)?$/.test(b) &&
+    Number(a) === Number(b)
+  );
 }
 
 const rank = (effect: FieldEffect) =>
@@ -257,6 +288,7 @@ export class FieldAccessService {
     tableKey: string,
     payload: object,
     stored: object,
+    aliases: Readonly<Record<string, string>> = {},
   ): Promise<void> {
     const decision = await this.forRequest(user, tableKey);
     const body = payload as Row;
@@ -264,6 +296,7 @@ export class FieldAccessService {
       body,
       stored as Row,
       Object.keys(body),
+      aliases,
     );
     if (forbidden.length > 0) {
       throw new ForbiddenException({
