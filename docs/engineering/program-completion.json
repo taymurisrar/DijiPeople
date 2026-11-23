@@ -1,11 +1,44 @@
 {
   "programId": "SESSION-0137-MASTER-HARDENING",
   "description": "Gate manifest for the DijiPeople master hardening program. It declares WHICH evidence each gate needs; it carries no done flag. `node scripts/program-completion.mjs` evaluates the evidence. The narrative register stays docs/engineering/enterprise-hardening-register.md.",
-  "candidate": { "branch": "develop", "sha": null },
-  "acceptedOrOwnerGated": ["BUG-3110", "BUG-3156", "BUG-3166", "BUG-3186", "BUG-3205", "BUG-3154", "BUG-3189"],
+  "candidate": {
+    "branch": "develop",
+    "sha": null
+  },
+  "acceptedOrOwnerGated": [
+    "BUG-3110",
+    "BUG-3156",
+    "BUG-3166",
+    "BUG-3186",
+    "BUG-3205",
+    "BUG-3154",
+    "BUG-3189"
+  ],
   "ownerDecisions": [
-    { "id": "OD-3110-ROTATION", "status": "OPEN", "title": "Approve live Neon/Render credential rotation (BUG-3110)", "recommendation": "Approve a scheduled cutover using the runbook in the bug record" },
-    { "id": "OD-FIELD-DEFAULTS", "status": "OPEN", "title": "Baseline field-access defaults D1-D5 (EXECPLAN-0058)", "recommendation": "HR/payroll/self see identity and pay; bank last-4 in JSON; most restrictive wins" }
+    {
+      "id": "OD-3110-ROTATION",
+      "status": "OPEN",
+      "title": "Approve live Neon/Render credential rotation (BUG-3110)",
+      "recommendation": "Approve a scheduled cutover using the runbook in the bug record"
+    },
+    {
+      "id": "OD-FIELD-DEFAULTS",
+      "status": "OPEN",
+      "title": "Baseline field-access defaults D1-D5 (EXECPLAN-0058)",
+      "recommendation": "HR/payroll/self see identity and pay; bank last-4 in JSON; most restrictive wins"
+    },
+    {
+      "id": "OD-3156-GEOGRAPHY",
+      "status": "OPEN",
+      "title": "Who may mutate shared geography (BUG-3156 / QUESTION-3931)",
+      "recommendation": "Platform only; tenant admins add tenant-owned rows"
+    },
+    {
+      "id": "OD-WORKTREE-JUNCTIONS",
+      "status": "OPEN",
+      "title": "Allow creating node_modules junctions for parallel agent worktrees (denied by the permission classifier)",
+      "recommendation": "Add a Bash permission rule for the junction script, or run npm ci per worktree"
+    }
   ],
   "externalBlockers": [],
   "gates": [
@@ -13,96 +46,218 @@
       "id": "WP1",
       "title": "Dependencies and supply chain",
       "checks": [
-        { "type": "review", "gate": "WP1", "role": "security" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "review",
+          "gate": "WP1",
+          "role": "security"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     },
     {
       "id": "WP2",
       "title": "Desktop agent hardening (approved testable scope)",
       "checks": [
-        { "type": "review", "gate": "WP2", "role": "security" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "review",
+          "gate": "WP2",
+          "role": "security"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     },
     {
       "id": "WP3",
       "title": "Tenant isolation and authorization incl. field-level (BUG-3155)",
       "checks": [
-        { "type": "records-status", "ids": ["BUG-3155"], "statuses": ["FIXED", "VERIFIED", "CLOSED"] },
-        { "type": "review", "gate": "WP3", "role": "security" },
-        { "type": "review", "gate": "WP3", "role": "qa" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "records-status",
+          "ids": [
+            "BUG-3155"
+          ],
+          "statuses": [
+            "FIXED",
+            "VERIFIED",
+            "CLOSED"
+          ]
+        },
+        {
+          "type": "review",
+          "gate": "WP3",
+          "role": "security"
+        },
+        {
+          "type": "review",
+          "gate": "WP3",
+          "role": "qa"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     },
     {
       "id": "WP4",
       "title": "Backend, database, Render and Neon efficiency (measured)",
       "checks": [
-        { "type": "records-status", "ids": ["BUG-3165", "BUG-3175"], "statuses": ["FIXED", "VERIFIED", "CLOSED"] },
-        { "type": "review", "gate": "WP4", "role": "qa" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "records-status",
+          "ids": [
+            "BUG-3165",
+            "BUG-3175"
+          ],
+          "statuses": [
+            "FIXED",
+            "VERIFIED",
+            "CLOSED"
+          ]
+        },
+        {
+          "type": "review",
+          "gate": "WP4",
+          "role": "qa"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     },
     {
       "id": "WP5",
       "title": "Frontend performance, UX, accessibility, RTL (real browser)",
       "checks": [
-        { "type": "review", "gate": "WP5", "role": "qa" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "review",
+          "gate": "WP5",
+          "role": "qa"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     },
     {
       "id": "WP6",
       "title": "Agent-workforce efficiency",
-      "checks": [{ "type": "review", "gate": "WP6", "role": "qa" }]
+      "checks": [
+        {
+          "type": "review",
+          "gate": "WP6",
+          "role": "qa"
+        }
+      ]
     },
     {
       "id": "WP7",
       "title": "Observability, runbooks, recovery",
-      "checks": [{ "type": "review", "gate": "WP7", "role": "qa" }]
+      "checks": [
+        {
+          "type": "review",
+          "gate": "WP7",
+          "role": "qa"
+        }
+      ]
     },
     {
       "id": "WP8",
       "title": "Technical compliance readiness evidence",
-      "checks": [{ "type": "review", "gate": "WP8", "role": "security" }]
+      "checks": [
+        {
+          "type": "review",
+          "gate": "WP8",
+          "role": "security"
+        }
+      ]
     },
     {
       "id": "BACKLOG",
       "title": "No actionable P0/P1 record left open",
-      "checks": [{ "type": "no-open-records", "priorities": ["P0", "P1"] }]
+      "checks": [
+        {
+          "type": "no-open-records",
+          "priorities": [
+            "P0",
+            "P1"
+          ]
+        }
+      ]
     },
     {
       "id": "CREDENTIAL-INCIDENT",
       "title": "BUG-3110 credential invalidated and verified",
-      "waitsOnOwnerDecisions": ["OD-3110-ROTATION"],
-      "checks": [{ "type": "records-status", "ids": ["BUG-3110"], "statuses": ["FIXED", "VERIFIED", "CLOSED"] }]
+      "waitsOnOwnerDecisions": [
+        "OD-3110-ROTATION"
+      ],
+      "checks": [
+        {
+          "type": "records-status",
+          "ids": [
+            "BUG-3110"
+          ],
+          "statuses": [
+            "FIXED",
+            "VERIFIED",
+            "CLOSED"
+          ]
+        }
+      ]
     },
     {
       "id": "QUALITY",
       "title": "Framework validation, governance and independent QA on the candidate",
       "checks": [
-        { "type": "command", "command": "node scripts/validate-framework.mjs" },
-        { "type": "review", "gate": "QUALITY", "role": "qa" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "command",
+          "command": "node scripts/validate-framework.mjs"
+        },
+        {
+          "type": "review",
+          "gate": "QUALITY",
+          "role": "qa"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     },
     {
       "id": "RELEASE-CANDIDATE",
       "title": "Release assessment, deployment order and rollback documented",
       "checks": [
-        { "type": "review", "gate": "RELEASE-CANDIDATE", "role": "release" },
-        { "type": "ci", "sha": "CANDIDATE" }
+        {
+          "type": "review",
+          "gate": "RELEASE-CANDIDATE",
+          "role": "release"
+        },
+        {
+          "type": "ci",
+          "sha": "CANDIDATE"
+        }
       ]
     }
   ],
   "handoff": {
     "worktree": "D:/My Work/hrm-dijipeople/dijipeople-perf-reliability",
     "agentBranch": "agent/dependency-alert-remediation",
-    "lastVerifiedDevelopSha": "2535c42b3a3b32373f965da9c4cf97ea7495e789",
+    "developSha": "2535c42b3a3b32373f965da9c4cf97ea7495e789",
+    "agentBranchHeadNote": "ahead of develop: write-screen, filter/sort refusal, deep sweep, exports, payslip storage keys, BUG-3171/3172/3141 fixes, program-completion verifier + Stop hook, merged WP7 runbooks. Full e2e was 84/84 at 35912eaf; later commits need a rerun before pushing to develop.",
     "mainUntouchedAt": "53517ab4dacb39c3a68bff48a7a5b98089b3c5d6",
     "isolatedPostgres": "127.0.0.1:5433 (dp_isolation_test / dijipeople_isolation_test)",
-    "nextTask": "BUG-3155: filter/sort/search refusal, remaining routes (see EXECPLAN-0058), then WP4-WP8",
-    "recovery": "node scripts/program-completion.mjs shows unmet gates; node scripts/program-resume.mjs run resumes under a bounded retry"
+    "agentBranches": {
+      "wp7": "agent/wp7-sre-runbooks (merged)",
+      "wp4Pagination": "agent/bug-3175-db-pagination (worktree ../dijipeople-wp4-pagination created, no node_modules, agent not started)"
+    },
+    "nextTask": "1) rerun full e2e + CI on agent branch head, independent review, ref-push to develop. 2) BUG-3155 remainder: create/import/bulk/nested write screens, entity data API, reports, bank paths, web, baseline catalog (D1-D5). 3) BUG-3175 pagination. 4) close-out ceremony (REG + QA scenario) for BUG-3141/3171/3172. 5) WP5, WP6, WP8 not started; WP2 desktop real-device.",
+    "recovery": "node scripts/program-completion.mjs lists unmet gates; node scripts/program-resume.mjs activate --worktree <path> then run"
   }
 }
