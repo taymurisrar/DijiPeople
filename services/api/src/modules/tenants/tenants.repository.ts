@@ -10,6 +10,56 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
+/*
+ * Shared by the full and the paged super-admin tenant list so both project the
+ * same shape — mapTenantSummary reads either.
+ */
+const SUPER_ADMIN_TENANT_INCLUDE = {
+  customerAccount: true,
+  tenantBranding: true,
+  tenantDomains: true,
+  ownerUser: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      status: true,
+      isServiceAccount: true,
+      lastLoginAt: true,
+      userRoles: {
+        select: {
+          role: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  subscription: {
+    include: {
+      plan: true,
+      planPrice: true,
+    },
+  },
+  tenantFeatures: {
+    where: { isEnabled: true },
+    orderBy: { key: 'asc' },
+  },
+  _count: {
+    select: {
+      users: true,
+      employees: true,
+      organizations: true,
+      businessUnits: true,
+    },
+  },
+} satisfies Prisma.TenantInclude;
+
 @Injectable()
 export class TenantsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -142,52 +192,31 @@ export class TenantsRepository {
         ? { customerAccountId: filter.customerAccountId }
         : undefined,
       orderBy: { createdAt: 'desc' },
-      include: {
-        customerAccount: true,
-        tenantBranding: true,
-        tenantDomains: true,
-        ownerUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            status: true,
-            isServiceAccount: true,
-            lastLoginAt: true,
-            userRoles: {
-              select: {
-                role: {
-                  select: {
-                    id: true,
-                    key: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        subscription: {
-          include: {
-            plan: true,
-            planPrice: true,
-          },
-        },
-        tenantFeatures: {
-          where: { isEnabled: true },
-          orderBy: { key: 'asc' },
-        },
-        _count: {
-          select: {
-            users: true,
-            employees: true,
-            organizations: true,
-            businessUnits: true,
-          },
-        },
-      },
+      include: SUPER_ADMIN_TENANT_INCLUDE,
     });
+  }
+
+  /** One page of the super-admin tenant list plus the filtered total (BUG-3175). */
+  async findPageForSuperAdmin(
+    args: {
+      where: Prisma.TenantWhereInput;
+      orderBy: Prisma.TenantOrderByWithRelationInput[];
+      skip: number;
+      take: number;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const [items, total] = await Promise.all([
+      db.tenant.findMany({
+        where: args.where,
+        orderBy: args.orderBy,
+        skip: args.skip,
+        take: args.take,
+        include: SUPER_ADMIN_TENANT_INCLUDE,
+      }),
+      db.tenant.count({ where: args.where }),
+    ]);
+    return { items, total };
   }
 
   findBySlug(slug: string, db: PrismaDb = this.prisma) {

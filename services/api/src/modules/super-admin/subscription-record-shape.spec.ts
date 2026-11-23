@@ -42,14 +42,15 @@ describe('BUG-1748 — subscription list and record agree', () => {
     const uses = superAdmin.match(
       /include:\s*SuperAdminService\.SUBSCRIPTION_INCLUDE/g,
     );
-    expect(uses?.length).toBe(2);
+    // list, record, and the database-paged list added by BUG-3175.
+    expect(uses?.length).toBe(3);
     expect(superAdmin).toContain('async getSubscription(');
     expect(superAdmin).toContain('async listSubscriptions(');
   });
 
   it('projects both through the same function', () => {
     const uses = superAdmin.match(/this\.projectSubscription\(/g);
-    expect(uses?.length).toBe(2);
+    expect(uses?.length).toBe(3);
   });
 
   it('the runtime record path no longer bare-fetches a subscription', () => {
