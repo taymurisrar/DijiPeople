@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 38 |
+| OPEN | 35 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 252 |
+| FIXED | 255 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -250,7 +250,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3138](../../docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md) | Password reset unconditionally reactivates a disabled account | SECURITY | HIGH | P1 | FIXED | api:auth | FIX_NOW |
 | [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | FIXED | api:auth | FIX_NOW |
 | [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | FIXED | api:auth, api:agent | FIX_NOW |
-| [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | FIX_NOW |
+| [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | FIXED | api:customization | FIX_NOW |
 | [BUG-3156](../../docs/bugs/BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-.md) | A tenant admin can create, rename or deactivate the platform-wide shared geography reference data | TENANT_ISOLATION | HIGH | P1 | OPEN | api:lookups | FIX_NOW |
 | [BUG-3157](../../docs/bugs/BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee.md) | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | P1 | FIXED | api:lookups | FIX_NOW |
 | [BUG-3162](../../docs/bugs/BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele.md) | Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation) | SECURITY | HIGH | P1 | FIXED | api:tenants | FIX_NOW |
@@ -262,8 +262,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3168](../../docs/bugs/BUG-3168-two-required-ci-gates-report-success-while-executing-nothing.md) | Two required CI gates report success while executing nothing | INFRA | HIGH | P1 | OPEN | .github/workflows | FIX_NOW |
 | [BUG-3169](../../docs/bugs/BUG-3169-notification-fan-out-runs-o-rules-x-recipients-sequential-ro.md) | Notification fan-out runs O(rules x recipients) sequential round trips inline on the triggering request | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | PLAN_REQUIRED |
 | [BUG-3170](../../docs/bugs/BUG-3170-timesheet-bulk-import-confirmation-runs-an-unbounded-per-row.md) | Timesheet bulk-import confirmation runs an unbounded per-row loop inside one transaction on the default 5-second timeout | PERFORMANCE | HIGH | P1 | OPEN | api:timesheets | PLAN_REQUIRED |
-| [BUG-3171](../../docs/bugs/BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin.md) | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | P1 | OPEN | api:audit | FIX_NOW |
-| [BUG-3172](../../docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md) | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | P1 | OPEN | api:payslips | FIX_NOW |
+| [BUG-3171](../../docs/bugs/BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin.md) | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | P1 | FIXED | api:audit | FIX_NOW |
+| [BUG-3172](../../docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md) | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | P1 | FIXED | api:payslips | FIX_NOW |
 | [BUG-3173](../../docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md) | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | P1 | FIXED | apps/web | FIX_NOW |
 | [BUG-3174](../../docs/bugs/BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page.md) | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | P1 | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
 | [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | OPEN | apps/admin | FIX_NOW |

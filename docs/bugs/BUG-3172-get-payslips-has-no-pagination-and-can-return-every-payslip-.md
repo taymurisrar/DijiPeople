@@ -2,7 +2,7 @@
 ID: BUG-3172
 aliases: [BUG-3172]
 Title: GET /payslips has no pagination and can return every payslip the tenant has ever generated
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/payslips]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-726
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-23
+ResolvedAt: 2026-11-23
 ---
 
 # BUG-3172 — GET /payslips has no pagination and can return every payslip the tenant has ever generated
@@ -149,11 +149,11 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+GET /payslips is bounded (default 200, max 500, page parameter, stable createdAt,id order) and answers X-Has-More / X-Page-Size; the response stays a plain array for existing screens.
 
 ## QA Retest
 
-Not yet retested.
+QA-PAYROLL-005 (automated; independent QA/security review of the batch recorded in the SESSION-0137 handoff).
 
 ## History
 
@@ -164,5 +164,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[payroll]]
+- Regression — REG-726 (see the regression register)
 
 <!-- GRAPH:END -->

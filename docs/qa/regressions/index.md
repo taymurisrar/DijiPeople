@@ -8014,3 +8014,45 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — mutation-verified. |
 | **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
 | **Active** | yes |
+
+### REG-724 — The public branding route trusted the stored document; SVG could execute script on the API origin.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-trust` |
+| **Module** | `services/api/src/modules/tenants` |
+| **Bug record** | BUG-3141 |
+| **Root cause** | The public branding route trusted the stored document; SVG could execute script on the API origin. |
+| **Regression test** | `services/api/src/modules/tenants/public-branding-asset-raster.spec.ts` |
+| **Scenario** | QA-AUTHZ-022 |
+| **Fails without the fix** | Yes - with image/svg+xml added to the raster allow-list the SVG case fails. |
+| **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
+| **Active** | yes |
+
+### REG-725 — Filter metadata used findMany distinct, which reads every matching audit row into Node.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/modules/audit` |
+| **Bug record** | BUG-3171 |
+| **Root cause** | Filter metadata used findMany distinct, which reads every matching audit row into Node. |
+| **Regression test** | `services/api/src/modules/audit/audit-filter-metadata.spec.ts` |
+| **Scenario** | QA-AUDIT-003 |
+| **Fails without the fix** | Yes - the spec asserts groupBy and no findMany. |
+| **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
+| **Active** | yes |
+
+### REG-726 — GET /payslips returned every payslip of the tenant in one response.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/modules/payslips` |
+| **Bug record** | BUG-3172 |
+| **Root cause** | GET /payslips returned every payslip of the tenant in one response. |
+| **Regression test** | `services/api/src/modules/payslips/payslips.list-bounds.spec.ts` |
+| **Scenario** | QA-PAYROLL-005 |
+| **Fails without the fix** | Yes - take/skip were absent. |
+| **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
+| **Active** | yes |
