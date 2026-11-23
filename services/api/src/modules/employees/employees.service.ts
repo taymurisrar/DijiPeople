@@ -312,6 +312,14 @@ function csvCell(value: unknown) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+/* BUG-3155 — CSV export columns that carry each restricted employee column. */
+const EXPORT_FIELD_ALIASES: Record<string, readonly string[]> = {
+  email: ['workEmail', 'ownerEmail'],
+  personalEmail: ['personalEmail'],
+  phone: ['phone'],
+  emergencyContactPhone: ['emergencyContactPhone'],
+};
+
 @Injectable()
 export class EmployeesService {
   constructor(
@@ -2191,6 +2199,17 @@ export class EmployeesService {
         : '',
       ownerName: employee.ownerUser?.fullName ?? '',
     }));
+    // BUG-3155 — a file download is a response path too: restricted columns are
+    // masked or emptied exactly as the JSON list shows them.
+    const exportDecision = await this.fieldAccess?.forRequest(
+      currentUser,
+      'employees',
+    );
+    if (exportDecision) {
+      for (const row of rows) {
+        exportDecision.applyAliased(row, EXPORT_FIELD_ALIASES);
+      }
+    }
     const projectedRows = rows.map((row) =>
       Object.fromEntries(
         selectedColumns.map((column) => [
@@ -2282,7 +2301,7 @@ export class EmployeesService {
       });
     }
 
-    const rows = [
+    const rows: Array<{ section: string; field: string; value: unknown }> = [
       {
         section: 'Profile',
         field: 'Employee code',
@@ -2322,6 +2341,26 @@ export class EmployeesService {
       },
       ...(await this.exportCustomFieldRows(currentUser, employee.id)),
     ];
+    // BUG-3155 — same restrictions as the JSON profile.
+    const profileDecision = await this.fieldAccess?.forRequest(
+      currentUser,
+      'employees',
+    );
+    if (profileDecision) {
+      const byLabel: Record<string, string> = {
+        'Work email': 'email',
+        Phone: 'phone',
+        'Owner email': 'ownerEmail',
+      };
+      for (const row of rows) {
+        const column = byLabel[row.field];
+        if (column) {
+          const cell: Record<string, unknown> = { [column]: row.value };
+          profileDecision.applyAliased(cell);
+          row.value = cell[column];
+        }
+      }
+    }
 
     return {
       filename: `employee-${sanitizeFilename(employee.employeeCode || employee.id)}-export-${formatDateForFilename(new Date())}.csv`,

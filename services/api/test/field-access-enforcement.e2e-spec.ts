@@ -390,6 +390,21 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
       expect(JSON.stringify(res.body)).not.toContain(CNIC);
     });
 
+    it('CSV exports mask a restricted column (control: the same export carries it elsewhere)', async () => {
+      const restricted = await call('get', gamma.admin, 'employees/export');
+      expect(restricted.status).toBe(200);
+      expect(restricted.text).not.toContain(PHONE);
+      const control = await call('get', beta.admin, 'employees/export');
+      expect(control.text).toContain(PHONE);
+      const profile = await call(
+        'get',
+        gamma.admin,
+        `employees/${gamma.employeeId}/export`,
+      );
+      expect(profile.status).toBe(200);
+      expect(profile.text).not.toContain(PHONE);
+    });
+
     it("another tenant's policies never affect this tenant (control already shows BETA unmasked)", async () => {
       const res = await call('get', beta.admin, 'employees');
       expect(JSON.stringify(res.body)).toContain(CNIC);

@@ -81,6 +81,27 @@ export class FieldAccessDecision {
   }
 
   /**
+   * Applies the decision to a row whose keys are NOT the table's column names
+   * (a CSV row, say). `aliases` maps a restricted column to the row keys that
+   * carry it; a restricted column with no alias is matched by its own name.
+   */
+  applyAliased(
+    row: Row,
+    aliases: Record<string, readonly string[]> = {},
+  ): void {
+    for (const fieldKey of this.restrictedFields()) {
+      const effect = this.effect(fieldKey);
+      for (const key of aliases[fieldKey] ?? [fieldKey]) {
+        if (!(key in row)) continue;
+        row[key] =
+          effect.kind === 'MASKED'
+            ? maskFieldValue(row[key], effect.pattern, effect.customMask)
+            : null;
+      }
+    }
+  }
+
+  /**
    * Fail-closed sweep: applies the decision to EVERY object in the response tree,
    * whatever the envelope or nesting. For hierarchical and composite responses
    * where listing nested paths would silently miss one.
