@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**829 records** — 587 bugs under [`docs/bugs/`](../bugs/), 242 non-bug items under [`items/`](items/).
+**830 records** — 587 bugs under [`docs/bugs/`](../bugs/), 243 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 326 |
 | Blocked | 4 |
-| Deferred | 126 |
+| Deferred | 127 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **10** |
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 33 |
+| OPEN | 32 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
-| DEFERRED | 126 |
+| DEFERRED | 127 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 257 |
+| FIXED | 258 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -266,7 +266,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3172](../../docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md) | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | P1 | FIXED | api:payslips | FIX_NOW |
 | [BUG-3173](../../docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md) | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | P1 | FIXED | apps/web | FIX_NOW |
 | [BUG-3174](../../docs/bugs/BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page.md) | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | P1 | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
-| [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | OPEN | apps/admin | FIX_NOW |
+| [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
 | [BUG-3176](../../docs/bugs/BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl.md) | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | P1 | FIXED | apps/web, apps/admin | FIX_NOW |
 | [BUG-3177](../../docs/bugs/BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read.md) | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | P1 | FIXED | api:recruitment, api:app-releases | FIX_NOW |
 | [BUG-3178](../../docs/bugs/BUG-3178-no-malware-scanning-exists-anywhere-the-tenant-setting-that-.md) | No malware scanning exists anywhere; the tenant setting that claims it does is inert | SECURITY | HIGH | P1 | PRODUCT_DECISION | services/api/src/common | PRODUCT_DECISION |
@@ -744,6 +744,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0239](../../docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md) | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0242](../../docs/backlog/items/ITEM-0242-set-a-measured-statement-timeout-with-tenant-erasure-and-pay.md) | Set a measured statement_timeout with tenant-erasure and payroll exemptions, and report worker lastTickAt in readiness | TECH_DEBT | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
+| [ITEM-0243](../../docs/backlog/items/ITEM-0243-db-backed-e2e-for-the-nine-platform-admin-runtime-lists-and-.md) | DB-backed e2e for the nine platform-admin runtime lists and removal of the in-memory fallback path (BUG-3175 follow-up) | TECH_DEBT | MEDIUM | P2 | DEFERRED | api:platform-runtime | DEFER |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

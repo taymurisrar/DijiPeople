@@ -8084,3 +8084,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Not mutation-verified - the spec asserts a failing or hanging probe reports not ready. Residuals: render.yaml healthCheckPath stays /api by design; no per-worker lastTickAt (ITEM-0242). |
 | **Fixed** | 2026-11-24, commit b7ddb808 |
 | **Active** | yes |
+
+### REG-729 — Nine platform-admin runtime lists fetched whole tables and paged, searched and sorted them in Node.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/modules/platform-runtime` |
+| **Bug record** | BUG-3175 |
+| **Root cause** | Each list read its entire table with nested includes, then searched, filtered, sorted and sliced it in memory through paginateRuntimeRecords. |
+| **Regression test** | `services/api/src/modules/platform-runtime/runtime-db-query.spec.ts` |
+| **Scenario** | QA-PLATFORM-072 |
+| **Fails without the fix** | Not mutation-verified - the spec asserts Prisma where/orderBy/skip/take arguments, not SQL results. Residuals: no DB e2e; ILIKE not index-assisted; search covers documented columns only; unsupported filters fall back to the whole-table path; my-records uses createdById (ITEM-0243). |
+| **Fixed** | 2026-11-24, commit 2088ec4f |
+| **Active** | yes |

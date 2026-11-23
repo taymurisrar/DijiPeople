@@ -12,7 +12,7 @@
 | Open total | 326 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
-| Deferred | 126 |
+| Deferred | 127 |
 | Completed | 357 |
 | Awaiting Architect triage | 3 |
 
@@ -90,7 +90,7 @@
 | [[BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-|BUG-3172]] | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | FIXED | api:payslips | FIX_NOW |
 | [[BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a|BUG-3173]] | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | FIXED | apps/web | FIX_NOW |
 | [[BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page|BUG-3174]] | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
-| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | OPEN | apps/admin | FIX_NOW |
+| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl|BUG-3176]] | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | FIXED | apps/web, apps/admin | FIX_NOW |
 | [[BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read|BUG-3177]] | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | FIXED | api:recruitment, api:app-releases | FIX_NOW |
 | [[BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-|BUG-3179]] | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | FIXED | services/api/src/common | FIX_NOW |
@@ -402,6 +402,7 @@
 | [[BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin|BUG-3171]] | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | FIXED | api:audit | FIX_NOW |
 | [[BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-|BUG-3172]] | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | FIXED | api:payslips | FIX_NOW |
 | [[BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a|BUG-3173]] | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | FIXED | apps/web | FIX_NOW |
+| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl|BUG-3176]] | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | FIXED | apps/web, apps/admin | FIX_NOW |
 | [[BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read|BUG-3177]] | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | FIXED | api:recruitment, api:app-releases | FIX_NOW |
 | [[BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-|BUG-3179]] | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | FIXED | services/api/src/common | FIX_NOW |
@@ -981,7 +982,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 587 |
-| Backlog items | 242 |
+| Backlog items | 243 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |
