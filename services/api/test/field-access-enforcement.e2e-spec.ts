@@ -361,7 +361,9 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
         `employees?contactFilter=${PHONE}&contactFilterOperator=contains`,
       );
       expect(allowed.status).toBe(200);
-      expect(allowed.body.items.length).toBeGreaterThan(0);
+      expect(
+        (allowed.body as { items: unknown[] }).items.length,
+      ).toBeGreaterThan(0);
     });
 
     it('the per-employee compensation route masks the salary (control: unmasked elsewhere)', async () => {

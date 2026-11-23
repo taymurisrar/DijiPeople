@@ -18,7 +18,7 @@ describe('AuditRepository.getFilterMetadata', () => {
 
     expect(prisma.auditLog.findMany).not.toHaveBeenCalled();
     expect(groupBy).toHaveBeenCalledTimes(2);
-    for (const call of groupBy.mock.calls) {
+    for (const call of groupBy.mock.calls as Array<[{ where: unknown }]>) {
       expect(call[0].where).toEqual({ tenantId: 'tenant-a' });
     }
     expect(result.actions).toEqual(['A']);

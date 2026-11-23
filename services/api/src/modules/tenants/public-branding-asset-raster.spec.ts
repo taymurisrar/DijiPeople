@@ -50,6 +50,11 @@ describe('PublicTenantsService.openBrandingAsset', () => {
     const { service, openFile, prisma } = build('image/png');
     expect(await service.openBrandingAsset('acme', 'logo')).not.toBeNull();
     expect(openFile).toHaveBeenCalledTimes(1);
-    expect(prisma.document.findFirst.mock.calls[0][0].where.tenantId).toBe('t');
+    const lookup = (
+      prisma.document.findFirst.mock.calls as unknown[][]
+    )[0][0] as {
+      where: { tenantId: string };
+    };
+    expect(lookup.where.tenantId).toBe('t');
   });
 });
