@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 825,
+    "total_records": 828,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -36233,6 +36233,120 @@
           "agent"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0239",
+      "type": "INFRA",
+      "title": "DataJob queue has no health signal; platform health covers the outbox only",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-23",
+        "updated_at": "2026-11-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0240",
+      "type": "INFRA",
+      "title": "Platform health degradation raises no alert; health is pull-only behind a platform login",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-23",
+        "updated_at": "2026-11-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0241",
+      "type": "INFRA",
+      "title": "No restore has been drilled; no measured RTO/RPO for the production database",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-23",
+        "updated_at": "2026-11-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

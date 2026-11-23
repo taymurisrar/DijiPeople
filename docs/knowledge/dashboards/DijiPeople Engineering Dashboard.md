@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **10** |
-| Open HIGH | **128** |
-| Open total | 323 |
+| Open HIGH | **129** |
+| Open total | 326 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 125 |
 | Completed | 357 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 3 |
 
 ## Open Critical Bugs
 
@@ -159,6 +159,7 @@
 | [[BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano|BUG-4467]] | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | FIXED | — | FIX_NOW |
 | [[BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401|BUG-4518]] | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | FIXED | services/api/src/common/guards | PLAN_REQUIRED |
 | [[BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price|BUG-4652]] | A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it | AUTHORIZATION | HIGH | FIXED | billing | FIX_NOW |
+| [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -217,9 +218,12 @@
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
 | [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | FIX_NOW |
+| [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
+| [[ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th|ITEM-0239]] | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o|ITEM-0240]] | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 
 ## Recently Fixed Bugs
 
@@ -894,6 +898,8 @@
 | [[ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf|ITEM-0228]] | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [[ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend|ITEM-0235]] | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
 | [[ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea|ITEM-0238]] | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
+| [[ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th|ITEM-0239]] | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o|ITEM-0240]] | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -970,7 +976,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 587 |
-| Backlog items | 238 |
+| Backlog items | 241 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |
@@ -980,7 +986,7 @@
 | Decision notes (ADR + generated) | 33 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 0.** A record nobody has
+**Awaiting Architect triage: 3.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

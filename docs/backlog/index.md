@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**825 records** — 587 bugs under [`docs/bugs/`](../bugs/), 238 non-bug items under [`items/`](items/).
+**828 records** — 587 bugs under [`docs/bugs/`](../bugs/), 241 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 323 |
+| Open (active work) | 326 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **10** |
-| **Open HIGH** | **128** |
-| **Awaiting Architect triage** | **0** |
+| **Open HIGH** | **129** |
+| **Awaiting Architect triage** | **3** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | CRITICAL | 10 |
-| HIGH | 128 |
-| MEDIUM | 151 |
+| HIGH | 129 |
+| MEDIUM | 153 |
 | LOW | 31 |
 
 ## Open by type
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 29 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
-| INFRA | 7 |
+| INFRA | 10 |
 | INTEGRATION | 8 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
@@ -65,6 +65,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
+| TRIAGE_REQUIRED | 3 |
 | READY | 31 |
 | DONE | 122 |
 
@@ -358,6 +359,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0172](../../docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md) | Wire debounced search and the openable label into the metadata-driven record-form lookup call site | FOLLOW_UP | HIGH | P1 | DONE | apps/web | DONE |
 | [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | DONE | services/api | DONE |
 | [ITEM-0209](../../docs/backlog/items/ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-.md) | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | P1 | BLOCKED | api:billing | BLOCKED_EXTERNAL |
+| [ITEM-0241](../../docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md) | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | P1 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
@@ -739,6 +741,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [ITEM-0235](../../docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md) | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 | [ITEM-0238](../../docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md) | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
+| [ITEM-0239](../../docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md) | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

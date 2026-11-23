@@ -11,7 +11,11 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [ITEM-0241](../../docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md) | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | P1 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0239](../../docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md) | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
@@ -156,6 +160,7 @@ _None._
 | [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | FIXED | — | FIX_NOW |
 | [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | FIXED | services/api/src/common/guards | PLAN_REQUIRED |
 | [BUG-4652](../../docs/bugs/BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price.md) | A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it | AUTHORIZATION | HIGH | P1 | FIXED | billing | FIX_NOW |
+| [ITEM-0241](../../docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md) | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | P1 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0133](../../docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md) | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | P2 | READY | services/api/test | PLAN_REQUIRED |
 | [ITEM-0134](../../docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md) | The payroll run engine has no tests | TEST_GAP | HIGH | P2 | READY | api:payroll | PLAN_REQUIRED |
 | [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | READY | apps/agent-desktop | FIX_NOW |
@@ -316,6 +321,8 @@ _None._
 | [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [ITEM-0235](../../docs/backlog/items/ITEM-0235-desktop-agent-windows-run-with-sandbox-false-enable-the-rend.md) | Desktop agent windows run with sandbox:false; enable the renderer sandbox | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
 | [ITEM-0238](../../docs/backlog/items/ITEM-0238-desktop-agent-local-data-and-update-trust-plaintext-heartbea.md) | Desktop agent local data and update trust: plaintext heartbeat queue, unsigned builds | SECURITY | MEDIUM | P2 | READY | agent | PLAN_REQUIRED |
+| [ITEM-0239](../../docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md) | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 
 ## LOW and unrated
 
