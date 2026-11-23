@@ -301,6 +301,46 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
       expect(row).toEqual({ cnic: CNIC, taxIdentifier: TAX });
     });
 
+    it('an echoed hidden/masked value does not overwrite the stored one', async () => {
+      const res = await call(
+        'patch',
+        alpha.admin,
+        `employees/${alpha.employeeId}`,
+        {
+          cnic: null,
+          taxIdentifier: '****9887',
+          firstName: 'Echo',
+        },
+      );
+      expect(res.status).toBe(200);
+      const row = await prisma.employee.findUniqueOrThrow({
+        where: { id: alpha.employeeId },
+        select: { cnic: true, taxIdentifier: true, firstName: true },
+      });
+      expect(row).toEqual({
+        cnic: CNIC,
+        taxIdentifier: TAX,
+        firstName: 'Echo',
+      });
+    });
+
+    it('a genuine change to a restricted field is refused, not silently dropped', async () => {
+      const res = await call(
+        'patch',
+        alpha.admin,
+        `employees/${alpha.employeeId}`,
+        {
+          cnic: '11111-1111111-1',
+        },
+      );
+      expect(res.status).toBe(403);
+      const row = await prisma.employee.findUniqueOrThrow({
+        where: { id: alpha.employeeId },
+        select: { cnic: true },
+      });
+      expect(row.cnic).toBe(CNIC);
+    });
+
     it("another tenant's policies never affect this tenant (control already shows BETA unmasked)", async () => {
       const res = await call('get', beta.admin, 'employees');
       expect(JSON.stringify(res.body)).toContain(CNIC);

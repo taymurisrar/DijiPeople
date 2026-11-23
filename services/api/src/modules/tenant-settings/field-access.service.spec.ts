@@ -123,6 +123,52 @@ describe('FieldAccessDecision (BUG-3155)', () => {
   });
 });
 
+describe('FieldAccessDecision.screenWrite (BUG-3155)', () => {
+  const d = new FieldAccessDecision([
+    {
+      id: 'p',
+      rules: [
+        rule('cnic', 'HIDDEN'),
+        rule('taxIdentifier', 'MASKED', { maskingPattern: 'LAST_4' }),
+        rule('phone', 'VISIBLE', { accessMode: 'READ_ONLY' }),
+      ],
+    },
+  ]);
+  const stored = {
+    cnic: '4210112345671',
+    taxIdentifier: 'NTN-0099887',
+    phone: '0300',
+  };
+
+  it('drops an echoed null/mask/stored value so the stored value survives', () => {
+    const payload: Record<string, unknown> = {
+      cnic: null,
+      taxIdentifier: '****9887',
+      phone: '0300',
+      firstName: 'A',
+    };
+    expect(d.screenWrite(payload, stored, Object.keys(payload))).toEqual([]);
+    expect(payload).toEqual({ firstName: 'A' });
+  });
+
+  it('reports a genuine change instead of dropping it', () => {
+    const payload: Record<string, unknown> = {
+      cnic: '9999999999999',
+      taxIdentifier: 'NTN-NEW',
+      phone: '0311',
+    };
+    expect(d.screenWrite(payload, stored, Object.keys(payload)).sort()).toEqual(
+      ['cnic', 'phone', 'taxIdentifier'],
+    );
+  });
+
+  it('leaves unrestricted fields alone', () => {
+    const payload: Record<string, unknown> = { firstName: 'B' };
+    expect(d.screenWrite(payload, stored, ['firstName'])).toEqual([]);
+    expect(payload).toEqual({ firstName: 'B' });
+  });
+});
+
 describe('FieldAccessService.applicablePolicies (BUG-3155)', () => {
   const makePrisma = (policies: unknown[]) => {
     const findMany = jest.fn().mockResolvedValue(policies);

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 
 import { maskFieldValue } from '../../common/security/field-mask';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -78,6 +78,48 @@ export class FieldAccessDecision {
       this.readOnlyFields.has(fieldKey) ||
       this.effect(fieldKey).kind !== 'VISIBLE'
     );
+  }
+
+  /**
+   * Write-back screen. For each named field present in `payload`:
+   *  - equal to what this caller was shown (the mask, `null`/empty for hidden,
+   *    the stored value for read-only) → an echo of the UI, dropped from the
+   *    payload so the stored value survives;
+   *  - anything else → a genuine change the caller may not make: the offending
+   *    field names are returned and nothing is dropped silently.
+   * `stored` is the persisted row; the payload is mutated in place.
+   */
+  screenWrite(
+    payload: Row,
+    stored: Row,
+    fieldKeys: readonly string[],
+  ): string[] {
+    const forbidden: string[] = [];
+    for (const fieldKey of fieldKeys) {
+      if (!(fieldKey in payload) || payload[fieldKey] === undefined) continue;
+      if (!this.isWriteRestricted(fieldKey)) continue;
+      const effect = this.effect(fieldKey);
+      const posted = payload[fieldKey];
+      const storedValue = stored[fieldKey] ?? null;
+      let shown: unknown;
+      if (effect.kind === 'MASKED') {
+        shown = maskFieldValue(storedValue, effect.pattern, effect.customMask);
+      } else if (effect.kind === 'HIDDEN') {
+        shown = null;
+      } else {
+        shown = storedValue;
+      }
+      const isEcho =
+        posted === shown ||
+        (effect.kind === 'HIDDEN' && (posted === null || posted === '')) ||
+        (effect.kind === 'VISIBLE' && posted === storedValue);
+      if (isEcho) {
+        delete payload[fieldKey];
+      } else {
+        forbidden.push(fieldKey);
+      }
+    }
+    return forbidden;
   }
 
   /**
@@ -167,6 +209,36 @@ export class FieldAccessService {
         );
       })
       .map((policy) => ({ id: policy.id, rules: policy.rules }));
+  }
+
+  /**
+   * Screens a write payload against the caller's field rules for `tableKey`
+   * (see `FieldAccessDecision.screenWrite`). Throws FIELD_ACCESS_FORBIDDEN when
+   * the payload carries a real change to a field the caller may not change.
+   */
+  async screenWrite(
+    user: AuthenticatedUser,
+    tableKey: string,
+    payload: object,
+    stored: object,
+  ): Promise<void> {
+    const decision = await this.forRequest(user, tableKey);
+    const body = payload as Row;
+    const forbidden = decision.screenWrite(
+      body,
+      stored as Row,
+      Object.keys(body),
+    );
+    if (forbidden.length > 0) {
+      throw new ForbiddenException({
+        code: 'FIELD_ACCESS_FORBIDDEN',
+        message: 'You do not have permission to change one or more fields.',
+        fieldErrors: forbidden.map((field) => ({
+          field,
+          message: 'You do not have permission to change this field.',
+        })),
+      });
+    }
   }
 
   forRequest(

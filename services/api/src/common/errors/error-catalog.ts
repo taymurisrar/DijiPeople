@@ -131,6 +131,16 @@ export const ERROR_CATALOG = {
     'warning',
     'access',
   ),
+  // BUG-3155 — a write, filter or sort named a field the caller may not read in
+  // clear (or may not change). Refused rather than silently dropped, so a real
+  // change is never reported as saved.
+  FIELD_ACCESS_FORBIDDEN: entry(
+    403,
+    'Field access denied',
+    'You do not have permission to use or change one or more of these fields.',
+    'warning',
+    'access',
+  ),
   RBAC_PERMISSION_MISSING: entry(
     403,
     'Permission missing',

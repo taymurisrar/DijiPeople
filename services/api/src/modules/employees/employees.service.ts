@@ -64,6 +64,7 @@ import {
   EmployeeSettingsResolved,
   TenantSettingsResolverService,
 } from '../tenant-settings/tenant-settings-resolver.service';
+import { FieldAccessService } from '../tenant-settings/field-access.service';
 import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
 import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
 import { BenefitsService } from '../benefits/benefits.service';
@@ -332,6 +333,8 @@ export class EmployeesService {
      * service by hand keep compiling; Nest always injects it.
      */
     private readonly customFieldValues?: CustomFieldValuesService,
+    /* BUG-3155 — write-back screen; optional for the same hand-built specs. */
+    private readonly fieldAccess?: FieldAccessService,
   ) {}
 
   /* TASK-0036 / ADR-0025 — the custom-field part of a list query. */
@@ -1343,6 +1346,15 @@ export class EmployeesService {
     if (!employee) {
       throw new NotFoundException('Employee was not found for this tenant.');
     }
+
+    // BUG-3155 — an echoed mask/null is dropped so the stored value survives;
+    // a genuine change to a field this caller cannot change is a 403.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employees',
+      dto,
+      employee as unknown as object,
+    );
 
     const beforeSnapshot = {
       ...this.mapEmployee(employee),
