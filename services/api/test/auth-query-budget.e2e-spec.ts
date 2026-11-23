@@ -20,7 +20,7 @@ import { HttpActors, type HttpActor } from './helpers/http-actors';
  * measured number with a ceiling rather than an impression, and so a change
  * that quietly adds round trips to every request fails here.
  *
- * The ceiling (27) is the value measured after the first optimisation; the baseline was 39 (see
+ * The ceiling (25) is the value measured after the second optimisation (BUG-3165: no organization relation, no employee row on the guard path); it was 27 and the baseline was 39 (see
  * docs/engineering/audits/2026-11-21-reliability-cost-audit/). Lower it when
  * the cost is reduced; never raise it to make a failing run pass — find the new
  * query. Nothing here caches anything: revocation tests below prove the
@@ -131,7 +131,7 @@ describeWithDatabase()('Authenticated request query budget (e2e, HTTP)', () => {
         seen.map((s, i) => `${i + 1}. ${s}`).join('\n'),
     );
     expect(seen.length).toBeLessThanOrEqual(
-      Number(process.env.AUTH_QUERY_CEILING ?? 27),
+      Number(process.env.AUTH_QUERY_CEILING ?? 25),
     );
   });
 

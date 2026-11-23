@@ -68,7 +68,15 @@ export class AuthAccessService {
     };
   }
 
-  async loadAccessContext(userId: string, expectedTenantId?: string) {
+  async loadAccessContext(
+    userId: string,
+    expectedTenantId?: string,
+    options: { includeEmployee?: boolean } = {},
+  ) {
+    // The request guard reads only `authUser`; the employee row feeds the
+    // `response` object that /auth/me and login return. Skipping it there saves
+    // a statement on every authenticated request (BUG-3165).
+    const includeEmployee = options.includeEmployee ?? true;
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -81,24 +89,24 @@ export class AuthAccessService {
             ownerUserId: true,
           },
         },
-        businessUnit: {
-          include: {
-            organization: {
-              select: { id: true, name: true },
-            },
-          },
-        },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            middleName: true,
-            lastName: true,
-            managerEmployeeId: true,
-            businessUnitId: true,
-          },
-        },
+        // Only the organization id is read (BUG-3165): loading the organization
+        // relation cost a second statement for nothing.
+        businessUnit: { select: { organizationId: true } },
+        ...(includeEmployee
+          ? {
+              employee: {
+                select: {
+                  id: true,
+                  employeeCode: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true,
+                  managerEmployeeId: true,
+                  businessUnitId: true,
+                },
+              },
+            }
+          : {}),
         userPermissions: {
           include: { permission: true },
         },

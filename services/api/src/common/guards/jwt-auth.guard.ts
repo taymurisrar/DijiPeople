@@ -110,6 +110,7 @@ export class JwtAuthGuard implements CanActivate {
           : await this.authAccessService.loadAccessContext(
               payload.sub,
               payload.tenantId,
+              { includeEmployee: false },
             );
 
       if (!authUser) {
