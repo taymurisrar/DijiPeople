@@ -42,12 +42,13 @@ export function decide({ root, input, state, verify = verifyProgram }) {
     return { action: 'allow', why: 'session is outside the program worktrees' };
   }
 
-  const result = verify(root, {});
+  const verifyRoot = state.verifyRoot ? resolve(state.verifyRoot) : root;
+  const result = verify(verifyRoot, {});
   if (STOPPABLE.has(result.verdict)) {
     return { action: 'allow', why: result.verdict, result };
   }
 
-  const fingerprint = progressFingerprint(root, result);
+  const fingerprint = progressFingerprint(verifyRoot, result);
   const next = { ...state };
   next.blocks = (state.blocks ?? 0) + 1;
   const sameAsLast = Boolean(input?.stop_hook_active) && fingerprint === state.lastFingerprint;

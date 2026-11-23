@@ -47,7 +47,7 @@ switch (command) {
     const worktrees = option('worktree', root).split(',').map((tree) => resolve(tree.trim()));
     writeFileSync(
       STATE,
-      `${JSON.stringify({ active: true, worktrees, blocks: 0, stagnant: 0, maxStagnant: 3, maxBlocks: 60, lastFingerprint: '' }, null, 2)}\n`,
+      `${JSON.stringify({ active: true, verifyRoot: worktrees[0], worktrees, blocks: 0, stagnant: 0, maxStagnant: 3, maxBlocks: 60, lastFingerprint: '' }, null, 2)}\n`,
     );
     console.log(`program active for: ${worktrees.join(', ')}`);
     break;
