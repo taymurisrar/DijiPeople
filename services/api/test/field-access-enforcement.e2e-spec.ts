@@ -102,7 +102,7 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
   }
 
   const call = (
-    method: 'get' | 'put' | 'patch',
+    method: 'get' | 'put' | 'patch' | 'post',
     as: HttpActor,
     path: string,
     body?: object,
@@ -403,6 +403,47 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
       );
       expect(profile.status).toBe(200);
       expect(profile.text).not.toContain(PHONE);
+    });
+
+    it('other write paths refuse a real change to a restricted field', async () => {
+      const personal = await call(
+        'patch',
+        alpha.admin,
+        `employees/${alpha.employeeId}/personal-info`,
+        { cnic: '22222-2222222-2' },
+      );
+      expect(personal.status).toBe(403);
+      const pay = await call(
+        'put',
+        alpha.admin,
+        `employees/${alpha.employeeId}/compensation`,
+        {
+          basicSalary: '1.00',
+          payFrequency: 'MONTHLY',
+          effectiveDate: '2025-02-01',
+        },
+      );
+      expect(pay.status).toBe(403);
+      const created = await call('post', alpha.admin, 'employees', {
+        employeeCode: `NEW-${suffix}`,
+        firstName: 'New',
+        lastName: 'Hire',
+        hireDate: '2025-01-01',
+        phone: '0300111222',
+        employmentStatus: 'ACTIVE',
+        cnic: '33333-3333333-3',
+      });
+      expect(created.status).toBe(403);
+      const row = await prisma.employee.findUniqueOrThrow({
+        where: { id: alpha.employeeId },
+        select: { cnic: true },
+      });
+      expect(row.cnic).toBe(CNIC);
+      expect(
+        await prisma.employee.count({
+          where: { tenantId: alpha.tenantId, employeeCode: `NEW-${suffix}` },
+        }),
+      ).toBe(0);
     });
 
     it("another tenant's policies never affect this tenant (control already shows BETA unmasked)", async () => {

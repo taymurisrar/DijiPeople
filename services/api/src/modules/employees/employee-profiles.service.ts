@@ -32,6 +32,7 @@ import { AuditService } from '../audit/audit.service';
 import { DocumentsRepository } from '../documents/documents.repository';
 import { EmailService } from '../notifications/email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { FieldAccessService } from '../tenant-settings/field-access.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
 import { resolveRecordLifecycle } from './employee-lifecycle.constants';
@@ -119,6 +120,8 @@ export class EmployeeProfilesService {
     private readonly secretEncryption: SecretEncryptionService,
     /* TASK-0034 — optional only for specs that construct this by hand. */
     private readonly customFieldValues?: CustomFieldValuesService,
+    /* BUG-3155 — write-back screen; optional for the same hand-built specs. */
+    private readonly fieldAccess?: FieldAccessService,
   ) {}
 
   async getProfile(currentUser: AuthenticatedUser, employeeId: string) {
@@ -379,6 +382,15 @@ export class EmployeeProfilesService {
       currentUser.tenantId,
       employeeId,
       await this.employeeAccessService.buildReadableEmployeeWhere(currentUser),
+    );
+
+    // BUG-3155 — an echoed mask is dropped; a real change to a restricted
+    // field is a 403, never a silent no-op.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employees',
+      dto,
+      employee as unknown as object,
     );
 
     if (
@@ -730,6 +742,15 @@ export class EmployeeProfilesService {
     dto: UpsertEmployeeCompensationDto,
   ) {
     await this.assertEmployeeAccess(currentUser, employeeId);
+
+    // BUG-3155 — a caller who cannot read a compensation field cannot set it:
+    // there is no stored value they were shown to echo, so any value is a change.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employeeCompensations',
+      dto,
+      {},
+    );
 
     if (dto.endDate && new Date(dto.endDate) < new Date(dto.effectiveDate)) {
       throw new BadRequestException(

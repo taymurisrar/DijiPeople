@@ -1145,6 +1145,9 @@ export class EmployeesService {
     const employeeSettings =
       await this.tenantSettingsResolverService.getEmployeeSettings(tenantId);
 
+    // BUG-3155 — nothing was shown on create, so any restricted value is a change.
+    await this.fieldAccess?.screenWrite(currentUser, 'employees', dto, {});
+
     this.assertEmployeeSettingsRulesForCreate(dto, employeeSettings);
     await this.assertEmployeeDuplicateRules(tenantId, dto, employeeSettings);
 
