@@ -23,6 +23,11 @@ export type FieldAccessBinding = {
   readonly paths?: readonly string[];
   /** Sweep the whole response tree instead of named paths (hierarchies, composites). */
   readonly deep?: boolean;
+  /**
+   * Internal keys removed from every object in the response (storage keys and
+   * the like): never a client's business, whatever the caller's role.
+   */
+  readonly omitKeys?: readonly string[];
 };
 
 /**
@@ -39,6 +44,16 @@ export const FieldAccess = (...bindings: FieldAccessBinding[]) =>
 type Row = Record<string, unknown>;
 const isRow = (value: unknown): value is Row =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+function omitDeep(value: unknown, keys: readonly string[]): void {
+  if (Array.isArray(value)) {
+    for (const item of value) omitDeep(item, keys);
+    return;
+  }
+  if (!isRow(value)) return;
+  for (const key of keys) delete value[key];
+  for (const child of Object.values(value)) omitDeep(child, keys);
+}
 
 /** The records of a response: a bare record, a list, or a list under a known key. */
 function recordsOf(response: unknown): Row[] {
@@ -73,6 +88,9 @@ export class FieldAccessInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       mergeMap(async (response: unknown) => {
+        for (const binding of bindings) {
+          if (binding.omitKeys?.length) omitDeep(response, binding.omitKeys);
+        }
         for (const binding of bindings) {
           if (!binding.deep) continue;
           const decision = await this.access.forRequest(user, binding.tableKey);

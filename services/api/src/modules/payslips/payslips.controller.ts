@@ -64,7 +64,11 @@ export class PayslipsController {
   }
 
   @Get('payslips')
-  @FieldAccess({ tableKey: 'employees', paths: ['employee'] })
+  @FieldAccess({
+    tableKey: 'employees',
+    paths: ['employee'],
+    omitKeys: ['storageKey', 'storageProvider', 'checksumSha256'],
+  })
   @Permissions('payslips.read-all')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   listPayslips(
@@ -78,7 +82,11 @@ export class PayslipsController {
   }
 
   @Get('payslips/:id')
-  @FieldAccess({ tableKey: 'employees', paths: ['employee'] })
+  @FieldAccess({
+    tableKey: 'employees',
+    paths: ['employee'],
+    omitKeys: ['storageKey', 'storageProvider', 'checksumSha256'],
+  })
   @Permissions('payslips.read-all')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getPayslip(
@@ -178,6 +186,10 @@ export class PayslipsController {
   }
 
   @Get('me/payslips')
+  @FieldAccess({
+    tableKey: 'employees',
+    omitKeys: ['storageKey', 'storageProvider', 'checksumSha256'],
+  })
   @Permissions('payslips.read-own')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getMyPayslips(
@@ -193,6 +205,10 @@ export class PayslipsController {
   }
 
   @Get('me/payslips/:id')
+  @FieldAccess({
+    tableKey: 'employees',
+    omitKeys: ['storageKey', 'storageProvider', 'checksumSha256'],
+  })
   @Permissions('payslips.read-own')
   @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getMyPayslip(
