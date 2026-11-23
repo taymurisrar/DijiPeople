@@ -47,6 +47,7 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
   }
   let alpha: Side;
   let beta: Side;
+  let gamma: Side;
 
   async function side(label: string): Promise<Side> {
     const tenant = await fixtures.createTenant(label);
@@ -168,6 +169,10 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
     actors = new HttpActors(app, suffix);
     alpha = await side('alpha');
     beta = await side('beta');
+    gamma = await side('gamma');
+    await policy(gamma.tenantId, `phone-${suffix}`, 'employees', 'EMPLOYEES', [
+      { fieldKey: 'phone', visibility: 'HIDDEN' },
+    ]);
 
     await policy(
       alpha.tenantId,
@@ -339,6 +344,24 @@ describeWithDatabase()('Field access enforcement (e2e, HTTP)', () => {
         select: { cnic: true },
       });
       expect(row.cnic).toBe(CNIC);
+    });
+
+    it('a filter on a hidden column is refused before any query runs', async () => {
+      const refused = await call(
+        'get',
+        gamma.admin,
+        `employees?contactFilter=${PHONE}&contactFilterOperator=contains`,
+      );
+      expect(refused.status).toBe(403);
+      expect(JSON.stringify(refused.body)).toContain('FIELD_ACCESS_FORBIDDEN');
+      // Control: the same filter works where the column is not restricted.
+      const allowed = await call(
+        'get',
+        beta.admin,
+        `employees?contactFilter=${PHONE}&contactFilterOperator=contains`,
+      );
+      expect(allowed.status).toBe(200);
+      expect(allowed.body.items.length).toBeGreaterThan(0);
     });
 
     it("another tenant's policies never affect this tenant (control already shows BETA unmasked)", async () => {

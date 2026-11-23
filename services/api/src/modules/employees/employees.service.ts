@@ -342,11 +342,13 @@ export class EmployeesService {
     currentUser: AuthenticatedUser,
     query: EmployeeQueryDto,
   ): Promise<EmployeeCustomListQuery> {
+    const excludeSearchFields = await this.screenListQuery(currentUser, query);
     const values = this.customFieldValues;
     const filters = parseCustomFieldFilters(query.customFilters);
     const sort = customSortField(query.orderBy);
-    if (!values || (!filters.length && !sort)) return {};
+    if (!values || (!filters.length && !sort)) return { excludeSearchFields };
     return {
+      excludeSearchFields,
       idConstraints: await values.recordIdConstraints(
         currentUser,
         'employees',
@@ -363,6 +365,36 @@ export class EmployeesService {
             )
         : undefined,
     };
+  }
+
+  /*
+   * BUG-3155 — a column the caller may not read in clear may not drive a filter
+   * or a sort (the result order or membership would reveal it), and is left out
+   * of free-text search. Refused before any query runs, so counts cannot leak.
+   * Returns the columns to leave out of free-text search.
+   */
+  private async screenListQuery(
+    currentUser: AuthenticatedUser,
+    query: EmployeeQueryDto,
+  ): Promise<string[]> {
+    if (!this.fieldAccess) return [];
+    const used: string[] = [];
+    if (query.contactFilter) used.push('email', 'phone');
+    if (query.hireDateFilter || query.hireDateFilterTo) used.push('hireDate');
+    const sortColumn = query.orderBy?.match(
+      /^([A-Za-z][A-Za-z0-9_]*)s+(asc|desc)$/,
+    )?.[1];
+    if (sortColumn === 'email' || sortColumn === 'workEmail')
+      used.push('email');
+    if (sortColumn === 'hireDate') used.push('hireDate');
+    await this.fieldAccess.assertQueryable(currentUser, 'employees', used);
+    return this.fieldAccess.restrictedAmong(currentUser, 'employees', [
+      'employeeCode',
+      'firstName',
+      'lastName',
+      'preferredName',
+      'email',
+    ]);
   }
 
   /* Custom field values the user may see on one employee (BUG-3697). */

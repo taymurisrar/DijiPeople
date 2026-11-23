@@ -241,6 +241,42 @@ export class FieldAccessService {
     }
   }
 
+  /** Refuses a filter or sort that names a column the caller cannot read in clear. */
+  async assertQueryable(
+    user: AuthenticatedUser,
+    tableKey: string,
+    fieldKeys: readonly string[],
+  ): Promise<void> {
+    if (fieldKeys.length === 0) return;
+    const decision = await this.forRequest(user, tableKey);
+    const refused = [...new Set(fieldKeys)].filter(
+      (fieldKey) => decision.effect(fieldKey).kind !== 'VISIBLE',
+    );
+    if (refused.length > 0) {
+      throw new ForbiddenException({
+        code: 'FIELD_ACCESS_FORBIDDEN',
+        message:
+          'You cannot filter or sort by a field you are not allowed to read.',
+        fieldErrors: refused.map((field) => ({
+          field,
+          message: 'You cannot filter or sort by this field.',
+        })),
+      });
+    }
+  }
+
+  /** Of `fieldKeys`, those the caller cannot read in clear. */
+  async restrictedAmong(
+    user: AuthenticatedUser,
+    tableKey: string,
+    fieldKeys: readonly string[],
+  ): Promise<string[]> {
+    const decision = await this.forRequest(user, tableKey);
+    return fieldKeys.filter(
+      (fieldKey) => decision.effect(fieldKey).kind !== 'VISIBLE',
+    );
+  }
+
   forRequest(
     user: AuthenticatedUser,
     tableKey: string,

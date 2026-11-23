@@ -14,6 +14,8 @@ type PrismaDb = PrismaService | Prisma.TransactionClient;
 export type EmployeeCustomListQuery = {
   readonly idConstraints?: readonly { in?: string[]; notIn?: string[] }[];
   readonly sortIds?: (recordIds: string[]) => Promise<string[] | null>;
+  /* BUG-3155 — columns the caller may not read in clear are left out of free-text search. */
+  readonly excludeSearchFields?: readonly string[];
 };
 
 /* The orderBy names buildOrderBy understands; anything else may be custom. */
@@ -237,7 +239,7 @@ export class EmployeesRepository {
   ) {
     const where = {
       AND: [
-        this.buildWhereClause(tenantId, query),
+        this.buildWhereClause(tenantId, query, custom.excludeSearchFields),
         accessWhere,
         ...(custom.idConstraints ?? []).map((constraint) => ({
           id: constraint.in
@@ -406,6 +408,7 @@ export class EmployeesRepository {
   private buildWhereClause(
     tenantId: string,
     query: EmployeeQueryDto,
+    excludeSearchFields: readonly string[] = [],
   ): Prisma.EmployeeWhereInput {
     const where: Prisma.EmployeeWhereInput = {
       tenantId,
@@ -415,13 +418,25 @@ export class EmployeesRepository {
 
     if (query.search) {
       const search = query.search.trim();
-      where.OR = [
-        { employeeCode: { contains: search, mode: 'insensitive' } },
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { preferredName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
+      const searchable: Array<[string, Prisma.EmployeeWhereInput]> = [
+        [
+          'employeeCode',
+          { employeeCode: { contains: search, mode: 'insensitive' } },
+        ],
+        ['firstName', { firstName: { contains: search, mode: 'insensitive' } }],
+        ['lastName', { lastName: { contains: search, mode: 'insensitive' } }],
+        [
+          'preferredName',
+          { preferredName: { contains: search, mode: 'insensitive' } },
+        ],
+        ['email', { email: { contains: search, mode: 'insensitive' } }],
       ];
+      where.OR = searchable
+        .filter(([field]) => !excludeSearchFields.includes(field))
+        .map(([, clause]) => clause);
+      // Every searchable column restricted: the search matches nothing rather
+      // than everything (an empty OR would be read as "no constraint").
+      if (where.OR.length === 0) where.OR = [{ id: { in: [] } }];
     }
 
     if (query.employmentStatus) {
