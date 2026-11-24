@@ -12156,6 +12156,9 @@ enum WorkflowRunStatus {
   SUCCEEDED
   FAILED
   SKIPPED
+  /// Some actions ran and others failed. Not SUCCEEDED: a half-delivered
+  /// rule must be visible and retryable, never reported as a clean run.
+  PARTIALLY_FAILED
 }
 
 /// Previous password hashes, so a user cannot cycle back to a recent one.

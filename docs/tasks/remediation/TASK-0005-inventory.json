@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 831,
+    "total_records": 833,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -26178,6 +26178,48 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-4774",
+      "type": "AUTHORIZATION",
+      "title": "Terminating an employee leaves the linked user able to sign in",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "3df60d01",
+        "created_at": "2026-11-24",
+        "updated_at": "2026-11-24",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "employees",
+        "auth",
+        "users"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "employees",
+          "auth",
+          "users"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -36481,6 +36523,48 @@
       "current_evidence": {
         "paths": [],
         "verification_scope": "See docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0245",
+      "type": "TEST_GAP",
+      "title": "Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-24",
+        "updated_at": "2026-11-24",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "recruitment",
+        "onboarding",
+        "tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "recruitment",
+          "onboarding",
+          "tenant-settings"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

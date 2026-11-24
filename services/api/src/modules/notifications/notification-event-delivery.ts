@@ -89,6 +89,7 @@ export const NOTIFICATION_EVENT_DELIVERY: Readonly<
   'employee.document.uploaded.hr': viaRule('employee'),
   'employee.document.expiring.employee': viaRule('employee'),
   'employee.onboarding.task.assigned': viaRule('employee'),
+  'recruitment.application.stage.changed': viaRule('recruitment'),
 
   TIMESHEET_APPROVAL_REQUEST: viaRule('timesheet'),
   TIMESHEET_SUBMISSION_REMINDER: viaRule('timesheet'),
@@ -136,6 +137,7 @@ export const EVENT_MODULES = [
   { key: 'loans', label: 'Loans' },
   { key: 'payroll', label: 'Payroll' },
   { key: 'employees', label: 'Employees' },
+  { key: 'recruitment', label: 'Recruitment' },
   { key: 'onboarding', label: 'Onboarding' },
   { key: 'reports', label: 'Reports' },
   { key: 'support', label: 'Support' },
@@ -155,6 +157,7 @@ const MODULE_LABEL = new Map<string, string>(
 export function resolveEventModuleKey(code: string): EventModuleKey | null {
   if (code.startsWith('leave.')) return 'leave';
   if (code.startsWith('attendance.')) return 'attendance';
+  if (code.startsWith('recruitment.')) return 'recruitment';
   if (code.startsWith('employee.onboarding.')) return 'onboarding';
   if (code.startsWith('employee.')) return 'employees';
   if (code.startsWith('TIMESHEET_')) return 'timesheets';

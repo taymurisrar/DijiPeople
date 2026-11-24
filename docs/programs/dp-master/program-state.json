@@ -23,7 +23,8 @@
       "WP-02.S0",
       "WP-26.S1",
       "WP-26.S2",
-      "WP-17.S2"
+      "WP-17.S2",
+      "WP-08.S0b"
     ],
     "excluded": [
       "All schema/runtime work for WP-02/35/06/09 (R2)",
@@ -259,7 +260,7 @@
       "auditDepth": "PROBED",
       "evidence": "Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a match (fail-open); workflow-runtime.service.ts runActions records SUCCEEDED when some actions failed; WorkflowRunStatus has no partial value; Workflow has no stable key (unique tenantId+name).",
       "targetRelease": "R1 (S1) / R2",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "estimateSessions": {
         "low": 8,
         "high": 14
@@ -277,7 +278,7 @@
       "auditDepth": "PROBED",
       "evidence": "notifications module exists. Catalogue has NO recruitment, projects or offboarding codes; only employee.onboarding.task.assigned (emitted onboarding.service.ts:569). recruitment.service.ts emits nothing on stage change/hire.",
       "targetRelease": "R1 (S1) / R2",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "estimateSessions": {
         "low": 5,
         "high": 8
@@ -357,7 +358,7 @@
       "auditDepth": "PROBED",
       "evidence": "OnboardingTemplate/Task exist; no offboarding. employees.service.ts:2416-2466 terminate sets TERMINATED + date + audit only: no user disable, session revocation, approval cancellation or notification (SECURITY finding, see register).",
       "targetRelease": "R3 (security fix early)",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "estimateSessions": {
         "low": 10,
         "high": 16
@@ -1006,9 +1007,10 @@
         "WP-01.S1"
       ],
       "workstream": "A",
-      "status": "READY",
+      "status": "IN_REVIEW",
       "lease": "schema",
-      "migration": "additive enum value WorkflowRunStatus.PARTIALLY_FAILED"
+      "migration": "additive enum value WorkflowRunStatus.PARTIALLY_FAILED",
+      "evidence": "workflow-conditions.spec, workflow-runtime.service.spec (12 tests); migration 20261124120000 additive enum"
     },
     {
       "id": "WP-04.S1",
@@ -1019,8 +1021,9 @@
         "WP-01.S1"
       ],
       "workstream": "A",
-      "status": "READY",
-      "note": "Catalogue addition; no direct mailer"
+      "status": "IN_REVIEW",
+      "note": "Category reuses EMPLOYEE (no enum change); RECRUITMENT category and candidate-recipient resolution are WP-07/WP-04 follow-ups",
+      "evidence": "recruitment-stage-event.spec; notification-event-delivery.spec green; only stage-change event emitted - interview/offer/hire-specific events need WP-07 models"
     },
     {
       "id": "WP-08.S0",
@@ -1031,9 +1034,10 @@
         "WP-01.S1"
       ],
       "workstream": "B",
-      "status": "READY",
-      "note": "Owner-impacting behaviour: disable user + revoke sessions at effective date; see register",
-      "decision": "OD-TERMINATE-ACCESS"
+      "status": "IN_REVIEW",
+      "note": "Immediate/past-dated exits only",
+      "decision": "OD-TERMINATE-ACCESS",
+      "evidence": "employee-terminate-access.spec (5 tests); BUG-4774 stays OPEN until S0b"
     },
     {
       "id": "WP-05.S1",
@@ -1168,14 +1172,25 @@
       "status": "NOT_STARTED",
       "lease": "schema",
       "decision": "OD-DLP-DEFAULTS"
+    },
+    {
+      "id": "WP-08.S0b",
+      "wp": "WP-08",
+      "title": "Scheduled access revocation at the effective date for future-dated exits (closes BUG-4774)",
+      "release": "R1",
+      "deps": [
+        "WP-08.S0"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED",
+      "decision": "OD-TERMINATE-ACCESS"
     }
   ],
   "nextExecutable": [
-    "WP-03.S1",
-    "WP-04.S1",
-    "WP-08.S0",
-    "WP-05.S1",
+    "WP-08.S0b",
     "WP-17.S1",
+    "WP-17.S2",
+    "WP-05.S1",
     "WP-35.S0",
     "WP-01.S2"
   ],
@@ -1185,5 +1200,9 @@
       "sha": "47eadf74",
       "note": "WP-01.S2 (competitor benchmark, perf budgets) outstanding; cross-cutting requirements mostly PENDING_AUDIT (see traceability.json)"
     }
+  },
+  "records": {
+    "bug": "BUG-4774",
+    "backlogItem": "ITEM-0245"
   }
 }

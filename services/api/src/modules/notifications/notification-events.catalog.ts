@@ -296,6 +296,15 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     enabledByDefault: true,
   },
   {
+    code: 'recruitment.application.stage.changed',
+    name: 'Recruitment application stage changed',
+    description:
+      'Raised after an application moves to a new stage (including rejection and hire). Selectable in workflows and notification rules. Does not imply an interview was scheduled.',
+    category: NotificationEventCategory.EMPLOYEE,
+    defaultChannels: [NotificationChannel.IN_APP],
+    enabledByDefault: false,
+  },
+  {
     code: 'TIMESHEET_APPROVAL_REQUEST',
     name: 'Timesheet approval request',
     description: 'Sent to approvers when a timesheet requires review.',

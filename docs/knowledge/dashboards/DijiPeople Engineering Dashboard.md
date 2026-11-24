@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **5** |
-| Open HIGH | **48** |
-| Open total | 239 |
+| Open HIGH | **49** |
+| Open total | 241 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 127 |
@@ -73,6 +73,7 @@
 | [[BUG-4438-a-recruiter-cannot-move-a-candidate-between-pipeline-stages-|BUG-4438]] | A recruiter cannot move a candidate between pipeline stages: recruitment.advance is granted to no role | AUTHORIZATION | HIGH | FIXED | recruitment, permissions | FIX_NOW |
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
 | [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
+| [[BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-|BUG-4774]] | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | OPEN | employees, auth, users | FIX_NOW |
 | [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
@@ -123,6 +124,7 @@
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
+| [[ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st|ITEM-0245]] | Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding | TEST_GAP | — | READY | recruitment, onboarding, tenant-settings | PLAN_REQUIRED |
 
 ## Current Infrastructure Gaps
 
@@ -852,6 +854,7 @@
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 | [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
+| [[ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st|ITEM-0245]] | Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding | TEST_GAP | — | READY | recruitment, onboarding, tenant-settings | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -893,8 +896,8 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 587 |
-| Backlog items | 244 |
+| Bug records | 588 |
+| Backlog items | 245 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |

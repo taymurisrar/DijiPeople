@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import { AuthenticatedUser } from '../../common/interfaces/authenticated-request
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { normalizeEmail } from '../../common/utils/email.util';
+import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { ApplicationQueryDto } from './dto/application-query.dto';
 import {
@@ -58,6 +60,8 @@ type UploadedResumeFile = {
 
 @Injectable()
 export class RecruitmentService {
+  private readonly logger = new Logger(RecruitmentService.name);
+
   constructor(
     private readonly recruitmentRepository: RecruitmentRepository,
     private readonly documentParsingService: DocumentParsingService,
@@ -66,6 +70,7 @@ export class RecruitmentService {
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
     private readonly storageService: StorageService,
     private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findJobOpenings(tenantId: string, query: JobOpeningQueryDto) {
@@ -1396,6 +1401,35 @@ export class RecruitmentService {
         });
       }
     });
+
+    // DP-MASTER/WP-04.S1 (A01). Announced only after the transaction commits, so
+    // a delivery problem can never undo or block the stage move. No candidate
+    // contact details travel in the event: recipients resolve inside the tenant.
+    try {
+      await this.notificationsService.emit({
+        tenantId: currentUser.tenantId,
+        eventKey: 'recruitment.application.stage.changed',
+        moduleKey: 'recruitment',
+        actorUserId: currentUser.userId,
+        relatedEntityType: 'application',
+        relatedEntityId: applicationId,
+        metadata: {
+          applicationId,
+          candidateId: application.candidateId,
+          jobOpeningId: application.jobOpeningId ?? null,
+          fromStage: application.stage,
+          toStage: dto.stage,
+          eventAtUtc: new Date().toISOString(),
+          targetUrl: `/recruitment/applications/${applicationId}`,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not announce stage change for application ${applicationId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
 
     return this.findApplicationById(currentUser.tenantId, applicationId);
   }

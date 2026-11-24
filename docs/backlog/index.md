@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**831 records** — 587 bugs under [`docs/bugs/`](../bugs/), 244 non-bug items under [`items/`](items/).
+**833 records** — 588 bugs under [`docs/bugs/`](../bugs/), 245 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 239 |
+| Open (active work) | 241 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 445 |
 | **Open CRITICAL** | **5** |
-| **Open HIGH** | **48** |
+| **Open HIGH** | **49** |
 | **Awaiting Architect triage** | **3** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 5 |
-| HIGH | 48 |
+| HIGH | 49 |
 | MEDIUM | 152 |
 | LOW | 31 |
 
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 11 |
+| AUTHORIZATION | 12 |
 | BUG | 72 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
@@ -49,14 +49,14 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 2 |
-| TEST_GAP | 10 |
+| TEST_GAP | 11 |
 | UX | 62 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 32 |
+| OPEN | 33 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 127 |
@@ -66,7 +66,7 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 3 |
-| READY | 31 |
+| READY | 32 |
 | DONE | 123 |
 
 ## All records
@@ -343,6 +343,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | VERIFIED | — | DONE |
 | [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | VERIFIED | services/api/src/common/guards | DONE |
 | [BUG-4652](../../docs/bugs/BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price.md) | A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it | AUTHORIZATION | HIGH | P1 | VERIFIED | billing | DONE |
+| [BUG-4774](../../docs/bugs/BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-.md) | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | P1 | OPEN | employees, auth, users | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -898,6 +899,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0231](../../docs/backlog/items/ITEM-0231-tenant-self-service-payment-report-for-bank-transfer-renewal.md) | Tenant self-service payment report for bank-transfer renewal invoices | FOLLOW_UP | — | P2 | DEFERRED | billing | DEFER |
 | [ITEM-0233](../../docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md) | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | P2 | READY | billing | PLAN_REQUIRED |
 | [ITEM-0244](../../docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md) | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | P2 | DONE | — | DONE |
+| [ITEM-0245](../../docs/backlog/items/ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st.md) | Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding | TEST_GAP | — | P2 | READY | recruitment, onboarding, tenant-settings | PLAN_REQUIRED |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

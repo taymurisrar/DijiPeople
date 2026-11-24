@@ -42,7 +42,7 @@ export type Workflow = {
 export type WorkflowRun = {
   id: string;
   eventCode: string;
-  status: "SUCCEEDED" | "FAILED" | "SKIPPED";
+  status: "SUCCEEDED" | "FAILED" | "SKIPPED" | "PARTIALLY_FAILED";
   startedAt: string;
   finishedAt: string | null;
   actionsRun: number;

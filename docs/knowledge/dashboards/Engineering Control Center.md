@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
-| Active parent tasks | 5 |
+| Active sessions | **3** |
+| Active parent tasks | 6 |
 | Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 1 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **5** |
-| Open HIGH | 48 |
+| Open HIGH | 49 |
 | Awaiting Architect triage | 3 |
 | Owner decisions pending | 16 |
 | QA coverage gaps | 167 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 239 |
-| No next action | 239 |
+| No acceptance criteria | 241 |
+| No next action | 241 |
 | Aging — 7d / 30d / 90d | 216 / 214 / 15 |
 | Architecture and technical debt | 8 |
-| Security gaps | 34 |
+| Security gaps | 35 |
 | Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0138-dp-master-wp-01-baseline-traceability-and-r1-foundation-slic|SESSION-0138]] | — | DP-MASTER WP-01 baseline, traceability and R1 foundation slices | ACTIVE | `agent/dp-master-wp01-baseline` | `develop` | — | NO |
 | [[SESSION-0137-dependency-alert-remediation-111-dependabot-alerts-p0-exposu|SESSION-0137]] | — | Dependency alert remediation: 111 Dependabot alerts, P0 exposure triage | ACTIVE | `agent/dependency-alert-remediation` | `develop` | — | NO |
 | [[SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2|SESSION-0130]] | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | NO |
 
@@ -61,6 +62,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
 | [[TASK-0038-complete-multi-payment-billing-end-to-end|TASK-0038]] | Complete multi-payment billing end-to-end | FEATURE | LARGE | 0/8 | WP-01 | — | — |
+| [[TASK-0039-dp-master-program-workforce-operating-platform-master-plan-v|TASK-0039]] | DP-MASTER program - workforce operating platform (master plan v1.0) | FEATURE | LARGE | 0/1 | — | WP-01 | — |
 
 ## Branch model
 
@@ -311,7 +313,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 239 |
+| Open total | 241 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |

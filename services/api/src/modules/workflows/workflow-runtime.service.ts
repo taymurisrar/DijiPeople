@@ -11,7 +11,10 @@ import {
   buildTenantNotificationScopeKey,
   notificationScopeChain,
 } from '../notifications/notifications.constants';
-import { evaluateWorkflowConditions } from './workflow-conditions';
+import {
+  evaluateWorkflowConditions,
+  findMalformedWorkflowCondition,
+} from './workflow-conditions';
 
 /*
  * Runs tenant-authored workflows when a business event happens.
@@ -255,6 +258,18 @@ export class WorkflowRuntimeService {
 
     let ran = 0;
     for (const workflow of workflows) {
+      const malformed = findMalformedWorkflowCondition(workflow.conditions);
+      if (malformed) {
+        // Fail closed and say so: an unreadable rule must not act, and the
+        // author needs to see why it stopped firing.
+        await this.recordRun(workflow.id, context, {
+          status: WorkflowRunStatus.FAILED,
+          actionsRun: 0,
+          error: `Malformed conditions, workflow not run: ${malformed}`,
+        });
+        continue;
+      }
+
       const matches = evaluateWorkflowConditions(
         workflow.conditions,
         evaluationContext,
@@ -303,7 +318,7 @@ export class WorkflowRuntimeService {
       return {
         status:
           actionsRun > 0
-            ? WorkflowRunStatus.SUCCEEDED
+            ? WorkflowRunStatus.PARTIALLY_FAILED
             : WorkflowRunStatus.FAILED,
         actionsRun,
         error: failures.join(' | ').slice(0, 1000),

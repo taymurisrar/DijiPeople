@@ -49,6 +49,15 @@ export function isWorkflowConditionOperator(
 function readPath(context: Record<string, unknown>, path: string): unknown {
   let current: unknown = context;
   for (const segment of path.split('.')) {
+    // Never walk the prototype chain: a path like "constructor.name" must not
+    // read engine internals into a condition.
+    if (
+      segment === '__proto__' ||
+      segment === 'constructor' ||
+      segment === 'prototype'
+    ) {
+      return undefined;
+    }
     if (current === null || typeof current !== 'object') return undefined;
     current = (current as Record<string, unknown>)[segment];
   }
@@ -99,33 +108,59 @@ function evaluateOne(
   }
 }
 
+/*
+ * Returns why a stored condition list cannot be trusted, or null when every
+ * entry is well formed. Structural only: a value-less comparison is a valid
+ * (if odd) rule, an unknown operator or a non-object entry is not.
+ */
+export function findMalformedWorkflowCondition(
+  conditions: unknown,
+): string | null {
+  if (conditions === null || conditions === undefined) return null;
+  if (!Array.isArray(conditions)) return 'Conditions are not a list.';
+
+  for (const [index, entry] of conditions.entries()) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      return `Condition ${index + 1} is not an object.`;
+    }
+    const candidate = entry as Partial<WorkflowCondition>;
+    if (typeof candidate.field !== 'string' || !candidate.field.trim()) {
+      return `Condition ${index + 1} has no field.`;
+    }
+    if (
+      typeof candidate.operator !== 'string' ||
+      !isWorkflowConditionOperator(candidate.operator)
+    ) {
+      return `Condition ${index + 1} has an unknown operator.`;
+    }
+  }
+  return null;
+}
+
 /**
- * All conditions must hold. An empty or malformed list means "always run",
- * which matches how the builder presents a workflow with no conditions.
+ * All conditions must hold. No conditions means "always run", which matches how
+ * the builder presents a workflow with none. A malformed list FAILS CLOSED: a
+ * rule that cannot be read must not fire, because the rule an author meant to
+ * restrict ("only for Sick Leave") would otherwise send to everyone. Callers
+ * that need to tell the author why use findMalformedWorkflowCondition.
  */
 export function evaluateWorkflowConditions(
   conditions: unknown,
   context: Record<string, unknown>,
 ) {
-  if (!Array.isArray(conditions) || !conditions.length) return true;
+  if (conditions === null || conditions === undefined) return true;
+  if (findMalformedWorkflowCondition(conditions)) return false;
+  const list = conditions as WorkflowCondition[];
+  if (!list.length) return true;
 
-  return conditions.every((entry) => {
-    if (!entry || typeof entry !== 'object') return true;
-    const candidate = entry as Partial<WorkflowCondition>;
-    if (
-      typeof candidate.field !== 'string' ||
-      typeof candidate.operator !== 'string' ||
-      !isWorkflowConditionOperator(candidate.operator)
-    ) {
-      return true;
-    }
-    return evaluateOne(
+  return list.every((entry) =>
+    evaluateOne(
       {
-        field: candidate.field,
-        operator: candidate.operator,
-        value: candidate.value ?? null,
+        field: entry.field,
+        operator: entry.operator,
+        value: entry.value ?? null,
       },
       context,
-    );
-  });
+    ),
+  );
 }

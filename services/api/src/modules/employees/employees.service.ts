@@ -2438,6 +2438,14 @@ export class EmployeesService {
       updatedById: actorId,
     });
 
+    // DP-MASTER/WP-08.S0 (OD-TERMINATE-ACCESS). Ending employment must end the
+    // sign-in that employment granted; this used to leave the account live.
+    const access = await this.revokeAccessOnTermination(
+      tenantId,
+      employee.userId ?? null,
+      terminationDate,
+    );
+
     // BUG-3184. Termination is among the most consequential employee changes (it
     // ends payroll eligibility) and used to leave no audit row at all.
     await this.auditService.log({
@@ -2453,10 +2461,52 @@ export class EmployeesService {
       afterSnapshot: {
         employmentStatus: EmployeeEmploymentStatus.TERMINATED,
         terminationDate,
+        accessRevoked: access.revoked,
+        accessRevocationNote: access.note,
       },
     });
 
     return this.findById(tenantId, employeeId);
+  }
+
+  /*
+   * Immediate exits disable the linked user and revoke every live session in one
+   * transaction, so there is no window where the status says disabled while a
+   * refresh token still works. Future-dated exits are NOT revoked here: access
+   * must continue until the effective date, and the scheduled revocation is the
+   * next slice (WP-08.S0b) - the audit row records that it is still pending.
+   * The tenant owner is never disabled (same rule as UsersService.update);
+   * ownership must be transferred first.
+   */
+  private async revokeAccessOnTermination(
+    tenantId: string,
+    userId: string | null,
+    terminationDate: Date,
+  ): Promise<{ revoked: boolean; note: string }> {
+    if (!userId) return { revoked: false, note: 'NO_LINKED_USER' };
+    if (terminationDate.getTime() > Date.now()) {
+      return { revoked: false, note: 'FUTURE_DATED_REVOCATION_PENDING' };
+    }
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { ownerUserId: true },
+    });
+    if (tenant?.ownerUserId === userId) {
+      return { revoked: false, note: 'TENANT_OWNER_NOT_DISABLED' };
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.updateMany({
+        where: { id: userId, tenantId },
+        data: { status: UserStatus.DISABLED },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { tenantId, userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+    return { revoked: true, note: 'USER_DISABLED_SESSIONS_REVOKED' };
   }
 
   private async provisionEmployeeUserAccess(
