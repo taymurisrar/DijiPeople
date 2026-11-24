@@ -1007,7 +1007,7 @@
         "WP-01.S1"
       ],
       "workstream": "A",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "lease": "schema",
       "migration": "additive enum value WorkflowRunStatus.PARTIALLY_FAILED",
       "evidence": "workflow-conditions.spec, workflow-runtime.service.spec (12 tests); migration 20261124120000 additive enum"
@@ -1021,7 +1021,7 @@
         "WP-01.S1"
       ],
       "workstream": "A",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "note": "Category reuses EMPLOYEE (no enum change); RECRUITMENT category and candidate-recipient resolution are WP-07/WP-04 follow-ups",
       "evidence": "recruitment-stage-event.spec; notification-event-delivery.spec green; only stage-change event emitted - interview/offer/hire-specific events need WP-07 models"
     },
@@ -1034,7 +1034,7 @@
         "WP-01.S1"
       ],
       "workstream": "B",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "note": "Immediate/past-dated exits only",
       "decision": "OD-TERMINATE-ACCESS",
       "evidence": "employee-terminate-access.spec (5 tests); BUG-4774 stays OPEN until S0b"
@@ -1048,7 +1048,7 @@
         "WP-01.S1"
       ],
       "workstream": "B",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "evidence": "docs/programs/dp-master/assessments.md; ITEM-0245"
     },
     {
@@ -1060,7 +1060,7 @@
         "WP-01.S1"
       ],
       "workstream": "B",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "decisionRequired": "OD-DLP-DEFAULTS",
       "evidence": "docs/programs/dp-master/assessments.md"
     },
@@ -1073,9 +1073,10 @@
         "WP-01.S1"
       ],
       "workstream": "A",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "type": "design-only",
-      "evidence": "docs/decisions/ADR-0030 (PROPOSED)"
+      "evidence": "docs/decisions/ADR-0030 (PROPOSED)",
+      "note": "ADR-0030 is PROPOSED; acceptance with the WP-35.S1 ExecPlan"
     },
     {
       "id": "WP-02.S0",
@@ -1086,7 +1087,7 @@
         "WP-35.S0"
       ],
       "workstream": "A",
-      "status": "IN_REVIEW",
+      "status": "INTEGRATED",
       "type": "design-only",
       "evidence": "docs/decisions/ADR-0030 (PROPOSED)"
     },
@@ -1204,12 +1205,14 @@
       "note": "WP-01.S2 (competitor benchmark, perf budgets) outstanding; cross-cutting requirements mostly PENDING_AUDIT (see traceability.json)"
     },
     "G3": {
-      "status": "PENDING",
-      "note": "CI run 45459013299 on 52b4a08a failed only \"Data model notes match the schema\" (generated entity-user.md stale after enum edit); fixed by regenerating; re-run pending."
+      "status": "PASS_SLICE_SCOPE",
+      "sha": "48ee90f0",
+      "note": "Exact-SHA CI run 45466471193 green (two earlier runs failed on generated-doc staleness, fixed). Integrated to develop by fast-forward. Unit tests only; no isolated-DB migration apply or browser run yet."
     }
   },
   "records": {
     "bug": "BUG-4774",
     "backlogItem": "ITEM-0245"
-  }
+  },
+  "integratedSha": "48ee90f0"
 }
