@@ -1220,8 +1220,8 @@
     },
     "G3": {
       "status": "PENDING",
-      "sha": "d4e21fd3",
-      "note": "CI run 45482098205 on d4e21fd3: every job green except Browser e2e, one test (flow-k K5 \"Active Records filter spans all pages\" reads the status column instead of names, failed on retry). The diff touches no module-view code and K5 passed on 48ee90f0 and 505d44df; classified as an unrelated intermittent until a re-run proves otherwise. Re-run on the next SHA."
+      "sha": "42f94e0a",
+      "note": "CI run 45485750105 on 42f94e0a: Browser e2e, Database e2e, migration gate, typecheck, lint, build and all other jobs green (the K5 browser failure on d4e21fd3 did not recur: intermittent). Two real failures, both caused by WP-03.S2 adding the tenant-owned WorkflowVersion model and both fixed: tenant-erasure order spec, and platform-runtime-schema.generated.json. Lesson: after any schema change run the FULL API suite and the runtime-schema generator, not only the touched module."
     }
   },
   "records": {

@@ -466,6 +466,7 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'workSession',
   'workflow',
   'workflowRun',
+  'workflowVersion',
   'benefitPolicy',
   'claimSubType',
   'claimType',
