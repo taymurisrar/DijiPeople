@@ -2,7 +2,7 @@
 ID: BUG-3330
 aliases: [BUG-3330]
 Title: Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-11
 DetectedInSha: caad4a56
 AffectedModules: [apps/web, services/api/src/modules/billing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-413
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-12
 ---
 
@@ -272,15 +272,7 @@ de-duplicated once on the server after two copies disagreed.
 
 ## QA Retest
 
-Pending — needs a QA pass against a live tenant with a `PER_SEAT` price at
-several seat counts, and confirmation that a seat count outside a price's
-bounds is refused rather than silently clamped at checkout.
-
-Pending the `apps/web` half. Server behaviour can be retested now:
-`GET /billing/plan-prices/:id/seat-quote?seats=N` for a real published
-per-seat price returns a total equal to `unitPrice * (N - includedSeats)`,
-refuses a seat count outside bounds with the bound named in the message, and
-refuses a DRAFT or foreign-market price the same way checkout does.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): seat-pricing.spec (web) asserts per-seat total = unitAmount x billableSeats and out-of-bounds seats are refused with the bound; API billing-seat-pricing.spec also passes (26 tests across the 2 API suites, run with a dummy DATABASE_URL). billing-settings-client.tsx has formatPriceQualifier emitting '/ seat / month' and an order summary via estimateSeatOrder; the label itself has no unit test.
 
 ## History
 
@@ -299,3 +291,4 @@ refuses a DRAFT or foreign-market price the same way checkout does.
 - Regression — REG-413 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

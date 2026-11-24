@@ -2,7 +2,7 @@
 ID: BUG-4427
 aliases: [BUG-4427]
 Title: Safepay appends order_id to a success URL that already has a query string, so the onboarding id reaches the API malformed (uuid v4 is expected)
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-11-19
 DetectedInSha: 92eba463
 AffectedModules: [landing, billing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-686
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
-UpdatedAt: 2026-11-19
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-19
 ---
 
@@ -86,6 +86,8 @@ What was actually changed, with the commit or branch. Filled at fix time.
 
 Which QA run verified the fix, and the scenario ids.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): provisioning-view.spec.ts asserts parseOnboardingId(`${id}?order_id=ORD-1`) returns the bare uuid; passes, and subscribe/success/page.tsx calls parseOnboardingId. Bug record body is an unfilled template but REG-686 documents the fix.
+
 ## History
 
 - 2026-11-19 — created from qa run at `92eba463`.
@@ -100,3 +102,4 @@ Which QA run verified the fix, and the scenario ids.
 <!-- GRAPH:END -->
 
 Source-side hardening (2026-11-19): `withTrailingQuerySeparator` in `safepay.gateway.ts` ends a success URL that already has a query with `&` so a blind `?order_id` append cannot corrupt the first parameter; covered by `safepay.gateway.spec.ts`. The landing page still extracts the leading UUID, so either side alone is sufficient.
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

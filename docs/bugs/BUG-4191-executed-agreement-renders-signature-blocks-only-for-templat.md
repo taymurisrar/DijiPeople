@@ -2,7 +2,7 @@
 ID: BUG-4191
 aliases: [BUG-4191]
 Title: Executed agreement renders signature blocks only for template slots; extra required signers missing
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-13
 DetectedInSha: 202c1370
 AffectedModules: [contracts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-683
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/contract-signing-multiparty
 CreatedAt: 2026-10-13
-UpdatedAt: 2026-10-13
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-13
 ---
 
@@ -135,6 +135,8 @@ Non-destructive local reconstruction of `CON-20261012-E7421CC1` from its
 frozen version and evidence: three blocks on the signature page, appendix
 "Agreement version 1 · Immutable signing snapshot 2".
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): signature-blocks.spec.ts asserts one labelled block per required signer, no duplicates, pending blocks in preview, cover/appendix agreement-version agreement and signature images in generated PDF; passes.
+
 ## History
 
 - 2026-10-13 — created from qa run at `202c1370`.
@@ -149,3 +151,4 @@ frozen version and evidence: three blocks on the signature page, appendix
 - Regression — REG-683 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

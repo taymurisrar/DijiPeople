@@ -2,7 +2,7 @@
 ID: BUG-2331
 aliases: [BUG-2331]
 Title: Permissions-Policy geolocation=() makes web attendance check-in impossible
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-30
 DetectedInSha: f77c0abb
 AffectedModules: [packages/config, apps/web, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-360
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-30
 ---
 
@@ -199,6 +199,8 @@ first-visit permission state denied to prompt, and a complete check-in payload
 posted from a real captured GPS position. Retest after deploy by pressing Check
 In on a browser with no prior grant and confirming the prompt appears.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): security-headers.test.js (node --test, 20/20 pass) asserts geolocation opt-in yields (self), default stays (); security-headers.js assembles the header and web/admin next.config.ts pass geolocation: true.
+
 ## History
 
 - 2026-08-30 — created from qa run at `f77c0abb`.
@@ -214,3 +216,4 @@ In on a browser with no prior grant and confirming the prompt appears.
 - Regression — REG-360 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

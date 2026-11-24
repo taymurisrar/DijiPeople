@@ -2,7 +2,7 @@
 ID: BUG-4624
 aliases: [BUG-4624]
 Title: A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-21
 DetectedInSha: 4c2517e7
 AffectedModules: [app-releases]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-702
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-21
-UpdatedAt: 2026-11-21
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-4624 — A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs
@@ -92,6 +92,8 @@ Fixed on branch `agent/dependency-alert-remediation` (SESSION-0137, WP3): `asser
 
 QA-AUTHZ-020, run on the isolated database on 2026-11-22: 6 of 6 passing, including the positive controls. Independent QA/Security review of this fix is pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): app-release.controller.ts calls assertPlatformSubject in publish/disable/enable/promote/manage; app-release-authority e2e (11 pass) asserts tenant admin is refused on each and may still read the catalogue, with a platform control.
+
 ## History
 
 - 2026-11-21 — created from qa run at `4c2517e7`.
@@ -104,3 +106,4 @@ QA-AUTHZ-020, run on the isolated database on 2026-11-22: 6 of 6 passing, includ
 - Regression — REG-702 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

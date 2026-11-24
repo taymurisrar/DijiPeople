@@ -2,7 +2,7 @@
 ID: BUG-3185
 aliases: [BUG-3185]
 Title: Reading or downloading a document is recorded nowhere
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/documents]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-712
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -111,6 +111,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUDIT-002 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): documents.service.ts logs DOCUMENT_VIEWED/DOWNLOADED; e2e asserts exactly one row per view/download with actor, no content, and no row on refused cross-tenant read; pass.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (OBS-16) at `23504f4b`.
@@ -122,3 +124,4 @@ QA-AUDIT-002 on the isolated database, 2026-11-22: passing with the fix and fail
 - Regression — REG-712 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

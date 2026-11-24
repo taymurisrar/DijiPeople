@@ -2,7 +2,7 @@
 ID: BUG-3995
 aliases: [BUG-3995]
 Title: Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: eb4b79c3
 AffectedModules: [partners, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-655
 RelatedBacklogItem:
 RelatedDecision: ADR-0026
 RelatedImplementation: [packages/config/partner-lifecycle.js, apps/admin/lib/runtime/command-visibility.ts, apps/admin/lib/runtime/visibility-condition.ts, services/api/src/modules/partners/partner-lifecycle.ts]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-07
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-08
 ---
 
@@ -105,6 +105,8 @@ QA-PLATFORM-053:
 - Mutation checks killed both mutants: removing the `visibleWhen` check, and removing the inquiry guard.
 - The browser re-check is recorded in the TASK-0037 QA run.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): partner-lifecycle.test.js (node --test), admin command-visibility.spec.ts and api partner-inquiry-required.spec.ts all pass on this branch; the api spec covers the 409 PARTNER_INQUIRY_REQUIRED path.
+
 ## History
 
 - 2026-10-07 — created from qa run at `eb4b79c3`.
@@ -118,3 +120,4 @@ QA-PLATFORM-053:
 - Regression — REG-655 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-3162
 aliases: [BUG-3162]
 Title: Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation)
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-710
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -190,6 +190,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUTH-027 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-tenants-cache-key.spec.ts asserts key differs when a second selector is added, per variant, keeps tenant:resolve: prefix, and separator-safe; passes.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (CACHE-01) at `23504f4b`.
@@ -202,3 +204,4 @@ QA-AUTH-027 on the isolated database, 2026-11-22: passing with the fix and faili
 - Regression — REG-710 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-3241
 aliases: [BUG-3241]
 Title: Legacy role-permission grant and employee export both skip the sibling endpoint's access check
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-11
 ---
 
@@ -174,6 +174,8 @@ Covered by the specs above rather than a manual pass. A manual retest would need
 a role holder at `SELF`/`TEAM` level and a second employee outside their scope;
 the specs assert exactly that shape without provisioning it.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): roles.service.spec.ts rejects granting a legacy permission key the actor lacks (assertPermissionKeysWithinActorAccess called at create/update/updatePermissions); employees.service.spec.ts exportEmployeeProfile rejects when canViewEmployeeRecord denies; both suites pass.
+
 ## History
 
 - 2026-09-10 — found by the authorization stream of the full technical audit as
@@ -189,3 +191,4 @@ the specs assert exactly that shape without provisioning it.
 - Regression — REG-408 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

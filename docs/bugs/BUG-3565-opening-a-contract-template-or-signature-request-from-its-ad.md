@@ -2,7 +2,7 @@
 ID: BUG-3565
 aliases: [BUG-3565]
 Title: Opening a contract template or signature request from its admin list returns 404
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -95,6 +95,8 @@ apply the platform permission), instead of falling through to `findGeneric`.
 Verified by the passing `runtime-get-coverage.spec.ts` and by TASK-0032 WP-09
 live QA opening both record types from their admin lists.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): runtime-get-coverage.spec.ts drives get() for contract-templates and signature-requests and asserts the contracts service readers were reached (not the generic fallback); platform-runtime.service.ts now has get cases at :487-489; passes.
+
 ## History
 
 - 2026-09-25 — created from qa run at `c6fb718d`.
@@ -108,3 +110,4 @@ live QA opening both record types from their admin lists.
 - Regression — REG-600 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

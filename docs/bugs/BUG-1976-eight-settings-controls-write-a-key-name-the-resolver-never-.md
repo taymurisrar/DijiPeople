@@ -2,7 +2,7 @@
 ID: BUG-1976
 aliases: [BUG-1976]
 Title: Eight settings controls write a key name the resolver never reads
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -276,10 +276,7 @@ of these pairs against the old code.
 
 ## QA Retest
 
-Awaiting a QA run. The record's own reproduction is the retest: turn off
-"Prevent duplicate by personal email" in Settings > Employees > Duplicate
-Prevention, then create two employees sharing a personal email. It should now
-succeed.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): Same reader-coverage guard covers the eight dead alias names by construction (REG-326); settings-page-config.ts now carries the live key names with BUG-1976 comments (e.g. requirePrimaryWorkLocation renamed); suite passes. Coverage is indirect (no explicit 8-pair assertion).
 
 ## History
 
@@ -295,3 +292,4 @@ succeed.
 - Regression — REG-326 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

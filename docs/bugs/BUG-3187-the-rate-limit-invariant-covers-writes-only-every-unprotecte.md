@@ -2,7 +2,7 @@
 ID: BUG-3187
 aliases: [BUG-3187]
 Title: The rate-limit invariant covers writes only; every unprotected public surface is a read
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-721
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-23
 ---
 
@@ -129,6 +129,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUTH-029 on the isolated database, 2026-11-23: passing with the fix and failing with a guard removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-write-rate-limit.invariant.spec (now covering @Get) passes and public-read-rate-limit e2e asserts 600 served then 601st refused, and query-string variation does not buy a fresh bucket; 2/2 pass.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (RATE-02) at `23504f4b`.
@@ -141,3 +143,4 @@ QA-AUTH-029 on the isolated database, 2026-11-23: passing with the fix and faili
 - Regression — REG-721 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-2494
 aliases: [BUG-2494]
 Title: Check-out re-validates check-in preconditions and traps the entry open for ever
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-11
 ---
 
@@ -248,6 +248,8 @@ assertions. `npm --workspace api run test` — full suite green (see the
 task-level validation summary). REG-372 registered
 (`docs/qa/regressions/index.md`).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): attendance.service.spec.ts 'closes an OFFICE entry whose work site is no longer on the record' (officeLocationId null) resolves and updateAttendanceEntry called with CHECKED_OUT; passes.
+
 ## History
 
 - 2026-08-30 — created from the production monitoring queue at `c4ffd13b`,
@@ -265,3 +267,4 @@ task-level validation summary). REG-372 registered
 - Regression — REG-372 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

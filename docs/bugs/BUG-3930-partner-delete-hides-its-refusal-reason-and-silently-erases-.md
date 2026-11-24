@@ -2,7 +2,7 @@
 ID: BUG-3930
 aliases: [BUG-3930]
 Title: Partner delete hides its refusal reason and silently erases customer and tenant attribution
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: 898a6ac3
 AffectedModules: [partners, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-650
 RelatedBacklogItem: ITEM-0226
 RelatedDecision:
 RelatedImplementation: [services/api/src/modules/partners/partner-dependencies.ts, services/api/src/modules/partners/partner-deletion.service.ts, services/api/src/common/deletion/record-dependencies.ts, apps/admin/app/_components/runtime/dependency-aware-delete-dialog.tsx]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-07
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-07
 ---
 
@@ -154,6 +154,8 @@ Test runs:
 - Admin: 575 of 575 pass.
 - Mutation check: changing attributedCustomers to DETACH fails 4 tests.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): partner-dependencies.spec.ts asserts every Partner relation is classified, commissions never cascade, and customer/tenant attribution blocks delete; admin dependency-delete-model spec passes (UI half, 120 admin tests pass).
+
 ## History
 
 - 2026-10-07 — created from the owner's report. Fixed in TASK-0037 WP-07.
@@ -167,3 +169,4 @@ Test runs:
 - Regression — REG-650 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

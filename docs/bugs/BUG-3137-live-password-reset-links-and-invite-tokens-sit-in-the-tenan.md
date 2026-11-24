@@ -2,7 +2,7 @@
 ID: BUG-3137
 aliases: [BUG-3137]
 Title: Live password-reset links and invite tokens sit in the tenant-readable email delivery log
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/notifications]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-707
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -131,6 +131,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUTH-024 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-session-hardening e2e (8 passed) asserts the forgot-password EmailDeliveryLog row has no resetUrl/reset-password?token=/JWT and that the row exists as a control; code removes resetUrl from auth.service and invitation metadata and email-execution buildMetadata scrubs url/link/token keys for auth events.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (AUTH-01) at `a800d8f2`.
@@ -143,3 +145,4 @@ QA-AUTH-024 on the isolated database, 2026-11-22: passing with the fix and faili
 - Regression — REG-707 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

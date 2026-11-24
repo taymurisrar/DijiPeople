@@ -2,7 +2,7 @@
 ID: BUG-2506
 aliases: [BUG-2506]
 Title: Sign-out leaves the refresh token live whenever the tenant is busy
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-30
 ---
 
@@ -143,6 +143,8 @@ only clears the cookie.
 Nine automated assertions in the spec above. A live retest — sign out, replay the
 refresh token, expect a refusal — is folded into the post-deploy sweep.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-session-lifecycle.spec.ts 'revokes by session id even when the refresh cookie is present' plus session-only case; auth.service.ts logout guard is now `if (sessionId)` at line ~1700; passes.
+
 ## History
 
 - 2026-08-30 - created from qa run at `ade1fea7`.
@@ -156,3 +158,4 @@ refresh token, expect a refusal — is folded into the post-deploy sweep.
 - Regression — REG-375 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

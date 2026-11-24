@@ -2,7 +2,7 @@
 ID: BUG-3501
 aliases: [BUG-3501]
 Title: The email provider screen presents a console sink as delivery and offers sink providers in production
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P1
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-13
 DetectedInSha: df0f84f1
 AffectedModules: [notifications, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-515
 RelatedBacklogItem:
 RelatedDecision: docs/decisions/ADR-0015-production-retires-sink-email-providers.md
 RelatedImplementation: [docs/plans/EXECPLAN-0050-production-retires-sink-email-providers-and-honest-delivery-logs.md, packages/config/email-providers.js, services/api/src/modules/notifications/email/email-provider-factory.service.ts, services/api/src/modules/notifications/notifications.service.ts, services/api/prisma/seed-config.ts, apps/web/app/(authenticated)/settings/notifications/_components/email-providers-manager.tsx, apps/web/app/(authenticated)/settings/notifications/_components/email-delivery-path.ts]
 CreatedAt: 2026-09-13
-UpdatedAt: 2026-09-13
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3501 — The email provider screen presents a console sink as delivery and offers sink providers in production
@@ -276,6 +276,8 @@ QA-SETTINGS-031 (screen):
 8. After release, on the demo tenant: a template test arrives, logged SENT with
    providerType SMTP.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): production-sink-retirement.spec.ts asserts EmailProviderFactory ignores enabled CONSOLE in production, refuses creating CONSOLE/DEV, and the effective-provider description is honest; passes.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
@@ -291,3 +293,4 @@ QA-SETTINGS-031 (screen):
 - Regression — REG-515 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

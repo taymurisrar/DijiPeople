@@ -2,7 +2,7 @@
 ID: BUG-3929
 aliases: [BUG-3929]
 Title: Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: 898a6ac3
 AffectedModules: [apps/admin, platform-runtime]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-649
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [apps/admin/lib/runtime/http-module-runtime-adapter.ts, apps/admin/lib/runtime/runtime-record-action-handler.ts, services/api/src/modules/platform-runtime/platform-runtime.service.ts, services/api/src/modules/platform-runtime/record-actions.contract.json]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-07
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-07
 ---
 
@@ -135,6 +135,8 @@ Full suite results:
 - Admin: 559 of 559 tests pass.
 - API platform-runtime: 116 of 116 tests pass.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): record-action-routing.spec.ts (admin) and record-action-dispatch.spec.ts (api) both pass (contract-file pinned); executeRecordAction exists in the admin adapter/handler and PlatformRuntimeService.execute resolves routeId ?? body.id.
+
 ## History
 
 - 2026-10-07 — created from the owner's production capture. Fixed in
@@ -148,3 +150,4 @@ Full suite results:
 - Regression — REG-649 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

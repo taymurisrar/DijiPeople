@@ -2,7 +2,7 @@
 ID: BUG-2459
 aliases: [BUG-2459]
 Title: The notification bell polls forever after a session ends, flooding the error log
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-30
 DetectedInSha: 39d8ddc4
 AffectedModules: [web:notifications, api:error-logs, api:notifications]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-368
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-30
 ---
 
@@ -178,7 +178,7 @@ component test would have caught that either.
 
 ## QA Retest
 
-Pending.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): notification-auth-failure.spec asserts NotificationRequestError carries status, 401 is an auth failure and 400/403/404/429/5xx are not; passes. Bell and popup provider set sessionEndedRef and pass shouldStop to visibility-polling (tested in visibility-polling.spec). The component teardown itself is untested.
 
 ## History
 
@@ -192,3 +192,4 @@ Pending.
 - Regression — REG-368 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

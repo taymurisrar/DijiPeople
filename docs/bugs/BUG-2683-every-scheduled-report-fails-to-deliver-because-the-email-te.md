@@ -2,7 +2,7 @@
 ID: BUG-2683
 aliases: [BUG-2683]
 Title: Every scheduled report fails to deliver because the email template variable tenantName is never passed
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-31
-UpdatedAt: 2026-08-31
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-2683 — Every scheduled report fails to deliver because the email template variable tenantName is never passed
@@ -127,6 +127,8 @@ The test asserts the **contract**, not a hand-written list: it reads `availableV
 
 Re-scheduled in production after deploy; delivery confirmed to a real inbox.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): report-scheduler.worker.spec.ts contract test checks every template availableVariables key is dispatched and tenantName equals 'Demo Tenant Ltd' / fallback 'DijiPeople' (lines ~814-858); worker passes tenantName; suite passes.
+
 ## History
 
 - 2026-08-31 — found by scheduling a real report in production and watching it fail.
@@ -139,3 +141,4 @@ Re-scheduled in production after deploy; delivery confirmed to a real inbox.
 - Regression — REG-386 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

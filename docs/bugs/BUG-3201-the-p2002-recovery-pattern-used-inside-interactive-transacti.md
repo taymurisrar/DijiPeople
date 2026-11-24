@@ -2,7 +2,7 @@
 ID: BUG-3201
 aliases: [BUG-3201]
 Title: The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-723
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-23
 ---
 
@@ -155,6 +155,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-PLATFORM-069 on the isolated database, 2026-11-23: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): identity-concurrent-create e2e (7 pass) runs twelve concurrent transactions to one row, a deterministic loser-of-uncommitted-race that still commits, and a SAVEPOINT test plus a control showing the unprotected sequence aborts.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (RES-07) at `23504f4b`.
@@ -167,3 +169,4 @@ QA-PLATFORM-069 on the isolated database, 2026-11-23: passing with the fix and f
 - Regression — REG-723 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

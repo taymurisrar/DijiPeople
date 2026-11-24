@@ -2,7 +2,7 @@
 ID: BUG-3356
 aliases: [BUG-3356]
 Title: A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-11
 DetectedInSha: 118d22ed
 AffectedModules: [web:auth, api:auth]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-441
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-12
 ---
 
@@ -213,8 +213,7 @@ both fixed in the same session.
 
 ## QA Retest
 
-Pending — automated regression coverage exists (REG-441, [[QA-AUTH-012]]) but
-this has not yet had a live QA pass against a deployed environment.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): server-api.spec asserts that when refresh is revoked or no refresh token exists, fetch is never called for the target endpoint and the response carries SESSION_REVOKED (not AUTH_TOKEN_MISSING) with the web_ traceId; passes. server-api.ts:166 short-circuits when authRequired && !accessToken.
 
 ## History
 
@@ -232,3 +231,4 @@ this has not yet had a live QA pass against a deployed environment.
 - Regression — REG-441 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

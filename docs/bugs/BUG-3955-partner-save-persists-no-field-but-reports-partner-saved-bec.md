@@ -2,7 +2,7 @@
 ID: BUG-3955
 aliases: [BUG-3955]
 Title: Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: 898a6ac3
 AffectedModules: [apps/admin, partners]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-651
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [scripts/lib/runtime-write-contract.mjs, packages/config/platform-runtime-schema.generated.json, apps/admin/lib/runtime/runtime-write-payload.ts]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-07
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-08
 ---
 
@@ -93,6 +93,8 @@ None.
 
 QA-PLATFORM-049. With the old regex restored, 6 parser tests fail. `test:runtime-schema` passes 12 of 12, and admin passes 603 of 603.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): scripts/runtime-write-contract.test.mjs passes 9/9 including nested/multiline wrappers and 'real partner update DTO resolves to create DTO fields'; admin runtime-write-contract.spec.ts passes; parser in scripts/lib/runtime-write-contract.mjs now parses the heritage expression instead of extends\s+(\w+).
+
 ## History
 
 - 2026-10-07 — created from user report at `6439fa00`.
@@ -106,3 +108,4 @@ QA-PLATFORM-049. With the old regex restored, 6 parser tests fail. `test:runtime
 - Regression — REG-651 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

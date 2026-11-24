@@ -2,7 +2,7 @@
 ID: BUG-3545
 aliases: [BUG-3545]
 Title: The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -189,6 +189,8 @@ passing `auth-activity-authorization.spec.ts` / `background-request.spec.ts`
 — see `docs/tasks/TASK-0032-streams/QA-summary.md` ("Admin screens …" rows: no
 failed calls, no console errors).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-activity-authorization.spec.ts asserts POST auth/activity declares no permission and is @AuthenticationOnly (auth.controller.ts:177-178), admits every PlatformUserRole; apps/admin background-request marks heartbeat so the blocking dialog skips it; API and admin suites pass.
+
 ## History
 
 - 2026-09-25 — created from qa run at `75fec5b9`; live reproduction on a
@@ -205,3 +207,4 @@ failed calls, no console errors).
 - Regression — REG-527 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

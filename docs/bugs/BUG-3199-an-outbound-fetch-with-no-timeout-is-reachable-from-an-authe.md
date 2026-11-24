@@ -2,7 +2,7 @@
 ID: BUG-3199
 aliases: [BUG-3199]
 Title: An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-714
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -145,6 +145,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-PLATFORM-066 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): outbound-fetch-has-deadline.spec scans all production fetch( calls for a signal with an empty allow-list and asserts the Stripe timeout constant; passes.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (RES-05) at `23504f4b`.
@@ -157,3 +159,4 @@ QA-PLATFORM-066 on the isolated database, 2026-11-22: passing with the fix and f
 - Regression — REG-714 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

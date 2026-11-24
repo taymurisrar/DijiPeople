@@ -2,7 +2,7 @@
 ID: BUG-2623
 aliases: [BUG-2623]
 Title: buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-2623 — buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have
@@ -173,6 +173,8 @@ Reporting's sanitiser, which had been carrying a deliberate exception for exactl
 
 `rbac-query-scope.spec.ts` — 7 cases, 4 of which fail against the old default. Full API suite: 298 suites, 6,339 tests, green with the change in place.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): rbac-query-scope.ts makes ownerTeamIdField opt-in with no default (line 94 only emits when set); rbac-query-scope.spec asserts the fragment has no 'ownerTeamId' key by default and passes.
+
 ## History
 
 - 2026-08-31 — audited every caller; found live exposure in data-management exports and the employees entity, and fixed the helper by making the field opt-in.
@@ -185,3 +187,4 @@ Reporting's sanitiser, which had been carrying a deliberate exception for exactl
 - Regression — REG-387 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

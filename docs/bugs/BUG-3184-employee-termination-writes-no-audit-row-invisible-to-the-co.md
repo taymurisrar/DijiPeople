@@ -2,7 +2,7 @@
 ID: BUG-3184
 aliases: [BUG-3184]
 Title: Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-711
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -124,6 +124,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUDIT-001 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): employees.service.ts logs AUDIT_ACTIONS.EMPLOYEE_TERMINATED; audit-trail-reads e2e asserts exactly one row naming actor with TERMINATED afterSnapshot and none for cross-tenant attempt; 5/5 pass.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (OBS-15) at `23504f4b`.
@@ -136,3 +138,4 @@ QA-AUDIT-001 on the isolated database, 2026-11-22: passing with the fix and fail
 - Regression — REG-711 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

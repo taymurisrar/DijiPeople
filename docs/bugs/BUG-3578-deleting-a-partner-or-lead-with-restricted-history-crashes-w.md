@@ -2,7 +2,7 @@
 ID: BUG-3578
 aliases: [BUG-3578]
 Title: Deleting a partner or lead with restricted history crashes with a 500
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -166,6 +166,8 @@ Verified by TASK-0032 WP-09 live QA against the throwaway stack — see
 agreement gate": Pass) and the passing regression specs
 `partner-deletion.service.spec.ts` / `lead-delete-and-partner.spec.ts`.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): partner-deletion.service.spec.ts it.each asserts refusal naming inquiries, onboardingApplications, attribution history, leadReviews, supportCases etc. with no delete issued; leads.service.ts:786-805 counts corrections/agreements/reviews before bulk delete and lead-delete-and-partner.spec.ts (not in the batch list, run separately) passes 5/5.
+
 ## History
 
 - 2026-09-25 — created by the TASK-0032 records clerk pass, from WP-09 live
@@ -181,3 +183,4 @@ agreement gate": Pass) and the passing regression specs
 - Regression — REG-620 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-3494
 aliases: [BUG-3494]
 Title: A published custom module has no sidebar entry and no list, form or record screen
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-13
 DetectedInSha: df0f84f1
 AffectedModules: [apps/web, customization, data]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-492
 RelatedBacklogItem: [ITEM-0187, ITEM-0188, ITEM-0189, ITEM-0190, ITEM-0191, ITEM-0195]
 RelatedDecision: docs/decisions/ADR-0016-published-custom-modules-render-in-the-tenant-runtime.md
 RelatedImplementation: [docs/plans/EXECPLAN-0046-published-custom-modules-tenant-runtime.md, services/api/src/modules/data/custom-module-runtime.service.ts, services/api/src/modules/data/custom-module-runtime.controller.ts, services/api/src/modules/data/published-custom-modules.ts, services/api/src/modules/data/custom-data.service.ts, services/api/src/modules/data/data.controller.ts, apps/web/lib/runtime/custom-modules/custom-module-runtime.ts, apps/web/lib/runtime/custom-modules/custom-module-navigation.ts, apps/web/app/(authenticated)/custom-modules/[moduleKey]/page.tsx, apps/web/app/(authenticated)/settings/customization/_components/sidebar-designer.tsx]
 CreatedAt: 2026-09-13
-UpdatedAt: 2026-09-13
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3494 — A published custom module has no sidebar entry and no list, form or record screen
@@ -295,6 +295,8 @@ form). CI runs 34732185363, 34732682935 and 34732697734 passed on f865ac5e
 8. At 400px and 820px the pages reflow like other runtime modules.
 9. The Sidebar Designer lists the module; rename and hide apply.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): custom-module-navigation.spec asserts published modules get a /custom-modules/<key> sidebar entry gated on custom-records.read and none for draft modules; custom-module-runtime.spec asserts runtime spec, views and forms from published metadata. All three suites pass, including API custom-data.service.spec. /custom-modules/[moduleKey] route exists and the API has custom-module-runtime.service/controller.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
@@ -311,3 +313,4 @@ form). CI runs 34732185363, 34732682935 and 34732697734 passed on f865ac5e
 - Regression — REG-492 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-3332
 aliases: [BUG-3332]
 Title: Plan cards truncate to eight features so Growth and Enterprise advertise identical capability
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-11
 DetectedInSha: caad4a56
 AffectedModules: [apps/web, services/api/src/modules/billing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-414
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-12
 ---
 
@@ -164,9 +164,7 @@ Fixed in `apps/web/app/(authenticated)/settings/billing/_components/billing-sett
 
 ## QA Retest
 
-Pending — needs a QA pass confirming Growth and Enterprise cards render
-different feature lists on a live tenant, and that "and N more" scrolls to
-the comparison table.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): plan-presentation.spec asserts rankPlanFeatures puts differentiating features first and two plans with differing feature sets never rank to the same truncated list; passes. billing-settings-client.tsx uses rankPlanFeatures, has no slice(0, 8), and links 'and N more' to #feature-comparison.
 
 ## History
 
@@ -183,3 +181,4 @@ the comparison table.
 - Regression — REG-414 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

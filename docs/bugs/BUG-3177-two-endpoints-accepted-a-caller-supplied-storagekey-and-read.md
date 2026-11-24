@@ -2,7 +2,7 @@
 ID: BUG-3177
 aliases: [BUG-3177]
 Title: Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/recruitment, services/api/src/modules/app-releases]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-720
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -149,6 +149,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-PLATFORM-068 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): register-candidate-document DTO and app-release controller no longer accept storageKey; openFile requires a scope and storage.service.spec 'refuses to read another tenant's object and never calls the provider' passes (404, provider.getObject not called).
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (FILE-03) at `23504f4b`.
@@ -160,3 +162,4 @@ QA-PLATFORM-068 on the isolated database, 2026-11-22: passing with the fix and f
 - Regression — REG-720 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

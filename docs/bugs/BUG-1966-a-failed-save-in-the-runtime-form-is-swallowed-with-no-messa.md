@@ -2,7 +2,7 @@
 ID: BUG-1966
 aliases: [BUG-1966]
 Title: A failed save in the runtime form is swallowed with no message, toast or inline error
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -215,6 +215,8 @@ rather than surface a visible 400. Either outcome closes this record - what
 matters is that a failure is visible at all - but the expected result has
 changed and a retester working from the old note would call a pass a failure.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): command-failure-visibility.spec asserts fieldValidationErrorsAreVisible is false when the named fields are not on the form (so the dialog is no longer withheld); passes. module-runtime-command-handler.tsx:327 calls it. Test covers the decision, not the rendered dialog/role=alert.
+
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`. Split from the leave-request payload finding because the swallow is generic to the runtime form layer.
@@ -229,3 +231,4 @@ changed and a retester working from the old note would call a pass a failure.
 - Regression — REG-307 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

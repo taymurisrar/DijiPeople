@@ -2,7 +2,7 @@
 ID: BUG-2505
 aliases: [BUG-2505]
 Title: A mode-or-location correction could never be submitted at all
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-30
 ---
 
@@ -137,6 +137,8 @@ shape were inverted, each with a comment explaining why it had been wrong.
 Covered by the automated regression above. A live retest is folded into the
 post-deploy sweep for SESSION-0084.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): correction-form-fields.spec asserts showsField('TIME_ADJUSTMENT', requestedCheckInAtUtc/requestedCheckOutAtUtc) is true; passes. fieldsFor returns both timestamps for TIME_ADJUSTMENT, and attendance.service.ts:852 still requires one, so the premise holds.
+
 ## History
 
 - 2026-08-30 - created from qa run at `ade1fea7`.
@@ -150,3 +152,4 @@ post-deploy sweep for SESSION-0084.
 - Regression — REG-379 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

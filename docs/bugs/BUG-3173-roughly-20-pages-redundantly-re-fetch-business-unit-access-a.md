@@ -2,7 +2,7 @@
 ID: BUG-3173
 aliases: [BUG-3173]
 Title: Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-718
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -104,6 +104,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-RUNTIME-050 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): server-api.spec 'request-scoped sharing' asserts 20 identical concurrent GETs produce one fetch and a write clears sharing; passes. server-api.ts apiRequestJson uses cache(), and getBusinessUnitAccessSummary/getCurrentEmployee call it option-less so they dedupe. Closed as STALE (already fixed) and that holds.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (FE-02) at `23504f4b`.
@@ -116,3 +118,4 @@ QA-RUNTIME-050 on the isolated database, 2026-11-22: passing with the fix and fa
 - Regression — REG-718 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

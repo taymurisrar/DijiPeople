@@ -2,7 +2,7 @@
 ID: BUG-4217
 aliases: [BUG-4217]
 Title: Fully executed agreement cannot be activated
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-13
 DetectedInSha: 0df17da0
 AffectedModules: [contracts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-684
 RelatedBacklogItem: ITEM-0230
 RelatedDecision:
 RelatedImplementation: agent/contract-activation-documents
 CreatedAt: 2026-10-13
-UpdatedAt: 2026-10-13
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-13
 ---
 
@@ -88,6 +88,8 @@ Branch `agent/contract-activation-documents`: forward transition and guard accep
 
 Unit: contract-activation.spec.ts 3/3.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): contract-activation.spec.ts it.each([FULLY_EXECUTED, FULLY_SIGNED]) asserts activation succeeds and still refuses an unfinished agreement; passes.
+
 ## History
 
 - 2026-10-13 — created from qa run at `0df17da0`.
@@ -102,3 +104,4 @@ Unit: contract-activation.spec.ts 3/3.
 - Regression — REG-684 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

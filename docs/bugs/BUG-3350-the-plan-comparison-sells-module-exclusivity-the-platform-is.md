@@ -2,7 +2,7 @@
 ID: BUG-3350
 aliases: [BUG-3350]
 Title: The plan comparison sells module exclusivity the platform is configured only to report on
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-11
 DetectedInSha: caad4a56
 AffectedModules: [apps/web, services/api/src/common/security]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-424
 RelatedBacklogItem:
 RelatedDecision: ADR-0009
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-12
 ---
 
@@ -251,10 +251,7 @@ a CUSTOM grant distinctly from a stale `BLOCKED_BY_PLAN` override).
 
 ## QA Retest
 
-Pending — needs a QA pass on a database where
-`entitlement:grandfather -- --apply` and `entitlement:set-mode -- ENFORCE`
-have actually been run, confirming a grandfathered tenant keeps access and a
-non-grandfathered one on the same plan is refused.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): tenant-entitlement.service.spec passes and the server-side entitlement guard is applied across controllers (ADR-0009 grandfather-then-enforce), so the comparison table's boundaries are now enforced; not exercised through the web comparison screen.
 
 ## History
 
@@ -274,3 +271,4 @@ non-grandfathered one on the same plan is refused.
 - Regression — REG-424 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

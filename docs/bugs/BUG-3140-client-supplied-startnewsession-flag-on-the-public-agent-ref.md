@@ -2,7 +2,7 @@
 ID: BUG-3140
 aliases: [BUG-3140]
 Title: Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth, services/api/src/modules/agent]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-709
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -119,6 +119,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUTH-026 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): e2e asserts startNewSession past absolute expiry is refused and refresh keeps the same absolute expiry; agent.service.ts passes ignoreIdleTimeout only (idle relaxed, absolute not); suite passes.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (AUTH-05) at `a800d8f2`.
@@ -131,3 +133,4 @@ QA-AUTH-026 on the isolated database, 2026-11-22: passing with the fix and faili
 - Regression — REG-709 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

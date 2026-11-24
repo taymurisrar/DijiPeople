@@ -2,7 +2,7 @@
 ID: BUG-3141
 aliases: [BUG-3141]
 Title: Branding SVG served unauthenticated and inline enabled stored XSS on the API origin
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-724
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-11-23
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-23
 ---
 
@@ -175,6 +175,8 @@ Upload refuses SVG (earlier commit 8631a133), the serving route refuses any non-
 
 QA-AUTHZ-022 (automated; independent QA/security review of the batch recorded in the SESSION-0137 handoff).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-branding-asset-raster.spec.ts it.each refuses image/svg+xml, text/html, octet-stream and null, serves raster only inside tenant; public-tenants.controller.ts sets nosniff and CSP sandbox; passes.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (AUTH-06, FILE-02) at `a800d8f2`.
@@ -187,3 +189,4 @@ QA-AUTHZ-022 (automated; independent QA/security review of the batch recorded in
 - Regression — REG-724 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

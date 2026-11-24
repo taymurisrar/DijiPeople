@@ -2,7 +2,7 @@
 ID: BUG-4625
 aliases: [BUG-4625]
 Title: Any signed-in tenant user can crash the whole API with one request to GET /platform/logs
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-21
 DetectedInSha: 4c2517e7
 AffectedModules: [platform-monitoring]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-703
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-21
-UpdatedAt: 2026-11-21
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-4625 — Any signed-in tenant user can crash the whole API with one request to GET /platform/logs
@@ -92,6 +92,8 @@ Fixed on branch `agent/dependency-alert-remediation` (SESSION-0137, WP3): `asser
 
 QA-AUTHZ-021 on the isolated database, 2026-11-22: passing with the fix and failing on the original code. Independent QA/Security review of this fix is pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): platform-monitoring.service.ts audits with a .catch, main.ts installs installUnhandledRejectionHandler; platform-tenant-boundary e2e (59 pass, incl. 'BUG-4625: refused platform-log request audited against the tenant') and unhandled-rejection.spec pass.
+
 ## History
 
 - 2026-11-21 — created from qa run at `4c2517e7`.
@@ -104,3 +106,4 @@ QA-AUTHZ-021 on the isolated database, 2026-11-22: passing with the fix and fail
 - Regression — REG-703 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

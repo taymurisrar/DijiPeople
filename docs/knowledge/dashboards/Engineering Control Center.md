@@ -14,8 +14,8 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 1 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **10** |
-| Open HIGH | 129 |
+| Open CRITICAL | **5** |
+| Open HIGH | 51 |
 | Awaiting Architect triage | 3 |
 | Owner decisions pending | 16 |
 | QA coverage gaps | 167 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 326 |
-| No next action | 326 |
-| Aging — 7d / 30d / 90d | 297 / 295 / 12 |
+| No acceptance criteria | 242 |
+| No next action | 242 |
+| Aging — 7d / 30d / 90d | 219 / 217 / 15 |
 | Architecture and technical debt | 8 |
-| Security gaps | 58 |
-| Database gaps | 30 |
+| Security gaps | 34 |
+| Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -108,12 +108,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | PLAN_REQUIRED |
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
-| [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
-| [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
-| [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
-| [[BUG-4624-a-tenant-global-administrator-can-publish-promote-and-disabl|BUG-4624]] | A tenant Global Administrator can publish, promote and disable the global desktop-agent releases every tenant installs | AUTHORIZATION | CRITICAL | FIXED | app-releases | FIX_NOW |
-| [[BUG-4625-any-signed-in-tenant-user-can-crash-the-whole-api-with-one-r|BUG-4625]] | Any signed-in tenant user can crash the whole API with one request to GET /platform/logs | SECURITY | CRITICAL | FIXED | platform-monitoring | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -316,7 +311,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 326 |
+| Open total | 242 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |

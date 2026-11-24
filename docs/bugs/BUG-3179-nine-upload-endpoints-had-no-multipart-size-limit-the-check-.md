@@ -2,7 +2,7 @@
 ID: BUG-3179
 aliases: [BUG-3179]
 Title: Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-716
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -140,6 +140,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-PLATFORM-067 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): upload-endpoints-have-limits.spec scans every controller with @UploadedFile(s) and fails unless each upload interceptor uses uploadLimits()/limits:; passes (>=10 controllers found).
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (FILE-05) at `23504f4b`.
@@ -152,3 +154,4 @@ QA-PLATFORM-067 on the isolated database, 2026-11-22: passing with the fix and f
 - Regression — REG-716 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

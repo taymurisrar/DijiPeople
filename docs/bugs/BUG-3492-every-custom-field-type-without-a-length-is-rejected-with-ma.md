@@ -2,7 +2,7 @@
 ID: BUG-3492
 aliases: [BUG-3492]
 Title: Every custom field type without a length is rejected with Maximum length must be at least 1
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-13
 DetectedInSha: df0f84f1
 AffectedModules: [apps/web, customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-482
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md, apps/web/app/(authenticated)/settings/customization/_lib/column-payload.ts, apps/web/app/(authenticated)/settings/customization/_components/columns-management.tsx, services/api/src/modules/customization/customization.service.ts, services/api/src/modules/customization/dto/customization.dto.ts]
 CreatedAt: 2026-09-13
-UpdatedAt: 2026-09-13
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3492 — Every custom field type without a length is rejected with Maximum length must be at least 1
@@ -207,6 +207,8 @@ passed on f865ac5e (the merged tree). Scenario QA-SETTINGS-022:
    length. Each returns 201 and appears with a human-readable type.
 2. Text with maximum length `0` shows the error on the Maximum length field.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): column-payload.seam.spec.ts drives the dialog payload through the DTO into createColumn for each length-less type, plus 'accepts maxLength: null'; web column-payload.ts omits maxLength unless supported and non-null; 15 web and API tests pass.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
@@ -222,3 +224,4 @@ passed on f865ac5e (the merged tree). Scenario QA-SETTINGS-022:
 - Regression — REG-482 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

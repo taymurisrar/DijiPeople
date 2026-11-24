@@ -2,7 +2,7 @@
 ID: BUG-3202
 aliases: [BUG-3202]
 Title: Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/payroll]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-719
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -106,6 +106,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-PAYROLL-004 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): payroll-eligibility-soft-delete.spec.ts asserts buildPayrollEmployeeEligibilityWhere().isDeleted === false; payroll code sets isDeleted: false (payroll.repository.ts:335, payroll-run.service.ts:3109); passes.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (SCHEMA-03) at `23504f4b`.
@@ -118,3 +120,4 @@ QA-PAYROLL-004 on the isolated database, 2026-11-22: passing with the fix and fa
 - Regression — REG-719 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

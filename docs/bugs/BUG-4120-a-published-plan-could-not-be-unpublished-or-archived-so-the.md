@@ -2,7 +2,7 @@
 ID: BUG-4120
 aliases: [BUG-4120]
 Title: A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-12
 DetectedInSha: fa0e36df
 AffectedModules: [super-admin, platform-runtime, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-680
 RelatedBacklogItem: ITEM-0022
 RelatedDecision:
 RelatedImplementation: agent/plan-publication-actions
 CreatedAt: 2026-10-12
-UpdatedAt: 2026-10-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-12
 ---
 
@@ -116,6 +116,8 @@ EXECPLAN-0034 remain open under ITEM-0022.
 
 QA-PLATFORM-065 — browser pass on a throwaway database, 7/7, 2026-10-12.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): plan-publication.spec.ts asserts unpublish/archive/publish transitions with audit and named refusals; record-action-dispatch.spec.ts dispatches every action in record-actions.contract.json for 'plans' to the service; admin record-action-routing spec passes.
+
 ## History
 
 - 2026-10-12 — created from the owner's report on Enterprise+ at `fa0e36df`.
@@ -130,3 +132,4 @@ QA-PLATFORM-065 — browser pass on a throwaway database, 7/7, 2026-10-12.
 - Regression — REG-680 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

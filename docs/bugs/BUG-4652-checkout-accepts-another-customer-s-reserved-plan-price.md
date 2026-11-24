@@ -2,7 +2,7 @@
 ID: BUG-4652
 aliases: [BUG-4652]
 Title: A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-11-22
 DetectedInSha: a802ab9d
 AffectedModules: [billing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-705
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-22
-UpdatedAt: 2026-11-22
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-4652 — A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it
@@ -100,6 +100,8 @@ Open items for the Architect, not defects:
 
 QA-BILLING-051 on the isolated database, 2026-11-22: public suite 58/58 with the fix; 4 and 13 failures with the two guards removed in turn. Independent review of the public-path change pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-purchase-eligibility unit spec, e2e (58 pass: refused reserved price identical to unknown id, no order created, standard price control still succeeds) and billing-cross-tenant e2e (77 pass) all pass.
+
 ## History
 
 - 2026-11-22 — created from qa run at `a802ab9d`.
@@ -112,3 +114,4 @@ QA-BILLING-051 on the isolated database, 2026-11-22: public suite 58/58 with the
 - Regression — REG-705 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

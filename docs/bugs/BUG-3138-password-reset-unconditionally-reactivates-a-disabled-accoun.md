@@ -2,7 +2,7 @@
 ID: BUG-3138
 aliases: [BUG-3138]
 Title: Password reset unconditionally reactivates a disabled account
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-708
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -122,6 +122,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-AUTH-025 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-session-hardening e2e: a DISABLED user's valid reset link is refused and the user stays DISABLED with password unchanged, plus suspended-tenant refusal; suite passes 8/8.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (AUTH-02) at `a800d8f2`.
@@ -134,3 +136,4 @@ QA-AUTH-025 on the isolated database, 2026-11-22: passing with the fix and faili
 - Regression — REG-708 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

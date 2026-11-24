@@ -2,7 +2,7 @@
 ID: BUG-3176
 aliases: [BUG-3176]
 Title: The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-715
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-22
 ---
 
@@ -101,6 +101,8 @@ Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-ve
 
 QA-RUNTIME-049 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): data-table-server-search.spec asserts serverSearchHref puts typed text in the URL, resets to page 1, preserves sort/filters, and clears on empty; passes. data-table.tsx has a 300ms debounced router.push in server mode. The debounce effect itself has no rendered test.
+
 ## History
 
 - 2026-09-10 — created from the 2026-09-10 full technical audit (FE-06) at `23504f4b`.
@@ -113,3 +115,4 @@ QA-RUNTIME-049 on the isolated database, 2026-11-22: passing with the fix and fa
 - Regression — REG-715 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

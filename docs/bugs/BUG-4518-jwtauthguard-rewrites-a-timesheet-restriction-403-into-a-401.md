@@ -2,7 +2,7 @@
 ID: BUG-4518
 aliases: [BUG-4518]
 Title: JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-11-21
 DetectedInSha: b7ddb808
 AffectedModules: [services/api/src/common/guards]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-699
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-21
-UpdatedAt: 2026-11-21
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-21
 ---
 
@@ -86,6 +86,8 @@ Fixed together with BUG-3164 on `agent/security-timesheet-datajob-followup`. The
 
 Which QA run verified the fix, and the scenario ids.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): timesheet-restriction e2e (10 pass) asserts blocked route returns 403 TIMESHEET_ACCESS_RESTRICTED with reason and allow-list and that being refused does not revoke the session; web server-api.spec and routes spec pass.
+
 ## History
 
 - 2026-11-21 — created from reviewer at `b7ddb808`.
@@ -98,3 +100,4 @@ Which QA run verified the fix, and the scenario ids.
 
 <!-- GRAPH:END -->
 - 2026-11-21 — fixed on `agent/security-timesheet-datajob-followup` (BUG-4518 + BUG-3164).
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

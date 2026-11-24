@@ -2,7 +2,7 @@
 ID: BUG-3702
 aliases: [BUG-3702]
 Title: Adding a field to a package's own custom module demoted the module to a reference
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [docs/plans/EXECPLAN-0052-package-alm.md, services/api/src/modules/customization/customization.service.ts, services/api/src/modules/customization/package-portable.reader.ts]
 CreatedAt: 2026-09-26
-UpdatedAt: 2026-09-26
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-26
 ---
 
@@ -86,6 +86,8 @@ TASK-0033, branch `agent/packages-alm` (commit 5f1be73d).
 
 PASS — DB-backed e2e 19/19; browser round trip DEV → UAT on the isolated stack.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): customization-package-alm e2e passes 19/19 on real Postgres; not individually line-read for the 'add field keeps module non-reference' assertion beyond the suite name and REG-636 mapping.
+
 ## History
 
 - 2026-09-26 — created from qa run at `cb202b99`.
@@ -99,3 +101,4 @@ PASS — DB-backed e2e 19/19; browser round trip DEV → UAT on the isolated sta
 - Regression — REG-636 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

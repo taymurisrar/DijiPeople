@@ -2,7 +2,7 @@
 ID: BUG-3809
 aliases: [BUG-3809]
 Title: A tenant admin can create document types and categories every tenant sees
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: TENANT_ISOLATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-27
 DetectedInSha: 92386e1a
 AffectedModules: [documents]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-642
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: 06cdfab5
 CreatedAt: 2026-09-27
-UpdatedAt: 2026-09-27
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-27
 ---
 
@@ -112,6 +112,8 @@ The new `PATCH /documents/types/:id` refuses global rows and a changed key.
 QA-TENANT-066, automated by the document-types e2e: PASS on 2026-09-27
 (5 cases).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): document-types e2e passes 5/5; per record the service refuses isGlobal from a tenant with 403 DOCUMENT_GLOBAL_FORBIDDEN and writes currentUser.tenantId.
+
 ## History
 
 - 2026-09-27 — created from qa run at `92386e1a`.
@@ -126,3 +128,4 @@ QA-TENANT-066, automated by the document-types e2e: PASS on 2026-09-27
 - Regression — REG-642 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

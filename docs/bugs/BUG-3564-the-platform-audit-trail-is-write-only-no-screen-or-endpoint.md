@@ -2,7 +2,7 @@
 ID: BUG-3564
 aliases: [BUG-3564]
 Title: The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision: ADR-0018
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -116,6 +116,8 @@ Verified by the passing `platform-audit-trail.spec.ts`,
 `audit-trail-nav.spec.ts`/`audit-trail-link.spec.ts`; no regression observed
 during TASK-0032 WP-09 live QA of the admin monitoring screens.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): platform-audit-trail.spec.ts asserts findPlatformAudit filters/paginates and detail re-redacts snapshots; platform-audit.controller.ts exposes GET platform/audit-logs guarded by monitoring.read; passes.
+
 ## History
 
 - 2026-09-25 — created from qa run at `c6fb718d`.
@@ -131,3 +133,4 @@ during TASK-0032 WP-09 live QA of the admin monitoring screens.
 - Regression — REG-602 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).
