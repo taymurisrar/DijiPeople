@@ -887,6 +887,7 @@
 - [[ADR-0027-generic-platform-number-sequences|ADR-0027 — Human-readable platform numbers come from one configurable, transactional sequence service]]
 - [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding|ADR-0028 - Final subscription entitlements]]
 - [[ADR-0029-bank-transfer-is-a-payment-channel-settled-only-by-operator-verification|ADR-0029 - Bank transfer is a payment channel settled only by operator verification]]
+- [[ADR-0030-work-profile-and-work-identity-contracts|ADR-0030 - Work profile and work identity contracts]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -904,7 +905,7 @@
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 33 |
+| Decision notes (ADR + generated) | 34 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 3.** A record nobody has
