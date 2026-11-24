@@ -2,7 +2,7 @@
 ID: BUG-3198
 aliases: [BUG-3198]
 Title: api/health is a static ok payload, so a broken deploy and a dead database both report healthy
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,7 +11,7 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-728
 RelatedBacklogItem:
@@ -128,7 +128,7 @@ Residuals, stated honestly: `render.yaml` `healthCheckPath` intentionally stays 
 
 ## QA Retest
 
-QA-PLATFORM-071 (automated unit scenario). Not retested against a live database outage.
+QA-PLATFORM-071 (automated unit scenario). Mutation-proved 2026-11-24: forcing ready true fails 2 of 9 health tests. A live database outage was not exercised.
 
 ## History
 
@@ -142,3 +142,4 @@ QA-PLATFORM-071 (automated unit scenario). Not retested against a live database 
 - Regression — REG-728 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation) after mutation proof.

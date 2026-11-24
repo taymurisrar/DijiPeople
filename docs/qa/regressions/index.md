@@ -8067,7 +8067,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Root cause** | The pg pool ran on defaults, so a saturated pool made every request wait forever for a connection. |
 | **Regression test** | `services/api/src/common/prisma/pool-config.spec.ts` |
 | **Scenario** | QA-PLATFORM-070 |
-| **Fails without the fix** | Not mutation-verified - the spec asserts a bounded default connect timeout. Residual: statement_timeout is opt-in and not set (ITEM-0242). |
+| **Fails without the fix** | Yes - mutated 2026-11-24: defaulting the connect timeout to 0 fails 7 of 10 pool-config tests. Residual: statement_timeout is opt-in and not set (ITEM-0242). |
 | **Fixed** | 2026-11-24, commit b7ddb808 |
 | **Active** | yes |
 
@@ -8081,7 +8081,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Root cause** | The health endpoint was a static ok payload, so a dead database still reported healthy. |
 | **Regression test** | `services/api/src/common/health/readiness.spec.ts` |
 | **Scenario** | QA-PLATFORM-071 |
-| **Fails without the fix** | Not mutation-verified - the spec asserts a failing or hanging probe reports not ready. Residuals: render.yaml healthCheckPath stays /api by design; no per-worker lastTickAt (ITEM-0242). |
+| **Fails without the fix** | Yes - mutated 2026-11-24: forcing ready to true fails 2 of 9 health tests. Residuals: render.yaml healthCheckPath stays /api by design; no per-worker lastTickAt (ITEM-0242). |
 | **Fixed** | 2026-11-24, commit b7ddb808 |
 | **Active** | yes |
 
@@ -8095,6 +8095,6 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Root cause** | Each list read its entire table with nested includes, then searched, filtered, sorted and sliced it in memory through paginateRuntimeRecords. |
 | **Regression test** | `services/api/src/modules/platform-runtime/runtime-db-query.spec.ts` |
 | **Scenario** | QA-PLATFORM-072 |
-| **Fails without the fix** | Not mutation-verified - the spec asserts Prisma where/orderBy/skip/take arguments, not SQL results. Residuals: no DB e2e; ILIKE not index-assisted; search covers documented columns only; unsupported filters fall back to the whole-table path; my-records uses createdById (ITEM-0243). |
+| **Fails without the fix** | Yes - mutated 2026-11-24: an oversized take fails 2 of 12 runtime-db-query tests. The specs assert Prisma where/orderBy/skip/take arguments, not SQL results. Residuals: no DB e2e; ILIKE not index-assisted; search covers documented columns only; unsupported filters fall back to the whole-table path; my-records uses createdById (ITEM-0243). |
 | **Fixed** | 2026-11-24, commit 2088ec4f |
 | **Active** | yes |

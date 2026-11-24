@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 242 |
+| Open (active work) | 239 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |
-| Completed / closed | 441 |
+| Completed / closed | 444 |
 | **Open CRITICAL** | **5** |
-| **Open HIGH** | **51** |
+| **Open HIGH** | **48** |
 | **Awaiting Architect triage** | **3** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 5 |
-| HIGH | 51 |
+| HIGH | 48 |
 | MEDIUM | 152 |
 | LOW | 31 |
 
@@ -41,9 +41,9 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
-| INFRA | 10 |
+| INFRA | 9 |
 | INTEGRATION | 5 |
-| PERFORMANCE | 10 |
+| PERFORMANCE | 8 |
 | PRODUCT_DECISION | 3 |
 | SECURITY | 21 |
 | STATE_MACHINE | 4 |
@@ -61,8 +61,8 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 127 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 174 |
-| VERIFIED | 305 |
+| FIXED | 171 |
+| VERIFIED | 308 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 3 |
@@ -266,7 +266,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3172](../../docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md) | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | P1 | VERIFIED | api:payslips | DONE |
 | [BUG-3173](../../docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md) | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | P1 | VERIFIED | apps/web | DONE |
 | [BUG-3174](../../docs/bugs/BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page.md) | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | P1 | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
-| [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
+| [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-3176](../../docs/bugs/BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl.md) | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | P1 | VERIFIED | apps/web, apps/admin | DONE |
 | [BUG-3177](../../docs/bugs/BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read.md) | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | P1 | VERIFIED | api:recruitment, api:app-releases | DONE |
 | [BUG-3178](../../docs/bugs/BUG-3178-no-malware-scanning-exists-anywhere-the-tenant-setting-that-.md) | No malware scanning exists anywhere; the tenant setting that claims it does is inert | SECURITY | HIGH | P1 | PRODUCT_DECISION | services/api/src/common | PRODUCT_DECISION |
@@ -281,10 +281,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3187](../../docs/bugs/BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte.md) | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | P1 | VERIFIED | services/api/src/common | DONE |
 | [BUG-3188](../../docs/bugs/BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so.md) | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
 | [BUG-3189](../../docs/bugs/BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on.md) | One unauthenticated login request costs about 1.1s of CPU on a single-instance API | PERFORMANCE | HIGH | P1 | OPEN | api:auth | PLAN_REQUIRED |
-| [BUG-3195](../../docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md) | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
+| [BUG-3195](../../docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md) | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | P1 | VERIFIED | services/api/src/common | DONE |
 | [BUG-3196](../../docs/bugs/BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl.md) | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | P1 | FIXED | api:payroll | FIX_NOW |
 | [BUG-3197](../../docs/bugs/BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap.md) | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | P1 | OPEN | api:leave | FIX_NOW |
-| [BUG-3198](../../docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md) | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | P1 | FIXED | services/api/src/common | FIX_NOW |
+| [BUG-3198](../../docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md) | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | P1 | VERIFIED | services/api/src/common | DONE |
 | [BUG-3199](../../docs/bugs/BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe.md) | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | P1 | VERIFIED | api:billing | DONE |
 | [BUG-3200](../../docs/bugs/BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan.md) | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | PLAN_REQUIRED |
 | [BUG-3201](../../docs/bugs/BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti.md) | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | P1 | VERIFIED | api:tenants | DONE |

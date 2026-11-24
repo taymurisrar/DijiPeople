@@ -2,7 +2,7 @@
 ID: BUG-3195
 aliases: [BUG-3195]
 Title: The Postgres connection pool is entirely default and waits forever for a connection
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,7 +11,7 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-727
 RelatedBacklogItem:
@@ -136,7 +136,7 @@ Residual, stated honestly: `statement_timeout` is deliberately NOT set by defaul
 
 ## QA Retest
 
-QA-PLATFORM-070 (automated unit scenario). Not retested against a saturated live pool.
+QA-PLATFORM-070 (automated unit scenario). Mutation-proved 2026-11-24: a connect timeout of 0 fails 7 of 10 pool-config tests. A saturated live pool was not exercised.
 
 ## History
 
@@ -151,3 +151,4 @@ QA-PLATFORM-070 (automated unit scenario). Not retested against a saturated live
 - Regression — REG-727 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation) after mutation proof.

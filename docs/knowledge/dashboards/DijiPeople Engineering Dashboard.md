@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **5** |
-| Open HIGH | **51** |
-| Open total | 242 |
+| Open HIGH | **48** |
+| Open total | 239 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 127 |
-| Completed | 441 |
+| Completed | 444 |
 | Awaiting Architect triage | 3 |
 
 ## Open Critical Bugs
@@ -56,15 +56,12 @@
 | [[BUG-3169-notification-fan-out-runs-o-rules-x-recipients-sequential-ro|BUG-3169]] | Notification fan-out runs O(rules x recipients) sequential round trips inline on the triggering request | PERFORMANCE | HIGH | OPEN | api:notifications | PLAN_REQUIRED |
 | [[BUG-3170-timesheet-bulk-import-confirmation-runs-an-unbounded-per-row|BUG-3170]] | Timesheet bulk-import confirmation runs an unbounded per-row loop inside one transaction on the default 5-second timeout | PERFORMANCE | HIGH | OPEN | api:timesheets | PLAN_REQUIRED |
 | [[BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page|BUG-3174]] | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
-| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
 | [[BUG-3186-no-individual-erasure-or-anonymisation-path-exists-and-emplo|BUG-3186]] | No individual erasure or anonymisation path exists, and employee deletion is soft, so personal data survives deletion indefinitely | DATA_INTEGRITY | HIGH | OPEN | api:employees | PLAN_REQUIRED |
 | [[BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so|BUG-3188]] | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on|BUG-3189]] | One unauthenticated login request costs about 1.1s of CPU on a single-instance API | PERFORMANCE | HIGH | OPEN | api:auth | PLAN_REQUIRED |
-| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl|BUG-3196]] | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | FIXED | api:payroll | FIX_NOW |
 | [[BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap|BUG-3197]] | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | OPEN | api:leave | FIX_NOW |
-| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan|BUG-3200]] | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | OPEN | api:notifications | PLAN_REQUIRED |
 | [[BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch|BUG-3205]] | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | OPEN | services/api/prisma | PLAN_REQUIRED |
 | [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | FIXED | apps/web, api:billing | PLAN_REQUIRED |
@@ -134,7 +131,6 @@
 | [[BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi|BUG-3166]] | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
-| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | FIXED | services/api/src/common | FIX_NOW |
 | [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -319,7 +315,7 @@
 | [[BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin|BUG-3171]] | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | VERIFIED | api:audit | DONE |
 | [[BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-|BUG-3172]] | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | VERIFIED | api:payslips | DONE |
 | [[BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a|BUG-3173]] | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | VERIFIED | apps/web | DONE |
-| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | VERIFIED | apps/admin | DONE |
 | [[BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl|BUG-3176]] | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | VERIFIED | apps/web, apps/admin | DONE |
 | [[BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read|BUG-3177]] | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | VERIFIED | api:recruitment, api:app-releases | DONE |
 | [[BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-|BUG-3179]] | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | VERIFIED | services/api/src/common | DONE |
@@ -327,9 +323,9 @@
 | [[BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere|BUG-3185]] | Reading or downloading a document is recorded nowhere | DATA_INTEGRITY | HIGH | VERIFIED | api:documents | DONE |
 | [[BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte|BUG-3187]] | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | VERIFIED | services/api/src/common | DONE |
 | [[BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so|BUG-3188]] | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
-| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | FIXED | services/api/src/common | FIX_NOW |
+| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | VERIFIED | services/api/src/common | DONE |
 | [[BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl|BUG-3196]] | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | FIXED | api:payroll | FIX_NOW |
-| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | FIXED | services/api/src/common | FIX_NOW |
+| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | VERIFIED | services/api/src/common | DONE |
 | [[BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe|BUG-3199]] | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | VERIFIED | api:billing | DONE |
 | [[BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti|BUG-3201]] | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | VERIFIED | api:tenants | DONE |
 | [[BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a|BUG-3202]] | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | VERIFIED | api:payroll | DONE |

@@ -2,7 +2,7 @@
 ID: BUG-3175
 aliases: [BUG-3175]
 Title: Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,7 +11,7 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-729
 RelatedBacklogItem: ITEM-0243
@@ -109,7 +109,7 @@ The DB-backed e2e and removal of the fallback are tracked as ITEM-0243.
 
 ## QA Retest
 
-Not yet retested.
+QA-PLATFORM-072 (automated unit scenario). Mutation-proved 2026-11-24: an oversized take fails 2 of 12 runtime-db-query tests. A real database was not exercised; the specs assert Prisma arguments.
 
 ## History
 
@@ -125,3 +125,4 @@ Not yet retested.
 - Regression — REG-729 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation) after mutation proof.
