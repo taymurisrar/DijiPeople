@@ -240,3 +240,25 @@ test('an empty commit is not progress, and a fresh turn does not reset the stagn
   assert.equal(out.action, 'allow');
   assert.match(out.why, /NOT complete/);
 });
+
+test('every hook invocation leaves a heartbeat that names the session cwd and decision', async () => {
+  const { recordHeartbeat } = await import('./hooks/stop-completion.mjs');
+  const { readFileSync } = await import('node:fs');
+  const root = mkdtempSync(join(tmpdir(), 'dp-heartbeat-'));
+  mkdirSync(join(root, '.claude'));
+  const input = { session_id: 's-1', cwd: join(root, 'sub') };
+  recordHeartbeat(root, input, { action: 'allow', why: 'program not active' }, new Date('2026-01-02T03:04:05Z'));
+  recordHeartbeat(root, input, { action: 'block', reason: 'first line\nsecond' });
+  const beat = JSON.parse(readFileSync(join(root, '.claude/program-hook-heartbeat.local.json'), 'utf8'));
+  assert.equal(beat.invocations, 2);
+  assert.equal(beat.sessionId, 's-1');
+  assert.equal(beat.sessionCwd, input.cwd);
+  assert.equal(beat.resolvedRoot, root);
+  assert.equal(beat.action, 'block');
+  assert.equal(beat.why, 'first line');
+});
+
+test('a heartbeat failure never throws into the hook', async () => {
+  const { recordHeartbeat } = await import('./hooks/stop-completion.mjs');
+  assert.doesNotThrow(() => recordHeartbeat('Z:\no\such\dir', {}, { action: 'allow' }));
+});

@@ -80,6 +80,40 @@ export function decide({ root, input, state, verify = verifyProgram }) {
   return { action: 'block', reason: lines.join('\n'), result, state: next };
 }
 
+const HEARTBEAT_FILE = '.claude/program-hook-heartbeat.local.json';
+
+/**
+ * The only proof that a live session really invoked this hook: every call, even
+ * one that allows the stop or is outside the program, leaves a timestamped
+ * record naming the session cwd, the root the hook resolved and its decision.
+ * Best-effort and bounded — it must never fail or trap a session.
+ */
+export function recordHeartbeat(root, input, outcome, now = new Date()) {
+  try {
+    const path = join(root, HEARTBEAT_FILE);
+    let previous = { invocations: 0 };
+    if (existsSync(path)) previous = JSON.parse(readFileSync(path, 'utf8'));
+    writeFileSync(
+      path,
+      `${JSON.stringify(
+        {
+          invocations: (previous.invocations ?? 0) + 1,
+          lastInvokedAt: now.toISOString(),
+          sessionId: input?.session_id ?? null,
+          sessionCwd: input?.cwd ?? null,
+          resolvedRoot: root,
+          action: outcome?.action ?? 'unknown',
+          why: outcome?.why ?? outcome?.reason?.split('\n')[0] ?? '',
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } catch {
+    // diagnostics only
+  }
+}
+
 async function main() {
   let raw = '';
   for await (const chunk of process.stdin) raw += chunk;
@@ -111,6 +145,7 @@ async function main() {
   }
 
   if (outcome.state) writeFileSync(statePath, `${JSON.stringify(outcome.state, null, 2)}\n`);
+  recordHeartbeat(root, input, outcome);
   if (outcome.action === 'block') {
     process.stdout.write(`${JSON.stringify({ decision: 'block', reason: outcome.reason })}\n`);
   } else if (state?.active) {
