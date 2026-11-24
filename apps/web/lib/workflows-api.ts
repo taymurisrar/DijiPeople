@@ -2,7 +2,7 @@ import { API_ERROR_HANDLING_HEADER } from "@/lib/api-error";
 import type { EmailTemplateScopeLevel, ScopeTarget } from "./notifications-api";
 
 export type WorkflowStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
-export type WorkflowRecipientMode = "SUBJECT" | "ACTOR" | "FIXED";
+export type WorkflowRecipientMode = "SUBJECT" | "ACTOR" | "FIXED" | "CANDIDATE";
 
 export type WorkflowCondition = {
   field: string;

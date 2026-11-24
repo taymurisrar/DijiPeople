@@ -36,7 +36,11 @@ export function WorkflowRunHistory({ runs }: { runs: WorkflowRun[] }) {
                     <StatusBadge status={run.status} />
                   </td>
                   <td className="py-2 pr-4">{run.actionsRun}</td>
-                  <td className="py-2 text-muted">{run.error ?? "-"}</td>
+                  <td className="py-2 text-muted">
+                    {run.status === "PARTIALLY_FAILED"
+                      ? `Some actions did not run. ${run.error ?? ""}`.trim()
+                      : (run.error ?? "-")}
+                  </td>
                 </tr>
               ))}
             </tbody>

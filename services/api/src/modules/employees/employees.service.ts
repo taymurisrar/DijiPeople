@@ -45,6 +45,7 @@ import { ProvisionEmployeeAccessDto } from './dto/provision-employee-access.dto'
 import { TerminateEmployeeDto } from './dto/terminate-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { DuplicateRuleEngine } from '../../common/validation/duplicate-rule-engine';
+import { revokeLinkedUserAccess } from './employee-access-revocation';
 import {
   customSortField,
   EmployeeHierarchyNode,
@@ -2470,43 +2471,20 @@ export class EmployeesService {
   }
 
   /*
-   * Immediate exits disable the linked user and revoke every live session in one
-   * transaction, so there is no window where the status says disabled while a
-   * refresh token still works. Future-dated exits are NOT revoked here: access
-   * must continue until the effective date, and the scheduled revocation is the
-   * next slice (WP-08.S0b) - the audit row records that it is still pending.
-   * The tenant owner is never disabled (same rule as UsersService.update);
-   * ownership must be transferred first.
+   * Immediate and past-dated exits revoke now through the shared, idempotent
+   * helper. Future-dated exits keep access until the effective date; the
+   * AccessRevocationSweeperWorker (on by default) revokes them when it arrives,
+   * and the audit row records that the revocation is scheduled, not done.
    */
   private async revokeAccessOnTermination(
     tenantId: string,
     userId: string | null,
     terminationDate: Date,
   ): Promise<{ revoked: boolean; note: string }> {
-    if (!userId) return { revoked: false, note: 'NO_LINKED_USER' };
-    if (terminationDate.getTime() > Date.now()) {
-      return { revoked: false, note: 'FUTURE_DATED_REVOCATION_PENDING' };
+    if (userId && terminationDate.getTime() > Date.now()) {
+      return { revoked: false, note: 'FUTURE_DATED_REVOCATION_SCHEDULED' };
     }
-
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { ownerUserId: true },
-    });
-    if (tenant?.ownerUserId === userId) {
-      return { revoked: false, note: 'TENANT_OWNER_NOT_DISABLED' };
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.user.updateMany({
-        where: { id: userId, tenantId },
-        data: { status: UserStatus.DISABLED },
-      }),
-      this.prisma.refreshToken.updateMany({
-        where: { tenantId, userId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
-    return { revoked: true, note: 'USER_DISABLED_SESSIONS_REVOKED' };
+    return revokeLinkedUserAccess(this.prisma, { tenantId, userId });
   }
 
   private async provisionEmployeeUserAccess(

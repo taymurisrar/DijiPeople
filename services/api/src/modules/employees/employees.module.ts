@@ -13,6 +13,7 @@ import { RolesRepository } from '../roles/roles.repository';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { UsersModule } from '../users/users.module';
 import { EmployeeProfilesService } from './employee-profiles.service';
+import { AccessRevocationSweeperWorker } from './access-revocation-sweeper.worker';
 import { EmployeesController } from './employees.controller';
 import { EmployeesRepository } from './employees.repository';
 import { EmployeesService } from './employees.service';
@@ -38,6 +39,7 @@ import { CustomFieldValuesModule } from '../customization/custom-field-values.mo
   providers: [
     EmployeesRepository,
     EmployeeAccessService,
+    AccessRevocationSweeperWorker,
     EmployeesService,
     EmployeeProfilesService,
     RolesRepository,

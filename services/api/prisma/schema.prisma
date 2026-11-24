@@ -11125,7 +11125,7 @@ model AgentTrackingSettings {
   idleThresholdSeconds     Int       @default(120)
   awayThresholdSeconds     Int       @default(600)
   captureActiveApp         Boolean   @default(true)
-  captureWindowTitle       Boolean   @default(true)
+  captureWindowTitle       Boolean   @default(false)
   allowCameraAccess        Boolean   @default(false)
   allowMicrophoneAccess    Boolean   @default(false)
   allowLocationAccess      Boolean   @default(false)
@@ -11148,7 +11148,7 @@ model AgentTrackingSettings {
   allowClipboardCapture    Boolean   @default(false)
   allowScreenshotCapture   Boolean   @default(false)
   clipboardFullContent     Boolean   @default(false)
-  dlpConsentRequired       Boolean   @default(false)
+  dlpConsentRequired       Boolean   @default(true)
   screenshotRetentionDays  Int       @default(30)
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt

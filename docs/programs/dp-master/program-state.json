@@ -984,7 +984,8 @@
       "deps": [],
       "workstream": "C",
       "status": "ACCEPTED",
-      "gate": "G0"
+      "gate": "G0",
+      "evidence": "program-state.json, traceability.json, assessments.md; check passes; G0 PASS_WITH_NOTES"
     },
     {
       "id": "WP-01.S2",
@@ -995,8 +996,9 @@
         "WP-01.S1"
       ],
       "workstream": "C",
-      "status": "READY",
-      "note": "Needs web evidence; non-blocking for G0"
+      "status": "ACCEPTED",
+      "note": "Needs web evidence; non-blocking for G0",
+      "evidence": "competitor-benchmark.md (advertised, summarizer-read, dated 2026-11-25), performance-budgets.md (measured), traceability.json 53/53 classified"
     },
     {
       "id": "WP-03.S1",
@@ -1010,7 +1012,8 @@
       "status": "INTEGRATED",
       "lease": "schema",
       "migration": "additive enum value WorkflowRunStatus.PARTIALLY_FAILED",
-      "evidence": "workflow-conditions.spec, workflow-runtime.service.spec (12 tests); migration 20261124120000 additive enum"
+      "evidence": "workflow-conditions.spec, workflow-runtime.service.spec (12 tests); migration 20261124120000 additive enum; CANDIDATE recipient + PARTIALLY_FAILED UI added after first integration",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-04.S1",
@@ -1023,7 +1026,8 @@
       "workstream": "A",
       "status": "INTEGRATED",
       "note": "Category reuses EMPLOYEE (no enum change); RECRUITMENT category and candidate-recipient resolution are WP-07/WP-04 follow-ups",
-      "evidence": "recruitment-stage-event.spec; notification-event-delivery.spec green; only stage-change event emitted - interview/offer/hire-specific events need WP-07 models"
+      "evidence": "recruitment-stage-event.spec; notification-event-delivery.spec green; only stage-change event emitted - interview/offer/hire-specific events need WP-07 models; CANDIDATE workflow recipient mode (tenant-scoped application->candidate)",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-08.S0",
@@ -1037,7 +1041,8 @@
       "status": "INTEGRATED",
       "note": "Immediate/past-dated exits only",
       "decision": "OD-TERMINATE-ACCESS",
-      "evidence": "employee-terminate-access.spec (5 tests); BUG-4774 stays OPEN until S0b"
+      "evidence": "employee-terminate-access.spec (5 tests); BUG-4774 stays OPEN until S0b",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-05.S1",
@@ -1049,7 +1054,8 @@
       ],
       "workstream": "B",
       "status": "INTEGRATED",
-      "evidence": "docs/programs/dp-master/assessments.md; ITEM-0245"
+      "evidence": "docs/programs/dp-master/assessments.md; ITEM-0245",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-17.S1",
@@ -1062,7 +1068,8 @@
       "workstream": "B",
       "status": "INTEGRATED",
       "decisionRequired": "OD-DLP-DEFAULTS",
-      "evidence": "docs/programs/dp-master/assessments.md"
+      "evidence": "docs/programs/dp-master/assessments.md",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-35.S0",
@@ -1076,7 +1083,8 @@
       "status": "INTEGRATED",
       "type": "design-only",
       "evidence": "docs/decisions/ADR-0030 (PROPOSED)",
-      "note": "ADR-0030 is PROPOSED; acceptance with the WP-35.S1 ExecPlan"
+      "note": "ADR-0030 is PROPOSED; acceptance with the WP-35.S1 ExecPlan",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-02.S0",
@@ -1089,7 +1097,8 @@
       "workstream": "A",
       "status": "INTEGRATED",
       "type": "design-only",
-      "evidence": "docs/decisions/ADR-0030 (PROPOSED)"
+      "evidence": "docs/decisions/ADR-0030 (PROPOSED)",
+      "integratedSha": "48ee90f0"
     },
     {
       "id": "WP-26.S1",
@@ -1099,7 +1108,9 @@
       "deps": [
         "WP-03.S1",
         "WP-04.S1",
-        "WP-08.S0"
+        "WP-08.S0",
+        "WP-08.S0b",
+        "WP-17.S2"
       ],
       "workstream": "C",
       "status": "NOT_STARTED"
@@ -1174,9 +1185,10 @@
         "WP-17.S1"
       ],
       "workstream": "B",
-      "status": "NOT_STARTED",
+      "status": "IN_REVIEW",
       "lease": "schema",
-      "decision": "OD-DLP-DEFAULTS"
+      "decision": "OD-DLP-DEFAULTS",
+      "evidence": "migration 20261125090000 applied and rolled back on isolated DB (audited via AuditLog, idempotent); removed the read-time override that re-enabled window titles; agent tray \"What this app collects\"; consent gate fails closed; 2+3 unit tests"
     },
     {
       "id": "WP-08.S0b",
@@ -1187,9 +1199,10 @@
         "WP-08.S0"
       ],
       "workstream": "B",
-      "status": "READY",
+      "status": "IN_REVIEW",
       "decision": "OD-TERMINATE-ACCESS",
-      "design": "Sweeper worker following billing/services/subscription-change-sweeper.worker.ts (off by default, interval, never throws); selects TERMINATED employees with terminationDate<=now whose user is still ACTIVE; same transaction as WP-08.S0; new env var must be registered in packages/config, render.yaml, docs/environment-variables.md (enabling it is a deployment decision, not made here). Rejected: enforcing in JwtAuthGuard (single-writer auth hot path)."
+      "design": "Sweeper worker following billing/services/subscription-change-sweeper.worker.ts (off by default, interval, never throws); selects TERMINATED employees with terminationDate<=now whose user is still ACTIVE; same transaction as WP-08.S0; new env var must be registered in packages/config, render.yaml, docs/environment-variables.md (enabling it is a deployment decision, not made here). Rejected: enforcing in JwtAuthGuard (single-writer auth hot path).",
+      "evidence": "AccessRevocationSweeperWorker (default ON) + shared revokeLinkedUserAccess (web+agent tokens, idempotent, owner protected); 14 unit tests; BUG-4774 FIXED, REG-730, QA-AUTH-031"
     }
   ],
   "nextExecutable": [
@@ -1200,9 +1213,9 @@
   ],
   "gates": {
     "G0": {
-      "status": "PASS_WITH_NOTES",
-      "sha": "47eadf74",
-      "note": "WP-01.S2 (competitor benchmark, perf budgets) outstanding; cross-cutting requirements mostly PENDING_AUDIT (see traceability.json)"
+      "status": "PASS",
+      "sha": "48ee90f0",
+      "note": "WP-01.S1 + S2 accepted. 42 of 53 cross-cutting requirements are classified by inheritance from the owning WP audit, not individually code-read; each owning slice re-audits at its G1."
     },
     "G3": {
       "status": "PASS_SLICE_SCOPE",
@@ -1214,5 +1227,5 @@
     "bug": "BUG-4774",
     "backlogItem": "ITEM-0245"
   },
-  "integratedSha": "48ee90f0"
+  "integratedSha": "505d44df"
 }

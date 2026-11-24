@@ -91,3 +91,71 @@ describe('WorkflowRuntimeService run status', () => {
     expect(result).toEqual({ matched: 1, ran: 1 });
   });
 });
+
+describe('CANDIDATE recipient (WP-04.S1)', () => {
+  function candidateHarness(application: unknown) {
+    const prisma = {
+      workflow: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'wf-1',
+            conditions: [],
+            actions: [
+              {
+                id: 'a1',
+                type: WorkflowActionType.SEND_EMAIL,
+                configuration: { recipientMode: 'CANDIDATE', templateKey: 't' },
+              },
+            ],
+          },
+        ]),
+      },
+      application: { findFirst: jest.fn().mockResolvedValue(application) },
+      workflowRun: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const emailService = {
+      sendTemplateEmail: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new WorkflowRuntimeService(
+      prisma as never,
+      emailService as never,
+    );
+    return { service, prisma, emailService };
+  }
+
+  it('sends to the candidate of the application, looked up inside the tenant', async () => {
+    const { service, prisma, emailService } = candidateHarness({
+      candidate: { email: 'cand@example.com' },
+    });
+    await service.handleEvent({
+      tenantId: TENANT,
+      eventCode: 'recruitment.application.stage.changed',
+      relatedEntityType: 'application',
+      relatedEntityId: 'app-1',
+    });
+    expect(prisma.application.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'app-1', tenantId: TENANT } }),
+    );
+    expect(emailService.sendTemplateEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ recipient: 'cand@example.com' }),
+    );
+  });
+
+  it('resolves no recipient for a non-application event, and reports it', async () => {
+    const { service, emailService, prisma } = candidateHarness({
+      candidate: { email: 'cand@example.com' },
+    });
+    await service.handleEvent({
+      tenantId: TENANT,
+      eventCode: 'leave.request.approved',
+      relatedEntityType: 'document',
+      relatedEntityId: 'doc-1',
+    });
+    expect(emailService.sendTemplateEmail).not.toHaveBeenCalled();
+    expect(prisma.workflowRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: WorkflowRunStatus.FAILED }),
+      }),
+    );
+  });
+});

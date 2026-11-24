@@ -120,7 +120,9 @@ export class WorkflowsService {
             ? 'The person the record is about'
             : mode === 'ACTOR'
               ? 'The person who triggered it'
-              : 'A fixed address',
+              : mode === 'CANDIDATE'
+                ? 'The candidate of the application (recruitment events)'
+                : 'A fixed address',
       })),
     };
   }

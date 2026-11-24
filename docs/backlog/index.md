@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 33 |
+| OPEN | 32 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 127 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 171 |
+| FIXED | 172 |
 | VERIFIED | 308 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -343,7 +343,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4467](../../docs/bugs/BUG-4467-tenant-provisioning-retried-after-a-late-failure-creates-ano.md) | Tenant provisioning retried after a late failure creates another tenant for the same order | BUG | HIGH | P1 | VERIFIED | — | DONE |
 | [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | VERIFIED | services/api/src/common/guards | DONE |
 | [BUG-4652](../../docs/bugs/BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price.md) | A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it | AUTHORIZATION | HIGH | P1 | VERIFIED | billing | DONE |
-| [BUG-4774](../../docs/bugs/BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-.md) | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | P1 | OPEN | employees, auth, users | FIX_NOW |
+| [BUG-4774](../../docs/bugs/BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-.md) | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | P1 | FIXED | employees, auth, users | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

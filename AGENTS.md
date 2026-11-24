@@ -365,7 +365,7 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
 `services/api/prisma/schema.prisma` — **<!--fact:schemaLines-->15,329<!--/fact--> lines, <!--fact:prismaModels-->344<!--/fact--> models, <!--fact:prismaEnums-->322<!--/fact--> enums**,
-with **<!--fact:migrations-->244<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
+with **<!--fact:migrations-->245<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
 derived by `scripts/derive-doc-facts.mjs` and checked on every push; they drifted
 before that existed (this file said 312 models and 210 migrations when the tree had 340 and 235). Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes

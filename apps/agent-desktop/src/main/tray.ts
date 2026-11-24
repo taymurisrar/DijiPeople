@@ -2,6 +2,7 @@ import { app, Menu, nativeImage, Tray } from "electron";
 import { ConfigManager } from "./config-manager";
 import { SessionManager } from "./session-manager";
 import { resolveAgentAsset } from "./assets";
+import { describeCollection } from "./collection-disclosure";
 
 type CreateAgentTrayParams = {
   sessionManager: SessionManager;
@@ -69,6 +70,13 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
             ? "Content monitoring: ON (clipboard/screenshots)"
             : "Content monitoring: off",
           enabled: false,
+        },
+        {
+          label: "What this app collects",
+          submenu: describeCollection(params.configManager.current).map((label) => ({
+            label,
+            enabled: false,
+          })),
         },
         {
           label: `Version: ${app.getVersion()}`,

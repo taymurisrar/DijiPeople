@@ -22,7 +22,10 @@ function harness(
     },
     user: { updateMany: jest.fn().mockReturnValue('user-op') },
     refreshToken: { updateMany: jest.fn().mockReturnValue('token-op') },
-    $transaction: jest.fn().mockResolvedValue([]),
+    agentRefreshToken: { updateMany: jest.fn().mockReturnValue('agent-op') },
+    $transaction: jest
+      .fn()
+      .mockResolvedValue([{ count: 1 }, { count: 2 }, { count: 1 }]),
   };
   const auditService = { log: jest.fn().mockResolvedValue(undefined) };
   const employeesRepository = {
@@ -57,7 +60,11 @@ describe('EmployeesService.terminate access revocation', () => {
     await terminate(service);
 
     expect(prisma.user.updateMany).toHaveBeenCalledWith({
-      where: { id: 'user-1', tenantId: TENANT },
+      where: {
+        id: 'user-1',
+        tenantId: TENANT,
+        status: { not: UserStatus.DISABLED },
+      },
       data: { status: UserStatus.DISABLED },
     });
     expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
@@ -65,11 +72,39 @@ describe('EmployeesService.terminate access revocation', () => {
         where: { tenantId: TENANT, userId: 'user-1', revokedAt: null },
       }),
     );
-    expect(prisma.$transaction).toHaveBeenCalledWith(['user-op', 'token-op']);
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      'user-op',
+      'token-op',
+      'agent-op',
+    ]);
     const audit = auditService.log.mock.calls[0][0];
     expect(audit.afterSnapshot).toMatchObject({
       accessRevoked: true,
       accessRevocationNote: 'USER_DISABLED_SESSIONS_REVOKED',
+    });
+  });
+
+  it('also revokes agent-desktop sessions', async () => {
+    const { service, prisma } = harness();
+    await terminate(service);
+    expect(prisma.agentRefreshToken.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId: TENANT, userId: 'user-1', revokedAt: null },
+      }),
+    );
+  });
+
+  it('is idempotent: terminating again reports ALREADY_REVOKED', async () => {
+    const { service, prisma, auditService } = harness();
+    prisma.$transaction.mockResolvedValue([
+      { count: 0 },
+      { count: 0 },
+      { count: 0 },
+    ]);
+    await terminate(service);
+    expect(auditService.log.mock.calls[0][0].afterSnapshot).toMatchObject({
+      accessRevoked: false,
+      accessRevocationNote: 'ALREADY_REVOKED',
     });
   });
 
@@ -87,7 +122,7 @@ describe('EmployeesService.terminate access revocation', () => {
     expect(prisma.user.updateMany).not.toHaveBeenCalled();
     expect(auditService.log.mock.calls[0][0].afterSnapshot).toMatchObject({
       accessRevoked: false,
-      accessRevocationNote: 'FUTURE_DATED_REVOCATION_PENDING',
+      accessRevocationNote: 'FUTURE_DATED_REVOCATION_SCHEDULED',
     });
   });
 

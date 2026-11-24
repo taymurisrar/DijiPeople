@@ -51,3 +51,25 @@ confirmed. These feed WP-05.S1, WP-17.S1 and the traceability register.
   view, widget, actionBar (`customization/package-artifact.ts:66-75`); identity
   `<type>:<objectKey>`. Workflows, templates, navigation are not portable and
   `Workflow` has no logical key (`@@unique([tenantId, name])`).
+
+## WP-03.S3 design - durable workflow actions on the existing outbox (A02, A07)
+
+Reuse, do not build a second queue. `modules/outbox` already provides a transactional
+outbox (`OutboxService.emit` inside the caller's transaction, `idempotencyKey`,
+`availableAt`, `maxAttempts`), a leased dispatcher/worker, per-consumer consumption
+rows (`OutboxEventConsumption`) and an `OutboxHandler` contract
+(`consumerKey`, `handles`, `handle(event, payload)` returning PROCESSED / SKIPPED /
+MANUAL_ACTION_REQUIRED).
+
+- The emitting domain command writes its record and calls `OutboxService.emit` in the
+  same transaction: event id = outbox idempotency key, so a replay cannot enqueue twice.
+- A `WorkflowActionHandler` (consumerKey `workflow-actions`) resolves matching
+  workflows, pins the published version, and executes each action as its own step
+  with key `eventId:workflowVersion:actionId:recipient`; a step ledger row per step
+  records state, attempts and a safe summary. Retry re-runs only failed steps.
+- Synchronous (pre/post-operation) actions stay in-transaction and are limited to an
+  allow-list with no external calls; email/HTTP/waits only ever go through the outbox.
+- Needs: a `DomainEventType` value for workflow events and the step-ledger table
+  (schema lease), after WP-03.S2 delivers stable keys and immutable versions.
+- Today `NotificationsService.emit` calls the workflow runtime inline after the
+  business write; WP-03.S3 replaces that call with the outbox emit.

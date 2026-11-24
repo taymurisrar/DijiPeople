@@ -81,7 +81,11 @@ const DEFAULT_AGENT_SETTINGS = {
   idleThresholdSeconds: 120,
   awayThresholdSeconds: 600,
   captureActiveApp: true,
-  captureWindowTitle: true,
+  // DP-MASTER/WP-17.S2 (OD-DLP-DEFAULTS, D16): window titles can name documents,
+  // people and accounts, so they are collected only when a tenant opts in.
+  captureWindowTitle: false,
+  // Content capture refuses to record without a recorded acknowledgement.
+  dlpConsentRequired: true,
   allowCameraAccess: false,
   allowMicrophoneAccess: false,
   allowLocationAccess: false,
@@ -1553,20 +1557,10 @@ export class AgentService {
     const existing = await this.prisma.agentTrackingSettings.findUnique({
       where: { tenantId },
     });
-    if (existing) {
-      if (
-        existing.enabled &&
-        existing.captureActiveApp &&
-        !existing.captureWindowTitle
-      ) {
-        return this.prisma.agentTrackingSettings.update({
-          where: { tenantId },
-          data: { captureWindowTitle: true },
-        });
-      }
-
-      return existing;
-    }
+    // A tenant's saved choice is returned as-is. This used to silently turn
+    // window-title capture back ON whenever app capture was on and titles were
+    // off, which overrode an explicit opt-out on every config read.
+    if (existing) return existing;
 
     try {
       return await this.prisma.agentTrackingSettings.create({

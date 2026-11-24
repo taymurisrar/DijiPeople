@@ -73,6 +73,8 @@ export const AUDIT_ACTIONS = {
   EMPLOYEE_REPORTING_MANAGER_ASSIGNED: 'EMPLOYEE_REPORTING_MANAGER_ASSIGNED',
   /* BUG-3184: termination changes employment status and ends payroll eligibility. */
   EMPLOYEE_TERMINATED: 'EMPLOYEE_TERMINATED',
+  /* WP-08.S0b: the scheduled revocation that follows a future-dated termination. */
+  EMPLOYEE_ACCESS_REVOKED: 'EMPLOYEE_ACCESS_REVOKED',
 
   /* BUG-3185: who opened a stored document. */
   DOCUMENT_VIEWED: 'DOCUMENT_VIEWED',

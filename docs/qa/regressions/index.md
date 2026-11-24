@@ -8098,3 +8098,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes - mutated 2026-11-24: an oversized take fails 2 of 12 runtime-db-query tests. The specs assert Prisma where/orderBy/skip/take arguments, not SQL results. Residuals: no DB e2e; ILIKE not index-assisted; search covers documented columns only; unsupported filters fall back to the whole-table path; my-records uses createdById (ITEM-0243). |
 | **Fixed** | 2026-11-24, commit 2088ec4f |
 | **Active** | yes |
+
+### REG-730 — Terminating an employee left the linked user able to sign in
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-4774 |
+| **Root cause** | `EmployeesService.terminate` only wrote employment status, date and an audit row; nothing touched the user or its refresh tokens. |
+| **Regression test** | `services/api/src/modules/employees/employee-terminate-access.spec.ts`; `services/api/src/modules/employees/access-revocation-sweeper.worker.spec.ts` |
+| **Scenario** | QA-AUTH-031 |
+| **Fails without the fix** | Yes - mutated 2026-11-25: making terminate skip the shared revocation helper fails 5 of 7 terminate specs. Residuals: no database-level test of the sweeper query; the DP-MASTER WP-26.S1 e2e run covers wiring only. |
+| **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |

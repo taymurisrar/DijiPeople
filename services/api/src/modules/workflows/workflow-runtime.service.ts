@@ -115,7 +115,12 @@ export type WorkflowEventContext = {
   variables?: Record<string, unknown>;
 };
 
-export const WORKFLOW_RECIPIENT_MODES = ['SUBJECT', 'ACTOR', 'FIXED'] as const;
+export const WORKFLOW_RECIPIENT_MODES = [
+  'SUBJECT',
+  'ACTOR',
+  'FIXED',
+  'CANDIDATE',
+] as const;
 
 export type WorkflowRecipientMode = (typeof WORKFLOW_RECIPIENT_MODES)[number];
 
@@ -373,6 +378,22 @@ export class WorkflowRuntimeService {
 
     if (mode === 'FIXED') {
       return configuration.recipientAddress?.trim() || null;
+    }
+
+    if (mode === 'CANDIDATE') {
+      // Only the candidate of the application the event is about, resolved
+      // inside the tenant. Never a free-form address from event data.
+      if (
+        context.relatedEntityType !== 'application' ||
+        !context.relatedEntityId
+      ) {
+        return null;
+      }
+      const application = await this.prisma.application.findFirst({
+        where: { id: context.relatedEntityId, tenantId: context.tenantId },
+        select: { candidate: { select: { email: true } } },
+      });
+      return application?.candidate?.email ?? null;
     }
 
     if (mode === 'ACTOR') {

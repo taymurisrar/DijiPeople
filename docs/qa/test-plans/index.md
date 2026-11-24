@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 31** · scenarios across them: 535
+**Plans: 31** · scenarios across them: 536
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -18,7 +18,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-020](../../../docs/qa/test-plans/PLAN-020-billing.md) | billing | CRITICAL | CURRENT | 37 | BUG-0531, BUG-0533, BUG-0534, BUG-0027, BUG-0030 | `99dc70a` |
 | [PLAN-004](../../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | commercial-onboarding | HIGH | CURRENT | 14 | BUG-0011, BUG-0012, BUG-0024, BUG-0027, BUG-0028, BUG-0029, BUG-0030 | `287612d` |
 | [PLAN-012](../../../docs/qa/test-plans/PLAN-012-deployment-release.md) | deployment-release | HIGH | CURRENT | 30 | BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047 | `287612d` |
-| [PLAN-040](../../../docs/qa/test-plans/PLAN-040-employees.md) | employees | MEDIUM | DRAFT | 14 | BUG-3450 | `c8d97a3d` |
+| [PLAN-040](../../../docs/qa/test-plans/PLAN-040-employees.md) | employees | MEDIUM | DRAFT | 15 | BUG-3450 | `c8d97a3d` |
 | [PLAN-039](../../../docs/qa/test-plans/PLAN-039-entitlement-enforcement.md) | entitlement-enforcement | CRITICAL | CURRENT | 1 | BUG-1952, BUG-3350 | `7e4d6cd1` |
 | [PLAN-029](../../../docs/qa/test-plans/PLAN-029-framework.md) | framework | MEDIUM | CURRENT | 1 | BUG-2413 | `39d8ddc4` |
 | [PLAN-057](../../../docs/qa/test-plans/PLAN-057-growth-demo.md) | growth-demo | HIGH | CURRENT | 9 | BUG-4427, BUG-4428, BUG-4429, BUG-4438, BUG-4446, BUG-4447 | `92eba463` |

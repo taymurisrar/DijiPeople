@@ -1,73 +1,79 @@
 {
   "programId": "DP-MASTER",
   "masterSha256": "68e4089017132c40fe71a43b6f2c98461f85493bbb22d71edf50551619e0661c",
-  "note": "WP rows live in program-state.json; this file holds numbered cross-cutting requirements (§6). classification PENDING_AUDIT = not yet audited, never a claim of absence.",
+  "note": "WP rows live in program-state.json; this file holds the 53 numbered cross-cutting requirements (section 6). auditDepth INHERITED_FROM_<WP> means classified from the owning WP audit, not from a requirement-level code read; the owning slice re-audits at its own G1.",
   "requirements": [
     {
       "id": "U01",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
       "id": "U02",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
       "id": "U03",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
       "id": "U04",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
       "id": "U05",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
       "id": "U06",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
       "id": "A01",
@@ -106,34 +112,37 @@
       "id": "A04",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
       "id": "A05",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
       "id": "A06",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
       "id": "A07",
@@ -172,177 +181,193 @@
       "id": "A10",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
       "id": "A11",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
       "id": "A12",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
       "id": "O01",
       "section": "6.3",
       "ownerWp": "WP-27/28/29/38/18",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-27 (SCHEMA_SCAN): No daily-update model found.",
+      "auditDepth": "INHERITED_FROM_WP-27"
     },
     {
       "id": "O02",
       "section": "6.3",
       "ownerWp": "WP-27/28/29/38/18",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-27 (SCHEMA_SCAN): No daily-update model found.",
+      "auditDepth": "INHERITED_FROM_WP-27"
     },
     {
       "id": "O03",
       "section": "6.3",
       "ownerWp": "WP-27/28/29/38/18",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-27 (SCHEMA_SCAN): No daily-update model found.",
+      "auditDepth": "INHERITED_FROM_WP-27"
     },
     {
       "id": "O04",
       "section": "6.3",
       "ownerWp": "WP-27/28/29/38/18",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-27 (SCHEMA_SCAN): No daily-update model found.",
+      "auditDepth": "INHERITED_FROM_WP-27"
     },
     {
       "id": "M01",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M02",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M03",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M04",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M05",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M06",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M07",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M08",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "H01",
       "section": "6.5",
       "ownerWp": "WP-07/08/11-14/31-34/10",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R3",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-07 (PROBED): JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer",
+      "auditDepth": "INHERITED_FROM_WP-07"
     },
     {
       "id": "H02",
@@ -359,45 +384,49 @@
       "id": "H03",
       "section": "6.5",
       "ownerWp": "WP-07/08/11-14/31-34/10",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R3",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-07 (PROBED): JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer",
+      "auditDepth": "INHERITED_FROM_WP-07"
     },
     {
       "id": "H04",
       "section": "6.5",
       "ownerWp": "WP-07/08/11-14/31-34/10",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R3",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-07 (PROBED): JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer",
+      "auditDepth": "INHERITED_FROM_WP-07"
     },
     {
       "id": "H05",
       "section": "6.5",
       "ownerWp": "WP-07/08/11-14/31-34/10",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R3",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-07 (PROBED): JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer",
+      "auditDepth": "INHERITED_FROM_WP-07"
     },
     {
       "id": "H06",
       "section": "6.5",
       "ownerWp": "WP-07/08/11-14/31-34/10",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R3",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-07 (PROBED): JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer",
+      "auditDepth": "INHERITED_FROM_WP-07"
     },
     {
       "id": "L01",
@@ -414,45 +443,49 @@
       "id": "L02",
       "section": "6.6",
       "ownerWp": "WP-21",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-21 (PROBED): package-artifact.ts PORTABLE_COMPONENT_TYPES = environmentVariable, table, column, optionSet, lookup, form, view, widget, actionBar; workflows/templates/navigat",
+      "auditDepth": "INHERITED_FROM_WP-21"
     },
     {
       "id": "L03",
       "section": "6.6",
       "ownerWp": "WP-21",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-21 (PROBED): package-artifact.ts PORTABLE_COMPONENT_TYPES = environmentVariable, table, column, optionSet, lookup, form, view, widget, actionBar; workflows/templates/navigat",
+      "auditDepth": "INHERITED_FROM_WP-21"
     },
     {
       "id": "L04",
       "section": "6.6",
       "ownerWp": "WP-21",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-21 (PROBED): package-artifact.ts PORTABLE_COMPONENT_TYPES = environmentVariable, table, column, optionSet, lookup, form, view, widget, actionBar; workflows/templates/navigat",
+      "auditDepth": "INHERITED_FROM_WP-21"
     },
     {
       "id": "L05",
       "section": "6.6",
       "ownerWp": "WP-21",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-21 (PROBED): package-artifact.ts PORTABLE_COMPONENT_TYPES = environmentVariable, table, column, optionSet, lookup, form, view, widget, actionBar; workflows/templates/navigat",
+      "auditDepth": "INHERITED_FROM_WP-21"
     },
     {
       "id": "S01",
@@ -480,12 +513,13 @@
       "id": "S03",
       "section": "6.7",
       "ownerWp": "WP-04/16/17/22/23",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-04 (PROBED): notifications module exists. Catalogue has NO recruitment, projects or offboarding codes; only employee.onboarding.task.assigned (emitted onboarding.service.ts:",
+      "auditDepth": "INHERITED_FROM_WP-04"
     },
     {
       "id": "S04",
@@ -502,89 +536,97 @@
       "id": "S05",
       "section": "6.7",
       "ownerWp": "WP-04/16/17/22/23",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-04 (PROBED): notifications module exists. Catalogue has NO recruitment, projects or offboarding codes; only employee.onboarding.task.assigned (emitted onboarding.service.ts:",
+      "auditDepth": "INHERITED_FROM_WP-04"
     },
     {
       "id": "S06",
       "section": "6.7",
       "ownerWp": "WP-04/16/17/22/23",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-04 (PROBED): notifications module exists. Catalogue has NO recruitment, projects or offboarding codes; only employee.onboarding.task.assigned (emitted onboarding.service.ts:",
+      "auditDepth": "INHERITED_FROM_WP-04"
     },
     {
       "id": "I01",
       "section": "6.8",
       "ownerWp": "WP-24",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-24 (KEYWORD_ONLY): Not audited.",
+      "auditDepth": "INHERITED_FROM_WP-24"
     },
     {
       "id": "I02",
       "section": "6.8",
       "ownerWp": "WP-24",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-24 (KEYWORD_ONLY): Not audited.",
+      "auditDepth": "INHERITED_FROM_WP-24"
     },
     {
       "id": "I03",
       "section": "6.8",
       "ownerWp": "WP-24",
-      "classification": "PENDING_AUDIT",
+      "classification": "MISSING",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R7",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-24 (KEYWORD_ONLY): Not audited.",
+      "auditDepth": "INHERITED_FROM_WP-24"
     },
     {
       "id": "V01",
       "section": "6.9",
       "ownerWp": "WP-18/24/25",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-18 (KEYWORD_ONLY): dashboard, reports and reporting (semantic layer, schedules) modules exist.",
+      "auditDepth": "INHERITED_FROM_WP-18"
     },
     {
       "id": "V02",
       "section": "6.9",
       "ownerWp": "WP-18/24/25",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-18 (KEYWORD_ONLY): dashboard, reports and reporting (semantic layer, schedules) modules exist.",
+      "auditDepth": "INHERITED_FROM_WP-18"
     },
     {
       "id": "V03",
       "section": "6.9",
       "ownerWp": "WP-18/24/25",
-      "classification": "PENDING_AUDIT",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
-      "release": null,
+      "release": "R4",
       "tests": [],
-      "evidence": ""
+      "evidence": "Inherited from WP-18 (KEYWORD_ONLY): dashboard, reports and reporting (semantic layer, schedules) modules exist.",
+      "auditDepth": "INHERITED_FROM_WP-18"
     }
   ]
 }

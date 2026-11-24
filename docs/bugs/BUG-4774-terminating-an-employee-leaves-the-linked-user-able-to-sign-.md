@@ -2,7 +2,7 @@
 ID: BUG-4774
 aliases: [BUG-4774]
 Title: Terminating an employee leaves the linked user able to sign in
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -12,14 +12,14 @@ DetectedInSha: 3df60d01
 AffectedModules: [employees, auth, users]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
-QAReport: 
-RegressionId: 
+QAReport: QA-AUTH-031
+RegressionId: REG-730
 RelatedBacklogItem:
 RelatedDecision: DP-MASTER OD-TERMINATE-ACCESS
 RelatedImplementation:
 CreatedAt: 2026-11-24
 UpdatedAt: 2026-11-24
-ResolvedAt:
+ResolvedAt: 2026-11-25
 ---
 
 # BUG-4774 — Terminating an employee leaves the linked user able to sign in
@@ -46,7 +46,7 @@ The user status stayed ACTIVE and refresh tokens stayed valid.
 
 ## Root Cause
 
-Why it happens — not the symptom. Leave empty until it is actually established.
+`terminate` never touched the linked `User` or its refresh tokens.
 
 ## Impact
 
@@ -66,7 +66,7 @@ Immediate exit disables user and revokes sessions; future-dated exit leaves acce
 
 ## Regression Coverage
 
-`services/api/src/modules/employees/employee-terminate-access.spec.ts` (REG entry to be added when the bug closes).
+REG-730. `employee-terminate-access.spec.ts` (5 of 7 fail without the fix) and `access-revocation-sweeper.worker.spec.ts`. Scenario QA-AUTH-031.
 
 ## Dependencies
 
@@ -78,7 +78,7 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
-PARTIAL on branch `agent/dp-master-wp01-baseline`: immediate exits fixed. Status stays OPEN until WP-08.S0b ships the future-dated revocation.
+Immediate and past-dated exits revoke through `revokeLinkedUserAccess` (user DISABLED + web and agent refresh tokens revoked, one transaction, idempotent, owner protected). Future-dated exits are revoked by `AccessRevocationSweeperWorker`, ON by default (`ACCESS_REVOCATION_SWEEPER_ENABLED=false` disables it and logs a warning). Branch `agent/dp-master-wp01-baseline`.
 
 ## QA Retest
 
@@ -86,6 +86,7 @@ Which QA run verified the fix, and the scenario ids.
 
 ## History
 
+- 2026-11-25 — future-dated revocation added; closed.
 - 2026-11-24 — immediate-exit revocation implemented (WP-08.S0); future-dated pending (WP-08.S0b).
 - 2026-11-24 — created from qa run at `3df60d01`.
 
@@ -94,5 +95,6 @@ Which QA run verified the fix, and the scenario ids.
 ## Related
 
 - Modules — [[employees]], [[auth]]
+- Regression — REG-730 (see the regression register)
 
 <!-- GRAPH:END -->
