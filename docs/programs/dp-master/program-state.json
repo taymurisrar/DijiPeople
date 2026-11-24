@@ -1,0 +1,1189 @@
+{
+  "programId": "DP-MASTER",
+  "namespace": "DP-MASTER/WP-xx",
+  "masterVersion": "1.0",
+  "masterSha256": "68e4089017132c40fe71a43b6f2c98461f85493bbb22d71edf50551619e0661c",
+  "masterPath": "docs/programs/dp-master/MASTER-PLAN.md",
+  "baselineSha": "47eadf74",
+  "integrationBranch": "develop",
+  "parentTask": "TASK-0039",
+  "session": "SESSION-0138",
+  "baselineDate": "2026-11-24",
+  "r1": {
+    "window": "2026-12-01..2026-12-07",
+    "verdict": "IN_PROGRESS",
+    "included": [
+      "WP-01.S1",
+      "WP-03.S1",
+      "WP-04.S1",
+      "WP-08.S0",
+      "WP-05.S1",
+      "WP-17.S1 (assessment)",
+      "WP-35.S0",
+      "WP-02.S0",
+      "WP-26.S1",
+      "WP-26.S2",
+      "WP-17.S2"
+    ],
+    "excluded": [
+      "All schema/runtime work for WP-02/35/06/09 (R2)",
+      "WP-17 remediation until OD-DLP-DEFAULTS",
+      "Everything in R3-R7"
+    ],
+    "notes": "R1 is a release candidate only if release-scoped tests pass (G4). Not a deployment authorization."
+  },
+  "throughputObserved": {
+    "commitsOnDevelopLast14d": 146,
+    "mergedPrsLast14d": 14,
+    "ciMinutes": "17-21",
+    "source": "git log origin/develop, gh run list at 2026-11-24",
+    "caveat": "multi-agent; not a single-stream rate"
+  },
+  "estimateUnit": "agent-sessions (one focused Claude Code session ~ one slice); ranges are assumption-based, to be reforecast after R1",
+  "workstreams": {
+    "A": "Platform/Architecture (schema, API, events/workflows) - single migration writer",
+    "B": "Product/UX + security fixes",
+    "C": "Quality/Integration (QA, docs)"
+  },
+  "decisions": [
+    {
+      "id": "D01",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D02",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D03",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D04",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D05",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D06",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D07",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D08",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D09",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D10",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D11",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D12",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D13",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D14",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D15",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D16",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D17",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D18",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D19",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D20",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "OD-DLP-DEFAULTS",
+      "status": "APPROVED",
+      "title": "Change agent defaults: window-title capture off by default, DLP consent required by default, add employee-visible disclosure (material privacy policy change, D16/S02)",
+      "recommendation": "Approve: captureWindowTitle default false for new tenants, dlpConsentRequired true, add visible agent status. No change to existing tenants without notice.",
+      "blocks": [
+        "WP-17.S1 remediation"
+      ],
+      "approvedOption": "All tenants (owner chose over recommendation: new tenants only)",
+      "approvedOn": "2026-11-24",
+      "note": "Existing-tenant change is a data update on AgentTrackingSettings; do it as an audited, reversible migration and keep per-tenant override."
+    },
+    {
+      "id": "OD-TERMINATE-ACCESS",
+      "status": "APPROVED",
+      "title": "Terminate semantic: disable the linked user and revoke sessions at terminationDate (immediate when dated now/past)",
+      "recommendation": "Approve; future-dated exits revoke at effective date via scheduled job.",
+      "blocks": [
+        "WP-08.S0"
+      ],
+      "approvedOption": "Approve (recommended)",
+      "approvedOn": "2026-11-24"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-01",
+      "sev": "HIGH",
+      "text": "Terminated employees keep login (terminate does not revoke access).",
+      "mitigation": "WP-08.S0",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-02",
+      "sev": "HIGH",
+      "text": "Full program 38 WPs vs R1 window of 13 days: R1 can only be a stabilization + contracts + one tested foundation increment.",
+      "mitigation": "R1 scope below; reforecast R2+ from observed throughput.",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-03",
+      "sev": "MED",
+      "text": "5 ACTIVE stale sessions and a parallel hardening program (SESSION-0137) share schema/permission resources.",
+      "mitigation": "Single-writer leases; session.mjs check before each slice.",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-04",
+      "sev": "MED",
+      "text": "CI exact-SHA gate 17-21 min; each push cancels the in-flight run.",
+      "mitigation": "Batch commits; one push per gate.",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-05",
+      "sev": "MED",
+      "text": "Local primary checkout is 78 commits behind origin/develop and dirty (user-owned).",
+      "mitigation": "All work in dedicated worktree.",
+      "status": "OPEN"
+    }
+  ],
+  "wps": [
+    {
+      "id": "WP-01",
+      "title": "Product/repository baseline",
+      "wave": "Wave 0",
+      "planDeps": "none",
+      "hardDeps": [],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "This baseline (docs/programs/dp-master).",
+      "targetRelease": "R1",
+      "status": "IN_PROGRESS",
+      "estimateSessions": {
+        "low": 2,
+        "high": 3
+      }
+    },
+    {
+      "id": "WP-02",
+      "title": "Universal work engine",
+      "wave": "Wave 1",
+      "planDeps": "WP-35 contracts, WP-04, WP-01",
+      "hardDeps": [
+        "WP-35",
+        "WP-04",
+        "WP-01"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-03",
+      "title": "Workflow runtime foundation",
+      "wave": "Wave 1",
+      "planDeps": "WP-01, WP-04 initial security contracts",
+      "hardDeps": [
+        "WP-01",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a match (fail-open); workflow-runtime.service.ts runActions records SUCCEEDED when some actions failed; WorkflowRunStatus has no partial value; Workflow has no stable key (unique tenantId+name).",
+      "targetRelease": "R1 (S1) / R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-04",
+      "title": "Shared communications/security/events",
+      "wave": "Wave 1",
+      "planDeps": "WP-01; coordinate WP-03",
+      "hardDeps": [
+        "WP-01"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "notifications module exists. Catalogue has NO recruitment, projects or offboarding codes; only employee.onboarding.task.assigned (emitted onboarding.service.ts:569). recruitment.service.ts emits nothing on stage change/hire.",
+      "targetRelease": "R1 (S1) / R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    },
+    {
+      "id": "WP-05",
+      "title": "Platform stabilization/runtime/data management",
+      "wave": "Wave 0",
+      "planDeps": "WP-01 slices",
+      "hardDeps": [
+        "WP-01"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "tenant-settings-dispositions.ts:233-265 marks ~28 recruitment settings NOT_IMPLEMENTED (defaultOnboardingPlanId, template ids, requireOfferApprovalBeforeHiring, notifyHiringManagerWhenCandidateHired ...); no readers found. tenant-modules.ts lacks projects (PROJECTS exists in tenant-features.ts).",
+      "targetRelease": "R1 (S1 audit)",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-06",
+      "title": "Projects and work execution",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/03/04/35",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04",
+        "WP-35"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "Project, ProjectAssignment, ProjectRole, customers, project timesheets exist; no task/phase/milestone/dependency models.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-07",
+      "title": "ATS and candidate experience",
+      "wave": "Wave 3",
+      "planDeps": "WP-03/04, relevant WP-19 action slices, WP-02 as needed",
+      "hardDeps": [
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer or requisition model.",
+      "targetRelease": "R3",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-08",
+      "title": "Employee lifecycle",
+      "wave": "Wave 3",
+      "planDeps": "WP-07 handoff, WP-03/04/36; final exit WP-06/14, payroll interfaces WP-10",
+      "hardDeps": [
+        "WP-07",
+        "WP-03",
+        "WP-04",
+        "WP-36",
+        "WP-06"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "OnboardingTemplate/Task exist; no offboarding. employees.service.ts:2416-2466 terminate sets TERMINATED + date + audit only: no user disable, session revocation, approval cancellation or notification (SECURITY finding, see register).",
+      "targetRelease": "R3 (security fix early)",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-09",
+      "title": "Workforce scheduling and coverage",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/03/04/35, existing time domain",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04",
+        "WP-35"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "WorkSchedule, WorkScheduleDay, ShiftTemplate exist; no roster/swap/coverage model.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-10",
+      "title": "Payroll localization and financial controls",
+      "wave": "Wave 5",
+      "planDeps": "WP-01, existing payroll/compensation; WP-09/15/33 approved-input interfaces",
+      "hardDeps": [
+        "WP-01"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "payroll, payslips, pay-components, tax-rules, loans, claims modules exist; statutory validation unverified.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 18
+      }
+    },
+    {
+      "id": "WP-11",
+      "title": "Continuous performance management",
+      "wave": "Wave 5",
+      "planDeps": "WP-31/30/04",
+      "hardDeps": [
+        "WP-31",
+        "WP-30",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No goal/KPI/OKR/feedback model by synonym scan.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-12",
+      "title": "Skills, learning and certifications",
+      "wave": "Wave 5",
+      "planDeps": "WP-04/08, WP-11 interfaces",
+      "hardDeps": [
+        "WP-04",
+        "WP-08"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No skill/course/certification model by synonym scan.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-13",
+      "title": "Employee experience and service management",
+      "wave": "Wave 3",
+      "planDeps": "WP-02/03/04; WP-08 integration",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "policies, approvals, inbox, documents exist; SupportCase* is platform support (keep separate); no tenant HR case/catalogue/announcement/survey.",
+      "targetRelease": "R3",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-14",
+      "title": "Workforce assets and access lifecycle",
+      "wave": "Wave 3",
+      "planDeps": "WP-02/03/04; interface WP-08, WP-17/23 adapters",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No workforce Asset model.",
+      "targetRelease": "R3",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-15",
+      "title": "Capacity, utilization, labor cost and profitability",
+      "wave": "Wave 4",
+      "planDeps": "WP-09/30/35/38, WP-06 and existing payroll/time",
+      "hardDeps": [
+        "WP-09",
+        "WP-30",
+        "WP-35",
+        "WP-38",
+        "WP-06"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "WorkforceSnapshotDaily, timesheets, project capacity validation exist; no reconciled capacity/utilization model.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-16",
+      "title": "Existing Windows desktop agent",
+      "wave": "Wave 6",
+      "planDeps": "WP-04/30 evidence contract, WP-03; reliability fixes early",
+      "hardDeps": [
+        "WP-04",
+        "WP-30",
+        "WP-03"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "ActivityEvent.dedupeKey (tenant:session:occurredAt) exists, agent.service.ts:1130; no client-generated event id so same-timestamp samples collapse; historical duplicates remain (ITEM-0032).",
+      "targetRelease": "R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-17",
+      "title": "Workforce security/privacy and compliance",
+      "wave": "Wave 6",
+      "planDeps": "WP-04/14/16; security fixes early",
+      "hardDeps": [
+        "WP-04",
+        "WP-14",
+        "WP-16"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "DLP capture is rule-triggered, tenant-gated default off, content access needs dlp.review and is audited, retention enforced (dlp.service.ts); no keylogger. Gaps vs D16: captureActiveApp/captureWindowTitle default true, dlpConsentRequired default false, no employee-visible disclosure found in agent UI. Remediation of defaults is a material privacy policy change -> owner decision.",
+      "targetRelease": "R1 (S1 assessment) / R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-18",
+      "title": "Workforce/organizational intelligence",
+      "wave": "Wave 4",
+      "planDeps": "WP-15/27–30/37/38, WP-29 digests",
+      "hardDeps": [
+        "WP-15",
+        "WP-27",
+        "WP-28",
+        "WP-29",
+        "WP-30",
+        "WP-37",
+        "WP-38"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "dashboard, reports and reporting (semantic layer, schedules) modules exist.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-19",
+      "title": "Advanced automation",
+      "wave": "Wave 7",
+      "planDeps": "WP-03/04, relevant domain services; early action slices for recruitment/lifecycle/digests",
+      "hardDeps": [
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "PROBED",
+      "evidence": "Only SEND_EMAIL action; no control flow, waits or branches.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 18
+      }
+    },
+    {
+      "id": "WP-20",
+      "title": "Workflow and BPF designers",
+      "wave": "Wave 7",
+      "planDeps": "WP-03/04, WP-19 incremental action registry, WP-21 identity contracts",
+      "hardDeps": [
+        "WP-03",
+        "WP-04",
+        "WP-19",
+        "WP-21"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Event-condition-action builder UI exists; no graph view/BPF.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-21",
+      "title": "Customization, ALM and packages",
+      "wave": "Wave 7",
+      "planDeps": "existing package engine, stable keys/version contracts WP-03/35/04; incrementally with each component owner",
+      "hardDeps": [
+        "WP-03",
+        "WP-35",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "package-artifact.ts PORTABLE_COMPONENT_TYPES = environmentVariable, table, column, optionSet, lookup, form, view, widget, actionBar; workflows/templates/navigation not portable; Workflow has no logical key.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-22",
+      "title": "Web/desktop experience and future mobile readiness",
+      "wave": "Wave 6",
+      "planDeps": "WP-04/05, shared domain APIs; UI quality throughout",
+      "hardDeps": [
+        "WP-04",
+        "WP-05"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Responsive web exists; shared-browser/kiosk and offline contracts not audited.",
+      "targetRelease": "R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-23",
+      "title": "Integration and data management center",
+      "wave": "Wave 6",
+      "planDeps": "WP-03/04/05, WP-21 connection contracts",
+      "hardDeps": [
+        "WP-03",
+        "WP-04",
+        "WP-05",
+        "WP-21"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "data-management, data, attendance-integrations, outbox exist; generic connector/mapping center not audited.",
+      "targetRelease": "R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-24",
+      "title": "AI and process intelligence",
+      "wave": "Wave 7",
+      "planDeps": "WP-18/20/23/31, trusted source contracts",
+      "hardDeps": [
+        "WP-18",
+        "WP-20",
+        "WP-23",
+        "WP-31"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Not audited.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-25",
+      "title": "Industry packages and commercial alignment",
+      "wave": "Wave 7",
+      "planDeps": "WP-21/20 + relevant functional WPs",
+      "hardDeps": [
+        "WP-21",
+        "WP-20"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Not audited.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-26",
+      "title": "Continuous QA/release and documentation",
+      "wave": "Wave 7",
+      "planDeps": "release-scoped WP gates; continuous from day 1",
+      "hardDeps": [],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "docs/qa scenarios/plans/regressions/runs, qa:select, exact-SHA CI (17-21 min) exist.",
+      "targetRelease": "continuous",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 0,
+        "high": 0
+      }
+    },
+    {
+      "id": "WP-27",
+      "title": "Daily updates and asynchronous collaboration",
+      "wave": "Wave 4",
+      "planDeps": "WP-30/06/36/03/04",
+      "hardDeps": [
+        "WP-30",
+        "WP-06",
+        "WP-36",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No daily-update model found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    },
+    {
+      "id": "WP-28",
+      "title": "Meetings, discussions and decision register",
+      "wave": "Wave 4",
+      "planDeps": "WP-02/03/04/38; WP-27 integration",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04",
+        "WP-38"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No meeting/decision model found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    },
+    {
+      "id": "WP-29",
+      "title": "Stakeholder updates and digests",
+      "wave": "Wave 4",
+      "planDeps": "WP-03/04/27/28/38",
+      "hardDeps": [
+        "WP-03",
+        "WP-04",
+        "WP-27",
+        "WP-28",
+        "WP-38"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "reporting schedules/exports exist; audience subscriptions/digests not found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-30",
+      "title": "Universal contribution/evidence ledger",
+      "wave": "Wave 4",
+      "planDeps": "WP-02/35, evidence contracts with WP-06/09/36/37/38",
+      "hardDeps": [
+        "WP-02",
+        "WP-35"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No contribution ledger found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 12
+      }
+    },
+    {
+      "id": "WP-31",
+      "title": "KPI definitions and scorecards",
+      "wave": "Wave 5",
+      "planDeps": "WP-35/30/15/37/04",
+      "hardDeps": [
+        "WP-35",
+        "WP-30",
+        "WP-15",
+        "WP-37",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No KPI definition model found.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-32",
+      "title": "Review and appraisal cycles",
+      "wave": "Wave 5",
+      "planDeps": "WP-11/31/03/04",
+      "hardDeps": [
+        "WP-11",
+        "WP-31",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No appraisal/review cycle model found.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 12
+      }
+    },
+    {
+      "id": "WP-33",
+      "title": "Compensation, bonus/increment and promotion cycles",
+      "wave": "Wave 5",
+      "planDeps": "WP-32/10/03/04, existing compensation service",
+      "hardDeps": [
+        "WP-32",
+        "WP-10",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "EmployeeCompensation(+History/Component), SalaryPackageRule exist; no bonus/increment cycle model.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-34",
+      "title": "Benefits, rewards and total compensation",
+      "wave": "Wave 5",
+      "planDeps": "WP-10/33 interfaces, existing benefits/eligibility/claims",
+      "hardDeps": [
+        "WP-10",
+        "WP-33"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "BenefitPolicy, EmployeeBenefitAssignment, BenefitConsumption exist.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 12
+      }
+    },
+    {
+      "id": "WP-35",
+      "title": "Work definitions/profiles",
+      "wave": "Wave 1",
+      "planDeps": "WP-01, WP-04 contracts",
+      "hardDeps": [
+        "WP-01",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No work profile/type/unit model found.",
+      "targetRelease": "R1 contract / R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 4,
+        "high": 7
+      }
+    },
+    {
+      "id": "WP-36",
+      "title": "Duties, checklists and handovers",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/09/35/03/04",
+      "hardDeps": [
+        "WP-02",
+        "WP-09",
+        "WP-35",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No duty/checklist/handover model found.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-37",
+      "title": "Quality, safety and corrective actions",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/35/36/04; can start quality contracts early",
+      "hardDeps": [
+        "WP-02",
+        "WP-35",
+        "WP-36",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No quality/incident/CAPA model found.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-38",
+      "title": "Operational dependencies and accountability",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/06/09/35, WP-36/37 links",
+      "hardDeps": [
+        "WP-02",
+        "WP-06",
+        "WP-09",
+        "WP-35"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No blocker/downtime model found.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    }
+  ],
+  "slices": [
+    {
+      "id": "WP-01.S1",
+      "wp": "WP-01",
+      "title": "Baseline, traceability register, DAG, state, R1 scope",
+      "release": "R1",
+      "deps": [],
+      "workstream": "C",
+      "status": "ACCEPTED",
+      "gate": "G0"
+    },
+    {
+      "id": "WP-01.S2",
+      "wp": "WP-01",
+      "title": "Dated official competitor benchmark + gap matrix; R1 performance budgets",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "C",
+      "status": "READY",
+      "note": "Needs web evidence; non-blocking for G0"
+    },
+    {
+      "id": "WP-03.S1",
+      "wp": "WP-03",
+      "title": "Workflow conditions fail closed; run status reports partial failure honestly",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "A",
+      "status": "READY",
+      "lease": "schema",
+      "migration": "additive enum value WorkflowRunStatus.PARTIALLY_FAILED"
+    },
+    {
+      "id": "WP-04.S1",
+      "wp": "WP-04",
+      "title": "Register + emit recruitment stage-transition/hire events through the notification catalogue",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "A",
+      "status": "READY",
+      "note": "Catalogue addition; no direct mailer"
+    },
+    {
+      "id": "WP-08.S0",
+      "wp": "WP-08",
+      "title": "Terminate must revoke user access (security fix; BUG record)",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "B",
+      "status": "READY",
+      "note": "Owner-impacting behaviour: disable user + revoke sessions at effective date; see register",
+      "decision": "OD-TERMINATE-ACCESS"
+    },
+    {
+      "id": "WP-05.S1",
+      "wp": "WP-05",
+      "title": "Inert-settings register (NOT_IMPLEMENTED recruitment settings) + projects module key decision",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "B",
+      "status": "READY"
+    },
+    {
+      "id": "WP-17.S1",
+      "wp": "WP-17",
+      "title": "D16 assessment of default-on window-title capture, consent default, disclosure",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "B",
+      "status": "READY",
+      "decisionRequired": "OD-DLP-DEFAULTS"
+    },
+    {
+      "id": "WP-35.S0",
+      "wp": "WP-35",
+      "title": "Work-profile/unit contract ADR (stable keys, versioning)",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "A",
+      "status": "READY",
+      "type": "design-only"
+    },
+    {
+      "id": "WP-02.S0",
+      "wp": "WP-02",
+      "title": "Work identity contract ADR (typed domain records + common reference, no giant table)",
+      "release": "R1",
+      "deps": [
+        "WP-35.S0"
+      ],
+      "workstream": "A",
+      "status": "READY",
+      "type": "design-only"
+    },
+    {
+      "id": "WP-26.S1",
+      "wp": "WP-26",
+      "title": "R1 regression selection (qa:select) + plan entitlement regression run",
+      "release": "R1",
+      "deps": [
+        "WP-03.S1",
+        "WP-04.S1",
+        "WP-08.S0"
+      ],
+      "workstream": "C",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-26.S2",
+      "wp": "WP-26",
+      "title": "R1 readiness assessment (G3/G4 evidence, release manifest)",
+      "release": "R1",
+      "deps": [
+        "WP-26.S1"
+      ],
+      "workstream": "C",
+      "status": "NOT_STARTED",
+      "window": "2026-12-06..07"
+    },
+    {
+      "id": "WP-03.S2",
+      "wp": "WP-03",
+      "title": "Stable workflowKey + immutable published versions + legacy migration",
+      "release": "R2",
+      "deps": [
+        "WP-03.S1"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED",
+      "lease": "schema"
+    },
+    {
+      "id": "WP-03.S3",
+      "wp": "WP-03",
+      "title": "Durable async action execution on the outbox with step ledger",
+      "release": "R2",
+      "deps": [
+        "WP-03.S2"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED",
+      "lease": "schema"
+    },
+    {
+      "id": "WP-35.S1",
+      "wp": "WP-35",
+      "title": "Work profile/type/unit schema + API + settings UI",
+      "release": "R2",
+      "deps": [
+        "WP-35.S0"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED",
+      "lease": "schema"
+    },
+    {
+      "id": "WP-02.S1",
+      "wp": "WP-02",
+      "title": "Work item model, lifecycle, contributors, dependencies",
+      "release": "R2",
+      "deps": [
+        "WP-02.S0",
+        "WP-35.S1"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED",
+      "lease": "schema"
+    },
+    {
+      "id": "WP-17.S2",
+      "wp": "WP-17",
+      "title": "Apply approved agent privacy defaults to all tenants (window-title off, DLP consent required) + employee-visible status",
+      "release": "R1",
+      "deps": [
+        "WP-17.S1"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED",
+      "lease": "schema",
+      "decision": "OD-DLP-DEFAULTS"
+    }
+  ],
+  "nextExecutable": [
+    "WP-03.S1",
+    "WP-04.S1",
+    "WP-08.S0",
+    "WP-05.S1",
+    "WP-17.S1",
+    "WP-35.S0",
+    "WP-01.S2"
+  ],
+  "gates": {
+    "G0": {
+      "status": "PASS_WITH_NOTES",
+      "sha": "47eadf74",
+      "note": "WP-01.S2 (competitor benchmark, perf budgets) outstanding; cross-cutting requirements mostly PENDING_AUDIT (see traceability.json)"
+    }
+  }
+}

@@ -98,6 +98,7 @@
     "backlog:new-item": "node scripts/new-backlog-item.mjs",
     "backlog:review": "node scripts/backlog-review.mjs",
     "tasks:rebuild": "node scripts/rebuild-tasks.mjs",
+    "program:master": "node scripts/dp-master.mjs",
     "tasks:check": "node scripts/rebuild-tasks.mjs --check",
     "tasks:new": "node scripts/new-task.mjs",
     "wp:check": "node scripts/check-work-packages.mjs",
