@@ -12083,6 +12083,9 @@ model DataMappingProfile {
 model Workflow {
   id          String            @id @default(uuid())
   tenantId    String
+  /// Stable logical key (DP-MASTER WP-03.S2). Never changes on rename; packages
+  /// and reports refer to it, not to the row id or the display name.
+  workflowKey String?
   scopeKey    String
   /// Null means the workflow applies to every module.
   moduleKey   String?
@@ -12100,8 +12103,10 @@ model Workflow {
   event       NotificationEvent @relation(fields: [eventCode], references: [code], onDelete: Restrict)
   actions     WorkflowAction[]
   runs        WorkflowRun[]
+  versions    WorkflowVersion[]
 
   @@unique([tenantId, name])
+  @@unique([tenantId, workflowKey])
   @@index([tenantId, eventCode, status])
   @@index([tenantId, moduleKey])
   @@index([scopeKey])
@@ -12136,7 +12141,10 @@ model WorkflowRun {
   error         String?
   correlationId String?
   context       Json?
+  /// The published version that executed. Null for runs recorded before versioning.
+  workflowVersionId String?
   workflow      Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowVersion WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: SetNull)
 
   @@index([tenantId, workflowId, startedAt])
   @@index([tenantId, status])
@@ -12150,6 +12158,24 @@ enum WorkflowStatus {
 
 enum WorkflowActionType {
   SEND_EMAIL
+}
+
+/// An immutable snapshot of what an ACTIVE workflow does, minted on every save
+/// that changes its behaviour. Runs record the version that executed.
+model WorkflowVersion {
+  id          String        @id @default(uuid())
+  tenantId    String
+  workflowId  String
+  version     Int
+  definition  Json
+  checksum    String
+  publishedAt DateTime      @default(now())
+  publishedBy String?
+  workflow    Workflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  runs        WorkflowRun[]
+
+  @@unique([workflowId, version])
+  @@index([tenantId, workflowId])
 }
 
 enum WorkflowRunStatus {

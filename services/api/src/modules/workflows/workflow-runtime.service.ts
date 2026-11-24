@@ -250,6 +250,13 @@ export class WorkflowRuntimeService {
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
         },
+        // The latest published version is what this run executes (every save of
+        // an ACTIVE workflow publishes one), so the run records it.
+        versions: {
+          orderBy: { version: 'desc' },
+          take: 1,
+          select: { id: true },
+        },
       },
     });
 
@@ -263,11 +270,13 @@ export class WorkflowRuntimeService {
 
     let ran = 0;
     for (const workflow of workflows) {
+      const workflowVersionId = workflow.versions[0]?.id ?? null;
       const malformed = findMalformedWorkflowCondition(workflow.conditions);
       if (malformed) {
         // Fail closed and say so: an unreadable rule must not act, and the
         // author needs to see why it stopped firing.
         await this.recordRun(workflow.id, context, {
+          workflowVersionId,
           status: WorkflowRunStatus.FAILED,
           actionsRun: 0,
           error: `Malformed conditions, workflow not run: ${malformed}`,
@@ -282,6 +291,7 @@ export class WorkflowRuntimeService {
 
       if (!matches) {
         await this.recordRun(workflow.id, context, {
+          workflowVersionId,
           status: WorkflowRunStatus.SKIPPED,
           actionsRun: 0,
           error: 'Conditions were not met.',
@@ -290,7 +300,10 @@ export class WorkflowRuntimeService {
       }
 
       const result = await this.runActions(workflow.actions, context);
-      await this.recordRun(workflow.id, context, result);
+      await this.recordRun(workflow.id, context, {
+        ...result,
+        workflowVersionId,
+      });
       if (result.status === WorkflowRunStatus.SUCCEEDED) ran += 1;
     }
 
@@ -431,6 +444,7 @@ export class WorkflowRuntimeService {
       status: WorkflowRunStatus;
       actionsRun: number;
       error?: string | null;
+      workflowVersionId?: string | null;
     },
   ) {
     try {
@@ -444,6 +458,7 @@ export class WorkflowRuntimeService {
           actionsRun: result.actionsRun,
           error: result.error ?? null,
           correlationId: context.correlationId ?? null,
+          workflowVersionId: result.workflowVersionId ?? null,
           context: {
             moduleKey: context.moduleKey ?? null,
             scopeKey: buildTenantNotificationScopeKey(context.tenantId),

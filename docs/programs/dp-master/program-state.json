@@ -1136,8 +1136,9 @@
         "WP-03.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
-      "lease": "schema"
+      "status": "IN_REVIEW",
+      "lease": "schema",
+      "evidence": "migration 20261125120000 verified on isolated DB (keys de-duplicated per tenant, version 1 backfilled for ACTIVE workflows, legacy runs untouched); workflowKey immutable on rename; version minted only when behaviour changes; runs record workflowVersionId; 11 new unit tests"
     },
     {
       "id": "WP-03.S3",
@@ -1218,9 +1219,9 @@
       "note": "WP-01.S1 + S2 accepted. 42 of 53 cross-cutting requirements are classified by inheritance from the owning WP audit, not individually code-read; each owning slice re-audits at its G1."
     },
     "G3": {
-      "status": "PASS_SLICE_SCOPE",
-      "sha": "48ee90f0",
-      "note": "Exact-SHA CI run 45466471193 green (two earlier runs failed on generated-doc staleness, fixed). Integrated to develop by fast-forward. Unit tests only; no isolated-DB migration apply or browser run yet."
+      "status": "PENDING",
+      "sha": "d4e21fd3",
+      "note": "CI run 45482098205 on d4e21fd3: every job green except Browser e2e, one test (flow-k K5 \"Active Records filter spans all pages\" reads the status column instead of names, failed on retry). The diff touches no module-view code and K5 passed on 48ee90f0 and 505d44df; classified as an unrelated intermittent until a re-run proves otherwise. Re-run on the next SHA."
     }
   },
   "records": {

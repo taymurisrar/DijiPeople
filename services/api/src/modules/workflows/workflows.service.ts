@@ -21,6 +21,12 @@ import {
   WorkflowActionDto,
 } from './dto/workflow.dto';
 import { WORKFLOW_CONDITION_OPERATORS } from './workflow-conditions';
+import {
+  buildWorkflowDefinition,
+  checksumWorkflowDefinition,
+  nextFreeWorkflowKey,
+  slugifyWorkflowKey,
+} from './workflow-versioning';
 import { WORKFLOW_RECIPIENT_MODES } from './workflow-runtime.service';
 
 const SCOPE_LABELS: Record<EmailTemplateScopeLevel, string> = {
@@ -146,24 +152,35 @@ export class WorkflowsService {
       );
     }
 
-    const workflow = await this.prisma.workflow.create({
-      data: {
-        tenantId: currentUser.tenantId,
-        scopeKey,
-        moduleKey: dto.moduleKey ?? null,
-        name: dto.name.trim(),
-        description: dto.description?.trim() || null,
-        eventCode: dto.eventCode.trim(),
-        status: dto.status ?? WorkflowStatus.DRAFT,
-        conditions: (dto.conditions ?? []) as unknown as Prisma.InputJsonValue,
-        createdBy: currentUser.userId,
-        updatedBy: currentUser.userId,
-        actions: { create: actions },
-      },
-      include: {
-        actions: { orderBy: { sortOrder: 'asc' } },
-        _count: { select: { runs: true } },
-      },
+    const workflowKey = await this.allocateWorkflowKey(
+      currentUser.tenantId,
+      dto.name,
+    );
+
+    const workflow = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.workflow.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          workflowKey,
+          scopeKey,
+          moduleKey: dto.moduleKey ?? null,
+          name: dto.name.trim(),
+          description: dto.description?.trim() || null,
+          eventCode: dto.eventCode.trim(),
+          status: dto.status ?? WorkflowStatus.DRAFT,
+          conditions: (dto.conditions ??
+            []) as unknown as Prisma.InputJsonValue,
+          createdBy: currentUser.userId,
+          updatedBy: currentUser.userId,
+          actions: { create: actions },
+        },
+        include: {
+          actions: { orderBy: { sortOrder: 'asc' } },
+          _count: { select: { runs: true } },
+        },
+      });
+      await this.publishVersionIfActive(tx, created, currentUser.userId);
+      return created;
     });
 
     return this.map(workflow);
@@ -200,7 +217,7 @@ export class WorkflowsService {
         await tx.workflowAction.deleteMany({ where: { workflowId } });
       }
 
-      return tx.workflow.update({
+      const updated = await tx.workflow.update({
         where: { id: workflowId },
         data: {
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -228,6 +245,8 @@ export class WorkflowsService {
           _count: { select: { runs: true } },
         },
       });
+      await this.publishVersionIfActive(tx, updated, currentUser.userId);
+      return updated;
     });
 
     return this.map(workflow);
@@ -337,9 +356,83 @@ export class WorkflowsService {
     return buildNotificationScopeKey(level, scopeId);
   }
 
+  /*
+   * The key is derived once, at creation, and never rewritten: renaming a
+   * workflow must not break a package, a report or a run history that refers to it.
+   */
+  private async allocateWorkflowKey(tenantId: string, name: string) {
+    const base = slugifyWorkflowKey(name);
+    const rows = await this.prisma.workflow.findMany({
+      where: { tenantId, workflowKey: { startsWith: base.slice(0, 40) } },
+      select: { workflowKey: true },
+    });
+    return nextFreeWorkflowKey(
+      base,
+      new Set(rows.map((row) => row.workflowKey ?? '')),
+    );
+  }
+
+  /*
+   * Every save of an ACTIVE workflow that changes what it does mints the next
+   * immutable version, so the live definition is always the latest published one
+   * and an edit can never change behaviour without leaving a version behind. A
+   * save that changes nothing (same checksum) mints nothing. The previous version
+   * is compared by recomputing its checksum from the stored definition, so rows
+   * backfilled by the migration do not mint a spurious version 2.
+   */
+  private async publishVersionIfActive(
+    tx: Prisma.TransactionClient,
+    workflow: {
+      id: string;
+      tenantId: string;
+      status: WorkflowStatus;
+      eventCode: string;
+      moduleKey: string | null;
+      scopeKey: string;
+      conditions: unknown;
+      actions: {
+        type: WorkflowActionType;
+        sortOrder: number;
+        isActive: boolean;
+        configuration: unknown;
+      }[];
+    },
+    actorUserId: string,
+  ) {
+    if (workflow.status !== WorkflowStatus.ACTIVE) return null;
+
+    const definition = buildWorkflowDefinition(workflow);
+    const checksum = checksumWorkflowDefinition(definition);
+    const latest = await tx.workflowVersion.findFirst({
+      where: { workflowId: workflow.id, tenantId: workflow.tenantId },
+      orderBy: { version: 'desc' },
+      select: { version: true, definition: true },
+    });
+    if (
+      latest &&
+      checksumWorkflowDefinition(
+        latest.definition as ReturnType<typeof buildWorkflowDefinition>,
+      ) === checksum
+    ) {
+      return null;
+    }
+
+    return tx.workflowVersion.create({
+      data: {
+        tenantId: workflow.tenantId,
+        workflowId: workflow.id,
+        version: (latest?.version ?? 0) + 1,
+        definition: definition as unknown as Prisma.InputJsonValue,
+        checksum,
+        publishedBy: actorUserId,
+      },
+    });
+  }
+
   private map(workflow: {
     id: string;
     tenantId: string;
+    workflowKey?: string | null;
     scopeKey: string;
     moduleKey: string | null;
     name: string;
@@ -363,6 +456,7 @@ export class WorkflowsService {
     return {
       id: workflow.id,
       tenantId: workflow.tenantId,
+      workflowKey: workflow.workflowKey ?? null,
       name: workflow.name,
       description: workflow.description,
       eventCode: workflow.eventCode,

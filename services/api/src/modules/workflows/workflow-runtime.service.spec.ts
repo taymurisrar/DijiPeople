@@ -25,7 +25,11 @@ function build(workflow: { conditions: unknown; actions: unknown[] }) {
   const runs: Array<Record<string, unknown>> = [];
   const prisma = {
     workflow: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'wf-1', ...workflow }]),
+      findMany: jest
+        .fn()
+        .mockResolvedValue([
+          { id: 'wf-1', versions: [{ id: 'ver-1' }], ...workflow },
+        ]),
     },
     workflowRun: {
       create: jest.fn(({ data }: { data: Record<string, unknown> }) => {
@@ -81,6 +85,15 @@ describe('WorkflowRuntimeService run status', () => {
     expect(runs[0].status).toBe(WorkflowRunStatus.FAILED);
   });
 
+  it('records the published version that executed', async () => {
+    const { service, runs } = build({
+      conditions: [],
+      actions: [email('a@example.com')],
+    });
+    await service.handleEvent(EVENT);
+    expect(runs[0].workflowVersionId).toBe('ver-1');
+  });
+
   it('records SUCCEEDED only when every action ran', async () => {
     const { service, runs } = build({
       conditions: [],
@@ -99,6 +112,7 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'wf-1',
+            versions: [{ id: 'ver-1' }],
             conditions: [],
             actions: [
               {

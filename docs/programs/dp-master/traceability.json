@@ -164,7 +164,8 @@
       "slice": "WP-03.S2",
       "release": "R2",
       "tests": [],
-      "evidence": "Status DRAFT/ACTIVE/INACTIVE exists; no stable key or immutable versions."
+      "evidence": "workflowKey (stable) + WorkflowVersion (immutable, checksum) + run records version; activation/deactivation, execution identity and per-action permissions still open",
+      "auditDepth": "PROBED"
     },
     {
       "id": "A09",
@@ -210,7 +211,7 @@
       "slice": null,
       "release": "R1 (S1) / R2",
       "tests": [],
-      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m",
+      "evidence": "Inherited from WP-03 (PROBED): Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a m | WP-03.S2 adds the logical key and version contract that packages will reference; portability of workflows is WP-21.",
       "auditDepth": "INHERITED_FROM_WP-03"
     },
     {
