@@ -27,6 +27,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { needsShell, resolveClaudeExecutable } from './lib/claude-executable.mjs';
 import { STOPPABLE, progressFingerprint, verifyProgram } from './lib/program-completion.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -82,9 +83,17 @@ switch (command) {
         'DP: resume SESSION-0137 from the durable ledger. Read docs/engineering/program-completion.json and the handoff in ' +
         'docs/engineering/enterprise-hardening-register.md, run `node scripts/program-completion.mjs`, and continue the next unmet gate. ' +
         'Do not report completion unless the verifier says READY_TO_MERGE_MAIN.';
-      const run = spawnSync('claude', ['-p', prompt], { cwd, encoding: 'utf8', shell: process.platform === 'win32' });
+      let claudePath;
+      try {
+        claudePath = resolveClaudeExecutable();
+      } catch (error) {
+        console.log(`${error.message} State is preserved; nothing is marked complete.`);
+        process.exit(5);
+      }
+      const run = spawnSync(claudePath, ['-p', prompt], { cwd, encoding: 'utf8', shell: needsShell(claudePath) });
       const output = `${run.stdout ?? ''}${run.stderr ?? ''}`;
-      if (run.status !== 0 || /usage limit|rate limit|limit reached/i.test(output)) {
+      // run.error (spawn failure) leaves status null, which is also non-zero here.
+      if (run.error || run.status !== 0 || /usage limit|rate limit|limit reached/i.test(output)) {
         console.log('session ended with an error or a usage limit; stopping without retry. State is preserved; nothing is marked complete.');
         process.exit(3);
       }
