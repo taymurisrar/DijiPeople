@@ -88,7 +88,7 @@ and lockout state that no client needs.
 | Prisma accessor | `prisma.user` |
 | Owning module | `services/api/src/modules/super-admin` |
 | Domain | Commercial |
-| Also touched by | `users`, `tenant-control-plane`, `auth`, `tenant-settings`, `employees` (reads), `organization` (reads), `approvals` (reads), `payroll` (reads), and 17 more |
+| Also touched by | `users`, `tenant-control-plane`, `auth`, `employees`, `tenant-settings`, `organization` (reads), `approvals` (reads), `payroll` (reads), and 17 more |
 
 ### Fields
 

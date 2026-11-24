@@ -1048,7 +1048,8 @@
         "WP-01.S1"
       ],
       "workstream": "B",
-      "status": "READY"
+      "status": "IN_REVIEW",
+      "evidence": "docs/programs/dp-master/assessments.md; ITEM-0245"
     },
     {
       "id": "WP-17.S1",
@@ -1059,8 +1060,9 @@
         "WP-01.S1"
       ],
       "workstream": "B",
-      "status": "READY",
-      "decisionRequired": "OD-DLP-DEFAULTS"
+      "status": "IN_REVIEW",
+      "decisionRequired": "OD-DLP-DEFAULTS",
+      "evidence": "docs/programs/dp-master/assessments.md"
     },
     {
       "id": "WP-35.S0",
@@ -1071,8 +1073,9 @@
         "WP-01.S1"
       ],
       "workstream": "A",
-      "status": "READY",
-      "type": "design-only"
+      "status": "IN_REVIEW",
+      "type": "design-only",
+      "evidence": "docs/decisions/ADR-0030 (PROPOSED)"
     },
     {
       "id": "WP-02.S0",
@@ -1083,8 +1086,9 @@
         "WP-35.S0"
       ],
       "workstream": "A",
-      "status": "READY",
-      "type": "design-only"
+      "status": "IN_REVIEW",
+      "type": "design-only",
+      "evidence": "docs/decisions/ADR-0030 (PROPOSED)"
     },
     {
       "id": "WP-26.S1",
@@ -1182,23 +1186,26 @@
         "WP-08.S0"
       ],
       "workstream": "B",
-      "status": "NOT_STARTED",
-      "decision": "OD-TERMINATE-ACCESS"
+      "status": "READY",
+      "decision": "OD-TERMINATE-ACCESS",
+      "design": "Sweeper worker following billing/services/subscription-change-sweeper.worker.ts (off by default, interval, never throws); selects TERMINATED employees with terminationDate<=now whose user is still ACTIVE; same transaction as WP-08.S0; new env var must be registered in packages/config, render.yaml, docs/environment-variables.md (enabling it is a deployment decision, not made here). Rejected: enforcing in JwtAuthGuard (single-writer auth hot path)."
     }
   ],
   "nextExecutable": [
     "WP-08.S0b",
-    "WP-17.S1",
     "WP-17.S2",
-    "WP-05.S1",
-    "WP-35.S0",
-    "WP-01.S2"
+    "WP-01.S2",
+    "WP-26.S1"
   ],
   "gates": {
     "G0": {
       "status": "PASS_WITH_NOTES",
       "sha": "47eadf74",
       "note": "WP-01.S2 (competitor benchmark, perf budgets) outstanding; cross-cutting requirements mostly PENDING_AUDIT (see traceability.json)"
+    },
+    "G3": {
+      "status": "PENDING",
+      "note": "CI run 45459013299 on 52b4a08a failed only \"Data model notes match the schema\" (generated entity-user.md stale after enum edit); fixed by regenerating; re-run pending."
     }
   },
   "records": {
