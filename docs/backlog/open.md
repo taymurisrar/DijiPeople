@@ -16,7 +16,6 @@ The Architect reads this before planning any substantial change —
 | [ITEM-0241](../../docs/backlog/items/ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod.md) | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | P1 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0239](../../docs/backlog/items/ITEM-0239-datajob-queue-has-no-health-signal-platform-health-covers-th.md) | DataJob queue has no health signal; platform health covers the outbox only | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
-| [ITEM-0244](../../docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md) | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | P2 | TRIAGE_REQUIRED | — | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
@@ -276,4 +275,3 @@ The Architect reads this before planning any substantial change —
 | [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
 | [ITEM-0230](../../docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md) | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | P2 | IN_PROGRESS | contracts | FIX_NOW |
 | [ITEM-0233](../../docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md) | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | P2 | READY | billing | PLAN_REQUIRED |
-| [ITEM-0244](../../docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md) | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | P2 | TRIAGE_REQUIRED | — | TRIAGE_REQUIRED |

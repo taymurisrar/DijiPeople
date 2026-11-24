@@ -221,15 +221,18 @@ describe('TenantEntitlementService resolver faults', () => {
   it('serves the last known snapshot when a refresh fails', async () => {
     const prisma = buildPrisma();
     const service = buildService(prisma);
-    const start = Date.now();
 
     const first = await service.decide('tenant-1', ['leave']);
     expect(first.allowed).toBe(true);
     expect(first.stale).toBe(false);
 
+    // Read the clock AFTER the cache was filled: the entry is stamped at some
+    // instant >= a clock read taken before the call, so a "start" captured
+    // earlier can land inside the TTL on a slow machine and make this flaky.
+    const filledBy = Date.now();
     jest
       .spyOn(Date, 'now')
-      .mockReturnValue(start + ENTITLEMENT_CACHE_TTL_MS + 1);
+      .mockReturnValue(filledBy + ENTITLEMENT_CACHE_TTL_MS + 1);
     prisma.subscription.findUnique.mockRejectedValue(
       new Error('connection lost'),
     );
@@ -269,12 +272,12 @@ describe('TenantEntitlementService caching', () => {
   it('re-reads after the TTL expires', async () => {
     const prisma = buildPrisma();
     const service = buildService(prisma);
-    const start = Date.now();
 
     await service.decide('tenant-1', ['leave']);
+    const filledBy = Date.now(); // after the fill; see the stale-snapshot case
     jest
       .spyOn(Date, 'now')
-      .mockReturnValue(start + ENTITLEMENT_CACHE_TTL_MS + 1);
+      .mockReturnValue(filledBy + ENTITLEMENT_CACHE_TTL_MS + 1);
     await service.decide('tenant-1', ['leave']);
 
     expect(prisma.subscription.findUnique).toHaveBeenCalledTimes(2);
