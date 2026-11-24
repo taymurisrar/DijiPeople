@@ -9,12 +9,12 @@
 |---|---|
 | Open CRITICAL | **5** |
 | Open HIGH | **48** |
-| Open total | 239 |
+| Open total | 240 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 127 |
 | Completed | 444 |
-| Awaiting Architect triage | 3 |
+| Awaiting Architect triage | 4 |
 
 ## Open Critical Bugs
 
@@ -123,6 +123,7 @@
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
+| [[ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-|ITEM-0244]] | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | TRIAGE_REQUIRED | — | TRIAGE_REQUIRED |
 
 ## Current Infrastructure Gaps
 
@@ -852,6 +853,7 @@
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 | [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
+| [[ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-|ITEM-0244]] | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | TRIAGE_REQUIRED | — | TRIAGE_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -894,7 +896,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 587 |
-| Backlog items | 243 |
+| Backlog items | 244 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |
@@ -904,7 +906,7 @@
 | Decision notes (ADR + generated) | 33 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 3.** A record nobody has
+**Awaiting Architect triage: 4.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**830 records** — 587 bugs under [`docs/bugs/`](../bugs/), 243 non-bug items under [`items/`](items/).
+**831 records** — 587 bugs under [`docs/bugs/`](../bugs/), 244 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 239 |
+| Open (active work) | 240 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 444 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **48** |
-| **Awaiting Architect triage** | **3** |
+| **Awaiting Architect triage** | **4** |
 
 ## Open by severity
 
@@ -49,7 +49,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 2 |
-| TEST_GAP | 10 |
+| TEST_GAP | 11 |
 | UX | 62 |
 
 ## All records by status
@@ -65,7 +65,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 308 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| TRIAGE_REQUIRED | 3 |
+| TRIAGE_REQUIRED | 4 |
 | READY | 31 |
 | DONE | 122 |
 
@@ -897,6 +897,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0230](../../docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md) | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | P2 | IN_PROGRESS | contracts | FIX_NOW |
 | [ITEM-0231](../../docs/backlog/items/ITEM-0231-tenant-self-service-payment-report-for-bank-transfer-renewal.md) | Tenant self-service payment report for bank-transfer renewal invoices | FOLLOW_UP | — | P2 | DEFERRED | billing | DEFER |
 | [ITEM-0233](../../docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md) | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | P2 | READY | billing | PLAN_REQUIRED |
+| [ITEM-0244](../../docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md) | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | P2 | TRIAGE_REQUIRED | — | TRIAGE_REQUIRED |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
