@@ -10,7 +10,7 @@ UpdatedAt: 2026-11-24
 
 ## Status
 
-Proposed - 2026-11-24. Delivers DP-MASTER slices WP-35.S0 and WP-02.S0 (design
+Proposed - 2026-11-24. Implemented for work units, profiles, versions and assignments in WP-35.S1 (2026-11-25); the work item (WP-02.S1) is still to come. Delivers DP-MASTER slices WP-35.S0 and WP-02.S0 (design
 only; no schema or code in this change). Becomes ACCEPTED when the WP-35.S1 /
 WP-02.S1 ExecPlan that implements it is approved. Master plan:
 `docs/programs/dp-master/MASTER-PLAN.md` (U01-U03, D02, D08).
@@ -41,7 +41,9 @@ recalculate when a definition changes.
 - `WorkUnit` - `key`, `kind` (`DURATION | COUNT | DUTY_COMPLETION | CURRENCY`),
   base unit. Conversion between units is explicit and optional; incompatible
   units are rejected, never silently converted (M04).
-- `WorkType` - `key`, `kind` in the seven approved types
+- Work types (amended 2026-11-25 while implementing WP-35.S1): a work type is NOT a table. It is an entry in the
+  versioned `definition` of a `WorkProfileVersion` (`{ workTypes: [...] }`), so a published version pins its types
+  immutably and a package carries one artifact per profile. Each entry has: `key`, `kind` in the seven approved types
   (`TASK | TRANSACTION | DUTY | OUTPUT | SERVICE | EVENT | CONTRIBUTION`),
   unit, optional standard effort per unit, effective-dated.
 - `EmployeeWorkProfileAssignment` - employee, profile key, `effectiveFrom/To`;

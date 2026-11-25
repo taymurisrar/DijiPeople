@@ -1100,6 +1100,15 @@
       ],
       "notApplicable": {},
       "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/work-profiles/work-profiles.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "Units and profiles are deactivated, published versions are immutable and assignments are ended: they are the historical record that work records pin to (ADR-0030). A delete would orphan or rewrite history."
+      },
+      "classifiedBy": "DP-MASTER WP-35.S1"
     }
   ],
   "baseline": {

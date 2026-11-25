@@ -12,8 +12,8 @@ measurement so a regression is visible; they are not service-level promises.
 | Fresh `migrate deploy` (246 migrations) | 32 s (while jest ran) | 60 s | `prisma migrate deploy` |
 | `seed:demo` | 20 s | 40 s | `ts-node prisma/seed-demo.ts` |
 | Full database e2e suite | see program-state G3 evidence | CI timeout 30 min | `jest --config test/jest-e2e.json` |
-| Access-revocation sweep | measured 2026-11-25: 1,000 due employees (users + web + agent tokens) in 18.1 s = 18 ms each, one tick | 300 s for 1,000 | `scale-smoke.e2e-spec.ts` (opt-in) |
-| Authenticated request (`GET /roles`, local DB, one process) | sequential x100 p50 31 ms, p95 84 ms; 50 concurrent identical requests 1.2 s wall | p95 < 1,000 ms | `scale-smoke.e2e-spec.ts` |
+| Access-revocation sweep | measured 2026-11-25: 1,000 due employees (users + web + agent tokens) in 18.1 s = 18 ms each, one tick | 300 s for 1,000 | `test/opt-in/scale-smoke.opt-in-spec.ts` (opt-in) |
+| Authenticated request (`GET /roles`, local DB, one process) | sequential x100 p50 31 ms, p95 84 ms; 50 concurrent identical requests 1.2 s wall | p95 < 1,000 ms | `test/opt-in/scale-smoke.opt-in-spec.ts` |
 | Auth query count per request | 25 (ceiling 25, held) | 25 | `auth-query-budget.e2e-spec.ts` |
 | Workflow condition evaluation | O(conditions), no I/O | no database access | `workflow-conditions.ts` |
 

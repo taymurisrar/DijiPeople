@@ -229,7 +229,7 @@ fail without the fix.
 
 **Owns** — the foreign key lives on the other side
 
-- **63 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
+- **64 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
 
 ### Constraints and indexes
 

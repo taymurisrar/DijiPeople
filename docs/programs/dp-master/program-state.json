@@ -1167,14 +1167,15 @@
     {
       "id": "WP-35.S1",
       "wp": "WP-35",
-      "title": "Work profile/type/unit schema + API + settings UI",
+      "title": "Work profile/type/unit schema + API (S1 backend); settings UI and ALM component are WP-35.S2",
       "release": "R2",
       "deps": [
         "WP-35.S0"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
-      "lease": "schema"
+      "status": "IN_REVIEW",
+      "lease": "schema",
+      "evidence": "migration 20261125150000 (additive); work-profiles module: units, profiles, immutable versions, time-effective assignments; work-profile-definition.spec (14), work-profiles.e2e-spec (7, real DB + guard: nurse/BPO/developer configured with no code, incompatible units and invalid standards rejected, published version immutable, window closes on replacement, assignment overlap refused, no cross-tenant access, unknown fields 400); permissions work-profiles.read/manage; API contract classified"
     },
     {
       "id": "WP-02.S1",
@@ -1231,12 +1232,34 @@
       ],
       "workstream": "C",
       "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-35.S2",
+      "wp": "WP-35",
+      "title": "Work profile settings UI (runtime/settings adapter) and portable .djpkg component (ALM contract)",
+      "release": "R2",
+      "deps": [
+        "WP-35.S1"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-35.S3",
+      "wp": "WP-35",
+      "title": "Re-audit inherited requirements U01, U03, M04 against the shipped profile model (G1)",
+      "release": "R2",
+      "deps": [
+        "WP-35.S1"
+      ],
+      "workstream": "C",
+      "status": "NOT_STARTED"
     }
   ],
   "nextExecutable": [
     "WP-26.S3",
-    "WP-35.S1",
-    "WP-03.S3"
+    "WP-03.S3",
+    "WP-35.S2"
   ],
   "gates": {
     "G0": {

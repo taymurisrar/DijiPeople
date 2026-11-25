@@ -7,13 +7,13 @@
       "id": "U01",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "MISSING",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
-      "slice": null,
+      "slice": "WP-35.S1",
       "release": "R2",
       "tests": [],
-      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
-      "auditDepth": "INHERITED_FROM_WP-02"
+      "evidence": "WP-35.S1 ships configurable, versioned, effective-dated work profiles and the seven work types as definition entries; work items, evidence capture and per-record version pinning are WP-02/WP-30.",
+      "auditDepth": "PROBED"
     },
     {
       "id": "U02",
@@ -31,13 +31,13 @@
       "id": "U03",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "MISSING",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
-      "slice": null,
+      "slice": "WP-35.S1",
       "release": "R2",
       "tests": [],
-      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
-      "auditDepth": "INHERITED_FROM_WP-02"
+      "evidence": "WP-35.S1 ships configurable, versioned, effective-dated work profiles and the seven work types as definition entries; work items, evidence capture and per-record version pinning are WP-02/WP-30.",
+      "auditDepth": "PROBED"
     },
     {
       "id": "U04",
@@ -307,7 +307,7 @@
       "slice": null,
       "release": "R4",
       "tests": [],
-      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found. | WP-35.S1 validates standard effort per unit (only QUANTITY/COMPLETION, never TIMED) and refuses unit/mode mismatches; the calculation itself is WP-30/WP-15.",
       "auditDepth": "INHERITED_FROM_WP-30"
     },
     {

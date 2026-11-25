@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**345 models · 322 enums · 270 tenant-scoped · 13 with an entity note**
+**349 models · 324 enums · 274 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -32,7 +32,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `UserPermission` | yes | `users` | — |
 | `UserRole` | yes | `users` | — |
 
-## People — 15 models
+## People — 19 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -45,12 +45,16 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `EmployeeHistory` | yes | `employees` | — |
 | `EmployeeLevel` | yes | `employee-levels` | — |
 | `EmployeePreviousEmployment` | yes | `employees` | — |
+| `EmployeeWorkProfileAssignment` | yes | `work-profiles` | — |
 | `EmploymentType` | yes | `employment-types` | — |
 | `Location` | yes | `organization` | — |
 | `Organization` | yes | `organization` | — |
 | `Team` | yes | `teams` | — |
 | `TeamMember` | yes | `teams` | — |
 | `TeamRole` | yes | `teams` | — |
+| `WorkProfile` | yes | `work-profiles` | — |
+| `WorkProfileVersion` | yes | `work-profiles` | — |
+| `WorkUnit` | yes | `work-profiles` | — |
 
 ## Time — 43 models
 

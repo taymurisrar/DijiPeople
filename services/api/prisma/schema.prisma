@@ -2125,6 +2125,10 @@ model Tenant {
   demoBatchId                     String?
   seedSource                      String?
   users                           User[]
+  workUnits                       WorkUnit[]
+  workProfiles                    WorkProfile[]
+  workProfileVersions             WorkProfileVersion[]
+  employeeWorkProfileAssignments  EmployeeWorkProfileAssignment[]
   /// Identities whose last-used workspace is this tenant. Advisory only —
   /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
   /// preference rather than orphaning or blocking the identity.
@@ -5307,6 +5311,7 @@ model Employee {
   @@index([tenantId, sourceCandidateId])
   @@index([tenantId, sourceApplicationId])
   @@index([tenantId, sourceJobOpeningId])
+  workProfileAssignments         EmployeeWorkProfileAssignment[]
 }
 
 model EmploymentType {
@@ -15352,4 +15357,108 @@ model BankTransferEvidence {
 
   @@index([claimId, scanStatus])
   @@index([checksumSha256])
+}
+
+// ---------------------------------------------------------------------------
+// Work profiles (DP-MASTER WP-35.S1, ADR-0030)
+//
+// What a role, site or person does and how it is measured, configured rather
+// than coded. A profile's behaviour lives in immutable published VERSIONS;
+// records produced under a profile pin the version they were created under, so
+// editing a definition never rewrites history. Keys are stable, tenant-unique
+// and portable (never the row id).
+// ---------------------------------------------------------------------------
+
+enum WorkUnitKind {
+  DURATION
+  COUNT
+  DUTY_COMPLETION
+  CURRENCY
+}
+
+enum WorkProfileVersionStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model WorkUnit {
+  id          String       @id @default(uuid())
+  tenantId    String
+  /// Stable portable key; immutable after creation.
+  key         String
+  name        String
+  /// Immutable after creation: changing it would change what published versions mean.
+  kind        WorkUnitKind
+  isActive    Boolean      @default(true)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+model WorkProfile {
+  id          String                          @id @default(uuid())
+  tenantId    String
+  key         String
+  name        String
+  description String?
+  isActive    Boolean                         @default(true)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime                        @default(now())
+  updatedAt   DateTime                        @updatedAt
+  tenant      Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions    WorkProfileVersion[]
+  assignments EmployeeWorkProfileAssignment[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+model WorkProfileVersion {
+  id          String                   @id @default(uuid())
+  tenantId    String
+  profileId   String
+  /// Monotonic per profile.
+  version     Int
+  status      WorkProfileVersionStatus @default(DRAFT)
+  /// { workTypes: [...] } - validated by work-profile-definition.ts. Immutable once PUBLISHED.
+  definition  Json
+  checksum    String?
+  /// The window in which this version is the one in force.
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  publishedAt   DateTime?
+  publishedById String?
+  createdById   String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  tenant        Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile       WorkProfile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, version])
+  @@index([tenantId, profileId, status])
+}
+
+model EmployeeWorkProfileAssignment {
+  id            String      @id @default(uuid())
+  tenantId      String
+  employeeId    String
+  profileId     String
+  effectiveFrom DateTime
+  /// Null = open-ended. Windows for one employee and one profile never overlap.
+  effectiveTo   DateTime?
+  createdById   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  profile       WorkProfile @relation(fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, employeeId, effectiveFrom])
+  @@index([tenantId, profileId])
 }

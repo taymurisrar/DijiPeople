@@ -1,18 +1,22 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- supertest response bodies are untyped JSON; assertions read them directly. */
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { randomUUID } from 'node:crypto';
 
-import { AppModule } from '../src/app.module';
-import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
-import { PrismaService } from '../src/common/prisma/prisma.service';
-import { AccessRevocationSweeperWorker } from '../src/modules/employees/access-revocation-sweeper.worker';
-import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
-import { HttpActors, type HttpActor } from './helpers/http-actors';
+import { AppModule } from '../../src/app.module';
+import { ROLE_KEYS } from '../../src/common/constants/rbac-matrix';
+import { PrismaService } from '../../src/common/prisma/prisma.service';
+import { AccessRevocationSweeperWorker } from '../../src/modules/employees/access-revocation-sweeper.worker';
+import { DbFixtures, describeWithDatabase } from '../helpers/db-fixtures';
+import { HttpActors, type HttpActor } from '../helpers/http-actors';
 
 /**
- * DP-MASTER WP-26 / T-SCALE smoke. OPT-IN: set DP_SCALE_SMOKE=1 (a 250-employee
+ * DP-MASTER WP-26 / T-SCALE smoke. OPT-IN and deliberately NOT named *.e2e-spec.ts, so the
+ * CI database job never collects it (that job fails on any skipped suite). Run it with
+ *   DP_SCALE_SMOKE=1 npx jest --config ./test/jest-e2e.json --testRegex "opt-in-spec.ts$" scale-smoke
+ * against an isolated test database. Set DP_SCALE_SMOKE=1 (a 250-employee
  * tenant is the plan's reference size; this seeds 1,000 terminated employees to
  * measure the sweeper at four times that).
  *
