@@ -168,6 +168,11 @@ async function reviewMonitoringPolicy(): Promise<void> {
     if (response !== 0) return;
     await apiClient.acknowledgeMonitoringPolicy(policy.versionId);
     await configManager.refresh();
+    // The tray only redraws on a session event, and a config refresh is not one.
+    // Without this it kept saying "off until you acknowledge the policy" after the
+    // employee had acknowledged it, until some unrelated event happened. Found by
+    // the real-Electron privacy journey (e2e/electron/agent-dlp-privacy.cjs).
+    sessionManager.emit("changed");
   } catch (error) {
     logger.error("agent.dlp.policy.review_failed", {
       error: error instanceof Error ? error.name : "unknown",

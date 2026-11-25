@@ -90,6 +90,9 @@ async function clearStoredToken() {
     },
     timeout: 60000,
   });
+  const lines = [];
+  app.process().stdout.on("data", (d) => lines.push(String(d)));
+  app.process().stderr.on("data", (d) => lines.push(String(d)));
   try {
     await app.evaluate(({ dialog, Tray }) => {
       globalThis.__dialogs = [];
@@ -114,7 +117,7 @@ async function clearStoredToken() {
     await login.waitForLoadState('domcontentloaded');
     await login.fill('#email', email);
     await login.fill('#password', password);
-    await login.click('#submit');
+    await login.click('#submit', { noWaitAfter: true }).catch(() => undefined);
 
     for (let i = 0; i < 60; i += 1) {
       if ((await labels()).some((l) => /acknowledge the policy/i.test(l))) break;
@@ -183,7 +186,15 @@ async function clearStoredToken() {
       after.some((l) => /Content monitoring: ON/i.test(l)),
     );
   } catch (error) {
-    check('journey ran to the end', false, String(error).slice(0, 300));
+    check('journey ran to the end', false, String(error).slice(0, 600));
+    console.log(
+      lines
+        .join('')
+        .split('\n')
+        .filter((l) => /Agent|rror|login/i.test(l))
+        .slice(-12)
+        .join('\n'),
+    );
   } finally {
     await app.close().catch(() => undefined);
     await clearStoredToken();
