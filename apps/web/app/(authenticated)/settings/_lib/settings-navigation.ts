@@ -473,6 +473,18 @@ export const settingsNavGroups = [
         requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
       },
       {
+        key: "work-profiles",
+        href: "/settings/work-profiles",
+        label: "Work Profiles",
+        description: "Define what each role does and how that work is measured.",
+        icon: "clipboard-list",
+        keywords: ["work profile", "work types", "work units", "duties"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.WORK_PROFILES_READ,
+          PERMISSION_KEYS.WORK_PROFILES_MANAGE,
+        ],
+      },
+      {
         key: "attendance",
         href: "/settings/people/attendance/attendance",
         label: "Attendance Settings",

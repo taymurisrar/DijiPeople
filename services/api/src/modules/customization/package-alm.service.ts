@@ -45,6 +45,7 @@ import {
   displayValue,
   findPackageDependencyCycle,
   isSemver,
+  isWorkComponentType,
   parsePackageArtifact,
   parseSemver,
   satisfiesVersionRange,
@@ -1040,7 +1041,27 @@ export class PackageAlmService {
       }),
     );
 
-    const parsed = parsePackageArtifact(file.buffer);
+    const verified = parsePackageArtifact(file.buffer);
+    /*
+     * Work units and profiles are portable (WP-35.S2) but are applied by the
+     * work-profiles importer, not by this module engine, whose membership rows
+     * cannot hold them. Refuse here rather than half-apply a mixed package.
+     */
+    const workComponent = verified.artifact?.components.find((component) =>
+      isWorkComponentType(component.type),
+    );
+    const parsed = workComponent
+      ? {
+          artifact: null,
+          problems: [
+            {
+              path: `components.${workComponent.key}`,
+              message:
+                'This package carries work profiles. Import it from Settings, Work profiles.',
+            },
+          ],
+        }
+      : verified;
     if (!parsed.artifact) {
       const operation = await this.prisma.customizationPackageOperation.create({
         data: {

@@ -125,6 +125,7 @@ const itemPlacement: Record<
   "holiday-calendars": ["people", "work-management", "Work Management"],
   shifts: ["people", "work-management", "Work Management"],
   "work-schedules": ["people", "work-management", "Work Management"],
+  "work-profiles": ["people", "work-management", "Work Management"],
   attendance: ["people", "attendance", "Attendance & Time"],
   timesheets: ["people", "attendance", "Attendance & Time"],
   "employee-settings": ["people", "workforce", "Workforce Structure"],
@@ -332,6 +333,7 @@ const routeKeys: Record<string, string> = {
 };
 
 const implementationRoutes: Record<string, string> = {
+  "work-profiles": "/settings/work-profiles",
   "payroll-settings": "/settings/payroll/configuration/payroll-settings",
   notifications: "/settings/notifications/rules",
   /*
@@ -640,6 +642,9 @@ export const settingsRuntimeItems: readonly SettingsRuntimeItem[] = [
  */
 export const DEDICATED_PAGE_KEYS = new Set<string>([
   "workflow-templates",
+  // Versioned definitions, publish and time-effective assignments are not
+  // record CRUD (ADR-0030); the page lives at /settings/work-profiles.
+  "work-profiles",
   /*
    * Attendance integrations. These are purpose-built pages: an integration is
    * set up through a connector-driven wizard and carries lifecycle actions and

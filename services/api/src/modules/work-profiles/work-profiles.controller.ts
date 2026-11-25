@@ -23,6 +23,7 @@ import {
   CreateWorkProfileDto,
   CreateWorkUnitDto,
   EndAssignmentDto,
+  ImportWorkProfilePackageDto,
   ListAssignmentsDto,
   ListWorkProfilesDto,
   PublishWorkProfileVersionDto,
@@ -30,6 +31,7 @@ import {
   UpdateWorkProfileVersionDto,
   UpdateWorkUnitDto,
 } from './dto/work-profile.dto';
+import { WorkProfilesPortableService } from './work-profiles-portable.service';
 import { WorkProfilesService } from './work-profiles.service';
 
 /*
@@ -45,7 +47,10 @@ import { WorkProfilesService } from './work-profiles.service';
 @Controller('work-profiles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class WorkProfilesController {
-  constructor(private readonly service: WorkProfilesService) {}
+  constructor(
+    private readonly service: WorkProfilesService,
+    private readonly portable: WorkProfilesPortableService,
+  ) {}
 
   // ---------------------------------------------------------------- units
 
@@ -110,6 +115,18 @@ export class WorkProfilesController {
     return this.service.endAssignment(user, id, dto);
   }
 
+  // ------------------------------------------------------------- packages
+
+  @Post('import')
+  @Permissions('work-profiles.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  importPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ImportWorkProfilePackageDto,
+  ) {
+    return this.portable.importPackage(user, dto.content, dto.dryRun ?? false);
+  }
+
   // ------------------------------------------------------------- profiles
 
   @Get()
@@ -140,6 +157,16 @@ export class WorkProfilesController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.service.findOne(user.tenantId, id);
+  }
+
+  @Get(':id/export')
+  @Permissions('work-profiles.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  exportPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.portable.exportProfile(user, id);
   }
 
   @Patch(':id')

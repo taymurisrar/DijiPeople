@@ -28,6 +28,7 @@ import {
   PORTABLE_LAYER_ACTIONS,
   componentChecksum,
   type PortableComponentInput,
+  type ModuleComponentType,
   type PortableComponentType,
   type PortableLayerAction,
 } from './package-artifact';
@@ -542,7 +543,7 @@ export function parseKey(key: string) {
   ) {
     return null;
   }
-  return { type: type as PortableComponentType, objectKey };
+  return { type: type as ModuleComponentType, objectKey };
 }
 
 function toLayerAction(value: string, isSystem: boolean): PortableLayerAction {

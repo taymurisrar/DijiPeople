@@ -2,7 +2,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/auth/login",
   "module": "agent",
-  "line": 64,
+  "line": 65,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -16,7 +16,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/auth/refresh",
   "module": "agent",
-  "line": 71,
+  "line": 72,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -30,7 +30,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/auth/logout",
   "module": "agent",
-  "line": 78,
+  "line": 79,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -44,7 +44,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/me",
   "module": "agent",
-  "line": 83,
+  "line": 84,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -57,7 +57,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/me/productivity",
   "module": "agent",
-  "line": 90,
+  "line": 91,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -70,7 +70,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/employees/:employeeId/summary",
   "module": "agent",
-  "line": 97,
+  "line": 98,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -83,7 +83,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/employees/:employeeId/location-requests",
   "module": "agent",
-  "line": 108,
+  "line": 109,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -96,7 +96,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/location-requests/pending",
   "module": "agent",
-  "line": 123,
+  "line": 124,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -109,7 +109,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#PATCH agent/location-requests/:requestId/result",
   "module": "agent",
-  "line": 133,
+  "line": 134,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -122,7 +122,33 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/config",
   "module": "agent",
-  "line": 144,
+  "line": 145,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard",
+   "EntitlementGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
+  "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/monitoring-policy",
+  "module": "agent",
+  "line": 155,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard",
+   "EntitlementGuard"
+  ],
+  "cls": "PUBLIC_DECLARED",
+  "declared": true,
+  "why": "@Public()"
+ },
+ {
+  "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/monitoring-policy/acknowledge",
+  "module": "agent",
+  "line": 162,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -135,7 +161,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/devices/register",
   "module": "agent",
-  "line": 154,
+  "line": 172,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -148,7 +174,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#PATCH agent/devices/permissions",
   "module": "agent",
-  "line": 164,
+  "line": 182,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -161,7 +187,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/sessions/start",
   "module": "agent",
-  "line": 174,
+  "line": 192,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -174,7 +200,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/sessions/heartbeat",
   "module": "agent",
-  "line": 184,
+  "line": 202,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -187,7 +213,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#POST agent/sessions/end",
   "module": "agent",
-  "line": 191,
+  "line": 209,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -200,7 +226,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#GET agent/settings",
   "module": "agent",
-  "line": 201,
+  "line": 219,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -213,7 +239,7 @@
  {
   "route": "services/api/src/modules/agent/agent.controller.ts#PATCH agent/settings",
   "module": "agent",
-  "line": 208,
+  "line": 226,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard",
@@ -18943,6 +18969,186 @@
   "route": "services/api/src/modules/views/module-views.controller.ts#DELETE module-views/:id",
   "module": "views",
   "line": 61,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#GET work-profiles/units",
+  "module": "work-profiles",
+  "line": 57,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#POST work-profiles/units",
+  "module": "work-profiles",
+  "line": 64,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#PATCH work-profiles/units/:id",
+  "module": "work-profiles",
+  "line": 74,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#GET work-profiles/assignments",
+  "module": "work-profiles",
+  "line": 87,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#POST work-profiles/assignments",
+  "module": "work-profiles",
+  "line": 97,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#PATCH work-profiles/assignments/:id/end",
+  "module": "work-profiles",
+  "line": 107,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#POST work-profiles/import",
+  "module": "work-profiles",
+  "line": 120,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#GET work-profiles",
+  "module": "work-profiles",
+  "line": 132,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#POST work-profiles",
+  "module": "work-profiles",
+  "line": 142,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#GET work-profiles/:id",
+  "module": "work-profiles",
+  "line": 152,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#GET work-profiles/:id/export",
+  "module": "work-profiles",
+  "line": 162,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#PATCH work-profiles/:id",
+  "module": "work-profiles",
+  "line": 172,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#POST work-profiles/:id/versions",
+  "module": "work-profiles",
+  "line": 183,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#PATCH work-profiles/:id/versions/:versionId",
+  "module": "work-profiles",
+  "line": 193,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#POST work-profiles/:id/versions/:versionId/publish",
+  "module": "work-profiles",
+  "line": 205,
   "guards": [
    "JwtAuthGuard",
    "PermissionsGuard"

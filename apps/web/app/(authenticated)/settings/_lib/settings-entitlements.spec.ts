@@ -344,13 +344,14 @@ describe("every shipped plan resolves to the right shape", () => {
     const growth = shapeOf(GROWTH);
     const enterprise = shapeOf(ENTERPRISE);
 
-    expect(none.items).toBe(35);
+    /* +1 on every tier: Work Profiles (WP-35.S2) is core, like Work Schedules. */
+    expect(none.items).toBe(36);
     /* +1 each from TASK-0036's Document Types page (Documents entitlement). */
     /* +1: Import & Export (data-import-export) is now on Starter. */
-    expect(starter.items).toBe(56);
+    expect(starter.items).toBe(57);
     /* Growth no longer sells the desktop agent: -2 (agent, app downloads). */
-    expect(growth.items).toBe(65);
-    expect(enterprise.items).toBe(88);
+    expect(growth.items).toBe(66);
+    expect(enterprise.items).toBe(89);
 
     expect(none.categories).toBe(7);
     expect(starter.categories).toBe(8);

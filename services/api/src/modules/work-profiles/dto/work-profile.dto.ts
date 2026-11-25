@@ -137,3 +137,15 @@ export class EndAssignmentDto {
   @IsDateString()
   effectiveTo!: string;
 }
+
+export class ImportWorkProfilePackageDto {
+  /** The `.djpkg` document text. The request body limit (1 MB) bounds it. */
+  @IsString()
+  @MinLength(2)
+  @MaxLength(900_000)
+  content!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
+}

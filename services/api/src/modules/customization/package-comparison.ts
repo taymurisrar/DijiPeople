@@ -388,6 +388,8 @@ const TYPE_LABELS: Record<string, string> = {
   actionBar: 'action bar',
   widget: 'widget',
   environmentVariable: 'environment variable',
+  workUnit: 'work unit',
+  workProfile: 'work profile',
 };
 
 export function describeKey(key: string) {

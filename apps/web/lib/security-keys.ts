@@ -171,6 +171,9 @@ export const PERMISSION_KEYS = {
   AGENT_SETTINGS_READ: "agent.settings.read",
   AGENT_SETTINGS_MANAGE: "agent.settings.manage",
 
+  WORK_PROFILES_READ: "work-profiles.read",
+  WORK_PROFILES_MANAGE: "work-profiles.manage",
+
   TIMESHEETS_READ: "timesheets.read",
   TIMESHEETS_CREATE: "timesheets.create",
   TIMESHEETS_WRITE: "timesheets.write",

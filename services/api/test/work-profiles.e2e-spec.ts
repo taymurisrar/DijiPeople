@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- supertest response bodies are untyped JSON; assertions read them directly. */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call -- supertest response bodies are untyped JSON; assertions read them directly. */
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -430,5 +430,117 @@ describeWithDatabase()('Work profiles (e2e, HTTP)', () => {
       tenantId: tenantB,
     });
     expect(res.status).toBe(400);
+  });
+
+  it('exports a published profile as a .djpkg and imports it into another tenant, idempotently', async () => {
+    // A profile of its own: earlier cases leave drafts on the shared one.
+    const made = await call(adminA, 'post', '', {
+      key: 'portable-nurse',
+      name: 'Portable nurse',
+      definition: nurse,
+    });
+    expect(made.status).toBeLessThan(300);
+    const profile = (
+      await call(
+        adminA,
+        'post',
+        `/${made.body.id}/versions/${made.body.versions[0].id}/publish`,
+        { effectiveFrom: new Date('2026-01-01').toISOString() },
+      )
+    ).body;
+    const exported = await call(adminA, 'get', `/${profile.id}/export`);
+    expect(exported.status).toBe(200);
+    expect(exported.body.fileName).toMatch(/\.djpkg$/);
+
+    // Read access alone cannot export; B cannot export A's profile.
+    expect((await call(plainA, 'get', `/${profile.id}/export`)).status).toBe(
+      403,
+    );
+    expect((await call(adminB, 'get', `/${profile.id}/export`)).status).toBe(
+      404,
+    );
+
+    const dry = await call(adminB, 'post', '/import', {
+      content: exported.body.content,
+      dryRun: true,
+    });
+    expect(dry.status).toBeLessThan(300);
+    expect(
+      dry.body.items.find(
+        (i: { key: string }) => i.key === 'workProfile:portable-nurse',
+      ),
+    ).toMatchObject({ action: 'create' });
+    expect((await call(adminB, 'get', '')).body).toEqual([]); // dry run wrote nothing
+
+    const first = await call(adminB, 'post', '/import', {
+      content: exported.body.content,
+    });
+    expect(first.status).toBeLessThan(300);
+    const imported = (await call(adminB, 'get', '')).body.find(
+      (p: { key: string }) => p.key === 'portable-nurse',
+    );
+    expect(imported.currentVersion).toMatchObject({
+      version: 1,
+      status: 'PUBLISHED',
+    });
+    // Landed in B's tenant, never A's.
+    expect(
+      (
+        await prisma.workProfile.findUniqueOrThrow({
+          where: { id: imported.id },
+        })
+      ).tenantId,
+    ).toBe(tenantB);
+
+    const again = await call(adminB, 'post', '/import', {
+      content: exported.body.content,
+    });
+    expect(again.status).toBeLessThan(300);
+    expect(
+      again.body.items.every(
+        (i: { action: string }) => i.action === 'unchanged',
+      ),
+    ).toBe(true);
+    const detail = await call(adminB, 'get', `/${imported.id}`);
+    expect(detail.body.versions).toHaveLength(1);
+
+    // A changed definition publishes the next version, never rewrites history.
+    const draft = await call(adminA, 'post', `/${profile.id}/versions`);
+    const draftId = draft.body.versions.find(
+      (v: { status: string }) => v.status === 'DRAFT',
+    ).id;
+    await call(adminA, 'patch', `/${profile.id}/versions/${draftId}`, {
+      definition: {
+        workTypes: [
+          { ...nurse.workTypes[0], standardEffortMinutes: 50 },
+          nurse.workTypes[1],
+        ],
+      },
+    });
+    const published = await call(
+      adminA,
+      'post',
+      `/${profile.id}/versions/${draftId}/publish`,
+      {
+        effectiveFrom: new Date(Date.now() + 1000).toISOString(),
+      },
+    );
+    expect(published.status).toBeLessThan(300);
+    const second = await call(adminA, 'get', `/${profile.id}/export`);
+    const next = await call(adminB, 'post', '/import', {
+      content: second.body.content,
+    });
+    expect(next.status).toBeLessThan(300);
+    expect(
+      (await call(adminB, 'get', `/${imported.id}`)).body.versions,
+    ).toHaveLength(2);
+
+    // A hand-edited package is refused outright.
+    const doc = JSON.parse(second.body.content as string);
+    doc.components[doc.components.length - 1].definition.name = 'Hacked';
+    const bad = await call(adminB, 'post', '/import', {
+      content: JSON.stringify(doc),
+    });
+    expect(bad.status).toBe(400);
   });
 });
