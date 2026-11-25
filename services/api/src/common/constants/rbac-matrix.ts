@@ -1234,6 +1234,8 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'employment-types.manage',
     'work-profiles.read',
     'work-profiles.manage',
+    'work-items.read',
+    'work-items.write',
     'documents.categories.manage',
     'documents.types.manage',
     'hierarchy.read',
@@ -1985,6 +1987,8 @@ export function legacyPermissionToMatrixPrivileges(
     ],
     [['work-profiles.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
     [['work-profiles.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
+    [['work-items.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['work-items.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
     [
       [
         'leave-types.read',

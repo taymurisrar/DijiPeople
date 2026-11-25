@@ -18978,6 +18978,150 @@
   "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
  },
  {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#GET work-items",
+  "module": "work-items",
+  "line": 43,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#POST work-items",
+  "module": "work-items",
+  "line": 50,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#GET work-items/:id",
+  "module": "work-items",
+  "line": 57,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#PATCH work-items/:id",
+  "module": "work-items",
+  "line": 67,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#POST work-items/:id/transition",
+  "module": "work-items",
+  "line": 78,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#POST work-items/:id/reassign",
+  "module": "work-items",
+  "line": 89,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#POST work-items/:id/archive",
+  "module": "work-items",
+  "line": 100,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#POST work-items/:id/unarchive",
+  "module": "work-items",
+  "line": 110,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#PUT work-items/:id/contributors/:employeeId",
+  "module": "work-items",
+  "line": 120,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#DELETE work-items/:id/contributors/:employeeId",
+  "module": "work-items",
+  "line": 132,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#POST work-items/:id/dependencies",
+  "module": "work-items",
+  "line": 143,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
+  "route": "services/api/src/modules/work-items/work-items.controller.ts#DELETE work-items/:id/dependencies/:dependsOnId",
+  "module": "work-items",
+  "line": 154,
+  "guards": [
+   "JwtAuthGuard",
+   "PermissionsGuard"
+  ],
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
+ },
+ {
   "route": "services/api/src/modules/work-profiles/work-profiles.controller.ts#GET work-profiles/units",
   "module": "work-profiles",
   "line": 57,

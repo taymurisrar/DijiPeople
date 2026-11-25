@@ -2129,6 +2129,7 @@ model Tenant {
   workProfiles                    WorkProfile[]
   workProfileVersions             WorkProfileVersion[]
   employeeWorkProfileAssignments  EmployeeWorkProfileAssignment[]
+  workItems                       WorkItem[]
   /// Identities whose last-used workspace is this tenant. Advisory only —
   /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
   /// preference rather than orphaning or blocking the identity.
@@ -5312,6 +5313,8 @@ model Employee {
   @@index([tenantId, sourceApplicationId])
   @@index([tenantId, sourceJobOpeningId])
   workProfileAssignments         EmployeeWorkProfileAssignment[]
+  ownedWorkItems                 WorkItem[]                    @relation("WorkItemOwner")
+  workItemContributions          WorkItemContributor[]
 }
 
 model EmploymentType {
@@ -6948,6 +6951,7 @@ model Project {
   scopedWorkSchedules        WorkSchedule[]              @relation("ScopedProjectWorkSchedules")
   holidayAssignments         HolidayCalendarAssignment[]
   assignments                ProjectAssignment[]
+  workItems                  WorkItem[]
   timesheetEntries           TimesheetEntry[]
   payrollCostAllocationLines PayrollCostAllocationLine[]
 
@@ -15489,6 +15493,117 @@ model WorkProfileVersion {
 
   @@unique([profileId, version])
   @@index([tenantId, profileId, status])
+}
+
+/// DP-MASTER WP-02.S1 (ADR-0030). A thin record for work that has a lifecycle of
+/// its own: a task, a service job, one occurrence of a duty. Transactions,
+/// outputs, events and contributions are NOT work items; they are ledger entries
+/// that point at a work reference (WP-30). A project is optional context, never a
+/// required parent. Archived, never deleted.
+model WorkItem {
+  id                   String           @id @default(uuid())
+  tenantId             String
+  kind                 WorkItemKind
+  title                String
+  description          String?
+  status               WorkItemStatus   @default(OPEN)
+  priority             WorkItemPriority @default(NORMAL)
+  /// The one accountable person. Effort lives on contributors, never here.
+  ownerEmployeeId      String?
+  projectId            String?
+  /// Subtasks. Set at creation only, so a parent chain cannot form a cycle.
+  parentId             String?
+  /// The work type key inside the profile version below (WP-35), if any.
+  workTypeKey          String?
+  /// The profile version this item was created under; history never recalculates.
+  workProfileVersionId String?
+  /// Optional context, not required parents.
+  businessUnitId       String?
+  teamId               String?
+  departmentId         String?
+  dueAt                DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  archivedAt           DateTime?
+  /// A pointer to the same work in another system. Never trusted as an identity.
+  externalSystem       String?
+  externalRef          String?
+  createdById          String?
+  updatedById          String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  tenant               Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner                Employee?        @relation("WorkItemOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  project              Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent               WorkItem?        @relation("WorkItemSubtasks", fields: [parentId], references: [id], onDelete: SetNull)
+  children             WorkItem[]       @relation("WorkItemSubtasks")
+  contributors         WorkItemContributor[]
+  dependsOn            WorkItemDependency[]  @relation("WorkItemDependent")
+  blocks               WorkItemDependency[]  @relation("WorkItemPrerequisite")
+
+  @@index([tenantId, status])
+  @@index([tenantId, ownerEmployeeId, status])
+  @@index([tenantId, projectId])
+  @@index([tenantId, parentId])
+  @@index([tenantId, kind, status])
+  @@index([tenantId, archivedAt])
+  @@index([tenantId, externalSystem, externalRef])
+}
+
+/// One person's share of a work item, with their own estimate and actual. Totals
+/// sum these rows, one per person, so shared work is never double counted.
+model WorkItemContributor {
+  id              String   @id @default(uuid())
+  tenantId        String
+  workItemId      String
+  employeeId      String
+  estimateMinutes Int?
+  actualMinutes   Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  workItem        WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([workItemId, employeeId])
+  @@index([tenantId, employeeId])
+}
+
+/// `workItemId` cannot finish before `dependsOnId` does. Cycles are refused by
+/// the service inside the write transaction.
+model WorkItemDependency {
+  id          String   @id @default(uuid())
+  tenantId    String
+  workItemId  String
+  dependsOnId String
+  createdById String?
+  createdAt   DateTime @default(now())
+  workItem    WorkItem @relation("WorkItemDependent", fields: [workItemId], references: [id], onDelete: Cascade)
+  dependsOn   WorkItem @relation("WorkItemPrerequisite", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([workItemId, dependsOnId])
+  @@index([tenantId, dependsOnId])
+}
+
+enum WorkItemKind {
+  TASK
+  SERVICE_JOB
+  DUTY_OCCURRENCE
+}
+
+enum WorkItemStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum WorkItemPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
 model EmployeeWorkProfileAssignment {

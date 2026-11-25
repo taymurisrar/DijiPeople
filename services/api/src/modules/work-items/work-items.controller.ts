@@ -1,0 +1,170 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import {
+  AddDependencyDto,
+  CreateWorkItemDto,
+  ListWorkItemsDto,
+  ReassignWorkItemDto,
+  SetContributorDto,
+  TransitionWorkItemDto,
+  UpdateWorkItemDto,
+} from './dto/work-item.dto';
+import { WorkItemsService } from './work-items.service';
+
+/*
+ * Work items (ADR-0030). Reading needs `work-items.read`; every change needs
+ * `work-items.write`. Nothing deletes a work item: it is archived.
+ */
+@Controller('work-items')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+export class WorkItemsController {
+  constructor(private readonly service: WorkItemsService) {}
+
+  @Get()
+  @Permissions('work-items.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListWorkItemsDto,
+  ) {
+    return this.service.list(user.tenantId, query);
+  }
+
+  @Post()
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateWorkItemDto,
+  ) {
+    return this.service.create(user, dto);
+  }
+
+  @Get(':id')
+  @Permissions('work-items.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.findOne(user.tenantId, id);
+  }
+
+  @Patch(':id')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateWorkItemDto,
+  ) {
+    return this.service.update(user, id, dto);
+  }
+
+  @Post(':id/transition')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  transition(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: TransitionWorkItemDto,
+  ) {
+    return this.service.transition(user, id, dto);
+  }
+
+  @Post(':id/reassign')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  reassign(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ReassignWorkItemDto,
+  ) {
+    return this.service.reassign(user, id, dto);
+  }
+
+  @Post(':id/archive')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  archive(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.archive(user, id);
+  }
+
+  @Post(':id/unarchive')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  unarchive(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.unarchive(user, id);
+  }
+
+  @Put(':id/contributors/:employeeId')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  setContributor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Body() dto: SetContributorDto,
+  ) {
+    return this.service.setContributor(user, id, employeeId, dto);
+  }
+
+  @Delete(':id/contributors/:employeeId')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  removeContributor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.service.removeContributor(user, id, employeeId);
+  }
+
+  @Post(':id/dependencies')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  addDependency(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AddDependencyDto,
+  ) {
+    return this.service.addDependency(user, id, dto);
+  }
+
+  @Delete(':id/dependencies/:dependsOnId')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  removeDependency(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('dependsOnId', new ParseUUIDPipe()) dependsOnId: string,
+  ) {
+    return this.service.removeDependency(user, id, dependsOnId);
+  }
+}
