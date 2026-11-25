@@ -1308,9 +1308,10 @@
         "WP-04.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
+      "status": "INTEGRATED",
       "note": "Tracked here per the owner: the S3 ledger is per action, so a single action addressed to several recipients is still one step; template pinning needs the notification template version id on the step.",
-      "evidence": "migration 20261128090000 (additive); recipients list (SUBJECT/ACTOR/FIXED/CANDIDATE/ROLE) expanded once and pinned on the run, one step per recipient with its own claim and retry, duplicate address = one message, unresolvable recipient = recorded permanent failure; template pinned by the first send with drift flagged; delivery log read back by WorkflowDeliveryReconciler (a message that failed after hand-off turns its step and run into failures); transitionId adopted by leave (2), loans (1) and claims (1) producers; workflow-durable-execution.e2e-spec 24 tests; mutation: removing the recipient pin fails the role test. NOT covered: template pin in templateKey mode against a second same-key template (the pin test uses the template id); an automatic scheduler for reconciliation (it is an endpoint, POST /workflows/reconcile-deliveries)."
+      "evidence": "migration 20261128090000 (additive); recipients list (SUBJECT/ACTOR/FIXED/CANDIDATE/ROLE) expanded once and pinned on the run, one step per recipient with its own claim and retry, duplicate address = one message, unresolvable recipient = recorded permanent failure; template pinned by the first send with drift flagged; delivery log read back by WorkflowDeliveryReconciler (a message that failed after hand-off turns its step and run into failures); transitionId adopted by leave (2), loans (1) and claims (1) producers; workflow-durable-execution.e2e-spec 24 tests; mutation: removing the recipient pin fails the role test. NOT covered: template pin in templateKey mode against a second same-key template (the pin test uses the template id); an automatic scheduler for reconciliation (it is an endpoint, POST /workflows/reconcile-deliveries).",
+      "integratedSha": "c2f8dc2b"
     },
     {
       "id": "WP-21.S1",
@@ -1322,9 +1323,10 @@
         "WP-06.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
+      "status": "INTEGRATED",
       "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine.",
-      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet."
+      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet.",
+      "integratedSha": "c2f8dc2b"
     },
     {
       "id": "WP-06.S2",
@@ -1336,9 +1338,10 @@
         "WP-02.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
+      "status": "INTEGRATED",
       "lease": "schema",
-      "evidence": "API: migration 20261128100000; MILESTONE kind, milestone roll-up with project inheritance, milestone cannot finish while tasks are open, progress (counts, each person once, null not 0%, approved timesheet hours by task id), workload on a named STANDARD_WEEK basis with unestimated work counted apart; project-work-and-daily-updates.e2e-spec (milestones/progress/workload block). NOT yet: timesheet entries selecting a work item (WP-06.S3), project templates/phases/WBS, sprints, retainers. | UI: project Work area on /projects/:id (Kanban by transition buttons, list, milestones with progress, workload with standard-week caveat, item detail with subtasks, dependencies and per-person contributors). BUG-4777 (creator could not read own project) fixed. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone."
+      "evidence": "API: migration 20261128100000; MILESTONE kind, milestone roll-up with project inheritance, milestone cannot finish while tasks are open, progress (counts, each person once, null not 0%, approved timesheet hours by task id), workload on a named STANDARD_WEEK basis with unestimated work counted apart; project-work-and-daily-updates.e2e-spec (milestones/progress/workload block). NOT yet: timesheet entries selecting a work item (WP-06.S3), project templates/phases/WBS, sprints, retainers. | UI: project Work area on /projects/:id (Kanban by transition buttons, list, milestones with progress, workload with standard-week caveat, item detail with subtasks, dependencies and per-person contributors). BUG-4777 (creator could not read own project) fixed. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone.",
+      "integratedSha": "c2f8dc2b"
     },
     {
       "id": "WP-06.S3",
@@ -1360,8 +1363,9 @@
         "WP-30.S1"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
-      "evidence": "My evidence (record all three measures, correct, withdraw, dispute, history), Evidence review (verify, reject and dispute with required notes); jest specs mirror the API constants; seven work kinds, a quantity is shown under its own unit and never as minutes. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone."
+      "status": "INTEGRATED",
+      "evidence": "My evidence (record all three measures, correct, withdraw, dispute, history), Evidence review (verify, reject and dispute with required notes); jest specs mirror the API constants; seven work kinds, a quantity is shown under its own unit and never as minutes. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone.",
+      "integratedSha": "c2f8dc2b"
     },
     {
       "id": "WP-27.S1",
@@ -1373,9 +1377,10 @@
         "WP-06.S1"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
+      "status": "INTEGRATED",
       "lease": "schema",
-      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts. | UI: Daily update (draft from records, sections, unplanned, blockers, achievements, submit, correct), Team updates (scoped list, acknowledge, missing), Settings > Daily updates. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone."
+      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts. | UI: Daily update (draft from records, sections, unplanned, blockers, achievements, submit, correct), Team updates (scoped list, acknowledge, missing), Settings > Daily updates. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone.",
+      "integratedSha": "c2f8dc2b"
     },
     {
       "id": "WP-38.S1",
@@ -1441,5 +1446,5 @@
     "bug": "BUG-4774",
     "backlogItem": "ITEM-0245"
   },
-  "integratedSha": "d260bdb3"
+  "integratedSha": "c2f8dc2b"
 }
