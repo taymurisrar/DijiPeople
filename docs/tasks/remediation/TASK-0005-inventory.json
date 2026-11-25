@@ -36586,8 +36586,8 @@
       "title": "Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids",
       "severity": "",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr.md",
         "provenance": "ARCHITECT",

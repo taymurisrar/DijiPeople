@@ -12,7 +12,7 @@
       "slice": "WP-35.S1",
       "release": "R2",
       "tests": [],
-      "evidence": "WP-35.S1 ships configurable, versioned, effective-dated work profiles and the seven work types as definition entries; work items, evidence capture and per-record version pinning are WP-02/WP-30.",
+      "evidence": "Re-audited 2026-11-26 (WP-35.S3). Shipped: configurable units, versioned effective-dated profiles with the seven work types as definition entries, employee assignments (work-profiles.e2e-spec), settings UI and portable workProfile/workUnit components (WP-35.S2), and work items with a stored profile version id (work-items.e2e-spec). NOT yet: evidence capture and per-record version pinning on ledger entries (WP-30), role-wide grants (WP-06).",
       "auditDepth": "PROBED"
     },
     {
@@ -36,7 +36,7 @@
       "slice": "WP-35.S1",
       "release": "R2",
       "tests": [],
-      "evidence": "WP-35.S1 ships configurable, versioned, effective-dated work profiles and the seven work types as definition entries; work items, evidence capture and per-record version pinning are WP-02/WP-30.",
+      "evidence": "Re-audited 2026-11-26. A work item exists only for work with a lifecycle (task, service job, duty occurrence); transactions, outputs, events and contributions are deliberately not items (ADR-0030, enforced by the WorkItemKind enum). Quantity-based service job covered in work-items.e2e-spec. The ledger that records transactions as quantities is WP-30 (not built).",
       "auditDepth": "PROBED"
     },
     {
@@ -90,12 +90,12 @@
       "id": "A02",
       "section": "6.2",
       "ownerWp": "WP-03",
-      "classification": "MISSING",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": "WP-03.S3",
       "release": "R2",
       "tests": [],
-      "evidence": "No sync/async execution contract; actions run inline in the emitting call (workflow-runtime.service.ts)."
+      "evidence": "WP-03.S3 (2026-11-26): workflow actions can run durably from the outbox (WORKFLOW_EXECUTION_MODE=durable, opt-in) with a per-action step ledger, retries and recovery (workflow-durable-execution.e2e-spec, 8 real-DB tests). Only SEND_EMAIL exists, so the synchronous allow-list contract is not exercised; inline remains the default until OUTBOX_WORKER_ENABLED is confirmed live."
     },
     {
       "id": "A03",
@@ -153,7 +153,7 @@
       "slice": "WP-03.S3",
       "release": "R2",
       "tests": [],
-      "evidence": "OutboxEvent + dispatcher exist (modules/outbox); workflows do not use them."
+      "evidence": "Workflows now use OutboxEvent and the dispatcher (WORKFLOW_EVENT_RECEIVED, consumer workflow-actions) when durable mode is on; idempotency is per step (event:pinnedVersion:action), delivery at-least-once. Not on by default."
     },
     {
       "id": "A08",
@@ -307,7 +307,7 @@
       "slice": null,
       "release": "R4",
       "tests": [],
-      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found. | WP-35.S1 validates standard effort per unit (only QUANTITY/COMPLETION, never TIMED) and refuses unit/mode mismatches; the calculation itself is WP-30/WP-15.",
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found. | WP-35.S1 validates standard effort per unit (only QUANTITY/COMPLETION, never TIMED) and refuses unit/mode mismatches; the calculation itself is WP-30/WP-15. | Re-audited 2026-11-26: contributors store separate estimate and actual per person and effort totals sum one row per person (work-items.e2e-spec: shared work not double counted; a missing value is not read as zero). Still no contribution ledger, so quantity-to-time conversion rules are untested.",
       "auditDepth": "INHERITED_FROM_WP-30"
     },
     {

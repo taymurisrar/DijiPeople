@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **5** |
 | Open HIGH | **49** |
-| Open total | 242 |
+| Open total | 241 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 127 |
-| Completed | 445 |
+| Completed | 446 |
 | Awaiting Architect triage | 3 |
 
 ## Open Critical Bugs
@@ -125,7 +125,6 @@
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
 | [[ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st|ITEM-0245]] | Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding | TEST_GAP | — | READY | recruitment, onboarding, tenant-settings | PLAN_REQUIRED |
-| [[ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr|ITEM-0246]] | Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids | TEST_GAP | — | READY | framework, qa | PLAN_REQUIRED |
 
 ## Current Infrastructure Gaps
 
@@ -857,7 +856,6 @@
 | [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
 | [[ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript|ITEM-0233]] | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | READY | billing | PLAN_REQUIRED |
 | [[ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st|ITEM-0245]] | Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding | TEST_GAP | — | READY | recruitment, onboarding, tenant-settings | PLAN_REQUIRED |
-| [[ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr|ITEM-0246]] | Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids | TEST_GAP | — | READY | framework, qa | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 

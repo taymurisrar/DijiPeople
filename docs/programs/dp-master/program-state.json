@@ -1161,8 +1161,9 @@
         "WP-03.S2"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
-      "lease": "schema"
+      "status": "ACCEPTED",
+      "lease": "schema",
+      "evidence": "migration 20261126090000 (additive); durable path opt-in, inline default; workflow-durable-execution.e2e-spec 8 tests (retry then success sends once; retry re-runs only the failed step; permanent failure never retried; malformed payload manual action; outbox failure falls back inline); mutation: disabling the step skip fails the retry test"
     },
     {
       "id": "WP-35.S1",
@@ -1188,8 +1189,9 @@
         "WP-35.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
-      "lease": "schema"
+      "status": "ACCEPTED",
+      "lease": "schema",
+      "evidence": "migration 20261126120000 (additive); work-items module; work-items.e2e-spec 11 tests (cycle race x12 fails without the advisory lock, contributors not double counted, transition table, archive-only, cross-tenant 404, unknown-field 400)"
     },
     {
       "id": "WP-17.S2",
@@ -1243,7 +1245,8 @@
         "WP-35.S1"
       ],
       "workstream": "B",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "/settings/work-profiles dedicated page, portable workUnit/workProfile components (work-profile-portable.spec 15, work-profiles.e2e-spec 8 incl. export/dry-run/import/idempotent re-import); NOT browser-verified"
     },
     {
       "id": "WP-35.S3",
@@ -1254,7 +1257,8 @@
         "WP-35.S1"
       ],
       "workstream": "C",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "traceability.json U01, U03, M04, A02, A07 re-audited against shipped code with test references"
     }
   ],
   "nextExecutable": [

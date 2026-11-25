@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 242 |
+| Open (active work) | 241 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |
-| Completed / closed | 445 |
+| Completed / closed | 446 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **49** |
 | **Awaiting Architect triage** | **3** |
@@ -49,7 +49,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 2 |
-| TEST_GAP | 12 |
+| TEST_GAP | 11 |
 | UX | 62 |
 
 ## All records by status
@@ -66,8 +66,8 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 3 |
-| READY | 33 |
-| DONE | 123 |
+| READY | 32 |
+| DONE | 124 |
 
 ## All records
 
@@ -900,7 +900,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0233](../../docs/backlog/items/ITEM-0233-verify-plan-and-seat-change-invoices-for-bank-paid-subscript.md) | Verify plan and seat change invoices for bank-paid subscriptions end to end | TEST_GAP | — | P2 | READY | billing | PLAN_REQUIRED |
 | [ITEM-0244](../../docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md) | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | P2 | DONE | — | DONE |
 | [ITEM-0245](../../docs/backlog/items/ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st.md) | Recruitment settings are NOT_IMPLEMENTED (28 keys) and hire starts no onboarding | TEST_GAP | — | P2 | READY | recruitment, onboarding, tenant-settings | PLAN_REQUIRED |
-| [ITEM-0246](../../docs/backlog/items/ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr.md) | Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids | TEST_GAP | — | P2 | READY | framework, qa | PLAN_REQUIRED |
+| [ITEM-0246](../../docs/backlog/items/ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr.md) | Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids | TEST_GAP | — | P2 | DONE | framework, qa | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
