@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**370 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**371 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-262 screens, 35 runtime-driven.
+263 screens, 35 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -273,6 +273,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/tax-rules` | `apps/web/app/(authenticated)/settings/tax-rules/page.tsx` | _bespoke_ | — |
 | `/settings/time-payroll-policies` | `apps/web/app/(authenticated)/settings/time-payroll-policies/page.tsx` | _bespoke_ | — |
 | `/settings/travel-allowance-policies` | `apps/web/app/(authenticated)/settings/travel-allowance-policies/page.tsx` | _bespoke_ | — |
+| `/settings/work-profiles` | `apps/web/app/(authenticated)/settings/work-profiles/page.tsx` | _bespoke_ | — |
 | `/settings/work-sites` | `apps/web/app/(authenticated)/settings/work-sites/page.tsx` | _bespoke_ | — |
 | `/t/[tenantSlug]/login` | `apps/web/app/t/[tenantSlug]/login/page.tsx` | _bespoke_ | — |
 | `/timesheets` | `apps/web/app/(authenticated)/timesheets/page.tsx` | `/api/timesheets` | `timesheet` |

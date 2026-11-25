@@ -1259,6 +1259,32 @@
       "workstream": "C",
       "status": "ACCEPTED",
       "evidence": "traceability.json U01, U03, M04, A02, A07 re-audited against shipped code with test references"
+    },
+    {
+      "id": "WP-30.S1",
+      "wp": "WP-30",
+      "title": "Contribution/evidence ledger core: entry model, provenance, verification state, dedupe, correction history (seven work types; quantity never silently converted to time)",
+      "release": "R3",
+      "deps": [
+        "WP-02.S1",
+        "WP-35.S1"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED",
+      "lease": "schema"
+    },
+    {
+      "id": "WP-06.S1",
+      "wp": "WP-06",
+      "title": "Work queue over work items: non-project service queue, assignment/reassignment views, SLA fields; Project optional",
+      "release": "R3",
+      "deps": [
+        "WP-02.S1",
+        "WP-03.S3"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED",
+      "lease": "schema"
     }
   ],
   "nextExecutable": [
