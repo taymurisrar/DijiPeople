@@ -2027,7 +2027,11 @@ export function legacyPermissionToMatrixPrivileges(
     [['contributions.verify'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
     [['daily-updates.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
     [['daily-updates.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
-    [['daily-updates.acknowledge'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [
+      ['daily-updates.acknowledge'],
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+    ],
     [['daily-updates.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
     [
       [
