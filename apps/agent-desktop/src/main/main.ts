@@ -10,6 +10,7 @@ import {
 import path from "node:path";
 import { ActivityTracker } from "./activity-tracker";
 import { ApiClient } from "./api-client";
+import { policyDataUrl, renderPolicyHtml } from "./policy-view";
 import { ConfigManager } from "./config-manager";
 import { OfflineQueue } from "./offline-queue";
 import { SecureStore } from "./secure-store";
@@ -76,6 +77,7 @@ function syncDlpCapture(): void {
   );
   if (!hasSession) {
     dlpManager.stop();
+    dlpManager.purgePending();
     return;
   }
 
@@ -90,9 +92,49 @@ function syncDlpCapture(): void {
   );
 }
 
+// Consent is re-checked against the server, so a config older than this is not
+// proof of anything: capture pauses (and buffers are dropped) until it refreshes.
+const DLP_CONFIG_MAX_AGE_MS = 30 * 60 * 1000;
+dlpManager.setFreshnessCheck(() =>
+  configManager.isFresh(DLP_CONFIG_MAX_AGE_MS),
+);
+
 dlpManager.setOnCaptureRefused(() => {
   void configManager.refresh().catch(() => undefined);
 });
+
+/**
+ * Shows the WHOLE policy in a locked-down window (no script, no network, no
+ * navigation) and resolves when the employee closes it. A message box would
+ * truncate a long policy, and an acknowledgement of text you could not read is
+ * not an acknowledgement.
+ */
+function showFullPolicy(policy: {
+  title: string;
+  version: number | string;
+  contentMarkdown: string;
+}): Promise<void> {
+  return new Promise((resolve) => {
+    const window = new BrowserWindow({
+      width: 720,
+      height: 640,
+      title: policy.title,
+      icon: resolveWindowIcon(),
+      backgroundColor: "#ffffff",
+      autoHideMenuBar: true,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        javascript: false,
+      },
+    });
+    window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    window.webContents.on("will-navigate", (event) => event.preventDefault());
+    window.once("closed", () => resolve());
+    void window.loadURL(policyDataUrl(renderPolicyHtml(policy)));
+  });
+}
 
 /**
  * Shows the monitoring policy in force and records the employee's own
@@ -112,11 +154,13 @@ async function reviewMonitoringPolicy(): Promise<void> {
       return;
     }
     if (policy.acknowledged) return;
+    await showFullPolicy(policy);
     const { response } = await dialog.showMessageBox({
       type: "question",
       title: policy.title,
       message: `${policy.title} (version ${policy.version})`,
-      detail: policy.contentMarkdown.slice(0, 4000),
+      detail:
+        "I have read the policy above and I acknowledge that the content it describes may be collected while I am signed in.",
       buttons: ["I acknowledge", "Not now"],
       defaultId: 1,
       cancelId: 1,
@@ -355,6 +399,7 @@ function normalizeLoginError(error: unknown): LoginResult {
 function wireEvents() {
   sessionManager.on("login-required", () => {
     dlpManager.stop();
+    dlpManager.purgePending();
     createLoginWindow();
   });
 

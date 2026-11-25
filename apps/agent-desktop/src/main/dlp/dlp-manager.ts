@@ -66,6 +66,8 @@ export class DlpManager {
   private ticking = false;
   private readonly pendingClipboard: ClipboardCaptureEvent[] = [];
   private readonly pendingScreenshots: ScreenCaptureEvent[] = [];
+  private isConfigFresh: () => boolean = () => true;
+  private pausedForStaleConfig = false;
 
   constructor(
     private readonly reader: ClipboardReader,
@@ -120,6 +122,15 @@ export class DlpManager {
     if (previousInterval !== config.clipboardPollIntervalSeconds) {
       this.startTimer(config.clipboardPollIntervalSeconds);
     }
+  }
+
+  /**
+   * Supplies "is the last server answer recent enough to rely on". While it
+   * returns false the manager captures nothing and drops what it holds, then
+   * resumes by itself once a fresh config arrives (offline fail-closed).
+   */
+  setFreshnessCheck(check: () => boolean): void {
+    this.isConfigFresh = check;
   }
 
   private onCaptureRefused: (() => void) | null = null;
@@ -180,6 +191,16 @@ export class DlpManager {
     const config = this.config;
     const session = this.getSession?.() ?? null;
     if (!config || !session) return;
+
+    if (!this.isConfigFresh()) {
+      if (!this.pausedForStaleConfig) {
+        this.pausedForStaleConfig = true;
+        this.logger.warn("agent.dlp.capture.paused_stale_config");
+      }
+      this.purgePending();
+      return;
+    }
+    this.pausedForStaleConfig = false;
 
     this.ticking = true;
     try {
@@ -275,7 +296,21 @@ export class DlpManager {
   }
 
   private async flushPending(session: DlpSessionContext): Promise<void> {
-    void session;
+    // Buffer isolation: an event is evidence about ONE signed-in session. If the
+    // agent has signed another person in since, the old events must not ride the
+    // new person's credentials to the server.
+    this.pendingClipboard.splice(
+      0,
+      this.pendingClipboard.length,
+      ...this.pendingClipboard.filter((e) => e.sessionId === session.sessionId),
+    );
+    this.pendingScreenshots.splice(
+      0,
+      this.pendingScreenshots.length,
+      ...this.pendingScreenshots.filter(
+        (e) => e.sessionId === session.sessionId,
+      ),
+    );
     if (
       !this.config ||
       (!this.config.clipboardCaptureEnabled &&

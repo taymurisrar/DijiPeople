@@ -321,3 +321,21 @@ describe("ConfigManager", () => {
     });
   });
 });
+
+describe("ConfigManager.isFresh (offline fail-closed for content capture)", () => {
+  it("is false before any sync, true shortly after one, false once the answer is too old", async () => {
+    const getConfig = jest.fn().mockResolvedValue({});
+    const manager = new ConfigManager({ getConfig } as unknown as ApiClient);
+    expect(manager.isFresh(60_000)).toBe(false);
+    await manager.refresh();
+    expect(manager.isFresh(60_000)).toBe(true);
+    expect(manager.isFresh(60_000, Date.now() + 61_000)).toBe(false);
+  });
+
+  it("does not become fresh from a refresh that failed", async () => {
+    const getConfig = jest.fn().mockRejectedValue(new Error("offline"));
+    const manager = new ConfigManager({ getConfig } as unknown as ApiClient);
+    await manager.refresh();
+    expect(manager.isFresh(60_000)).toBe(false);
+  });
+});

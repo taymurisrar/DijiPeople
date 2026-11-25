@@ -56,8 +56,11 @@ change, no production data touched.
 2. **No browser run of the two web tweaks** (PARTIALLY_FAILED badge and the CANDIDATE recipient option). Type-checked
    and linted; CI's browser job does not exercise them.
 3. The independent review was another AI agent working from the diff; it ran no code, and did not read every spec.
-4. Residual access: after a future-dated exit takes effect, an access token issued earlier works on ordinary endpoints
-   for up to one sweep interval (60 s) unless the user signs in again or refreshes.
+4. ~~Residual access after a future-dated exit~~ CLOSED in R2 batch 3: the guard's session lookup (web and agent) is one
+   raw statement that also carries the employee's exit state, so an access token issued earlier is refused on the
+   effective date with no extra round trip (budget stays 25). Proof: `employee-access-revocation.e2e-spec.ts` (12 tests,
+   including an agent-desktop token) and `auth-query-budget.e2e-spec.ts`. Prisma `relationLoadStrategy: 'join'` was
+   tried first and is unavailable: the relationJoins preview is not enabled (decision D7).
 5. Consent prerequisites: nobody can acknowledge until a platform admin publishes a `dlp-monitoring-policy` legal
    document (its text needs legal review: owner decision). Until then content capture is off for everyone who has it
    enabled. Tenants relying on window titles must opt in again.

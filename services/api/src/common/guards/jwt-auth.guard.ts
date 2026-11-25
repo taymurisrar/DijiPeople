@@ -21,7 +21,10 @@ import {
   type AuthClientId,
 } from '../config/auth.config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { AuthAccessService } from '../../modules/auth/auth-access.service';
+import {
+  AuthAccessService,
+  isPastEffectiveTermination,
+} from '../../modules/auth/auth-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantAuthPolicyService } from '../security/tenant-auth-policy.service';
 import {
@@ -274,6 +277,71 @@ export class JwtAuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 
+  /**
+   * The tenant session lookup, plus the employee's exit state in the SAME
+   * statement. A scheduled termination must take effect on its effective date for
+   * an access token issued earlier, and the guard must not pay a round trip for
+   * it: the auth query budget is a measured ceiling (auth-query-budget.e2e-spec).
+   * Prisma's relationLoadStrategy 'join' is not enabled in this repository
+   * (decision D7), so the join is written out. Every column is bound, and the
+   * tenant id scopes the employee row as well as the session.
+   */
+  private async findTenantSession(
+    payload: AuthTokenPayload,
+    clientId: AuthClientId,
+  ): Promise<{
+    absoluteExpiresAt: Date | null;
+    lastActivityAt: Date | null;
+  } | null> {
+    const rows = await this.prisma.$queryRaw<
+      {
+        absoluteExpiresAt: Date | null;
+        lastActivityAt: Date | null;
+        isTenantOwner: boolean;
+        employmentStatus: string | null;
+        terminationDate: Date | null;
+      }[]
+    >`
+      SELECT rt."absoluteExpiresAt", rt."lastActivityAt",
+             (t."ownerUserId" = rt."userId") AS "isTenantOwner",
+             e."employmentStatus"::text AS "employmentStatus",
+             e."terminationDate"
+      FROM "RefreshToken" rt
+      LEFT JOIN "Tenant" t ON t."id" = rt."tenantId"
+      LEFT JOIN "Employee" e
+        ON e."userId" = rt."userId" AND e."tenantId" = rt."tenantId"
+      WHERE rt."sessionId" = ${payload.sessionId}
+        AND rt."userId" = ${payload.sub}
+        AND rt."tenantId" = ${payload.tenantId}
+        AND rt."appClientId" = ${clientId}
+        AND rt."revokedAt" IS NULL
+        AND rt."expiresAt" > ${new Date()}
+      ORDER BY rt."createdAt" DESC
+      LIMIT 1
+    `;
+    const row = rows[0];
+    if (!row) return null;
+    if (
+      isPastEffectiveTermination({
+        id: payload.sub,
+        tenant: { ownerUserId: row.isTenantOwner ? payload.sub : null },
+        employee: row.employmentStatus
+          ? {
+              employmentStatus: row.employmentStatus,
+              terminationDate: row.terminationDate,
+            }
+          : null,
+      })
+    ) {
+      // Same outcome as a revoked session: the caller reports SESSION_REVOKED.
+      return null;
+    }
+    return {
+      absoluteExpiresAt: row.absoluteExpiresAt,
+      lastActivityAt: row.lastActivityAt,
+    };
+  }
+
   private async assertSessionIsActive(
     payload: AuthTokenPayload,
     clientId: AuthClientId,
@@ -303,21 +371,7 @@ export class JwtAuthGuard implements CanActivate {
               lastActivityAt: true,
             },
           })
-        : await this.prisma.refreshToken.findFirst({
-            where: {
-              sessionId: payload.sessionId,
-              userId: payload.sub,
-              tenantId: payload.tenantId,
-              appClientId: clientId,
-              revokedAt: null,
-              expiresAt: { gt: new Date() },
-            },
-            orderBy: { createdAt: 'desc' },
-            select: {
-              absoluteExpiresAt: true,
-              lastActivityAt: true,
-            },
-          });
+        : await this.findTenantSession(payload, clientId);
 
     if (!tokenRecord) {
       throw new UnauthorizedException({
@@ -379,21 +433,51 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private async assertAgentSessionIsActive(payload: AuthTokenPayload) {
-    const tokenRecord = await this.prisma.agentRefreshToken.findFirst({
-      where: {
-        sessionId: payload.sessionId,
-        userId: payload.sub,
-        tenantId: payload.tenantId,
-        ...(payload.deviceId ? { deviceId: payload.deviceId } : {}),
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        absoluteExpiresAt: true,
-        lastActivityAt: true,
-      },
-    });
+    // One statement, like the web path: the employee's exit state rides on the
+    // session lookup, so a scheduled termination ends the agent's access on its
+    // effective date even before the sweeper has revoked the token.
+    const rows = await this.prisma.$queryRaw<
+      {
+        absoluteExpiresAt: Date | null;
+        lastActivityAt: Date | null;
+        isTenantOwner: boolean;
+        employmentStatus: string | null;
+        terminationDate: Date | null;
+      }[]
+    >`
+      SELECT rt."absoluteExpiresAt", rt."lastActivityAt",
+             (t."ownerUserId" = rt."userId") AS "isTenantOwner",
+             e."employmentStatus"::text AS "employmentStatus",
+             e."terminationDate"
+      FROM "AgentRefreshToken" rt
+      LEFT JOIN "Tenant" t ON t."id" = rt."tenantId"
+      LEFT JOIN "Employee" e
+        ON e."id" = rt."employeeId" AND e."tenantId" = rt."tenantId"
+      WHERE rt."sessionId" = ${payload.sessionId}
+        AND rt."userId" = ${payload.sub}
+        AND rt."tenantId" = ${payload.tenantId}
+        AND (${payload.deviceId ?? null}::text IS NULL
+             OR rt."deviceId" = ${payload.deviceId ?? null})
+        AND rt."revokedAt" IS NULL
+        AND rt."expiresAt" > ${new Date()}
+      ORDER BY rt."createdAt" DESC
+      LIMIT 1
+    `;
+    const row = rows[0];
+    const tokenRecord =
+      row &&
+      !isPastEffectiveTermination({
+        id: payload.sub,
+        tenant: { ownerUserId: row.isTenantOwner ? payload.sub : null },
+        employee: row.employmentStatus
+          ? {
+              employmentStatus: row.employmentStatus,
+              terminationDate: row.terminationDate,
+            }
+          : null,
+      })
+        ? row
+        : null;
 
     if (!tokenRecord) {
       throw new UnauthorizedException({

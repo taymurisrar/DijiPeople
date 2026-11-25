@@ -10,7 +10,7 @@ Related: [[BUG-4774]], [environment variables](../../environment-variables.md), 
 |---|---|---|
 | Terminate dated now or earlier | `EmployeesService.terminate` | One transaction under a row lock on the employee: status and date, user `DISABLED`, every web and agent refresh token revoked, audit row. All or nothing. |
 | Terminate dated in the future | same command | Commits status, date and an audit row (`FUTURE_DATED_REVOCATION_SCHEDULED`). Access continues. |
-| The effective date arrives | `AuthAccessService.loadAccessContext` | Login, token refresh and `/auth/me` refuse on the date itself, even with the sweeper stopped. The per-request guard deliberately does not read the employee (it would add a statement to every request and break the 25-statement budget in `auth-query-budget.e2e-spec.ts`). |
+| The effective date arrives | `AuthAccessService.loadAccessContext` | Login, token refresh, `/auth/me` AND every ordinary request (web and agent) refuse on the date itself, even with the sweeper stopped. The guard's session lookup is one raw SQL statement that also carries the employee's exit state, so this costs no extra statement (budget 25 in `auth-query-budget.e2e-spec.ts`). |
 | Within a minute after | `AccessRevocationSweeperWorker` (every 60 s) | Disables the user, revokes tokens, writes `EMPLOYEE_ACCESS_REVOKED` (no human actor). From then the guard refuses every request. |
 
 The tenant owner is never disabled or locked out by any of these.
@@ -43,5 +43,4 @@ There is no schema change to roll back; the command and the sweeper use existing
 ## Known limits
 
 - Terminate does not yet cancel pending approvals or hand off work (WP-08 proper).
-- Up to one sweep interval (60 s by default) of residual access for an already-issued access token on ordinary endpoints after a future-dated exit takes effect.
 - Deploying this makes every employee who is ALREADY terminated with a past date and an enabled user lose access within one sweep: tell customers before release.

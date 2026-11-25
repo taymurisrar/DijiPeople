@@ -92,6 +92,19 @@ export class ConfigManager {
 
   private isRefreshing = false;
 
+  /**
+   * True when the server's answer is recent enough to act on. Content capture is
+   * only lawful while the employee's acknowledgement of the CURRENT policy is
+   * known to stand, and a laptop that has been offline cannot know that: it must
+   * fail closed rather than keep capturing under a consent it cannot re-check.
+   */
+  isFresh(maxAgeMs: number, now: number = Date.now()): boolean {
+    return (
+      this.lastConfigSync !== null &&
+      now - this.lastConfigSync.getTime() <= maxAgeMs
+    );
+  }
+
   constructor(private readonly apiClient: ApiClient) {}
 
   async refresh(): Promise<AgentConfig> {

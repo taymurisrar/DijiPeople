@@ -1,11 +1,13 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createHash, randomUUID } from 'node:crypto';
 
 import { AppModule } from '../src/app.module';
+import { getClientAccessTokenSecret } from '../src/common/config/auth.config';
 import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { AuditService } from '../src/modules/audit/audit.service';
@@ -91,21 +93,63 @@ describeWithDatabase()('Employee termination ends access (e2e, HTTP)', () => {
       select: { id: true },
     });
     deviceIds.push(device.id);
+    const agentSessionId = randomUUID();
     await prisma.agentRefreshToken.create({
       data: {
         tenantId: inTenant,
         userId: actor.id,
         employeeId: employee.id,
         deviceId: device.id,
-        sessionId: randomUUID(),
+        sessionId: agentSessionId,
         tokenHash: createHash('sha256')
           .update(`agent-${suffix}-${seq}`)
           .digest('hex'),
         expiresAt: new Date(Date.now() + 3_600_000),
       },
     });
-    return { actor, employeeId: employee.id };
+    return {
+      actor,
+      employeeId: employee.id,
+      deviceId: device.id,
+      agentSessionId,
+    };
   }
+
+  /** An agent-desktop access token for the session staff() created. */
+  const agentToken = (
+    userId: string,
+    email: string,
+    tenant: string,
+    sessionId: string,
+    deviceId: string,
+  ) =>
+    app.get(JwtService).signAsync(
+      {
+        sub: userId,
+        tenantId: tenant,
+        email,
+        sessionId,
+        deviceId,
+        tokenVersion: 1,
+        type: 'access',
+        tokenUse: 'access',
+        appClientId: 'agent-desktop',
+        aud: 'agent-desktop',
+      },
+      {
+        secret: getClientAccessTokenSecret(
+          app.get(ConfigService),
+          'agent-desktop',
+        ),
+        expiresIn: '1h',
+      },
+    );
+
+  const asAgent = (token: string, path: string) =>
+    request(app.getHttpServer())
+      .get(`/${path}`)
+      .set('Authorization', `Bearer ${token}`)
+      .set('X-DijiPeople-App', 'agent-desktop');
 
   const state = async (userId: string, employeeId: string) => ({
     user: (await prisma.user.findUniqueOrThrow({ where: { id: userId } }))
@@ -247,16 +291,16 @@ describeWithDatabase()('Employee termination ends access (e2e, HTTP)', () => {
     expect((await as(actor, 'roles')).status).toBe(403);
 
     // The date arrives. The sweeper has not run and the user is still ACTIVE.
-    // Auth itself refuses the entry points on the date (/auth/me, and login and
-    // refresh share the check); ordinary endpoints keep working until the sweep,
-    // which is the documented residual (one sweep interval).
+    // Auth itself refuses the token on the date, on the entry points (/auth/me,
+    // login and refresh) AND on ordinary endpoints: the guard's session lookup
+    // carries the employee's exit state in the same joined statement.
     await prisma.employee.update({
       where: { id: employeeId },
       data: { terminationDate: new Date(Date.now() - 60_000) },
     });
     expect((await state(actor.id, employeeId)).user).toBe('ACTIVE');
     expect((await as(actor, 'auth/me')).status).toBe(401);
-    expect((await as(actor, 'roles')).status).toBe(403);
+    expect((await as(actor, 'roles')).status).toBe(401);
 
     await sweeper.tick();
     expect(await state(actor.id, employeeId)).toMatchObject({
@@ -272,6 +316,30 @@ describeWithDatabase()('Employee termination ends access (e2e, HTTP)', () => {
       },
     });
     expect(row.actorUserId).toBeNull();
+  });
+
+  it('an agent access token is refused on the effective date, before any sweep (same single-statement lookup as the web path)', async () => {
+    const { actor, employeeId, deviceId, agentSessionId } = await staff();
+    const token = await agentToken(
+      actor.id,
+      actor.email,
+      tenantId,
+      agentSessionId,
+      deviceId,
+    );
+    const control = await asAgent(token, 'agent/me');
+    expect(control.status).not.toBe(401);
+
+    const res = await terminate(employeeId, new Date(Date.now() + 86_400_000));
+    expect(res.status).toBeLessThan(300);
+    expect((await asAgent(token, 'agent/me')).status).not.toBe(401);
+
+    await prisma.employee.update({
+      where: { id: employeeId },
+      data: { terminationDate: new Date(Date.now() - 60_000) },
+    });
+    expect((await state(actor.id, employeeId)).user).toBe('ACTIVE');
+    expect((await asAgent(token, 'agent/me')).status).toBe(401);
   });
 
   it('a concurrent rehire wins: the sweeper waits on the row lock, re-reads ACTIVE and revokes nothing', async () => {

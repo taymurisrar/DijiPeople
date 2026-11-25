@@ -5803,14 +5803,15 @@ if (trackedFiles) {
    * renumber colliding records, both times because an id was chosen by scanning
    * a directory rather than reserved through the allocator.
    */
-  const { allocateId } = await import('./lib/id-allocator.mjs');
+  const { allocateId, releaseReservationsByNote } = await import('./lib/id-allocator.mjs');
+  const PROBE_NOTE = 'validate-framework allocation probe';
 
   for (const kind of ['regression', 'bug', 'question']) {
     const ids = new Set();
     let failed = '';
     try {
       for (let index = 0; index < 4; index += 1) {
-        ids.add(allocateId(ROOT, kind, { note: 'validate-framework allocation probe' }));
+        ids.add(allocateId(ROOT, kind, { note: PROBE_NOTE }));
       }
     } catch (error) {
       failed = String(error.message).split('\n')[0];
@@ -5822,6 +5823,10 @@ if (trackedFiles) {
       failed || 'got ' + JSON.stringify([...ids]),
     );
   }
+
+  // The probe ids never become records. Release them so a validation run leaves
+  // the ledger as it found it (ITEM-0246).
+  releaseReservationsByNote(ROOT, PROBE_NOTE);
 }
 
 {

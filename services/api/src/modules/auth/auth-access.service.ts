@@ -12,7 +12,7 @@ import { buildDirectPermissionPrivileges } from './direct-permission-privileges'
  * or not the sweeper has disabled the user yet. The tenant owner is exempt for the
  * same reason the sweeper skips them: ownership must be transferred first.
  */
-function isPastEffectiveTermination(user: {
+export function isPastEffectiveTermination(user: {
   id: string;
   tenant?: { ownerUserId?: string | null } | null;
   employee?: { employmentStatus: unknown; terminationDate: Date | null } | null;
