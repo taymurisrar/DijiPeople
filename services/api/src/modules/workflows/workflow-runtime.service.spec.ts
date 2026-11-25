@@ -9,6 +9,15 @@ import { WorkflowRuntimeService } from './workflow-runtime.service';
 
 const TENANT = 'tenant-1';
 
+/** What the e-mail service returns for a message that really left. */
+const DELIVERED = {
+  sent: true,
+  delivered: true,
+  dryRun: false,
+  skipped: false,
+  status: 'SENT',
+};
+
 /**
  * An in-memory run and step ledger with the same lookups the runtime performs, so
  * these specs exercise the real bookkeeping rather than a stub of it. The real
@@ -42,6 +51,9 @@ function ledger() {
         runs.push(row);
         return Promise.resolve(row);
       }),
+      findMany: jest.fn(({ where }: { where: Row }) =>
+        Promise.resolve(runs.filter((r) => r.eventId === where.eventId)),
+      ),
       update: jest.fn(
         ({ where, data }: { where: { id: string }; data: Row }) => {
           const row = runs.find((r) => r.id === where.id) as Row;
@@ -54,6 +66,39 @@ function ledger() {
       findUnique: jest.fn(({ where }: { where: { tenantId_stepKey: Row } }) =>
         Promise.resolve(stepAt(where) ?? null),
       ),
+      createMany: jest.fn(({ data }: { data: Row[] }) => {
+        let count = 0;
+        for (const item of data) {
+          if (
+            steps.some(
+              (r) => r.tenantId === item.tenantId && r.stepKey === item.stepKey,
+            )
+          ) {
+            continue;
+          }
+          steps.push({ id: `step-${steps.length + 1}`, ...item });
+          count += 1;
+        }
+        return Promise.resolve({ count });
+      }),
+      // The compare-and-set the runtime uses to take a retryable step over.
+      updateMany: jest.fn(({ where, data }: { where: Row; data: Row }) => {
+        const row = steps.find(
+          (r) =>
+            r.tenantId === where.tenantId &&
+            r.stepKey === where.stepKey &&
+            ((r.status === 'FAILED' && r.permanent === false) ||
+              (r.status === 'IN_PROGRESS' &&
+                r.startedAt &&
+                r.startedAt < where.OR[1].startedAt.lt)),
+        );
+        if (!row) return Promise.resolve({ count: 0 });
+        row.status = data.status;
+        row.attempts += data.attempts.increment;
+        row.startedAt = data.startedAt;
+        row.finishedAt = null;
+        return Promise.resolve({ count: 1 });
+      }),
       upsert: jest.fn(
         ({
           where,
@@ -151,7 +196,7 @@ function build(
     },
   };
   const emailService = {
-    sendTemplateEmail: jest.fn().mockResolvedValue(undefined),
+    sendTemplateEmail: jest.fn().mockResolvedValue(DELIVERED),
   };
   const service = new WorkflowRuntimeService(
     prisma as never,
@@ -282,7 +327,7 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
       ...book,
     };
     const emailService = {
-      sendTemplateEmail: jest.fn().mockResolvedValue(undefined),
+      sendTemplateEmail: jest.fn().mockResolvedValue(DELIVERED),
     };
     const service = new WorkflowRuntimeService(
       prisma as never,

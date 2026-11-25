@@ -1,4 +1,5 @@
 import { WorkflowRunStatus } from '@prisma/client';
+import { createHash } from 'node:crypto';
 
 /*
  * DP-MASTER WP-03.S3 (A02, A07). The pure rules of the workflow step ledger:
@@ -22,6 +23,45 @@ export function buildWorkflowStepKey(
   return `${eventId}:${workflowVersionId}:${actionIndex}`;
 }
 
+/**
+ * The stable identity of one business transition, built from what the emitter
+ * stated and never from a random value: the same transition emitted twice
+ * produces the same key, which is what lets two emissions collapse into one.
+ */
+export function buildTransitionKey(context: {
+  tenantId: string;
+  eventCode: string;
+  relatedEntityId?: string | null;
+  transitionId: string;
+}): string {
+  return [
+    context.tenantId,
+    context.eventCode,
+    context.relatedEntityId ?? '',
+    context.transitionId,
+  ]
+    .map((part) => part.trim())
+    .join(':');
+}
+
+/** The run id an inline execution of a stable transition uses. */
+export function inlineEventIdFor(context: {
+  tenantId: string;
+  eventCode: string;
+  relatedEntityId?: string | null;
+  transitionId?: string | null;
+}): string {
+  return `inline:${createHash('sha256')
+    .update(
+      buildTransitionKey({
+        ...context,
+        transitionId: context.transitionId ?? '',
+      }),
+    )
+    .digest('hex')
+    .slice(0, 40)}`;
+}
+
 export type RunSummary =
   | {
       settled: false;
@@ -43,6 +83,8 @@ export type RunSummary =
  */
 export function summarizeRun(input: {
   succeeded: number;
+  /** Steps that deliberately did nothing (opted out, sink provider, rehearsal). */
+  skipped?: number;
   failedPermanent: number;
   retryable: number;
   errors: string[];
@@ -61,6 +103,7 @@ export function summarizeRun(input: {
     };
   }
 
+  const skipped = input.skipped ?? 0;
   const failures = input.failedPermanent + input.retryable;
   if (failures > 0) {
     return {
@@ -82,6 +125,66 @@ export function summarizeRun(input: {
         : WorkflowRunStatus.SKIPPED,
     actionsRun: input.succeeded,
     error:
-      input.succeeded > 0 ? null : 'The workflow had no active actions to run.',
+      input.succeeded > 0
+        ? null
+        : skipped > 0
+          ? error
+          : 'The workflow had no active actions to run.',
+  };
+}
+
+export type EmailOutcome = {
+  sent: boolean;
+  delivered: boolean;
+  dryRun: boolean;
+  skipped: boolean;
+  status: string;
+};
+
+export type StepVerdict =
+  | { status: 'SUCCEEDED' }
+  | { status: 'SKIPPED'; reason: string }
+  | { status: 'FAILED'; reason: string };
+
+/**
+ * What an e-mail send actually amounted to. The e-mail service reports a
+ * failure, a skip, a rehearsal and a sink as return values, not exceptions, so a
+ * step that only checked "did not throw" recorded all of them as a delivered
+ * mail. Only a message that left the building is SUCCEEDED. A failure is FAILED
+ * and retryable (the provider may recover); a skip or a sink is SKIPPED with its
+ * reason, because nothing went wrong and retrying cannot change it.
+ */
+export function classifyEmailOutcome(
+  result: EmailOutcome | undefined | null,
+): StepVerdict {
+  if (!result) {
+    return {
+      status: 'FAILED',
+      reason: 'The e-mail service returned no result.',
+    };
+  }
+  if (result.delivered) return { status: 'SUCCEEDED' };
+  if (result.dryRun) {
+    return {
+      status: 'SKIPPED',
+      reason: 'Rehearsal (dry run): nothing was sent.',
+    };
+  }
+  if (result.skipped) {
+    return {
+      status: 'SKIPPED',
+      reason: 'The e-mail was skipped by the notification settings.',
+    };
+  }
+  if (result.sent) {
+    return {
+      status: 'SKIPPED',
+      reason:
+        'The provider is a sink: the e-mail was accepted but not delivered.',
+    };
+  }
+  return {
+    status: 'FAILED',
+    reason: `The e-mail was not sent (delivery status ${result.status}).`,
   };
 }

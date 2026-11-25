@@ -1025,6 +1025,8 @@ export class NotificationsService {
     relatedEntityId: string;
     relatedRecordNumber?: string | null;
     metadata?: Record<string, unknown> | null;
+    /** Stable identity of the transition, so a duplicate emission collapses. */
+    transitionId?: string | null;
   }) {
     const moduleKey = input.moduleKey.toLowerCase();
     const rules = await this.notificationsRepository.listEnabledRules({
@@ -1047,6 +1049,7 @@ export class NotificationsService {
         moduleKey,
         actorUserId: input.actorUserId ?? null,
         correlationId: input.relatedEntityId,
+        transitionId: input.transitionId ?? null,
         relatedEntityType: input.relatedEntityType,
         relatedEntityId: input.relatedEntityId,
         variables: {

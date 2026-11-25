@@ -17,7 +17,12 @@ import {
   evaluateWorkflowConditions,
   findMalformedWorkflowCondition,
 } from './workflow-conditions';
-import { buildWorkflowStepKey, summarizeRun } from './workflow-steps';
+import {
+  buildWorkflowStepKey,
+  classifyEmailOutcome,
+  inlineEventIdFor,
+  summarizeRun,
+} from './workflow-steps';
 
 /*
  * Runs tenant-authored workflows when a business event happens.
@@ -116,7 +121,16 @@ export type WorkflowEventContext = {
   relatedEntityId?: string | null;
   /* Everything the emitting module knew, used for conditions and variables. */
   variables?: Record<string, unknown>;
+  /*
+   * The stable identity of the business transition this event announces
+   * (an approval decision id, a status + version). Required for durable
+   * delivery: the same transition emitted twice must collapse into one.
+   */
+  transitionId?: string | null;
 };
+
+/** How long a step claim is trusted before a later delivery may take it over. */
+const STEP_CLAIM_LEASE_MS = 5 * 60 * 1000;
 
 export const WORKFLOW_RECIPIENT_MODES = [
   'SUBJECT',
@@ -178,7 +192,11 @@ export class WorkflowRuntimeService {
   async handleEvent(context: WorkflowEventContext) {
     try {
       const result = await this.execute(context, {
-        eventId: randomUUID(),
+        // A stable transition makes a duplicate emission find its own run and
+        // repeat nothing; without one every call is, by definition, new.
+        eventId: context.transitionId
+          ? inlineEventIdFor(context)
+          : randomUUID(),
         finalAttempt: true,
       });
       return { matched: result.matched, ran: result.ran };
@@ -197,6 +215,10 @@ export class WorkflowRuntimeService {
    * modules pass a related record, not a person, so this turns one into the
    * other before scope matching runs.
    */
+  async resolveContext(context: WorkflowEventContext) {
+    return this.resolveSubject(context);
+  }
+
   private async resolveSubject(
     context: WorkflowEventContext,
   ): Promise<WorkflowEventContext> {
@@ -304,6 +326,35 @@ export class WorkflowRuntimeService {
       },
     });
 
+    /*
+     * A run this event already opened is resumed whatever the workflow looks
+     * like now: it may have been paused, edited or moved out of scope since the
+     * first delivery, and a half-delivered rule must still finish what it
+     * started, from the version it started with.
+     */
+    const opened = await this.prisma.workflowRun.findMany({
+      where: { tenantId: context.tenantId, eventId: options.eventId },
+      select: { workflowId: true },
+    });
+    const known = new Set(workflows.map((workflow) => workflow.id));
+    const resumeIds = opened
+      .map((run) => run.workflowId)
+      .filter((id) => !known.has(id));
+    if (resumeIds.length) {
+      workflows.push(
+        ...(await this.prisma.workflow.findMany({
+          where: { tenantId: context.tenantId, id: { in: resumeIds } },
+          include: {
+            versions: {
+              orderBy: { version: 'desc' },
+              take: 1,
+              select: { id: true, definition: true },
+            },
+          },
+        })),
+      );
+    }
+
     if (!workflows.length) return { matched: 0, ran: 0, retryable: 0 };
 
     const evaluationContext = {
@@ -349,18 +400,35 @@ export class WorkflowRuntimeService {
     evaluationContext: Record<string, unknown>,
     options: { eventId: string; finalAttempt: boolean },
   ): Promise<{ succeeded: boolean; retryable: number }> {
-    const pinned = workflow.versions?.[0] ?? null;
-    const workflowVersionId = pinned?.id ?? null;
+    const latest = workflow.versions?.[0] ?? null;
 
     const run = await this.openRun(
       workflow.id,
       context,
       options.eventId,
-      workflowVersionId,
+      latest?.id ?? null,
     );
     // Finished on an earlier delivery of this event: nothing to repeat.
     if (run.status !== WorkflowRunStatus.RUNNING) {
       return { succeeded: false, retryable: 0 };
+    }
+
+    /*
+     * The version is decided once, by the first delivery, and recorded on the
+     * run. A retry runs THAT version even when a newer one has been published
+     * since, so a retried event never sends under a definition it did not start
+     * with and its step keys stay the ones already in the ledger.
+     */
+    let pinned = latest;
+    if (run.workflowVersionId && run.workflowVersionId !== latest?.id) {
+      pinned = await this.prisma.workflowVersion.findFirst({
+        where: {
+          id: run.workflowVersionId,
+          workflowId: workflow.id,
+          tenantId: context.tenantId,
+        },
+        select: { id: true, definition: true },
+      });
     }
 
     if (!pinned) {
@@ -421,11 +489,18 @@ export class WorkflowRuntimeService {
   }
 
   /**
-   * Runs each action as its own ledgered step. A step that already succeeded is
+   * Runs each action as its own ledgered step. A step that already finished is
    * never run again; a step that failed for good is not retried; everything else
    * (never run, failed but retryable, claimed by a crashed attempt) runs.
-   * Delivery is at-least-once: a crash between the send and the ledger write can
-   * repeat one email, and the ledger exists to make that the only way it can.
+   *
+   * A step is claimed with a compare-and-set, never read-then-write: the row is
+   * inserted, or an existing retryable/expired row is taken over by a conditional
+   * UPDATE, and only the delivery whose statement changed a row sends. Two
+   * deliveries of one event (an outbox claim reclaimed while the first worker is
+   * still alive) therefore cannot both send; the loser reports the step as busy
+   * and the outbox retries it later. Delivery is still at-least-once: a crash
+   * between the send and the ledger write can repeat one email once the lease
+   * expires, and the ledger exists to make that the only way it can.
    */
   private async runSteps(
     runId: string,
@@ -435,6 +510,7 @@ export class WorkflowRuntimeService {
     versionId: string,
   ) {
     let succeeded = 0;
+    let skipped = 0;
     let failedPermanent = 0;
     let retryable = 0;
     const errors: string[] = [];
@@ -446,52 +522,40 @@ export class WorkflowRuntimeService {
       const where = {
         tenantId_stepKey: { tenantId: context.tenantId, stepKey },
       };
-      const prior = await this.prisma.workflowRunStep.findUnique({ where });
-      if (prior?.status === WorkflowStepStatus.SUCCEEDED) {
-        succeeded += 1;
-        continue;
-      }
-      if (prior?.status === WorkflowStepStatus.FAILED && prior.permanent) {
-        failedPermanent += 1;
-        if (prior.lastError) errors.push(prior.lastError);
-        continue;
-      }
-
       const mode =
         (action.configuration as SendEmailConfiguration | null)
           ?.recipientMode ?? 'SUBJECT';
-      // Claimed before the send, so a crash mid-send leaves a visible
-      // IN_PROGRESS row that the retry picks up.
-      await this.prisma.workflowRunStep.upsert({
-        where,
-        create: {
-          tenantId: context.tenantId,
-          runId,
-          stepKey,
-          actionIndex: index,
-          actionType: action.type,
-          recipientMode: mode,
-          status: WorkflowStepStatus.IN_PROGRESS,
-          attempts: 1,
-        },
-        update: {
-          status: WorkflowStepStatus.IN_PROGRESS,
-          attempts: { increment: 1 },
-          finishedAt: null,
-        },
+
+      const claim = await this.claimStep({
+        tenantId: context.tenantId,
+        runId,
+        stepKey,
+        index,
+        type: action.type,
+        mode,
       });
+      if (claim.kind === 'DONE') {
+        if (claim.status === WorkflowStepStatus.SUCCEEDED) succeeded += 1;
+        else {
+          skipped += 1;
+          if (claim.lastError) errors.push(claim.lastError);
+        }
+        continue;
+      }
+      if (claim.kind === 'PERMANENT') {
+        failedPermanent += 1;
+        if (claim.lastError) errors.push(claim.lastError);
+        continue;
+      }
+      if (claim.kind === 'BUSY') {
+        retryable += 1;
+        errors.push('The step is being processed by another delivery.');
+        continue;
+      }
 
       try {
         const sent = await this.sendEmailAction(action.configuration, context);
-        if (sent) {
-          succeeded += 1;
-          await this.settleStep(
-            where,
-            WorkflowStepStatus.SUCCEEDED,
-            null,
-            false,
-          );
-        } else {
+        if (!sent) {
           const message = 'No recipient could be resolved for the email.';
           failedPermanent += 1;
           errors.push(message);
@@ -500,6 +564,35 @@ export class WorkflowRuntimeService {
             WorkflowStepStatus.FAILED,
             message,
             true,
+          );
+          continue;
+        }
+        const verdict = classifyEmailOutcome(sent.result);
+        if (verdict.status === 'SUCCEEDED') {
+          succeeded += 1;
+          await this.settleStep(
+            where,
+            WorkflowStepStatus.SUCCEEDED,
+            null,
+            false,
+          );
+        } else if (verdict.status === 'SKIPPED') {
+          skipped += 1;
+          errors.push(verdict.reason);
+          await this.settleStep(
+            where,
+            WorkflowStepStatus.SKIPPED,
+            verdict.reason,
+            true,
+          );
+        } else {
+          retryable += 1;
+          errors.push(verdict.reason);
+          await this.settleStep(
+            where,
+            WorkflowStepStatus.FAILED,
+            verdict.reason,
+            false,
           );
         }
       } catch (error) {
@@ -512,7 +605,79 @@ export class WorkflowRuntimeService {
       }
     }
 
-    return { succeeded, failedPermanent, retryable, errors };
+    return { succeeded, skipped, failedPermanent, retryable, errors };
+  }
+
+  /**
+   * Takes ownership of a step, or says why this delivery must not send it.
+   * OWNED: this delivery may send. DONE: finished on an earlier delivery.
+   * PERMANENT: failed for good. BUSY: another delivery holds a live claim.
+   */
+  private async claimStep(input: {
+    tenantId: string;
+    runId: string;
+    stepKey: string;
+    index: number;
+    type: WorkflowActionType;
+    mode: string;
+  }): Promise<
+    | { kind: 'OWNED' }
+    | { kind: 'BUSY' }
+    | { kind: 'PERMANENT'; lastError: string | null }
+    | { kind: 'DONE'; status: WorkflowStepStatus; lastError: string | null }
+  > {
+    const where = {
+      tenantId_stepKey: { tenantId: input.tenantId, stepKey: input.stepKey },
+    };
+    const inserted = await this.prisma.workflowRunStep.createMany({
+      data: [
+        {
+          tenantId: input.tenantId,
+          runId: input.runId,
+          stepKey: input.stepKey,
+          actionIndex: input.index,
+          actionType: input.type,
+          recipientMode: input.mode,
+          status: WorkflowStepStatus.IN_PROGRESS,
+          attempts: 1,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    if (inserted.count === 1) return { kind: 'OWNED' };
+
+    const prior = await this.prisma.workflowRunStep.findUnique({ where });
+    if (!prior) return { kind: 'BUSY' };
+    if (
+      prior.status === WorkflowStepStatus.SUCCEEDED ||
+      prior.status === WorkflowStepStatus.SKIPPED
+    ) {
+      return { kind: 'DONE', status: prior.status, lastError: prior.lastError };
+    }
+    if (prior.status === WorkflowStepStatus.FAILED && prior.permanent) {
+      return { kind: 'PERMANENT', lastError: prior.lastError };
+    }
+
+    const taken = await this.prisma.workflowRunStep.updateMany({
+      where: {
+        tenantId: input.tenantId,
+        stepKey: input.stepKey,
+        OR: [
+          { status: WorkflowStepStatus.FAILED, permanent: false },
+          {
+            status: WorkflowStepStatus.IN_PROGRESS,
+            startedAt: { lt: new Date(Date.now() - STEP_CLAIM_LEASE_MS) },
+          },
+        ],
+      },
+      data: {
+        status: WorkflowStepStatus.IN_PROGRESS,
+        attempts: { increment: 1 },
+        startedAt: new Date(),
+        finishedAt: null,
+      },
+    });
+    return taken.count === 1 ? { kind: 'OWNED' } : { kind: 'BUSY' };
   }
 
   private settleStep(
@@ -527,15 +692,16 @@ export class WorkflowRuntimeService {
     });
   }
 
+  /** The e-mail result, or null when no recipient could be resolved. */
   private async sendEmailAction(
     rawConfiguration: unknown,
     context: WorkflowEventContext,
   ) {
     const configuration = (rawConfiguration ?? {}) as SendEmailConfiguration;
     const recipient = await this.resolveRecipient(configuration, context);
-    if (!recipient) return false;
+    if (!recipient) return null;
 
-    await this.emailService.sendTemplateEmail({
+    const result = await this.emailService.sendTemplateEmail({
       tenantId: context.tenantId,
       eventCode: context.eventCode,
       templateId: configuration.templateId,
@@ -554,8 +720,7 @@ export class WorkflowRuntimeService {
         correlationId: context.correlationId ?? null,
       },
     });
-
-    return true;
+    return { result };
   }
 
   private async resolveRecipient(
@@ -622,11 +787,15 @@ export class WorkflowRuntimeService {
     context: WorkflowEventContext,
     eventId: string,
     workflowVersionId: string | null,
-  ): Promise<{ id: string; status: WorkflowRunStatus }> {
+  ): Promise<{
+    id: string;
+    status: WorkflowRunStatus;
+    workflowVersionId: string | null;
+  }> {
     const key = { workflowId_eventId: { workflowId, eventId } };
     const existing = await this.prisma.workflowRun.findUnique({
       where: key,
-      select: { id: true, status: true },
+      select: { id: true, status: true, workflowVersionId: true },
     });
     if (existing) return existing;
 
@@ -646,7 +815,7 @@ export class WorkflowRuntimeService {
             scopeKey: buildTenantNotificationScopeKey(context.tenantId),
           } as Prisma.InputJsonValue,
         },
-        select: { id: true, status: true },
+        select: { id: true, status: true, workflowVersionId: true },
       });
     } catch (error) {
       if (
@@ -655,7 +824,7 @@ export class WorkflowRuntimeService {
       ) {
         return this.prisma.workflowRun.findUniqueOrThrow({
           where: key,
-          select: { id: true, status: true },
+          select: { id: true, status: true, workflowVersionId: true },
         });
       }
       throw error;

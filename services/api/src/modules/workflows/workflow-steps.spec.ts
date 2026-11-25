@@ -1,6 +1,12 @@
 import { WorkflowRunStatus } from '@prisma/client';
 import { resolveExecutionMode } from './workflow-dispatch.service';
-import { buildWorkflowStepKey, summarizeRun } from './workflow-steps';
+import {
+  buildTransitionKey,
+  buildWorkflowStepKey,
+  classifyEmailOutcome,
+  inlineEventIdFor,
+  summarizeRun,
+} from './workflow-steps';
 
 const base = { succeeded: 0, failedPermanent: 0, retryable: 0, errors: [] };
 
@@ -87,5 +93,91 @@ describe('resolveExecutionMode', () => {
     expect(resolveExecutionMode('')).toBe('inline');
     expect(resolveExecutionMode('typo')).toBe('inline');
     expect(resolveExecutionMode(' Durable ')).toBe('durable');
+  });
+});
+
+describe('classifyEmailOutcome', () => {
+  const base = {
+    sent: true,
+    delivered: true,
+    dryRun: false,
+    skipped: false,
+    status: 'SENT',
+  };
+
+  it('calls only a message that left the building SUCCEEDED', () => {
+    expect(classifyEmailOutcome(base)).toEqual({ status: 'SUCCEEDED' });
+  });
+
+  it('a sink, a rehearsal and an opt-out are SKIPPED with their reason, not delivered', () => {
+    expect(classifyEmailOutcome({ ...base, delivered: false })).toMatchObject({
+      status: 'SKIPPED',
+      reason: expect.stringContaining('sink'),
+    });
+    expect(
+      classifyEmailOutcome({ ...base, delivered: false, dryRun: true }),
+    ).toMatchObject({ status: 'SKIPPED' });
+    expect(
+      classifyEmailOutcome({
+        ...base,
+        sent: false,
+        delivered: false,
+        skipped: true,
+      }),
+    ).toMatchObject({ status: 'SKIPPED' });
+  });
+
+  it('a refused send, or no answer at all, is a retryable FAILED', () => {
+    expect(
+      classifyEmailOutcome({
+        ...base,
+        sent: false,
+        delivered: false,
+        status: 'FAILED',
+      }),
+    ).toMatchObject({ status: 'FAILED' });
+    expect(classifyEmailOutcome(undefined)).toMatchObject({ status: 'FAILED' });
+  });
+});
+
+describe('transition identity', () => {
+  const ctx = {
+    tenantId: 't1',
+    eventCode: 'LEAVE_APPROVED',
+    relatedEntityId: 'r1',
+    transitionId: 'd1',
+  };
+
+  it('is a pure function of what the emitter stated', () => {
+    expect(buildTransitionKey(ctx)).toBe(buildTransitionKey({ ...ctx }));
+    expect(inlineEventIdFor(ctx)).toBe(inlineEventIdFor({ ...ctx }));
+  });
+
+  it('differs when any part of the transition differs', () => {
+    const keys = [
+      ctx,
+      { ...ctx, tenantId: 't2' },
+      { ...ctx, eventCode: 'LEAVE_REJECTED' },
+      { ...ctx, relatedEntityId: 'r2' },
+      { ...ctx, transitionId: 'd2' },
+    ].map(buildTransitionKey);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('summarizeRun with skipped steps', () => {
+  it('a run whose every step was skipped is SKIPPED and says why, not SUCCEEDED', () => {
+    expect(
+      summarizeRun({
+        ...base,
+        skipped: 1,
+        errors: ['sink'],
+        finalAttempt: false,
+      }),
+    ).toMatchObject({
+      settled: true,
+      status: WorkflowRunStatus.SKIPPED,
+      error: 'sink',
+    });
   });
 });
