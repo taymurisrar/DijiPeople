@@ -11383,6 +11383,10 @@ enum CustomizationSolutionComponentType {
   actionBar
   widget
   environmentVariable
+  /// Work components (DP-MASTER WP-21.S1): carried by the one package engine.
+  workUnit
+  workProfile
+  workQueue
 }
 
 /// Where a package's content came from in THIS workspace. A LOCAL package is
