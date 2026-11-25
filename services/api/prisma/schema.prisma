@@ -2131,6 +2131,8 @@ model Tenant {
   employeeWorkProfileAssignments  EmployeeWorkProfileAssignment[]
   workItems                       WorkItem[]
   workQueues                      WorkQueue[]
+  dailyUpdatePolicy               DailyUpdatePolicy?
+  dailyUpdates                    DailyUpdate[]
   contributionEntries             ContributionEntry[]
   /// Identities whose last-used workspace is this tenant. Advisory only —
   /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
@@ -5318,6 +5320,7 @@ model Employee {
   ownedWorkItems                 WorkItem[]                    @relation("WorkItemOwner")
   workItemContributions          WorkItemContributor[]
   contributionEntries            ContributionEntry[]
+  dailyUpdates                   DailyUpdate[]
 }
 
 model EmploymentType {
@@ -15544,6 +15547,8 @@ model WorkItem {
   /// A pointer to the same work in another system. Never trusted as an identity.
   externalSystem       String?
   externalRef          String?
+  /// The milestone this item rolls up into (WP-06.S2); another WorkItem of kind MILESTONE.
+  milestoneId          String?
   /// The queue this item waits in (WP-06.S1). Optional: most work is not queued.
   queueId              String?
   /// When someone first picked it up or answered. Null until then.
@@ -15558,6 +15563,8 @@ model WorkItem {
   updatedAt            DateTime         @updatedAt
   tenant               Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   queue                WorkQueue?       @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  milestone            WorkItem?        @relation("WorkItemMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
+  milestoneItems       WorkItem[]       @relation("WorkItemMilestone")
   ownerChanges         WorkItemOwnerChange[]
   owner                Employee?        @relation("WorkItemOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
   project              Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
@@ -15577,6 +15584,8 @@ model WorkItem {
   @@index([tenantId, externalSystem, externalRef])
   @@index([tenantId, queueId, status])
   @@index([tenantId, resolutionDueAt])
+  @@index([tenantId, projectId, kind])
+  @@index([tenantId, milestoneId])
 }
 
 /// One person's share of a work item, with their own estimate and actual. Totals
@@ -15617,6 +15626,8 @@ enum WorkItemKind {
   TASK
   SERVICE_JOB
   DUTY_OCCURRENCE
+  /// A dated checkpoint of a project that tasks roll up into (WP-06.S2).
+  MILESTONE
 }
 
 enum WorkItemStatus {
@@ -15828,4 +15839,87 @@ model WorkItemOwnerChange {
 
   @@index([tenantId, workItemId, createdAt])
   @@index([tenantId, toEmployeeId])
+}
+
+/// DP-MASTER WP-27. How a tenant runs daily updates: which days, by when. Off until
+/// a tenant turns it on, so nobody is prompted by default.
+model DailyUpdatePolicy {
+  id                     String   @id @default(uuid())
+  tenantId               String   @unique
+  enabled                Boolean  @default(false)
+  /// ISO weekdays, 1 = Monday ... 7 = Sunday. An update is expected only on these.
+  workingDays            Int[]
+  /// Minutes after local midnight by which the update is due.
+  deadlineMinutes        Int      @default(1080)
+  /// IANA zone the deadline is read in.
+  timezone               String   @default("UTC")
+  requireAcknowledgement Boolean  @default(false)
+  updatedById            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/// One employee's update for one calendar day. At most one per employee and day,
+/// so an update is never duplicated; edits after submission are audited.
+model DailyUpdate {
+  id               String            @id @default(uuid())
+  tenantId         String
+  employeeId       String
+  forDate          DateTime          @db.Date
+  status           DailyUpdateStatus @default(DRAFT)
+  summary          String?
+  /// Submitted after the policy deadline for that day.
+  late             Boolean           @default(false)
+  submittedAt      DateTime?
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  /// Bumped on every edit after the first save; the before/after is in the audit log.
+  version          Int               @default(1)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  items            DailyUpdateItem[]
+
+  @@unique([tenantId, employeeId, forDate])
+  @@index([tenantId, forDate, status])
+}
+
+/// A line of an update. Lines drafted from evidence keep the id of what they came
+/// from, so the same work is never logged twice.
+model DailyUpdateItem {
+  id                  String                @id @default(uuid())
+  tenantId            String
+  dailyUpdateId       String
+  section             DailyUpdateSection
+  text                String
+  origin              DailyUpdateItemOrigin @default(MANUAL)
+  contributionEntryId String?
+  workItemId          String?
+  position            Int                   @default(0)
+  dailyUpdate         DailyUpdate           @relation(fields: [dailyUpdateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, dailyUpdateId])
+}
+
+enum DailyUpdateStatus {
+  DRAFT
+  SUBMITTED
+  ACKNOWLEDGED
+}
+
+enum DailyUpdateSection {
+  COMPLETED
+  IN_PROGRESS
+  NEXT
+  BLOCKER
+  UNPLANNED
+  ACHIEVEMENT
+}
+
+enum DailyUpdateItemOrigin {
+  /// Proposed from recorded evidence; the employee can edit or remove it.
+  DRAFTED
+  MANUAL
 }

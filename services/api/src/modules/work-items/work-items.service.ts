@@ -22,6 +22,9 @@ import {
   CreateWorkItemDto,
   ListWorkItemsDto,
   MoveQueueDto,
+  ProgressQueryDto,
+  SetMilestoneDto,
+  WorkloadQueryDto,
   ReassignWorkItemDto,
   SetContributorDto,
   TransitionWorkItemDto,
@@ -77,6 +80,7 @@ const ITEM_SELECT = {
   externalSystem: true,
   externalRef: true,
   queueId: true,
+  milestoneId: true,
   owner: { select: { firstName: true, lastName: true } },
   respondedAt: true,
   responseDueAt: true,
@@ -157,6 +161,7 @@ export class WorkItemsService {
           : []),
       ],
       ...(query.queueId ? { queueId: query.queueId } : {}),
+      ...(query.milestoneId ? { milestoneId: query.milestoneId } : {}),
       ...(query.unassigned
         ? { ownerEmployeeId: null, contributors: { none: {} } }
         : {}),
@@ -272,6 +277,256 @@ export class WorkItemsService {
       sla,
       // Honest about the cap: a larger queue is counted from its first 5,000.
       truncated: open.length === 5000,
+    };
+  }
+
+  /** Put an item under a milestone of its project, or take it out. */
+  async setMilestone(
+    user: AuthenticatedUser,
+    id: string,
+    dto: SetMilestoneDto,
+  ) {
+    await this.assertWrite(user, id);
+    const milestone = dto.milestoneId
+      ? await this.assertMilestone(user.tenantId, dto.milestoneId)
+      : null;
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.lock(tx, user.tenantId, id);
+      if (before.kind === 'MILESTONE') {
+        problem(
+          'WORK_ITEM_MILESTONE_SHAPE',
+          'A milestone rolls up into nothing.',
+        );
+      }
+      if (
+        milestone &&
+        before.projectId &&
+        before.projectId !== milestone.projectId
+      ) {
+        problem(
+          'WORK_ITEM_MILESTONE_PROJECT',
+          'The milestone belongs to a different project.',
+        );
+      }
+      const updated = await tx.workItem.update({
+        where: { id },
+        data: {
+          milestoneId: milestone?.id ?? null,
+          ...(milestone && !before.projectId
+            ? { projectId: milestone.projectId }
+            : {}),
+          updatedById: user.userId,
+        },
+        select: ITEM_SELECT,
+      });
+      await this.audit.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: 'WORK_ITEM_MILESTONE_SET',
+          entityType: 'WorkItem',
+          entityId: id,
+          beforeSnapshot: { milestoneId: before.milestoneId },
+          afterSnapshot: { milestoneId: updated.milestoneId },
+        },
+        tx,
+      );
+      return withSla(updated);
+    });
+  }
+
+  /**
+   * Where a project stands. Counts and percentages come from the work items the
+   * caller may see; effort sums one row per person per item, so shared work is
+   * never counted twice; timesheet hours are the APPROVED entries whose task id
+   * names one of these items. Cancelled work is left out of the denominator.
+   */
+  async progress(user: AuthenticatedUser, query: ProgressQueryDto) {
+    const visible = await this.readFilter(user);
+    const project = await this.prisma.project.findFirst({
+      where: { id: query.projectId, tenantId: user.tenantId },
+      select: { id: true, name: true },
+    });
+    if (!project || visible === null) {
+      throw new NotFoundException('Project not found.');
+    }
+    const items = await this.prisma.workItem.findMany({
+      where: {
+        tenantId: user.tenantId,
+        projectId: project.id,
+        archivedAt: null,
+        AND: [visible],
+      },
+      select: {
+        id: true,
+        kind: true,
+        title: true,
+        status: true,
+        dueAt: true,
+        milestoneId: true,
+        contributors: {
+          select: { estimateMinutes: true, actualMinutes: true },
+        },
+      },
+      take: 5000,
+    });
+    const now = new Date();
+    const finished = (status: string) =>
+      status === 'DONE' || status === 'CANCELLED';
+    const tasks = items.filter((item) => item.kind !== 'MILESTONE');
+    const live = tasks.filter((item) => item.status !== 'CANCELLED');
+    const done = live.filter((item) => item.status === 'DONE').length;
+    const byStatus: Record<string, number> = {};
+    for (const task of tasks)
+      byStatus[task.status] = (byStatus[task.status] ?? 0) + 1;
+
+    const milestones = items
+      .filter((item) => item.kind === 'MILESTONE')
+      .map((milestone) => {
+        const own = live.filter((task) => task.milestoneId === milestone.id);
+        const ownDone = own.filter((task) => task.status === 'DONE').length;
+        return {
+          id: milestone.id,
+          title: milestone.title,
+          status: milestone.status,
+          dueAt: milestone.dueAt,
+          tasks: own.length,
+          done: ownDone,
+          percent: own.length ? Math.round((ownDone / own.length) * 100) : null,
+          overdue:
+            !finished(milestone.status) &&
+            !!milestone.dueAt &&
+            milestone.dueAt < now,
+        };
+      })
+      .sort(
+        (a, b) =>
+          (a.dueAt?.getTime() ?? Infinity) - (b.dueAt?.getTime() ?? Infinity),
+      );
+
+    const effort = totalEffort(tasks.flatMap((task) => task.contributors));
+    const hours = tasks.length
+      ? await this.prisma.timesheetEntry.aggregate({
+          where: {
+            tenantId: user.tenantId,
+            taskId: { in: tasks.map((task) => task.id) },
+            approvalStatus: 'APPROVED',
+          },
+          _sum: { hours: true },
+        })
+      : null;
+    return {
+      project,
+      tasks: { total: tasks.length, counted: live.length, done, byStatus },
+      // null, not 0, when there is nothing to measure.
+      percentDone: live.length ? Math.round((done / live.length) * 100) : null,
+      overdue: tasks.filter(
+        (task) => !finished(task.status) && !!task.dueAt && task.dueAt < now,
+      ).length,
+      milestones,
+      effort,
+      approvedTimesheetHours: hours?._sum.hours?.toString() ?? '0',
+      truncated: items.length === 5000,
+    };
+  }
+
+  /**
+   * Committed work per person for a period against a plain standard-week capacity
+   * (Monday to Friday, 8 hours). It is NOT net capacity: leave, holidays and
+   * schedules are not subtracted (that is WP-15), so the basis is named in the
+   * response and a person without items is simply absent.
+   */
+  async workload(user: AuthenticatedUser, query: WorkloadQueryDto) {
+    const from = new Date(query.from);
+    const to = new Date(query.to);
+    if (!(to > from))
+      problem('WORK_ITEM_PERIOD_INVALID', 'The period is empty.');
+    if (to.getTime() - from.getTime() > 93 * 86_400_000) {
+      problem('WORK_ITEM_PERIOD_INVALID', 'A workload covers at most 93 days.');
+    }
+    const visible = await this.readFilter(user);
+    if (visible === null) return { basis: 'STANDARD_WEEK', people: [] };
+    const items = await this.prisma.workItem.findMany({
+      where: {
+        tenantId: user.tenantId,
+        archivedAt: null,
+        kind: { not: 'MILESTONE' },
+        status: { in: ['OPEN', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW'] },
+        ...(query.projectId ? { projectId: query.projectId } : {}),
+        // Due inside the period, or undated (it is still on the person's plate).
+        OR: [
+          { dueAt: null },
+          { dueAt: { gte: from, lt: to } },
+          { dueAt: { lt: from } },
+        ],
+        AND: [visible],
+      },
+      select: {
+        dueAt: true,
+        contributors: {
+          select: {
+            employeeId: true,
+            estimateMinutes: true,
+            actualMinutes: true,
+            employee: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+      take: 5000,
+    });
+    let workdays = 0;
+    for (let t = from.getTime(); t < to.getTime(); t += 86_400_000) {
+      const day = new Date(t).getUTCDay();
+      if (day !== 0 && day !== 6) workdays += 1;
+    }
+    const capacityMinutes = workdays * 8 * 60;
+    const people = new Map<
+      string,
+      {
+        employeeId: string;
+        name: string;
+        openItems: number;
+        committedMinutes: number;
+        unestimatedItems: number;
+        overdue: number;
+      }
+    >();
+    const now = new Date();
+    for (const item of items) {
+      for (const c of item.contributors) {
+        const p = people.get(c.employeeId) ?? {
+          employeeId: c.employeeId,
+          name: `${c.employee.firstName} ${c.employee.lastName}`.trim(),
+          openItems: 0,
+          committedMinutes: 0,
+          unestimatedItems: 0,
+          overdue: 0,
+        };
+        p.openItems += 1;
+        if (c.estimateMinutes == null) p.unestimatedItems += 1;
+        else
+          p.committedMinutes += Math.max(
+            c.estimateMinutes - (c.actualMinutes ?? 0),
+            0,
+          );
+        if (item.dueAt && item.dueAt < now) p.overdue += 1;
+        people.set(c.employeeId, p);
+      }
+    }
+    return {
+      basis: 'STANDARD_WEEK',
+      period: { from: from.toISOString(), to: to.toISOString() },
+      capacityMinutes,
+      people: [...people.values()]
+        .map((p) => ({
+          ...p,
+          // An unestimated item is not zero minutes: it is unknown, and counted apart.
+          loadPercent: capacityMinutes
+            ? Math.round((p.committedMinutes / capacityMinutes) * 100)
+            : null,
+        }))
+        .sort((a, b) => b.committedMinutes - a.committedMinutes)
+        .slice(0, 200),
     };
   }
 
@@ -432,6 +687,30 @@ export class WorkItemsService {
     const queue = dto.queueId
       ? await this.activeQueue(tenantId, dto.queueId)
       : null;
+    let projectId = dto.projectId ?? null;
+    if (dto.kind === 'MILESTONE') {
+      if (!dto.projectId) {
+        problem(
+          'WORK_ITEM_MILESTONE_NEEDS_PROJECT',
+          'A milestone belongs to a project.',
+        );
+      }
+      if (dto.milestoneId || dto.parentId) {
+        problem(
+          'WORK_ITEM_MILESTONE_SHAPE',
+          'A milestone has no parent and rolls up into nothing.',
+        );
+      }
+    } else if (dto.milestoneId) {
+      const milestone = await this.assertMilestone(tenantId, dto.milestoneId);
+      if (projectId && projectId !== milestone.projectId) {
+        problem(
+          'WORK_ITEM_MILESTONE_PROJECT',
+          'The milestone belongs to a different project.',
+        );
+      }
+      projectId = milestone.projectId;
+    }
     if (dto.projectId) {
       const project = await this.prisma.project.findFirst({
         where: { id: dto.projectId, tenantId },
@@ -473,7 +752,9 @@ export class WorkItemsService {
           createdAt: createdAt,
           responseDueAt: this.dueFrom(createdAt, queue?.responseSlaMinutes),
           resolutionDueAt: this.dueFrom(createdAt, queue?.resolutionSlaMinutes),
-          projectId: dto.projectId ?? null,
+          projectId,
+          milestoneId:
+            dto.kind === 'MILESTONE' ? null : (dto.milestoneId ?? null),
           parentId: dto.parentId ?? null,
           workTypeKey: dto.workTypeKey ?? null,
           workProfileVersionId: dto.workProfileVersionId ?? null,
@@ -559,6 +840,22 @@ export class WorkItemsService {
           code: 'WORK_ITEM_TRANSITION_INVALID',
           message: `A work item cannot move from ${from} to ${dto.to}.`,
         });
+      }
+      if (dto.to === 'DONE' && before.kind === 'MILESTONE') {
+        const unfinished = await tx.workItem.count({
+          where: {
+            tenantId: user.tenantId,
+            milestoneId: id,
+            archivedAt: null,
+            status: { notIn: [...TERMINAL_STATUSES] },
+          },
+        });
+        if (unfinished > 0) {
+          throw new ConflictException({
+            code: 'WORK_ITEM_MILESTONE_OPEN',
+            message: `${unfinished} work item(s) in this milestone are not finished.`,
+          });
+        }
       }
       if (dto.to === 'DONE') {
         // Prerequisites must be finished (done or cancelled) first.
@@ -908,6 +1205,17 @@ export class WorkItemsService {
   }
 
   // --------------------------------------------------------------- helpers
+
+  private async assertMilestone(tenantId: string, milestoneId: string) {
+    const milestone = await this.prisma.workItem.findFirst({
+      where: { id: milestoneId, tenantId, kind: 'MILESTONE', archivedAt: null },
+      select: { id: true, projectId: true },
+    });
+    if (!milestone || !milestone.projectId) {
+      problem('WORK_ITEM_MILESTONE_INVALID', 'The milestone was not found.');
+    }
+    return { id: milestone.id, projectId: milestone.projectId };
+  }
 
   private dueFrom(from: Date, minutes: number | null | undefined) {
     return minutes ? new Date(from.getTime() + minutes * 60_000) : null;

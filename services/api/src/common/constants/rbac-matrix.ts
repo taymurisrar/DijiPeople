@@ -1119,6 +1119,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'work-items.read',
     'work-queues.read',
     'contributions.read',
+    'daily-updates.read',
     // `dashboard.view` gates GET /employees/me/context and /dashboard/summary, so every
     // role that signs in to the tenant app needs it (DP-QA-002). It is listed in
     // BASE_ROLE_PERMISSION_KEYS, but nothing in production reads that map, so
@@ -1141,6 +1142,9 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'contributions.read',
     'contributions.write',
     'contributions.verify',
+    'daily-updates.read',
+    'daily-updates.write',
+    'daily-updates.acknowledge',
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     'approvals.readAssigned',
     'attendance.correction.create',
@@ -1250,6 +1254,10 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'contributions.read',
     'contributions.write',
     'contributions.verify',
+    'daily-updates.read',
+    'daily-updates.write',
+    'daily-updates.acknowledge',
+    'daily-updates.manage',
     'documents.categories.manage',
     'documents.types.manage',
     'hierarchy.read',
@@ -1318,6 +1326,8 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'work-queues.read',
     'contributions.read',
     'contributions.write',
+    'daily-updates.read',
+    'daily-updates.write',
     // Routes demand these and BASE_ROLE_PERMISSION_KEYS said employees hold them,
     // but nothing granted them, so no employee could submit a timesheet (found
     // when the wiring invariant stopped trusting that map).
@@ -2015,6 +2025,10 @@ export function legacyPermissionToMatrixPrivileges(
     [['contributions.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
     [['contributions.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
     [['contributions.verify'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['daily-updates.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['daily-updates.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
+    [['daily-updates.acknowledge'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['daily-updates.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
     [
       [
         'leave-types.read',

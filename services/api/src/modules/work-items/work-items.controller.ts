@@ -25,6 +25,9 @@ import {
   CreateWorkItemDto,
   ListWorkItemsDto,
   MoveQueueDto,
+  ProgressQueryDto,
+  SetMilestoneDto,
+  WorkloadQueryDto,
   ReassignWorkItemDto,
   SetContributorDto,
   TransitionWorkItemDto,
@@ -59,6 +62,26 @@ export class WorkItemsController {
     @Body() dto: CreateWorkItemDto,
   ) {
     return this.service.create(user, dto);
+  }
+
+  @Get('progress')
+  @Permissions('work-items.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  progress(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ProgressQueryDto,
+  ) {
+    return this.service.progress(user, query);
+  }
+
+  @Get('workload')
+  @Permissions('work-items.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  workload(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: WorkloadQueryDto,
+  ) {
+    return this.service.workload(user, query);
   }
 
   @Get(':id')
@@ -122,6 +145,17 @@ export class WorkItemsController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.service.claim(user, id);
+  }
+
+  @Post(':id/milestone')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  setMilestone(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetMilestoneDto,
+  ) {
+    return this.service.setMilestone(user, id, dto);
   }
 
   @Post(':id/queue')

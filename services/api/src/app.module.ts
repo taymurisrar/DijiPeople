@@ -43,6 +43,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EmployeeLevelsModule } from './modules/employee-levels/employee-levels.module';
 import { EmploymentTypesModule } from './modules/employment-types/employment-types.module';
 import { ContributionsModule } from './modules/contributions/contributions.module';
+import { DailyUpdatesModule } from './modules/daily-updates/daily-updates.module';
 import { WorkItemsModule } from './modules/work-items/work-items.module';
 import { WorkProfilesModule } from './modules/work-profiles/work-profiles.module';
 import { EmployeesModule } from './modules/employees/employees.module';
@@ -125,6 +126,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     WorkProfilesModule,
     WorkItemsModule,
     ContributionsModule,
+    DailyUpdatesModule,
     EmployeesModule,
     InboxModule,
     LeaveModule,

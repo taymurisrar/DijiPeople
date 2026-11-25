@@ -15,7 +15,12 @@ import {
 } from 'class-validator';
 import { WORK_ITEM_STATUSES } from '../work-item-lifecycle';
 
-export const WORK_ITEM_KINDS = ['TASK', 'SERVICE_JOB', 'DUTY_OCCURRENCE'];
+export const WORK_ITEM_KINDS = [
+  'TASK',
+  'SERVICE_JOB',
+  'DUTY_OCCURRENCE',
+  'MILESTONE',
+];
 export const WORK_ITEM_PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 
 const toBoolean = ({ value }: { value: unknown }) =>
@@ -23,7 +28,7 @@ const toBoolean = ({ value }: { value: unknown }) =>
 
 export class CreateWorkItemDto {
   @IsIn(WORK_ITEM_KINDS)
-  kind!: 'TASK' | 'SERVICE_JOB' | 'DUTY_OCCURRENCE';
+  kind!: 'TASK' | 'SERVICE_JOB' | 'DUTY_OCCURRENCE' | 'MILESTONE';
 
   @IsString()
   @MinLength(1)
@@ -69,6 +74,11 @@ export class CreateWorkItemDto {
   @IsOptional()
   @IsUUID()
   queueId?: string;
+
+  /** The milestone this item rolls up into (same project). */
+  @IsOptional()
+  @IsUUID()
+  milestoneId?: string;
 
   @IsOptional()
   @IsString()
@@ -153,6 +163,30 @@ export class AddDependencyDto {
   dependsOnId!: string;
 }
 
+export class SetMilestoneDto {
+  /** Null takes the item out of its milestone. */
+  @IsOptional()
+  @IsUUID()
+  milestoneId?: string;
+}
+
+export class ProgressQueryDto {
+  @IsUUID()
+  projectId!: string;
+}
+
+export class WorkloadQueryDto {
+  @IsDateString()
+  from!: string;
+
+  @IsDateString()
+  to!: string;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string;
+}
+
 export class MoveQueueDto {
   /** Null takes the item out of any queue. */
   @IsOptional()
@@ -164,6 +198,10 @@ export class ListWorkItemsDto {
   @IsOptional()
   @IsUUID()
   queueId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  milestoneId?: string;
 
   /** Items nobody owns yet. */
   @IsOptional()

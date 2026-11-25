@@ -1136,6 +1136,15 @@
         "delete": "A queue holds work that points at it: it is deactivated (isActive=false), never deleted, so items keep their queue and history (WP-06.S1)."
       },
       "classifiedBy": "DP-MASTER WP-06.S1"
+    },
+    {
+      "controller": "services/api/src/modules/daily-updates/daily-updates.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A daily update is a record of what a person reported on a day: it is corrected (version bump, audited before/after) and acknowledged, never deleted (WP-27)."
+      },
+      "classifiedBy": "DP-MASTER WP-27"
     }
   ],
   "baseline": {
