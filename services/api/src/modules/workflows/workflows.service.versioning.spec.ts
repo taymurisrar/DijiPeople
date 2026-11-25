@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call -- supertest response bodies are untyped JSON; assertions read them directly. */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access -- supertest response bodies are untyped JSON; assertions read them directly. */
 import { WorkflowStatus } from '@prisma/client';
 import { WorkflowsService } from './workflows.service';
 import {

@@ -9,6 +9,83 @@ import { WorkflowRuntimeService } from './workflow-runtime.service';
 
 const TENANT = 'tenant-1';
 
+/**
+ * An in-memory run and step ledger with the same lookups the runtime performs, so
+ * these specs exercise the real bookkeeping rather than a stub of it. The real
+ * database is covered by workflow-durable-execution.e2e-spec.ts.
+ */
+function ledger() {
+  type Row = Record<string, any>;
+  const runs: Row[] = [];
+  const steps: Row[] = [];
+  const stepAt = (where: { tenantId_stepKey: Row }) =>
+    steps.find(
+      (r) =>
+        r.tenantId === where.tenantId_stepKey.tenantId &&
+        r.stepKey === where.tenantId_stepKey.stepKey,
+    );
+  return {
+    runs,
+    steps,
+    workflowRun: {
+      findUnique: jest.fn(({ where }: { where: { workflowId_eventId: Row } }) =>
+        Promise.resolve(
+          runs.find(
+            (r) =>
+              r.workflowId === where.workflowId_eventId.workflowId &&
+              r.eventId === where.workflowId_eventId.eventId,
+          ) ?? null,
+        ),
+      ),
+      create: jest.fn(({ data }: { data: Row }) => {
+        const row = { id: `run-${runs.length + 1}`, ...data };
+        runs.push(row);
+        return Promise.resolve(row);
+      }),
+      update: jest.fn(
+        ({ where, data }: { where: { id: string }; data: Row }) => {
+          const row = runs.find((r) => r.id === where.id) as Row;
+          Object.assign(row, data);
+          return Promise.resolve(row);
+        },
+      ),
+    },
+    workflowRunStep: {
+      findUnique: jest.fn(({ where }: { where: { tenantId_stepKey: Row } }) =>
+        Promise.resolve(stepAt(where) ?? null),
+      ),
+      upsert: jest.fn(
+        ({
+          where,
+          create,
+          update,
+        }: {
+          where: { tenantId_stepKey: Row };
+          create: Row;
+          update: Row;
+        }) => {
+          const existing = stepAt(where);
+          if (existing) {
+            existing.status = update.status;
+            existing.attempts += 1;
+            return Promise.resolve(existing);
+          }
+          const row = { id: `step-${steps.length + 1}`, ...create };
+          steps.push(row);
+          return Promise.resolve(row);
+        },
+      ),
+      update: jest.fn(
+        ({ where, data }: { where: { tenantId_stepKey: Row }; data: Row }) => {
+          const row = stepAt(where) as Row;
+          Object.assign(row, data);
+          return Promise.resolve(row);
+        },
+      ),
+    },
+  };
+}
+
 /** What the pinned, published snapshot holds for an action. */
 function pinnedAction(recipientAddress?: string) {
   return {
@@ -39,8 +116,11 @@ function build(
   workflow: { conditions: unknown; actions: unknown[] },
   options: { published?: boolean } = {},
 ) {
-  const runs: Array<Record<string, unknown>> = [];
+  const book = ledger();
+  const runs = book.runs;
   const prisma = {
+    workflowRun: book.workflowRun,
+    workflowRunStep: book.workflowRunStep,
     workflow: {
       findMany: jest.fn().mockResolvedValue([
         {
@@ -69,12 +149,6 @@ function build(
         },
       ]),
     },
-    workflowRun: {
-      create: jest.fn(({ data }: { data: Record<string, unknown> }) => {
-        runs.push(data);
-        return Promise.resolve(data);
-      }),
-    },
   };
   const emailService = {
     sendTemplateEmail: jest.fn().mockResolvedValue(undefined),
@@ -83,7 +157,7 @@ function build(
     prisma as never,
     emailService as never,
   );
-  return { service, runs, emailService };
+  return { service, runs, emailService, book };
 }
 
 const EVENT = { tenantId: TENANT, eventCode: 'leave.request.approved' };
@@ -168,6 +242,7 @@ describe('WorkflowRuntimeService run status', () => {
 
 describe('CANDIDATE recipient (WP-04.S1)', () => {
   function candidateHarness(application: unknown) {
+    const book = ledger();
     const prisma = {
       workflow: {
         findMany: jest.fn().mockResolvedValue([
@@ -204,7 +279,7 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
         ]),
       },
       application: { findFirst: jest.fn().mockResolvedValue(application) },
-      workflowRun: { create: jest.fn().mockResolvedValue({}) },
+      ...book,
     };
     const emailService = {
       sendTemplateEmail: jest.fn().mockResolvedValue(undefined),
@@ -213,7 +288,7 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
       prisma as never,
       emailService as never,
     );
-    return { service, prisma, emailService };
+    return { service, prisma, emailService, book };
   }
 
   it('sends to the candidate of the application, looked up inside the tenant', async () => {
@@ -235,7 +310,7 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
   });
 
   it('resolves no recipient for a non-application event, and reports it', async () => {
-    const { service, emailService, prisma } = candidateHarness({
+    const { service, emailService, book } = candidateHarness({
       candidate: { email: 'cand@example.com' },
     });
     await service.handleEvent({
@@ -245,10 +320,68 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
       relatedEntityId: 'doc-1',
     });
     expect(emailService.sendTemplateEmail).not.toHaveBeenCalled();
-    expect(prisma.workflowRun.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: WorkflowRunStatus.FAILED }),
-      }),
-    );
+    expect(book.runs[0].status).toBe(WorkflowRunStatus.FAILED);
+    expect(book.steps[0]).toMatchObject({ status: 'FAILED', permanent: true });
+  });
+});
+
+describe('step ledger (WP-03.S3)', () => {
+  it('records one step per action, keyed by event, pinned version and action index', async () => {
+    const { service, book } = build({
+      conditions: [],
+      actions: [email('a@example.com'), email('b@example.com')],
+    });
+    await service.execute(EVENT, { eventId: 'evt-1', finalAttempt: true });
+    expect(book.steps.map((x) => x.stepKey)).toEqual([
+      'evt-1:ver-1:0',
+      'evt-1:ver-1:1',
+    ]);
+    expect(book.steps.every((x) => x.status === 'SUCCEEDED')).toBe(true);
+  });
+
+  it('a redelivery of a settled event finds its run and sends nothing', async () => {
+    const { service, emailService } = build({
+      conditions: [],
+      actions: [email('a@example.com')],
+    });
+    await service.execute(EVENT, { eventId: 'evt-1', finalAttempt: true });
+    await service.execute(EVENT, { eventId: 'evt-1', finalAttempt: true });
+    expect(emailService.sendTemplateEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('a retryable failure keeps the run RUNNING until the attempts are exhausted', async () => {
+    const { service, emailService, runs } = build({
+      conditions: [],
+      actions: [email('a@example.com')],
+    });
+    emailService.sendTemplateEmail.mockRejectedValueOnce(new Error('smtp'));
+    const first = await service.execute(EVENT, {
+      eventId: 'evt-2',
+      finalAttempt: false,
+    });
+    expect(first.retryable).toBe(1);
+    expect(runs[0].status).toBe(WorkflowRunStatus.RUNNING);
+
+    const second = await service.execute(EVENT, {
+      eventId: 'evt-2',
+      finalAttempt: false,
+    });
+    expect(second.retryable).toBe(0);
+    expect(runs[0].status).toBe(WorkflowRunStatus.SUCCEEDED);
+    expect(emailService.sendTemplateEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it('on the final attempt the same failure settles the run instead of waiting', async () => {
+    const { service, emailService, runs } = build({
+      conditions: [],
+      actions: [email('a@example.com')],
+    });
+    emailService.sendTemplateEmail.mockRejectedValue(new Error('smtp'));
+    const result = await service.execute(EVENT, {
+      eventId: 'evt-3',
+      finalAttempt: true,
+    });
+    expect(result.retryable).toBe(0);
+    expect(runs[0].status).toBe(WorkflowRunStatus.FAILED);
   });
 });

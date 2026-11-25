@@ -465,6 +465,7 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'workScheduleDay',
   'workSession',
   'workflow',
+  'workflowRunStep',
   'workflowRun',
   'workflowVersion',
   'employeeWorkProfileAssignment',

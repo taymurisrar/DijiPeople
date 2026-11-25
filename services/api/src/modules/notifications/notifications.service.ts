@@ -57,7 +57,7 @@ import {
 } from './notification-event-delivery';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { NotificationsRepository } from './notifications.repository';
-import { WorkflowRuntimeService } from '../workflows/workflow-runtime.service';
+import { WorkflowDispatchService } from '../workflows/workflow-dispatch.service';
 import type {
   EmailDeliveryLogCreateInput,
   EmailProviderLookupInput,
@@ -85,8 +85,8 @@ export class NotificationsService {
     private readonly notificationsRepository: NotificationsRepository,
     private readonly emailService: EmailService,
     private readonly secretEncryption: SecretEncryptionService,
-    @Inject(forwardRef(() => WorkflowRuntimeService))
-    private readonly workflowRuntime: WorkflowRuntimeService,
+    @Inject(forwardRef(() => WorkflowDispatchService))
+    private readonly workflowDispatch: WorkflowDispatchService,
     private readonly effectiveProvider: EffectiveEmailProviderService,
     private readonly auditService: AuditService,
   ) {}
@@ -1041,7 +1041,7 @@ export class NotificationsService {
      * caused it.
      */
     const triggerWorkflows = () =>
-      this.workflowRuntime.handleEvent({
+      this.workflowDispatch.dispatch({
         tenantId: input.tenantId,
         eventCode: input.eventKey,
         moduleKey,

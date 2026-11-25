@@ -4,7 +4,9 @@ import {
   WorkflowActionType,
   WorkflowRunStatus,
   WorkflowStatus,
+  WorkflowStepStatus,
 } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmailService } from '../notifications/email/email.service';
 import {
@@ -15,6 +17,7 @@ import {
   evaluateWorkflowConditions,
   findMalformedWorkflowCondition,
 } from './workflow-conditions';
+import { buildWorkflowStepKey, summarizeRun } from './workflow-steps';
 
 /*
  * Runs tenant-authored workflows when a business event happens.
@@ -166,11 +169,19 @@ export class WorkflowRuntimeService {
   ) {}
 
   /**
-   * Entry point for business events. Never throws.
+   * Entry point for inline execution (the default mode). Never throws.
+   *
+   * The same ledger and run bookkeeping as the durable path, with a generated
+   * event id and a single attempt: whatever fails is recorded as the final
+   * outcome of the run, because nothing will retry it.
    */
   async handleEvent(context: WorkflowEventContext) {
     try {
-      return await this.runMatchingWorkflows(context);
+      const result = await this.execute(context, {
+        eventId: randomUUID(),
+        finalAttempt: true,
+      });
+      return { matched: result.matched, ran: result.ran };
     } catch (error) {
       this.logger.error(
         `Workflow handling failed for ${context.eventCode}: ${
@@ -244,7 +255,17 @@ export class WorkflowRuntimeService {
     };
   }
 
-  private async runMatchingWorkflows(rawContext: WorkflowEventContext) {
+  /**
+   * Runs every workflow that matches the event, resuming any run this event
+   * already started. `eventId` is the outbox event id on the durable path, so a
+   * redelivered event finds its runs and its succeeded steps and repeats nothing.
+   * `retryable` counts steps that failed but may still succeed; the outbox
+   * handler turns a non-zero count into a retry until the attempts run out.
+   */
+  async execute(
+    rawContext: WorkflowEventContext,
+    options: { eventId: string; finalAttempt: boolean },
+  ): Promise<{ matched: number; ran: number; retryable: number }> {
     const context = await this.resolveSubject(rawContext);
     const scopeChain = notificationScopeChain({
       tenantId: context.tenantId,
@@ -283,7 +304,7 @@ export class WorkflowRuntimeService {
       },
     });
 
-    if (!workflows.length) return { matched: 0, ran: 0 };
+    if (!workflows.length) return { matched: 0, ran: 0, retryable: 0 };
 
     const evaluationContext = {
       ...(context.variables ?? {}),
@@ -292,106 +313,218 @@ export class WorkflowRuntimeService {
     };
 
     let ran = 0;
+    let retryable = 0;
     for (const workflow of workflows) {
-      const pinned = workflow.versions?.[0] ?? null;
-      const workflowVersionId = pinned?.id ?? null;
-      if (!pinned) {
-        // An ACTIVE workflow with nothing published must not run from mutable rows.
-        await this.recordRun(workflow.id, context, {
-          workflowVersionId: null,
-          status: WorkflowRunStatus.FAILED,
-          actionsRun: 0,
-          error: 'No published version of this workflow; it was not run.',
-        });
-        continue;
+      try {
+        const outcome = await this.executeWorkflow(
+          workflow,
+          context,
+          evaluationContext,
+          options,
+        );
+        if (outcome.succeeded) ran += 1;
+        retryable += outcome.retryable;
+      } catch (error) {
+        // Bookkeeping failed (the database, most likely). Nothing was lost: the
+        // ledger is idempotent, so a retry resumes. Counted as retryable so the
+        // outbox tries again; on the last attempt it is only logged.
+        this.logger.warn(
+          `Workflow ${workflow.id} could not be executed for ${context.eventCode}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        retryable += 1;
       }
-      const definition = readPinnedDefinition(pinned.definition);
-      const malformed = findMalformedWorkflowCondition(definition.conditions);
-      if (malformed) {
-        // Fail closed and say so: an unreadable rule must not act, and the
-        // author needs to see why it stopped firing.
-        await this.recordRun(workflow.id, context, {
-          workflowVersionId,
-          status: WorkflowRunStatus.FAILED,
-          actionsRun: 0,
-          error: `Malformed conditions, workflow not run: ${malformed}`,
-        });
-        continue;
-      }
-
-      const matches = evaluateWorkflowConditions(
-        definition.conditions,
-        evaluationContext,
-      );
-
-      if (!matches) {
-        await this.recordRun(workflow.id, context, {
-          workflowVersionId,
-          status: WorkflowRunStatus.SKIPPED,
-          actionsRun: 0,
-          error: 'Conditions were not met.',
-        });
-        continue;
-      }
-
-      const result = await this.runActions(
-        definition.actions.map((action, index) => ({
-          id: `${pinned.id}:${index}`,
-          type: action.type,
-          configuration: action.configuration,
-        })),
-        context,
-      );
-      await this.recordRun(workflow.id, context, {
-        ...result,
-        workflowVersionId,
-      });
-      if (result.status === WorkflowRunStatus.SUCCEEDED) ran += 1;
     }
 
-    return { matched: workflows.length, ran };
+    return { matched: workflows.length, ran, retryable };
   }
 
-  private async runActions(
-    actions: { id: string; type: WorkflowActionType; configuration: unknown }[],
+  private async executeWorkflow(
+    workflow: {
+      id: string;
+      versions?: { id: string; definition: Prisma.JsonValue }[];
+    },
     context: WorkflowEventContext,
-  ) {
-    let actionsRun = 0;
-    const failures: string[] = [];
+    evaluationContext: Record<string, unknown>,
+    options: { eventId: string; finalAttempt: boolean },
+  ): Promise<{ succeeded: boolean; retryable: number }> {
+    const pinned = workflow.versions?.[0] ?? null;
+    const workflowVersionId = pinned?.id ?? null;
 
-    for (const action of actions) {
+    const run = await this.openRun(
+      workflow.id,
+      context,
+      options.eventId,
+      workflowVersionId,
+    );
+    // Finished on an earlier delivery of this event: nothing to repeat.
+    if (run.status !== WorkflowRunStatus.RUNNING) {
+      return { succeeded: false, retryable: 0 };
+    }
+
+    if (!pinned) {
+      // An ACTIVE workflow with nothing published must not run from mutable rows.
+      await this.finishRun(run.id, {
+        status: WorkflowRunStatus.FAILED,
+        actionsRun: 0,
+        error: 'No published version of this workflow; it was not run.',
+      });
+      return { succeeded: false, retryable: 0 };
+    }
+    const definition = readPinnedDefinition(pinned.definition);
+    const malformed = findMalformedWorkflowCondition(definition.conditions);
+    if (malformed) {
+      // Fail closed and say so: an unreadable rule must not act, and the
+      // author needs to see why it stopped firing.
+      await this.finishRun(run.id, {
+        status: WorkflowRunStatus.FAILED,
+        actionsRun: 0,
+        error: `Malformed conditions, workflow not run: ${malformed}`,
+      });
+      return { succeeded: false, retryable: 0 };
+    }
+
+    if (!evaluateWorkflowConditions(definition.conditions, evaluationContext)) {
+      await this.finishRun(run.id, {
+        status: WorkflowRunStatus.SKIPPED,
+        actionsRun: 0,
+        error: 'Conditions were not met.',
+      });
+      return { succeeded: false, retryable: 0 };
+    }
+
+    const steps = await this.runSteps(
+      run.id,
+      definition.actions,
+      context,
+      options.eventId,
+      pinned.id,
+    );
+    const summary = summarizeRun({
+      ...steps,
+      finalAttempt: options.finalAttempt,
+    });
+    if (summary.settled) {
+      await this.finishRun(run.id, summary);
+    } else {
+      await this.prisma.workflowRun.update({
+        where: { id: run.id },
+        data: { actionsRun: summary.actionsRun, error: summary.error },
+      });
+    }
+    return {
+      succeeded:
+        summary.settled && summary.status === WorkflowRunStatus.SUCCEEDED,
+      retryable: summary.settled ? 0 : steps.retryable,
+    };
+  }
+
+  /**
+   * Runs each action as its own ledgered step. A step that already succeeded is
+   * never run again; a step that failed for good is not retried; everything else
+   * (never run, failed but retryable, claimed by a crashed attempt) runs.
+   * Delivery is at-least-once: a crash between the send and the ledger write can
+   * repeat one email, and the ledger exists to make that the only way it can.
+   */
+  private async runSteps(
+    runId: string,
+    actions: { type: WorkflowActionType; configuration: unknown }[],
+    context: WorkflowEventContext,
+    eventId: string,
+    versionId: string,
+  ) {
+    let succeeded = 0;
+    let failedPermanent = 0;
+    let retryable = 0;
+    const errors: string[] = [];
+
+    for (const [index, action] of actions.entries()) {
+      if (action.type !== WorkflowActionType.SEND_EMAIL) continue;
+
+      const stepKey = buildWorkflowStepKey(eventId, versionId, index);
+      const where = {
+        tenantId_stepKey: { tenantId: context.tenantId, stepKey },
+      };
+      const prior = await this.prisma.workflowRunStep.findUnique({ where });
+      if (prior?.status === WorkflowStepStatus.SUCCEEDED) {
+        succeeded += 1;
+        continue;
+      }
+      if (prior?.status === WorkflowStepStatus.FAILED && prior.permanent) {
+        failedPermanent += 1;
+        if (prior.lastError) errors.push(prior.lastError);
+        continue;
+      }
+
+      const mode =
+        (action.configuration as SendEmailConfiguration | null)
+          ?.recipientMode ?? 'SUBJECT';
+      // Claimed before the send, so a crash mid-send leaves a visible
+      // IN_PROGRESS row that the retry picks up.
+      await this.prisma.workflowRunStep.upsert({
+        where,
+        create: {
+          tenantId: context.tenantId,
+          runId,
+          stepKey,
+          actionIndex: index,
+          actionType: action.type,
+          recipientMode: mode,
+          status: WorkflowStepStatus.IN_PROGRESS,
+          attempts: 1,
+        },
+        update: {
+          status: WorkflowStepStatus.IN_PROGRESS,
+          attempts: { increment: 1 },
+          finishedAt: null,
+        },
+      });
+
       try {
-        if (action.type === WorkflowActionType.SEND_EMAIL) {
-          const sent = await this.sendEmailAction(
-            action.configuration,
-            context,
+        const sent = await this.sendEmailAction(action.configuration, context);
+        if (sent) {
+          succeeded += 1;
+          await this.settleStep(
+            where,
+            WorkflowStepStatus.SUCCEEDED,
+            null,
+            false,
           );
-          if (sent) actionsRun += 1;
-          else failures.push('No recipient could be resolved for the email.');
+        } else {
+          const message = 'No recipient could be resolved for the email.';
+          failedPermanent += 1;
+          errors.push(message);
+          await this.settleStep(
+            where,
+            WorkflowStepStatus.FAILED,
+            message,
+            true,
+          );
         }
       } catch (error) {
-        failures.push(error instanceof Error ? error.message : String(error));
+        const message = (
+          error instanceof Error ? error.message : String(error)
+        ).slice(0, 500);
+        retryable += 1;
+        errors.push(message);
+        await this.settleStep(where, WorkflowStepStatus.FAILED, message, false);
       }
     }
 
-    if (failures.length) {
-      return {
-        status:
-          actionsRun > 0
-            ? WorkflowRunStatus.PARTIALLY_FAILED
-            : WorkflowRunStatus.FAILED,
-        actionsRun,
-        error: failures.join(' | ').slice(0, 1000),
-      };
-    }
+    return { succeeded, failedPermanent, retryable, errors };
+  }
 
-    return {
-      status: actionsRun
-        ? WorkflowRunStatus.SUCCEEDED
-        : WorkflowRunStatus.SKIPPED,
-      actionsRun,
-      error: actionsRun ? null : 'The workflow had no active actions to run.',
-    };
+  private settleStep(
+    where: { tenantId_stepKey: { tenantId: string; stepKey: string } },
+    status: WorkflowStepStatus,
+    lastError: string | null,
+    permanent: boolean,
+  ) {
+    return this.prisma.workflowRunStep.update({
+      where,
+      data: { status, lastError, permanent, finishedAt: new Date() },
+    });
   }
 
   private async sendEmailAction(
@@ -479,41 +612,72 @@ export class WorkflowRuntimeService {
     return null;
   }
 
-  private async recordRun(
+  /**
+   * The run for this workflow and event: the existing one on a redelivery, a new
+   * RUNNING one otherwise. Two deliveries racing to create it collapse on the
+   * unique (workflowId, eventId) index.
+   */
+  private async openRun(
     workflowId: string,
     context: WorkflowEventContext,
-    result: {
-      status: WorkflowRunStatus;
-      actionsRun: number;
-      error?: string | null;
-      workflowVersionId?: string | null;
-    },
-  ) {
+    eventId: string,
+    workflowVersionId: string | null,
+  ): Promise<{ id: string; status: WorkflowRunStatus }> {
+    const key = { workflowId_eventId: { workflowId, eventId } };
+    const existing = await this.prisma.workflowRun.findUnique({
+      where: key,
+      select: { id: true, status: true },
+    });
+    if (existing) return existing;
+
     try {
-      await this.prisma.workflowRun.create({
+      return await this.prisma.workflowRun.create({
         data: {
           tenantId: context.tenantId,
           workflowId,
+          eventId,
           eventCode: context.eventCode,
-          status: result.status,
-          finishedAt: new Date(),
-          actionsRun: result.actionsRun,
-          error: result.error ?? null,
+          status: WorkflowRunStatus.RUNNING,
+          actionsRun: 0,
           correlationId: context.correlationId ?? null,
-          workflowVersionId: result.workflowVersionId ?? null,
+          workflowVersionId,
           context: {
             moduleKey: context.moduleKey ?? null,
             scopeKey: buildTenantNotificationScopeKey(context.tenantId),
           } as Prisma.InputJsonValue,
         },
+        select: { id: true, status: true },
       });
     } catch (error) {
-      // History is useful, not essential. Losing it must not fail the event.
-      this.logger.warn(
-        `Could not record workflow run: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return this.prisma.workflowRun.findUniqueOrThrow({
+          where: key,
+          select: { id: true, status: true },
+        });
+      }
+      throw error;
     }
+  }
+
+  private finishRun(
+    runId: string,
+    result: {
+      status: WorkflowRunStatus;
+      actionsRun: number;
+      error?: string | null;
+    },
+  ) {
+    return this.prisma.workflowRun.update({
+      where: { id: runId },
+      data: {
+        status: result.status,
+        actionsRun: result.actionsRun,
+        error: result.error ?? null,
+        finishedAt: new Date(),
+      },
+    });
   }
 }

@@ -228,6 +228,11 @@ services:
         value: "5000"
       - key: OUTBOX_WORKER_BATCH_SIZE
         value: "25"
+      # Workflow actions: "inline" runs them in the request (the long-standing
+      # behaviour); "durable" runs them from the outbox worker above, with retries.
+      # Switch only after OUTBOX_WORKER_ENABLED is confirmed live (WP-03.S3).
+      - key: WORKFLOW_EXECUTION_MODE
+        value: "inline"
       # Reports & Analytics (TASK-0028). Both workers are OFF unless set here,
       # so a deploy that omits them changes nothing rather than quietly starting
       # background work. The scheduler is what sends scheduled reports by email;
