@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **5** |
-| Open HIGH | **49** |
-| Open total | 241 |
+| Open HIGH | **50** |
+| Open total | 242 |
 | Blocked | 4 |
 | Awaiting a product decision | 16 |
 | Deferred | 127 |
@@ -74,6 +74,7 @@
 | [[BUG-4446-onboarding-screen-never-offers-convert-to-employee-while-the|BUG-4446]] | Onboarding screen never offers Convert to employee while the linked employee is a draft profile, which Start onboarding always creates | BUG | HIGH | FIXED | onboarding, apps/web | FIX_NOW |
 | [[BUG-4447-employee-record-lookup-editor-department-designation-reporti|BUG-4447]] | Saving a draft employee profile from the employee form silently promoted it to ACTIVE (the profile API omitted status, sub status and the draft flag), which blocked onboarding conversion; the lookup editor itself was fine | BUG | HIGH | FIXED | employees, onboarding, apps/web | FIX_NOW |
 | [[BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-|BUG-4774]] | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | FIXED | employees, auth, users | FIX_NOW |
+| [[BUG-4775-workflow-run-history-page-crashes-as-soon-as-a-workflow-has-|BUG-4775]] | Workflow run history page crashes as soon as a workflow has one run | BUG | HIGH | FIXED | app:web | FIX_NOW |
 | [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
@@ -383,6 +384,7 @@
 | [[BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401|BUG-4518]] | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | VERIFIED | services/api/src/common/guards | DONE |
 | [[BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price|BUG-4652]] | A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it | AUTHORIZATION | HIGH | VERIFIED | billing | DONE |
 | [[BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-|BUG-4774]] | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | FIXED | employees, auth, users | FIX_NOW |
+| [[BUG-4775-workflow-run-history-page-crashes-as-soon-as-a-workflow-has-|BUG-4775]] | Workflow run history page crashes as soon as a workflow has one run | BUG | HIGH | FIXED | app:web | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | VERIFIED | notifications, apps/web | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -898,7 +900,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 588 |
+| Bug records | 589 |
 | Backlog items | 246 |
 | Known bug patterns | 35 |
 | QA runs | 40 |

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- supertest response bodies are untyped JSON */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument -- supertest response bodies are untyped JSON */
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
@@ -310,6 +310,19 @@ describeWithDatabase()(
         expect(list.status).toBe(200);
         expect(list.body.items.map((i: { id: string }) => i.id)).not.toContain(
           id,
+        );
+      });
+
+      it('work a manager creates for nobody in particular is theirs, so it shows in their own list', async () => {
+        const made = await call(maya, 'post', '/work-items', {
+          kind: 'TASK',
+          title: 'Maya own default',
+        });
+        expect(made.status).toBe(201);
+        expect(made.body.ownerEmployeeId).toBe(emp.maya);
+        const mine = await call(maya, 'get', '/work-items?mine=true');
+        expect(mine.body.items.map((i: { id: string }) => i.id)).toContain(
+          made.body.id,
         );
       });
 

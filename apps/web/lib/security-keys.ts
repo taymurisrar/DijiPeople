@@ -174,6 +174,11 @@ export const PERMISSION_KEYS = {
   WORK_PROFILES_READ: "work-profiles.read",
   WORK_PROFILES_MANAGE: "work-profiles.manage",
 
+  WORK_ITEMS_READ: "work-items.read",
+  WORK_ITEMS_WRITE: "work-items.write",
+  WORK_QUEUES_READ: "work-queues.read",
+  WORK_QUEUES_MANAGE: "work-queues.manage",
+
   TIMESHEETS_READ: "timesheets.read",
   TIMESHEETS_CREATE: "timesheets.create",
   TIMESHEETS_WRITE: "timesheets.write",

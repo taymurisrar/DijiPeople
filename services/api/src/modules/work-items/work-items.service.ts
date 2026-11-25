@@ -77,6 +77,7 @@ const ITEM_SELECT = {
   externalSystem: true,
   externalRef: true,
   queueId: true,
+  owner: { select: { firstName: true, lastName: true } },
   respondedAt: true,
   responseDueAt: true,
   resolutionDueAt: true,
@@ -92,10 +93,13 @@ function withSla<
     completedAt: Date | null;
     responseDueAt: Date | null;
     resolutionDueAt: Date | null;
+    owner?: { firstName: string; lastName: string } | null;
   },
 >(item: T, now = new Date()) {
+  const { owner, ...rest } = item;
   return {
-    ...item,
+    ...rest,
+    ownerName: owner ? `${owner.firstName} ${owner.lastName}`.trim() : null,
     sla: {
       response: slaState({
         dueAt: item.responseDueAt,
@@ -274,7 +278,7 @@ export class WorkItemsService {
   /** Who moved this item between people, newest last. */
   async ownerHistory(user: AuthenticatedUser, id: string) {
     await this.findOne(user, id);
-    return this.prisma.workItemOwnerChange.findMany({
+    const changes = await this.prisma.workItemOwnerChange.findMany({
       where: { tenantId: user.tenantId, workItemId: id },
       select: {
         fromEmployeeId: true,
@@ -286,6 +290,28 @@ export class WorkItemsService {
       orderBy: { createdAt: 'asc' },
       take: 200,
     });
+    const ids = [
+      ...new Set(
+        changes
+          .flatMap((c) => [c.fromEmployeeId, c.toEmployeeId])
+          .filter((v): v is string => Boolean(v)),
+      ),
+    ];
+    const people = ids.length
+      ? await this.prisma.employee.findMany({
+          where: { tenantId: user.tenantId, id: { in: ids } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const name = (employeeId: string | null) => {
+      const p = people.find((x) => x.id === employeeId);
+      return p ? `${p.firstName} ${p.lastName}`.trim() : null;
+    };
+    return changes.map((c) => ({
+      ...c,
+      fromName: name(c.fromEmployeeId),
+      toName: name(c.toEmployeeId),
+    }));
   }
 
   /** The item to its owner, with the SLA clock started if it is queued. */
@@ -392,9 +418,11 @@ export class WorkItemsService {
     if (ownerEmployeeId) {
       await this.assertEmployee(tenantId, ownerEmployeeId);
       await this.assertInWriteScope(user, ownerEmployeeId);
-    } else if (this.writesOnlyOwn(user)) {
+    } else if (!dto.queueId) {
+      // Work you create for nobody in particular is yours. A queued item is the
+      // exception: it waits unowned until someone claims or is given it.
       ownerEmployeeId = await this.ownEmployeeId(user);
-      if (!ownerEmployeeId) {
+      if (!ownerEmployeeId && this.writesOnlyOwn(user)) {
         problem(
           'WORK_ITEM_NO_EMPLOYEE',
           'Your account is not linked to an employee record.',

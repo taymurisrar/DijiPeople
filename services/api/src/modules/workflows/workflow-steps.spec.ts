@@ -112,7 +112,7 @@ describe('classifyEmailOutcome', () => {
   it('a sink, a rehearsal and an opt-out are SKIPPED with their reason, not delivered', () => {
     expect(classifyEmailOutcome({ ...base, delivered: false })).toMatchObject({
       status: 'SKIPPED',
-      reason: expect.stringContaining('sink'),
+      reason: expect.stringContaining('sink') as string,
     });
     expect(
       classifyEmailOutcome({ ...base, delivered: false, dryRun: true }),

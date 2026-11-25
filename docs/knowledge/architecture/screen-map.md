@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**371 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**373 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-263 screens, 35 runtime-driven.
+265 screens, 35 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -281,6 +281,8 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/timesheets/[timesheetId]/edit` | `apps/web/app/(authenticated)/timesheets/[timesheetId]/edit/page.tsx` | `/api/timesheets` | `timesheet` |
 | `/timesheets/approvals` | `apps/web/app/(authenticated)/timesheets/approvals/page.tsx` | `/api/timesheets` | `timesheet` |
 | `/timesheets/new` | `apps/web/app/(authenticated)/timesheets/new/page.tsx` | `/api/timesheets` | `timesheet` |
+| `/work` | `apps/web/app/(authenticated)/work/page.tsx` | _bespoke_ | — |
+| `/work/queues` | `apps/web/app/(authenticated)/work/queues/page.tsx` | _bespoke_ | — |
 | `/workspace/choose` | `apps/web/app/workspace/choose/page.tsx` | _bespoke_ | — |
 | `/workspace/not-found` | `apps/web/app/workspace/not-found/page.tsx` | _bespoke_ | — |
 | `/workspace/preparing` | `apps/web/app/workspace/preparing/page.tsx` | _bespoke_ | — |

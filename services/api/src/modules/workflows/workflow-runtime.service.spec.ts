@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return -- in-memory ledger mock over untyped rows */
 import { WorkflowActionType, WorkflowRunStatus } from '@prisma/client';
 import { WorkflowRuntimeService } from './workflow-runtime.service';
 

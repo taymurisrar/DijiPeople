@@ -90,6 +90,23 @@ export const dashboardNavItems: DashboardNavItem[] = [
     requiresBusinessUnitScope: true,
     requiredAnyPermissions: [PERMISSION_KEYS.PROJECTS_READ],
   },
+  /*
+   * WP-06.S1 — work items and queues. Not plan-gated: no feature key sells
+   * work management (tenant-features.ts), the same position Claims takes.
+   */
+  {
+    href: "/work",
+    label: "My Work",
+    description: "Your tasks and service jobs, with status and SLA standing.",
+    requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
+  },
+  {
+    href: "/work/queues",
+    label: "Work Queues",
+    description: "Queues of work, their SLA standing, and who owns what.",
+    hiddenForSelfService: true,
+    requiredAnyPermissions: [PERMISSION_KEYS.WORK_QUEUES_READ],
+  },
   {
     href: "/approvals",
     label: "Approvals",

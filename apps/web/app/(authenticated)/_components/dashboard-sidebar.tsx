@@ -135,7 +135,11 @@ export function DashboardSidebar({
           {visibleItems.length > 0 ? (
             <div className="flex max-h-full flex-col gap-1.5 overflow-y-auto pr-1 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {visibleItems.map((item) => {
-                const isActive = isSidebarItemActive(pathname, item.href);
+                const isActive = isSidebarItemActive(
+                  pathname,
+                  item.href,
+                  visibleItems.map((entry) => entry.href),
+                );
                 const Icon = resolveNavIcon(item.href);
 
                 return (
@@ -387,6 +391,7 @@ function resolveNavIcon(href: string): ComponentType<SidebarNavIconProps> {
   if (href.includes("/leave")) return CalendarDays;
   if (href.includes("/attendance")) return Clock3;
   if (href.includes("/timesheets")) return ClipboardList;
+  if (href === "/work" || href.startsWith("/work/")) return ClipboardList;
   if (href.includes("/projects")) return FolderKanban;
   if (href.includes("/payroll")) return Wallet;
   if (href.includes("/documents")) return FileText;
@@ -409,10 +414,23 @@ function resolveText(value: string | null | undefined, fallback: string) {
   return normalized.length > 0 ? normalized : fallback;
 }
 
-function isSidebarItemActive(pathname: string, href: string) {
+function isSidebarItemActive(
+  pathname: string,
+  href: string,
+  allHrefs: string[] = [],
+) {
   if (href === "/") {
     return pathname === href;
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  // A longer sibling that also matches (/work/queues beside /work) is the one
+  // the visitor is on; the shorter parent must not light up as well.
+  return !allHrefs.some(
+    (other) =>
+      other !== href &&
+      other.length > href.length &&
+      (pathname === other || pathname.startsWith(`${other}/`)),
+  );
 }

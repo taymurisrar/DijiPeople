@@ -1236,7 +1236,12 @@
         "WP-03.S2"
       ],
       "workstream": "C",
-      "status": "NOT_STARTED"
+      "status": "IN_PROGRESS",
+      "evidence": "Technical evidence executed 2026-11-25 (isolated API :4099 + web :3011 + real Electron 39 agent, throwaway DB dp_master_gui): BROWSER: workflow Run History PARTIALLY FAILED badge renders (after fixing BUG-4775, a server/client boundary crash found by this very pass), workflow builder offers the CANDIDATE recipient, /work and /work/queues create, claim, SLA and owner-history flows work for manager and HR, sidebar highlight bug found and fixed. ELECTRON: real agent logs in, loads config, registers device, starts a work session and heartbeats; tray shows \"Content monitoring: off\" until config loads, \"off until you acknowledge the policy\" before acknowledgement and \"ON (clipboard/screenshots)\" only after the acknowledgement is recorded; the full 6,833-character policy opens in a script-less window BEFORE the acknowledgement dialog (no truncation, JavaScript execution blocked). NOT executed: offline suspension after the 30-minute freshness window (unit-tested, not driven live), a live second sign-in on one device for buffer isolation (unit-tested), the OS-native message box itself (stubbed to answer; its text was recorded). HUMAN APPROVAL (separate, not given): review of the G4 diff by a person, and OD-DLP-POLICY-TEXT.",
+      "humanApprovalPending": [
+        "G4 diff review by a human",
+        "OD-DLP-POLICY-TEXT (legal text)"
+      ]
     },
     {
       "id": "WP-35.S2",
@@ -1287,9 +1292,9 @@
         "WP-03.S3"
       ],
       "workstream": "B",
-      "status": "IN_PROGRESS",
+      "status": "ACCEPTED",
       "lease": "schema",
-      "evidence": "API accepted: migration 20261127100000 (additive); work queues with SLA stamped per item, claim, queue summary, owner history; work items scoped by the access level on EMPLOYEES (employee own / manager business unit / HR tenant); work-scope.e2e-spec. UI: see web files; not browser-verified."
+      "evidence": "API: migration 20261127100000 (additive); work queues with SLA stamped per item, claim, queue summary, owner history, owner names; work items scoped by the access level on EMPLOYEES (employee own / manager business unit / HR tenant); work-scope.e2e-spec (19 tests with work-items.e2e-spec 12). UI: /work and /work/queues built on shared components, web suite 146 suites; driven in a real browser as manager and HR (create task, create queue, claim, SLA Met, history, single sidebar highlight). Not done in this slice: projects extension (templates, phases, milestones, timesheet integration) and employee-facing comments/attachments are later WP-06 slices."
     },
     {
       "id": "WP-03.S4",

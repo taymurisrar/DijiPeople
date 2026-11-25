@@ -72,3 +72,13 @@ change, no production data touched.
 - Privacy defaults: SQL in the migration header restores each tenant from the `AGENT_PRIVACY_DEFAULTS_APPLIED` audit rows.
 - Sweeper: `ACCESS_REVOCATION_SWEEPER_ENABLED=false` (immediate revocation stays; see the runbook for the effect).
 - Workflow versioning: additive columns/table, ignored by older code.
+
+## G4 technical evidence - 2026-11-25 (WP-26.S3)
+
+Executed against an isolated API, web app and a real Electron 39 agent on a throwaway database.
+
+- Browser: workflow Run History PARTIALLY FAILED badge; CANDIDATE recipient option; work queue screens. Two defects found and fixed here: BUG-4775 (Run History crashed on any run: server component calling a client formatter) and the sidebar highlighting two entries at once.
+- Electron: sign-in, config, device registration, work session and heartbeat; tray reports content monitoring off until the policy is acknowledged and on only after; the whole policy is shown in a locked window before the acknowledgement.
+- Not executed: offline suspension after 30 minutes and cross-sign-in buffer isolation live (unit-tested only); the native message box is stubbed.
+- Human approval is separate and still required: a person's review of the G4 diff, and OD-DLP-POLICY-TEXT. G4 remains NOT_MET until both are recorded.
+

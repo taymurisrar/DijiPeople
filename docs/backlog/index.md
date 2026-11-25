@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**834 records** — 588 bugs under [`docs/bugs/`](../bugs/), 246 non-bug items under [`items/`](items/).
+**835 records** — 589 bugs under [`docs/bugs/`](../bugs/), 246 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 241 |
+| Open (active work) | 242 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |
 | Completed / closed | 446 |
 | **Open CRITICAL** | **5** |
-| **Open HIGH** | **49** |
+| **Open HIGH** | **50** |
 | **Awaiting Architect triage** | **3** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 5 |
-| HIGH | 49 |
+| HIGH | 50 |
 | MEDIUM | 152 |
 | LOW | 31 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 12 |
-| BUG | 72 |
+| BUG | 73 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 127 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 172 |
+| FIXED | 173 |
 | VERIFIED | 308 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -344,6 +344,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4518](../../docs/bugs/BUG-4518-jwtauthguard-rewrites-a-timesheet-restriction-403-into-a-401.md) | JwtAuthGuard rewrites a timesheet-restriction 403 into a 401 INVALID_TOKEN | BUG | HIGH | P1 | VERIFIED | services/api/src/common/guards | DONE |
 | [BUG-4652](../../docs/bugs/BUG-4652-checkout-accepts-another-customer-s-reserved-plan-price.md) | A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it | AUTHORIZATION | HIGH | P1 | VERIFIED | billing | DONE |
 | [BUG-4774](../../docs/bugs/BUG-4774-terminating-an-employee-leaves-the-linked-user-able-to-sign-.md) | Terminating an employee leaves the linked user able to sign in | AUTHORIZATION | HIGH | P1 | FIXED | employees, auth, users | FIX_NOW |
+| [BUG-4775](../../docs/bugs/BUG-4775-workflow-run-history-page-crashes-as-soon-as-a-workflow-has-.md) | Workflow run history page crashes as soon as a workflow has one run | BUG | HIGH | P1 | FIXED | app:web | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

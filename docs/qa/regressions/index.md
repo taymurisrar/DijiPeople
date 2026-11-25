@@ -8112,3 +8112,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes - mutated 2026-11-25 against a real database: removing the under-lock re-check in revokeAccessIfDue and the auth-time effective-date check fails 3 of 11 tests (concurrent rehire, concurrent reschedule, future-dated exit). Residuals: access tokens already issued work on ordinary endpoints for up to one 60 s sweep after a future-dated exit; terminate does not yet cancel approvals or hand off work. |
 | **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
 | **Active** | yes |
+
+### REG-731 — The workflow Run History page crashed as soon as a workflow had one run
+
+| | |
+|---|---|
+| **Bug class** | `server-client-boundary` |
+| **Module** | `apps/web/app/(authenticated)/settings/approvals` |
+| **Bug record** | BUG-4775 |
+| **Root cause** | A server component called a date formatter exported from a "use client" module, which React Server Components refuse at render time; with no runs the table never rendered, so the page looked fine. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/approvals/_components/workflow-run-history.spec.ts` |
+| **Scenario** | QA-WORKFLOW-001 |
+| **Fails without the fix** | Yes - mutated 2026-11-25: importing the formatter from the client module again fails 1 of 2 tests. The render itself is verified only in a real browser (QA-WORKFLOW-001). |
+| **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |

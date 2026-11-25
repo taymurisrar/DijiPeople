@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 536** · automated: 446 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 537** · automated: 446 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -550,3 +550,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-UI-001](../../../docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md) | Admin lookup controls are keyboard-operable and expose no nested-interactive listbox | platform-admin | MANUAL_VISUAL | MEDIUM | MANUAL | `apps/admin/lib/a11y/listbox-navigation.spec.ts` | BUG-3377 | REG-418 |
 | [QA-UNIT-001](../../../docs/qa/scenarios/QA-UNIT-001-growth-demo-user-correctable-failures-are-prevented-client-s.md) | Growth demo: user-correctable failures are prevented client-side and not queued as incidents | growth-demo | UNIT | HIGH | AUTOMATED | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` | BUG-4427, BUG-4428, BUG-4429 | REG-686, REG-687, REG-688 |
 | [QA-UNIT-002](../../../docs/qa/scenarios/QA-UNIT-002-growth-a-contract-is-not-submitted-while-required-document-f.md) | Growth: a contract is not submitted while required document fields are blank | growth-demo | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/contract-readiness.spec.ts` | BUG-4429 | — |
+| [QA-WORKFLOW-001](../../../docs/qa/scenarios/QA-WORKFLOW-001-workflow-run-history-renders-for-a-workflow-that-has-runs-se.md) | Workflow run history renders for a workflow that has runs (server component boundary) | approvals | BROWSER_E2E | HIGH | PARTIAL | `apps/web/app/(authenticated)/settings/approvals/_components/workflow-run-history.spec.ts` | BUG-4775 | REG-731 |
