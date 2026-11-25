@@ -45,7 +45,11 @@ import { ProvisionEmployeeAccessDto } from './dto/provision-employee-access.dto'
 import { TerminateEmployeeDto } from './dto/terminate-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { DuplicateRuleEngine } from '../../common/validation/duplicate-rule-engine';
-import { revokeLinkedUserAccess } from './employee-access-revocation';
+import {
+  applyUserAccessRevocation,
+  lockEmployee,
+  type AccessRevocationResult,
+} from './employee-access-revocation';
 import {
   customSortField,
   EmployeeHierarchyNode,
@@ -2420,71 +2424,74 @@ export class EmployeesService {
     dto: TerminateEmployeeDto,
     actorId: string,
   ) {
-    const employee = await this.employeesRepository.findByIdAndTenant(
-      tenantId,
-      employeeId,
-    );
-
-    if (!employee) {
-      throw new NotFoundException('Employee was not found for this tenant.');
-    }
-
-    const terminationDate = dto.terminationDate
+    const requestedDate = dto.terminationDate
       ? new Date(dto.terminationDate)
       : new Date();
 
-    await this.employeesRepository.update(tenantId, employeeId, {
-      employmentStatus: EmployeeEmploymentStatus.TERMINATED,
-      terminationDate,
-      updatedById: actorId,
-    });
+    /*
+     * One transaction, under a row lock on the employee: status and date, the
+     * linked user's DISABLED state, every web and agent token, and the audit row
+     * commit together or not at all (BUG-4774, BUG-3184). A future-dated exit
+     * commits the status and audit now and keeps access until the date; the
+     * AccessRevocationSweeperWorker, and AuthAccessService on every request, end
+     * access when it arrives.
+     */
+    await this.prisma.$transaction(async (tx) => {
+      const employee = await lockEmployee(tx, tenantId, employeeId);
+      if (!employee) {
+        throw new NotFoundException('Employee was not found for this tenant.');
+      }
 
-    // DP-MASTER/WP-08.S0 (OD-TERMINATE-ACCESS). Ending employment must end the
-    // sign-in that employment granted; this used to leave the account live.
-    const access = await this.revokeAccessOnTermination(
-      tenantId,
-      employee.userId ?? null,
-      terminationDate,
-    );
+      // An exit that has already taken effect keeps its date: terminating again
+      // is a retry, not a way to push a past date into the future.
+      const terminationDate =
+        employee.employmentStatus === EmployeeEmploymentStatus.TERMINATED &&
+        employee.terminationDate &&
+        employee.terminationDate.getTime() <= Date.now()
+          ? employee.terminationDate
+          : requestedDate;
 
-    // BUG-3184. Termination is among the most consequential employee changes (it
-    // ends payroll eligibility) and used to leave no audit row at all.
-    await this.auditService.log({
-      tenantId,
-      actorUserId: actorId,
-      action: AUDIT_ACTIONS.EMPLOYEE_TERMINATED,
-      entityType: AUDIT_ENTITY_TYPES.EMPLOYEE,
-      entityId: employeeId,
-      beforeSnapshot: {
-        employmentStatus: employee.employmentStatus,
-        terminationDate: employee.terminationDate ?? null,
-      },
-      afterSnapshot: {
-        employmentStatus: EmployeeEmploymentStatus.TERMINATED,
-        terminationDate,
-        accessRevoked: access.revoked,
-        accessRevocationNote: access.note,
-      },
+      await this.employeesRepository.update(
+        tenantId,
+        employeeId,
+        {
+          employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+          terminationDate,
+          updatedById: actorId,
+        },
+        tx,
+      );
+
+      const access: AccessRevocationResult =
+        employee.userId && terminationDate.getTime() > Date.now()
+          ? { revoked: false, note: 'FUTURE_DATED_REVOCATION_SCHEDULED' }
+          : await applyUserAccessRevocation(tx, tenantId, employee.userId);
+
+      // BUG-3184. Termination is among the most consequential employee changes
+      // (it ends payroll eligibility) and used to leave no audit row at all.
+      await this.auditService.log(
+        {
+          tenantId,
+          actorUserId: actorId,
+          action: AUDIT_ACTIONS.EMPLOYEE_TERMINATED,
+          entityType: AUDIT_ENTITY_TYPES.EMPLOYEE,
+          entityId: employeeId,
+          beforeSnapshot: {
+            employmentStatus: employee.employmentStatus,
+            terminationDate: employee.terminationDate ?? null,
+          },
+          afterSnapshot: {
+            employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+            terminationDate,
+            accessRevoked: access.revoked,
+            accessRevocationNote: access.note,
+          },
+        },
+        tx,
+      );
     });
 
     return this.findById(tenantId, employeeId);
-  }
-
-  /*
-   * Immediate and past-dated exits revoke now through the shared, idempotent
-   * helper. Future-dated exits keep access until the effective date; the
-   * AccessRevocationSweeperWorker (on by default) revokes them when it arrives,
-   * and the audit row records that the revocation is scheduled, not done.
-   */
-  private async revokeAccessOnTermination(
-    tenantId: string,
-    userId: string | null,
-    terminationDate: Date,
-  ): Promise<{ revoked: boolean; note: string }> {
-    if (userId && terminationDate.getTime() > Date.now()) {
-      return { revoked: false, note: 'FUTURE_DATED_REVOCATION_SCHEDULED' };
-    }
-    return revokeLinkedUserAccess(this.prisma, { tenantId, userId });
   }
 
   private async provisionEmployeeUserAccess(

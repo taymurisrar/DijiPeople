@@ -7,7 +7,7 @@ MODULE: services/api/src/modules/employees
 TYPE: SECURITY
 RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
-TEST_REFERENCE: services/api/src/modules/employees/employee-terminate-access.spec.ts
+TEST_REFERENCE: services/api/test/employee-access-revocation.e2e-spec.ts
 RELATED_BUGS: [BUG-4774]
 RELATED_REGRESSIONS: [REG-730]
 LAST_RUN: 

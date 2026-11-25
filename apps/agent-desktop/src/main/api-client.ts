@@ -33,6 +33,17 @@ type ApiErrorPayload = {
   statusCode?: number;
 };
 
+export type MonitoringPolicyResponse =
+  | { available: false }
+  | {
+      available: true;
+      versionId: string;
+      version: number;
+      title: string;
+      contentMarkdown: string;
+      acknowledged: boolean;
+    };
+
 export class ApiClient {
   private accessToken: string | null = null;
 
@@ -193,6 +204,21 @@ export class ApiClient {
    * flags again on write, so a response of `{ accepted: 0, captureEnabled:
    * false }` is a normal answer — the tenant has capture off — not an error.
    */
+  getMonitoringPolicy(): Promise<MonitoringPolicyResponse> {
+    return this.request<MonitoringPolicyResponse>("/agent/monitoring-policy", {
+      method: "GET",
+    });
+  }
+
+  acknowledgeMonitoringPolicy(
+    versionId: string,
+  ): Promise<{ acknowledged: boolean; versionId: string }> {
+    return this.request<{ acknowledged: boolean; versionId: string }>(
+      "/agent/monitoring-policy/acknowledge",
+      { method: "POST", body: { versionId } },
+    );
+  }
+
   sendClipboardEvents(
     events: ClipboardCaptureEvent[],
   ): Promise<{ accepted: number; captureEnabled?: boolean }> {

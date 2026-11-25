@@ -9,6 +9,20 @@ import { WorkflowRuntimeService } from './workflow-runtime.service';
 
 const TENANT = 'tenant-1';
 
+/** What the pinned, published snapshot holds for an action. */
+function pinnedAction(recipientAddress?: string) {
+  return {
+    type: WorkflowActionType.SEND_EMAIL,
+    sortOrder: 0,
+    isActive: true,
+    configuration: {
+      recipientMode: 'FIXED',
+      recipientAddress,
+      templateKey: 't',
+    },
+  };
+}
+
 function email(recipientAddress?: string) {
   return {
     id: `a-${Math.random()}`,
@@ -21,15 +35,39 @@ function email(recipientAddress?: string) {
   };
 }
 
-function build(workflow: { conditions: unknown; actions: unknown[] }) {
+function build(
+  workflow: { conditions: unknown; actions: unknown[] },
+  options: { published?: boolean } = {},
+) {
   const runs: Array<Record<string, unknown>> = [];
   const prisma = {
     workflow: {
-      findMany: jest
-        .fn()
-        .mockResolvedValue([
-          { id: 'wf-1', versions: [{ id: 'ver-1' }], ...workflow },
-        ]),
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'wf-1',
+          // Mutable live rows: deliberately different from the snapshot.
+          conditions: [{ field: 'live', operator: 'equals', value: 'never' }],
+          actions: [email('live-row@example.com')],
+          versions:
+            options.published === false
+              ? []
+              : [
+                  {
+                    id: 'ver-1',
+                    definition: {
+                      conditions: workflow.conditions,
+                      actions: (
+                        workflow.actions as {
+                          configuration: { recipientAddress?: string };
+                        }[]
+                      ).map((a) =>
+                        pinnedAction(a.configuration.recipientAddress),
+                      ),
+                    },
+                  },
+                ],
+        },
+      ]),
     },
     workflowRun: {
       create: jest.fn(({ data }: { data: Record<string, unknown> }) => {
@@ -85,6 +123,29 @@ describe('WorkflowRuntimeService run status', () => {
     expect(runs[0].status).toBe(WorkflowRunStatus.FAILED);
   });
 
+  it('executes the pinned published snapshot, never the mutable live rows', async () => {
+    const { service, emailService } = build({
+      conditions: [],
+      actions: [email('pinned@example.com')],
+    });
+    await service.handleEvent(EVENT);
+    expect(emailService.sendTemplateEmail).toHaveBeenCalledTimes(1);
+    expect(emailService.sendTemplateEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ recipient: 'pinned@example.com' }),
+    );
+  });
+
+  it('refuses to run an ACTIVE workflow that has no published version', async () => {
+    const { service, runs, emailService } = build(
+      { conditions: [], actions: [email('a@example.com')] },
+      { published: false },
+    );
+    await service.handleEvent(EVENT);
+    expect(emailService.sendTemplateEmail).not.toHaveBeenCalled();
+    expect(runs[0].status).toBe(WorkflowRunStatus.FAILED);
+    expect(String(runs[0].error)).toContain('No published version');
+  });
+
   it('records the published version that executed', async () => {
     const { service, runs } = build({
       conditions: [],
@@ -112,7 +173,25 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'wf-1',
-            versions: [{ id: 'ver-1' }],
+            versions: [
+              {
+                id: 'ver-1',
+                definition: {
+                  conditions: [],
+                  actions: [
+                    {
+                      type: WorkflowActionType.SEND_EMAIL,
+                      sortOrder: 0,
+                      isActive: true,
+                      configuration: {
+                        recipientMode: 'CANDIDATE',
+                        templateKey: 't',
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
             conditions: [],
             actions: [
               {

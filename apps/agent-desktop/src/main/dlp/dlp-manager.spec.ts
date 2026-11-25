@@ -157,4 +157,48 @@ describe("DlpManager", () => {
     expect(screenshots.capture).not.toHaveBeenCalled();
     expect(api.sendScreenshotEvents).not.toHaveBeenCalled();
   });
+
+  it("drops events buffered while offline once capture is switched off, and never sends them", async () => {
+    const { manager, api, setClipboard } = build(config());
+    (api.sendClipboardEvents as jest.Mock).mockRejectedValueOnce(new Error("offline"));
+
+    setClipboard("salary data");
+    await manager.tickOnce(); // send fails -> the event is buffered
+
+    // The employee has not acknowledged the (new) policy: the synced config now
+    // says capture is off.
+    manager.configure(
+      config({ clipboardCaptureEnabled: false, screenshotCaptureEnabled: false }),
+      () => SESSION,
+    );
+    (api.sendClipboardEvents as jest.Mock).mockClear();
+    await manager.tickOnce();
+
+    expect(api.sendClipboardEvents).not.toHaveBeenCalled();
+    expect(api.sendScreenshotEvents).not.toHaveBeenCalled();
+  });
+});
+
+describe("DlpManager: the server's refusal wins over a stale local config", () => {
+  it("stops, purges and asks for a fresh config when the server says consent is missing", async () => {
+    const { manager, api, setClipboard } = build(config());
+    const refused = jest.fn();
+    manager.setOnCaptureRefused(refused);
+    (api.sendClipboardEvents as jest.Mock).mockResolvedValueOnce({
+      accepted: 0,
+      captureEnabled: true,
+      consentMissing: true,
+    });
+
+    setClipboard("salary data");
+    await manager.tickOnce();
+    expect(refused).toHaveBeenCalledTimes(1);
+
+    // Still holding the stale "capture on" config, but sampling has stopped: a
+    // further copy is neither read nor sent.
+    (api.sendClipboardEvents as jest.Mock).mockClear();
+    setClipboard("more salary data");
+    await manager.tickOnce();
+    expect(api.sendClipboardEvents).not.toHaveBeenCalled();
+  });
 });

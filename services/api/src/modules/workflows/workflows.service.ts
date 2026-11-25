@@ -20,7 +20,10 @@ import {
   UpdateWorkflowDto,
   WorkflowActionDto,
 } from './dto/workflow.dto';
-import { WORKFLOW_CONDITION_OPERATORS } from './workflow-conditions';
+import {
+  validateWorkflowConditionList,
+  WORKFLOW_CONDITION_OPERATORS,
+} from './workflow-conditions';
 import {
   buildWorkflowDefinition,
   checksumWorkflowDefinition,
@@ -135,6 +138,7 @@ export class WorkflowsService {
 
   async create(currentUser: AuthenticatedUser, dto: CreateWorkflowDto) {
     await this.assertEventExists(dto.eventCode);
+    this.assertConditionsValid(dto.conditions);
     const scopeKey = await this.resolveScopeKey(
       currentUser.tenantId,
       dto.scopeLevel,
@@ -198,6 +202,8 @@ export class WorkflowsService {
     if (!existing) throw new NotFoundException('Workflow was not found.');
 
     if (dto.eventCode) await this.assertEventExists(dto.eventCode);
+    if (dto.conditions !== undefined)
+      this.assertConditionsValid(dto.conditions);
 
     const scopeKey =
       dto.scopeLevel !== undefined || dto.scopeId !== undefined
@@ -211,6 +217,9 @@ export class WorkflowsService {
     const actions = dto.actions ? this.buildActions(dto.actions) : null;
 
     const workflow = await this.prisma.$transaction(async (tx) => {
+      // Concurrent saves of one workflow queue here instead of both minting the
+      // same next version number (a unique-violation 500).
+      await tx.$queryRaw`SELECT "id" FROM "Workflow" WHERE "id" = ${workflowId} AND "tenantId" = ${currentUser.tenantId} FOR UPDATE`;
       if (actions) {
         // Actions are authored as a list, so replacing wholesale is what the
         // builder means by "save" and avoids orphaned rows.
@@ -354,6 +363,16 @@ export class WorkflowsService {
     }
 
     return buildNotificationScopeKey(level, scopeId);
+  }
+
+  private assertConditionsValid(conditions: unknown) {
+    const problems = validateWorkflowConditionList(conditions ?? []);
+    if (problems.length) {
+      throw new BadRequestException({
+        code: 'WORKFLOW_CONDITIONS_INVALID',
+        message: problems.join(' '),
+      });
+    }
   }
 
   /*

@@ -8107,8 +8107,8 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `services/api/src/modules/employees` |
 | **Bug record** | BUG-4774 |
 | **Root cause** | `EmployeesService.terminate` only wrote employment status, date and an audit row; nothing touched the user or its refresh tokens. |
-| **Regression test** | `services/api/src/modules/employees/employee-terminate-access.spec.ts`; `services/api/src/modules/employees/access-revocation-sweeper.worker.spec.ts` |
+| **Regression test** | `services/api/test/employee-access-revocation.e2e-spec.ts` |
 | **Scenario** | QA-AUTH-031 |
-| **Fails without the fix** | Yes - mutated 2026-11-25: making terminate skip the shared revocation helper fails 5 of 7 terminate specs. Residuals: no database-level test of the sweeper query; the DP-MASTER WP-26.S1 e2e run covers wiring only. |
+| **Fails without the fix** | Yes - mutated 2026-11-25 against a real database: removing the under-lock re-check in revokeAccessIfDue and the auth-time effective-date check fails 3 of 11 tests (concurrent rehire, concurrent reschedule, future-dated exit). Residuals: access tokens already issued work on ordinary endpoints for up to one 60 s sweep after a future-dated exit; terminate does not yet cancel approvals or hand off work. |
 | **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
 | **Active** | yes |

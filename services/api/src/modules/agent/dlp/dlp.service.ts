@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { SecretEncryptionService } from '../../../common/security/secret-encryption.service';
 import { StorageService } from '../../../common/storage/storage.service';
+import { hasCurrentMonitoringConsent } from './dlp-consent';
 import { AuditService } from '../../audit/audit.service';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import {
@@ -16,15 +17,6 @@ import {
   ScreenCaptureBatchDto,
   UpsertDlpRuleDto,
 } from '../dto/dlp-capture.dto';
-
-/**
- * The legal-document slug an employee must have acknowledged before capture is
- * accepted, when a tenant turns `dlpConsentRequired` on. The tenant authors that
- * document through the legal module; until it exists and is acknowledged, a
- * consent-required tenant captures nothing — the gate fails closed rather than
- * collecting without a record of consent.
- */
-const DLP_MONITORING_POLICY_SLUG = 'dlp-monitoring-policy';
 
 const DEFAULT_ALERT_LIMIT = 100;
 const MAX_ALERT_LIMIT = 500;
@@ -77,7 +69,7 @@ export class DlpService {
       return { accepted: 0, captureEnabled: false };
     }
     if (
-      settings.dlpConsentRequired &&
+      // Consent is mandatory whenever capture is on; the tenant flag cannot waive it.
       !(await this.hasMonitoringConsent(user.tenantId, user.userId))
     ) {
       this.logger.warn(
@@ -153,7 +145,7 @@ export class DlpService {
       return { accepted: 0, captureEnabled: false };
     }
     if (
-      settings.dlpConsentRequired &&
+      // Consent is mandatory whenever capture is on; the tenant flag cannot waive it.
       !(await this.hasMonitoringConsent(user.tenantId, user.userId))
     ) {
       this.logger.warn(
@@ -570,19 +562,11 @@ export class DlpService {
     );
   }
 
-  private async hasMonitoringConsent(
+  private hasMonitoringConsent(
     tenantId: string,
     userId: string,
   ): Promise<boolean> {
-    const ack = await this.prisma.legalDocumentAcknowledgement.findFirst({
-      where: {
-        tenantId,
-        userId,
-        version: { document: { slug: DLP_MONITORING_POLICY_SLUG } },
-      },
-      select: { id: true },
-    });
-    return !!ack;
+    return hasCurrentMonitoringConsent(this.prisma, tenantId, userId);
   }
 
   private async auditRuleChange(

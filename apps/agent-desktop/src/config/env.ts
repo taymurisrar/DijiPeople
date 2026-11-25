@@ -97,7 +97,9 @@ export const agentEnv = {
 
   windowTitleTrackingEnabled: readBoolean(
     process.env.AGENT_WINDOW_TITLE_TRACKING_ENABLED,
-    true,
+    // Privacy-first (D16): window titles are collected only when the tenant's
+    // synced policy says so, never from a local default.
+    false,
   ),
 
   trayStatusEnabled: readBoolean(

@@ -1,6 +1,7 @@
 import {
   evaluateWorkflowConditions,
   findMalformedWorkflowCondition,
+  validateWorkflowConditionList,
 } from './workflow-conditions';
 
 /*
@@ -141,5 +142,60 @@ describe('workflow conditions', () => {
         CONTEXT,
       ),
     ).toBe(true);
+  });
+});
+
+describe('authoring-time validation (WP-03, A03)', () => {
+  const ok = {
+    field: 'employee.department',
+    operator: 'equals',
+    value: 'Sales',
+  };
+
+  it('accepts well typed conditions', () => {
+    expect(
+      validateWorkflowConditionList([
+        ok,
+        { field: 'totalDays', operator: 'greaterThan', value: '3.5' },
+        { field: 'reason', operator: 'isEmpty' },
+      ]),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['a path with a space', { ...ok, field: 'a b' }, /not a valid field path/],
+    [
+      'a path with a bracket',
+      { ...ok, field: 'a[0]' },
+      /not a valid field path/,
+    ],
+    [
+      'a prototype segment',
+      { ...ok, field: 'employee.constructor.name' },
+      /not an allowed field path/,
+    ],
+    ['__proto__', { ...ok, field: '__proto__' }, /not an allowed field path/],
+    ['a comparison with no value', { ...ok, value: '' }, /needs a value/],
+    [
+      'a numeric comparison against text',
+      { field: 'x', operator: 'lessThan', value: 'abc' },
+      /needs a number/,
+    ],
+    [
+      'a presence test carrying a value',
+      { field: 'x', operator: 'isEmpty', value: 'oops' },
+      /takes no value/,
+    ],
+  ])('rejects %s', (_name, condition, message) => {
+    const problems = validateWorkflowConditionList([condition]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(message);
+  });
+
+  it('reports a structurally broken list as one problem', () => {
+    expect(validateWorkflowConditionList('nope')).toEqual([
+      'Conditions are not a list.',
+    ]);
+    expect(validateWorkflowConditionList([null])).toHaveLength(1);
   });
 });

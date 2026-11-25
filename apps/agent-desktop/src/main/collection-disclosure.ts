@@ -6,8 +6,28 @@ import type { AgentConfig } from "./types";
  * drift from behaviour. Shown to the employee in the tray so nothing here runs
  * invisibly. Keystrokes are never collected, and the line says so.
  */
+/** The employee must acknowledge the current policy before content capture can start. */
+export function awaitingAcknowledgement(
+  config: Pick<AgentConfig, "dlpConsent">,
+): boolean {
+  return config.dlpConsent.required && !config.dlpConsent.granted;
+}
+
+/** Truthful one-line status for the tray, derived from the synced config. */
+export function contentMonitoringLabel(
+  config: Pick<AgentConfig, "dlpConsent">,
+  captureActive: boolean,
+): string {
+  if (awaitingAcknowledgement(config)) {
+    return "Content monitoring: off until you acknowledge the policy";
+  }
+  return captureActive
+    ? "Content monitoring: ON (clipboard/screenshots)"
+    : "Content monitoring: off";
+}
+
 export function describeCollection(
-  config: Pick<AgentConfig, "tracking" | "privacy">,
+  config: Pick<AgentConfig, "tracking" | "privacy" | "dlpConsent">,
 ): string[] {
   const lines: string[] = [];
   if (!config.tracking.enabled) {
@@ -29,5 +49,8 @@ export function describeCollection(
       : "Screenshots: not collected",
     "Keystrokes: never collected",
   );
+  if (awaitingAcknowledgement(config)) {
+    lines.push("Content capture: waiting for your acknowledgement of the policy");
+  }
   return lines;
 }

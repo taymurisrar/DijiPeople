@@ -137,6 +137,59 @@ export function findMalformedWorkflowCondition(
   return null;
 }
 
+const FIELD_PATH = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
+const BLOCKED_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
+const NUMERIC_OPERATORS = new Set<WorkflowConditionOperator>([
+  'greaterThan',
+  'lessThan',
+]);
+
+/**
+ * Authoring-time checks, stricter than what the evaluator tolerates: a path that
+ * is not a plain dotted identifier (or walks the prototype chain), a comparison
+ * with no value, a numeric comparison against text, or a presence test that
+ * carries a value. Returns one message per problem; empty means the list is
+ * well typed. DP-MASTER/WP-03 (A03).
+ */
+export function validateWorkflowConditionList(conditions: unknown): string[] {
+  const structural = findMalformedWorkflowCondition(conditions);
+  if (structural) return [structural];
+  if (!Array.isArray(conditions)) return [];
+
+  const problems: string[] = [];
+  conditions.forEach((entry, index) => {
+    const condition = entry as WorkflowCondition;
+    const label = `Condition ${index + 1}`;
+    const field = condition.field.trim();
+    if (!FIELD_PATH.test(field)) {
+      problems.push(`${label}: "${field}" is not a valid field path.`);
+    } else if (
+      field.split('.').some((segment) => BLOCKED_SEGMENTS.has(segment))
+    ) {
+      problems.push(`${label}: "${field}" is not an allowed field path.`);
+    }
+
+    const value = condition.value;
+    const hasValue =
+      value !== undefined && value !== null && String(value).trim() !== '';
+    if (!conditionNeedsValue(condition.operator)) {
+      if (hasValue) {
+        problems.push(`${label}: "${condition.operator}" takes no value.`);
+      }
+    } else if (!hasValue) {
+      problems.push(`${label}: "${condition.operator}" needs a value.`);
+    } else if (
+      NUMERIC_OPERATORS.has(condition.operator) &&
+      !Number.isFinite(Number(String(value).trim()))
+    ) {
+      problems.push(
+        `${label}: "${condition.operator}" needs a number, not "${String(value)}".`,
+      );
+    }
+  });
+  return problems;
+}
+
 /**
  * All conditions must hold. No conditions means "always run", which matches how
  * the builder presents a workflow with none. A malformed list FAILS CLOSED: a

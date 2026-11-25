@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -50,6 +51,11 @@ import {
 } from './dto/agent-session.dto';
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
+import { AcknowledgeMonitoringPolicyDto } from './dto/monitoring-policy.dto';
+import {
+  findCurrentMonitoringPolicy,
+  hasCurrentMonitoringConsent,
+} from './dlp/dlp-consent';
 import { AuditService } from '../audit/audit.service';
 import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
@@ -863,7 +869,7 @@ export class AgentService {
     };
   }
 
-  async getConfig(tenantId: string) {
+  async getConfig(tenantId: string, userId?: string) {
     const settings = (await this.getOrCreateSettings(
       tenantId,
     )) as ExtendedAgentSettings & {
@@ -891,7 +897,101 @@ export class AgentService {
           })
         : [];
 
-    return toConfigResponse(settings, dlpRules);
+    /*
+     * Content capture is offered to the agent only for an employee who has
+     * acknowledged the CURRENT monitoring policy. Without it the agent is told
+     * capture is off, so nothing is sampled, buffered or sent locally; ingestion
+     * checks the same thing again server-side. The agent is also told why, so it
+     * can show the employee the status truthfully.
+     */
+    const captureOn =
+      settings.allowClipboardCapture || settings.allowScreenshotCapture;
+    // Mandatory whenever capture is on. `dlpConsentRequired` is kept for
+    // compatibility but can no longer waive the gate (D16: consent is enforced).
+    const consentRequired = captureOn;
+    const consentGranted =
+      !consentRequired ||
+      (userId
+        ? await hasCurrentMonitoringConsent(this.prisma, tenantId, userId)
+        : false);
+
+    const effective = consentGranted
+      ? settings
+      : {
+          ...settings,
+          allowClipboardCapture: false,
+          allowScreenshotCapture: false,
+        };
+
+    return {
+      ...toConfigResponse(effective, consentGranted ? dlpRules : []),
+      dlpConsent: { required: consentRequired, granted: consentGranted },
+    };
+  }
+
+  /** The policy in force and whether this employee has acknowledged it. */
+  async getMonitoringPolicy(user: AuthenticatedUser) {
+    const policy = await findCurrentMonitoringPolicy(this.prisma);
+    if (!policy) return { available: false as const };
+    const acknowledged = await hasCurrentMonitoringConsent(
+      this.prisma,
+      user.tenantId,
+      user.userId,
+    );
+    return { available: true as const, ...policy, acknowledged };
+  }
+
+  /**
+   * Records the employee's own acknowledgement of the policy in force. Only the
+   * current version can be acknowledged, so a stale prompt cannot record consent
+   * to text that has been replaced. Idempotent.
+   */
+  async acknowledgeMonitoringPolicy(
+    user: AuthenticatedUser,
+    dto: AcknowledgeMonitoringPolicyDto,
+  ) {
+    const policy = await findCurrentMonitoringPolicy(this.prisma);
+    if (!policy || policy.versionId !== dto.versionId) {
+      throw new ConflictException({
+        code: 'MONITORING_POLICY_NOT_CURRENT',
+        message:
+          'That version of the monitoring policy is no longer in force. Review the current one.',
+      });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.legalDocumentAcknowledgement.findFirst({
+        where: {
+          tenantId: user.tenantId,
+          userId: user.userId,
+          legalDocumentVersionId: policy.versionId,
+        },
+        select: { id: true },
+      });
+      if (existing) return { acknowledged: true, versionId: policy.versionId };
+
+      // The acknowledgement and its audit row commit together: a consent that has
+      // no audit trail must not exist, and a retry must not skip the audit.
+      await tx.legalDocumentAcknowledgement.create({
+        data: {
+          legalDocumentVersionId: policy.versionId,
+          tenantId: user.tenantId,
+          userId: user.userId,
+          source: 'agent-desktop:monitoring-policy',
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: 'DLP_MONITORING_POLICY_ACKNOWLEDGED',
+          entityType: 'LegalDocumentVersion',
+          entityId: policy.versionId,
+          sourceModule: 'agent-dlp',
+        },
+        tx,
+      );
+      return { acknowledged: true, versionId: policy.versionId };
+    });
   }
 
   async getSettings(currentUser: AuthenticatedUser) {

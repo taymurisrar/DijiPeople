@@ -428,7 +428,7 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
   `@Public()` marks a genuinely unauthenticated route. At this baseline there
-  are **<!--fact:publicHandlers-->64<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->17<!--/fact--> controllers**, including partially
+  are **<!--fact:publicHandlers-->66<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->17<!--/fact--> controllers**, including partially
   public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
   where most handlers are guarded and a few are not. Count them on your branch;
   never assume a controller is uniformly public or uniformly guarded.

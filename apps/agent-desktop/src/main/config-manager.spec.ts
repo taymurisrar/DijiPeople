@@ -27,6 +27,39 @@ describe("ConfigManager", () => {
     return { manager, getConfig };
   }
 
+  describe("DLP consent (WP-17)", () => {
+    const capture = {
+      privacy: { allowClipboardTracking: true, allowScreenshots: true },
+      dlp: { clipboardCaptureEnabled: true, screenshotCaptureEnabled: true },
+    };
+
+    it("turns content capture off locally when consent is required and not granted", async () => {
+      const { manager } = build({
+        ...capture,
+        dlpConsent: { required: true, granted: false },
+      });
+      const config = await manager.refresh();
+      expect(config.privacy.allowClipboardTracking).toBe(false);
+      expect(config.privacy.allowScreenshots).toBe(false);
+      expect(config.dlp.clipboardCaptureEnabled).toBe(false);
+      expect(config.dlp.screenshotCaptureEnabled).toBe(false);
+    });
+
+    it("allows capture once consent is granted", async () => {
+      const { manager } = build({
+        ...capture,
+        dlpConsent: { required: true, granted: true },
+      });
+      const config = await manager.refresh();
+      expect(config.dlp.clipboardCaptureEnabled).toBe(true);
+    });
+
+    it("never defaults window-title capture on before the server has spoken", () => {
+      expect(DEFAULT_CONFIG.tracking.captureWindowTitle).toBe(false);
+      expect(DEFAULT_CONFIG.dlpConsent).toEqual({ required: false, granted: false });
+    });
+  });
+
   describe("a partial config from the server", () => {
     it("fills every unsent field from the defaults", async () => {
       const { manager } = build({ tracking: { enabled: true } });

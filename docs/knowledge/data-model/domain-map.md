@@ -207,7 +207,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `WorkflowRun` | yes | `workflows` | — |
 | `WorkflowVersion` | yes | `workflows` | — |
 
-## Commercial — 78 models
+## Commercial — 77 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -234,7 +234,6 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `Lead` | no | `leads` | — |
 | `LeadAttributionCorrection` | no | `leads` | — |
 | `LegalDocument` | no | **none** | — |
-| `LegalDocumentAcknowledgement` | yes | `legal` | — |
 | `LegalDocumentVersion` | no | `legal` | — |
 | `Market` | no | `super-admin` | — |
 | `MarketCountry` | no | `super-admin` | — |
@@ -349,7 +348,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationRule` | yes | `notifications` | — |
 | `NotificationTemplate` | yes | **none** | — |
 
-## Platform ops — 38 models
+## Platform ops — 39 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -367,6 +366,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `DlpRule` | yes | `agent` | — |
 | `EmployeeDevice` | yes | `agent` | — |
 | `EmployeeDocumentReference` | yes | **none** | — |
+| `LegalDocumentAcknowledgement` | yes | `agent` | — |
 | `NotificationInteractionLog` | yes | `inbox` | — |
 | `OutboxEvent` | yes | `outbox` | — |
 | `OutboxEventConsumption` | no | `outbox` | — |

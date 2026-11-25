@@ -37,7 +37,10 @@ describe('DlpService', () => {
     historyRetentionDays: number;
   };
 
-  function build(settings: Partial<Settings>, opts?: { hasConsent?: boolean }) {
+  function build(
+    settings: Partial<Settings>,
+    opts?: { hasConsent?: boolean; noPolicy?: boolean },
+  ) {
     const created: Array<Prisma.ClipboardCaptureEventCreateArgs['data']> = [];
     const prisma = {
       employee: { findFirst: jest.fn().mockResolvedValue({ id: 'emp-1' }) },
@@ -68,10 +71,24 @@ describe('DlpService', () => {
             { id: 'cbe-1', employeeId: 'emp-1', occurredAt: new Date() },
           ]),
       },
+      legalDocumentVersion: {
+        findFirst: jest.fn().mockResolvedValue(
+          opts?.noPolicy
+            ? null
+            : {
+                id: 'policy-v2',
+                version: 2,
+                contentMarkdown: 'policy text',
+                document: { title: 'Monitoring policy' },
+              },
+        ),
+      },
       legalDocumentAcknowledgement: {
         findFirst: jest
           .fn()
-          .mockResolvedValue(opts?.hasConsent ? { id: 'ack-1' } : null),
+          .mockResolvedValue(
+            opts?.hasConsent !== false ? { id: 'ack-1' } : null,
+          ),
       },
     } as unknown as PrismaService;
 
@@ -112,15 +129,37 @@ describe('DlpService', () => {
     expect(prisma.clipboardCaptureEvent.create).not.toHaveBeenCalled();
   });
 
-  it('collects nothing when consent is required but not on record', async () => {
+  it('collects nothing when consent is not on record, even if the tenant flag says it is not required', async () => {
     const { service, prisma } = build(
-      { allowClipboardCapture: true, dlpConsentRequired: true },
+      { allowClipboardCapture: true, dlpConsentRequired: false },
       { hasConsent: false },
     );
     const result = await service.ingestClipboardEvents(user, batch());
 
     expect(result).toMatchObject({ accepted: 0, consentMissing: true });
     expect(prisma.clipboardCaptureEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('collects nothing when no monitoring policy is published, even if consent is required', async () => {
+    const { service, prisma } = build(
+      { allowClipboardCapture: true, dlpConsentRequired: true },
+      { hasConsent: true, noPolicy: true },
+    );
+    const result = await service.ingestClipboardEvents(user, batch());
+    expect(result).toMatchObject({ accepted: 0, consentMissing: true });
+    expect(prisma.clipboardCaptureEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('checks the acknowledgement of the CURRENT policy version, not any version', async () => {
+    const { service, prisma } = build(
+      { allowClipboardCapture: true, dlpConsentRequired: true },
+      { hasConsent: true },
+    );
+    await service.ingestClipboardEvents(user, batch());
+    expect(
+      (prisma.legalDocumentAcknowledgement.findFirst as jest.Mock).mock
+        .calls[0][0].where,
+    ).toMatchObject({ legalDocumentVersionId: 'policy-v2' });
   });
 
   it('stores encrypted content in full-content mode', async () => {

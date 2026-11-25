@@ -171,6 +171,15 @@
       ],
       "approvedOption": "Approve (recommended)",
       "approvedOn": "2026-11-24"
+    },
+    {
+      "id": "OD-DLP-POLICY-TEXT",
+      "status": "OPEN",
+      "title": "Who authors and publishes the dlp-monitoring-policy legal document (needs legal review)? Until published, content capture stays off for every tenant that enabled it.",
+      "recommendation": "Owner/legal drafts the text; publish via the platform legal console; tenants then acknowledge per employee in the agent.",
+      "blocks": [
+        "WP-17 rollout"
+      ]
     }
   ],
   "risks": [
@@ -1113,7 +1122,7 @@
         "WP-17.S2"
       ],
       "workstream": "C",
-      "status": "ACCEPTED",
+      "status": "IN_REVIEW",
       "evidence": "Full API suite 528/9148, agent 136, targeted DB e2e 231, preflight on Node 22, migration fresh+legacy on isolated DB, CI run 45490638428 green; see r1-release-manifest.md for what is not proven"
     },
     {
@@ -1125,7 +1134,7 @@
         "WP-26.S1"
       ],
       "workstream": "C",
-      "status": "ACCEPTED",
+      "status": "IN_REVIEW",
       "window": "2026-12-06..07",
       "evidence": "r1-release-manifest.md: gate table, open G4 items, rollback; verdict R1 CANDIDATE, not RC_READY"
     },
@@ -1138,9 +1147,9 @@
         "WP-03.S1"
       ],
       "workstream": "A",
-      "status": "INTEGRATED",
+      "status": "IN_REVIEW",
       "lease": "schema",
-      "evidence": "migration 20261125120000 verified on isolated DB (keys de-duplicated per tenant, version 1 backfilled for ACTIVE workflows, legacy runs untouched); workflowKey immutable on rename; version minted only when behaviour changes; runs record workflowVersionId; 11 new unit tests",
+      "evidence": "migration 20261125120000 verified on isolated DB (keys de-duplicated per tenant, version 1 backfilled for ACTIVE workflows, legacy runs untouched); workflowKey immutable on rename; version minted only when behaviour changes; runs record workflowVersionId; 11 new unit tests; G4: pinned-snapshot execution, authoring validation, row lock on save, backfill collision fix verified on colliding names",
       "integratedSha": "bdca89a2"
     },
     {
@@ -1189,10 +1198,10 @@
         "WP-17.S1"
       ],
       "workstream": "B",
-      "status": "INTEGRATED",
+      "status": "IN_REVIEW",
       "lease": "schema",
       "decision": "OD-DLP-DEFAULTS",
-      "evidence": "migration 20261125090000 applied and rolled back on isolated DB (audited via AuditLog, idempotent); removed the read-time override that re-enabled window titles; agent tray \"What this app collects\"; consent gate fails closed; 2+3 unit tests",
+      "evidence": "G4 hardening: consent mandatory for the CURRENT policy version, agent purge on server refusal, acknowledgement endpoints, atomic ack+audit; dlp-monitoring-consent.e2e-spec.ts real DB; agent suite 146 tests; real-Electron run NOT performed",
       "integratedSha": "bdca89a2"
     },
     {
@@ -1204,17 +1213,30 @@
         "WP-08.S0"
       ],
       "workstream": "B",
-      "status": "INTEGRATED",
+      "status": "IN_REVIEW",
       "decision": "OD-TERMINATE-ACCESS",
       "design": "Sweeper worker following billing/services/subscription-change-sweeper.worker.ts (off by default, interval, never throws); selects TERMINATED employees with terminationDate<=now whose user is still ACTIVE; same transaction as WP-08.S0; new env var must be registered in packages/config, render.yaml, docs/environment-variables.md (enabling it is a deployment decision, not made here). Rejected: enforcing in JwtAuthGuard (single-writer auth hot path).",
-      "evidence": "AccessRevocationSweeperWorker (default ON) + shared revokeLinkedUserAccess (web+agent tokens, idempotent, owner protected); 14 unit tests; BUG-4774 FIXED, REG-730, QA-AUTH-031",
+      "evidence": "G4 hardening: single transaction under row lock, effective-date check on login/refresh/me, sweeper recovery + keyset cursor + 60 s interval; employee-access-revocation.e2e-spec.ts 11 real-DB tests (3 fail when the lock re-check / auth check are removed); runbook; review findings dispositioned in r1-release-manifest.md",
       "integratedSha": "bdca89a2"
+    },
+    {
+      "id": "WP-26.S3",
+      "wp": "WP-26",
+      "title": "Close G4: browser run of the web tweaks, real-Electron smoke, human review of the G4 diff",
+      "release": "R1",
+      "deps": [
+        "WP-08.S0b",
+        "WP-17.S2",
+        "WP-03.S2"
+      ],
+      "workstream": "C",
+      "status": "NOT_STARTED"
     }
   ],
   "nextExecutable": [
+    "WP-26.S3",
     "WP-35.S1",
-    "WP-03.S3",
-    "WP-02.S1"
+    "WP-03.S3"
   ],
   "gates": {
     "G0": {
@@ -1223,13 +1245,12 @@
       "note": "WP-01.S1 + S2 accepted. 42 of 53 cross-cutting requirements are classified by inheritance from the owning WP audit, not individually code-read; each owning slice re-audits at its G1."
     },
     "G3": {
-      "status": "PASS_SLICE_SCOPE",
-      "sha": "bdca89a2",
-      "note": "CI run 45490638428 green on the exact SHA. Earlier failures (K5 flake; WorkflowVersion missing from erasure order and runtime schema) diagnosed and fixed."
+      "status": "PENDING",
+      "note": "G4 hardening pushed; exact-SHA CI pending for the new commit."
     },
     "G4": {
       "status": "NOT_MET",
-      "note": "Open items listed in r1-release-manifest.md (browser check of new UI, DB-level sweeper test, independent review, runbook)."
+      "note": "Evidence-backed except two items: no real-Electron run and no browser run of the PARTIALLY_FAILED badge / CANDIDATE option; review was by a separate agent, not a human. See r1-release-manifest.md."
     }
   },
   "records": {

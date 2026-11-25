@@ -2,7 +2,11 @@ import { app, Menu, nativeImage, Tray } from "electron";
 import { ConfigManager } from "./config-manager";
 import { SessionManager } from "./session-manager";
 import { resolveAgentAsset } from "./assets";
-import { describeCollection } from "./collection-disclosure";
+import {
+  awaitingAcknowledgement,
+  contentMonitoringLabel,
+  describeCollection,
+} from "./collection-disclosure";
 
 type CreateAgentTrayParams = {
   sessionManager: SessionManager;
@@ -16,6 +20,8 @@ type CreateAgentTrayParams = {
    * read the clipboard and screen must never do so invisibly.
    */
   isDlpCaptureActive?: () => boolean;
+  /** Opens the monitoring-policy review and acknowledgement dialog. */
+  onReviewMonitoringPolicy?: () => void;
 };
 
 export function createAgentTray(params: CreateAgentTrayParams): Tray {
@@ -66,11 +72,20 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
           enabled: false,
         },
         {
-          label: params.isDlpCaptureActive?.()
-            ? "Content monitoring: ON (clipboard/screenshots)"
-            : "Content monitoring: off",
+          label: contentMonitoringLabel(
+            params.configManager.current,
+            params.isDlpCaptureActive?.() ?? false,
+          ),
           enabled: false,
         },
+        ...(awaitingAcknowledgement(params.configManager.current)
+          ? [
+              {
+                label: "Review and acknowledge monitoring policy...",
+                click: () => params.onReviewMonitoringPolicy?.(),
+              },
+            ]
+          : []),
         {
           label: "What this app collects",
           submenu: describeCollection(params.configManager.current).map((label) => ({

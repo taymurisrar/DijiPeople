@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 833,
+    "total_records": 834,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -36569,6 +36569,46 @@
           "tenant-settings"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0245-recruitment-settings-are-not-implemented-28-keys-and-hire-st.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0246",
+      "type": "TEST_GAP",
+      "title": "Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-25",
+        "updated_at": "2026-11-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "framework",
+        "qa"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "framework",
+          "qa"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

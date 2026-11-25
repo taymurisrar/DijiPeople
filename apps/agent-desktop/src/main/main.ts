@@ -2,6 +2,7 @@ import {
   app,
   BrowserWindow,
   clipboard,
+  dialog,
   ipcMain,
   type IpcMainInvokeEvent,
   type Tray,
@@ -87,6 +88,47 @@ function syncDlpCapture(): void {
         }
       : null,
   );
+}
+
+dlpManager.setOnCaptureRefused(() => {
+  void configManager.refresh().catch(() => undefined);
+});
+
+/**
+ * Shows the monitoring policy in force and records the employee's own
+ * acknowledgement. Nothing is collected until they accept; declining leaves
+ * capture off and the tray keeps saying so.
+ */
+async function reviewMonitoringPolicy(): Promise<void> {
+  try {
+    const policy = await apiClient.getMonitoringPolicy();
+    if (!policy.available) {
+      await dialog.showMessageBox({
+        type: "info",
+        message: "No monitoring policy is published yet",
+        detail:
+          "Content monitoring stays off until your company publishes one.",
+      });
+      return;
+    }
+    if (policy.acknowledged) return;
+    const { response } = await dialog.showMessageBox({
+      type: "question",
+      title: policy.title,
+      message: `${policy.title} (version ${policy.version})`,
+      detail: policy.contentMarkdown.slice(0, 4000),
+      buttons: ["I acknowledge", "Not now"],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    if (response !== 0) return;
+    await apiClient.acknowledgeMonitoringPolicy(policy.versionId);
+    await configManager.refresh();
+  } catch (error) {
+    logger.error("agent.dlp.policy.review_failed", {
+      error: error instanceof Error ? error.name : "unknown",
+    });
+  }
 }
 
 /** True when a DLP capture capability is on, for the tray indicator. */
@@ -655,6 +697,7 @@ app.on("ready", async () => {
     onShowDevicePermissions: createPermissionsWindow,
     onCheckUpdates: () => void updateManager.checkForUpdates(),
     isDlpCaptureActive,
+    onReviewMonitoringPolicy: () => void reviewMonitoringPolicy(),
   });
 
   updateManager.start(

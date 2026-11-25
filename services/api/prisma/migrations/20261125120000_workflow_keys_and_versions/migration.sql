@@ -35,6 +35,16 @@ UPDATE "Workflow" w
    SET "workflowKey" = CASE WHEN r.n = 1 THEN r.slug ELSE r.slug || '-' || r.n END
   FROM ranked r WHERE w."id" = r."id";
 
+-- A name like "A 2" next to two "A" rows yields a-2 twice. Any key still shared after
+-- the pass above gets a fragment of its own row id, which cannot collide.
+UPDATE "Workflow" w
+   SET "workflowKey" = w."workflowKey" || '-' || substr(w."id", 1, 8)
+  FROM (
+    SELECT "id", row_number() OVER (PARTITION BY "tenantId", "workflowKey" ORDER BY "createdAt", "id") AS n
+    FROM "Workflow"
+  ) d
+ WHERE w."id" = d."id" AND d.n > 1;
+
 -- Backfill version 1 for workflows that are live today.
 INSERT INTO "WorkflowVersion" ("id", "tenantId", "workflowId", "version", "definition", "checksum", "publishedAt", "publishedBy")
 SELECT gen_random_uuid()::text, w."tenantId", w."id", 1, d.def, md5(d.def::text), now(), w."updatedBy"

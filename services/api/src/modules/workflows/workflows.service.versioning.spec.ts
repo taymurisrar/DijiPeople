@@ -49,6 +49,7 @@ function build(
 ) {
   const row = workflowRow(options.row);
   const tx = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     workflow: {
       create: jest.fn().mockResolvedValue(row),
       update: jest.fn().mockResolvedValue(row),
@@ -115,6 +116,19 @@ describe('workflow keys and versions', () => {
     expect(tx.workflow.create.mock.calls[0][0].data.workflowKey).toBe(
       'notify-hr-2',
     );
+  });
+
+  it('rejects ill-typed conditions before anything is written', async () => {
+    const { service, tx } = build();
+    await expect(
+      service.create(USER, {
+        ...(dto as object),
+        conditions: [{ field: 'a b', operator: 'equals', value: 'x' }],
+      } as never),
+    ).rejects.toMatchObject({
+      response: { code: 'WORKFLOW_CONDITIONS_INVALID' },
+    });
+    expect(tx.workflow.create).not.toHaveBeenCalled();
   });
 
   it('mints no version for a DRAFT workflow', async () => {

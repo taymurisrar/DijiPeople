@@ -39,12 +39,25 @@ jest.mock("active-win", () => ({
   },
 }));
 
+/*
+ * A tenant that has opted in to window titles. The shipped default is OFF
+ * (DP-MASTER WP-17.S2, D16), so the tests that exercise title handling must say
+ * they are testing an opted-in tenant rather than inherit it.
+ */
 function config(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {
     ...DEFAULT_CONFIG,
     ...overrides,
-    tracking: { ...DEFAULT_CONFIG.tracking, ...(overrides.tracking ?? {}) },
-    features: { ...DEFAULT_CONFIG.features, ...(overrides.features ?? {}) },
+    tracking: {
+      ...DEFAULT_CONFIG.tracking,
+      captureWindowTitle: true,
+      ...(overrides.tracking ?? {}),
+    },
+    features: {
+      ...DEFAULT_CONFIG.features,
+      windowTitleTracking: true,
+      ...(overrides.features ?? {}),
+    },
   };
 }
 

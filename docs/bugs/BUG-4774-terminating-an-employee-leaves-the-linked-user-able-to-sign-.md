@@ -66,7 +66,7 @@ Immediate exit disables user and revokes sessions; future-dated exit leaves acce
 
 ## Regression Coverage
 
-REG-730. `employee-terminate-access.spec.ts` (5 of 7 fail without the fix) and `access-revocation-sweeper.worker.spec.ts`. Scenario QA-AUTH-031.
+REG-730. `services/api/test/employee-access-revocation.e2e-spec.ts` (11 tests against a real database and the real guard: immediate exit, idempotency, atomic rollback, future date + sweeper, concurrent rehire and reschedule, owner protection, disabled-user token recovery, no starvation). Scenario QA-AUTH-031.
 
 ## Dependencies
 
@@ -78,7 +78,7 @@ Wikilinks to related bugs, items, modules and decisions — for the Obsidian gra
 
 ## Resolution
 
-Immediate and past-dated exits revoke through `revokeLinkedUserAccess` (user DISABLED + web and agent refresh tokens revoked, one transaction, idempotent, owner protected). Future-dated exits are revoked by `AccessRevocationSweeperWorker`, ON by default (`ACCESS_REVOCATION_SWEEPER_ENABLED=false` disables it and logs a warning). Branch `agent/dp-master-wp01-baseline`.
+One transaction under an employee row lock: status and date, user DISABLED, web and agent refresh tokens revoked, audit row. A future-dated exit is revoked by `AccessRevocationSweeperWorker` (ON by default, every 60 s); login, refresh and `/auth/me` refuse on the date itself. Branch `agent/dp-master-wp01-baseline`.
 
 ## QA Retest
 

@@ -131,6 +131,31 @@ type SendEmailConfiguration = {
   recipientAddress?: string;
 };
 
+/*
+ * Reads a published snapshot defensively: a snapshot that cannot be read yields
+ * no actions, so it fails closed instead of running whatever the live rows say.
+ */
+function readPinnedDefinition(raw: unknown): {
+  conditions: unknown;
+  actions: { type: WorkflowActionType; configuration: unknown }[];
+} {
+  const definition = (raw && typeof raw === 'object' ? raw : {}) as Record<
+    string,
+    unknown
+  >;
+  const actions = Array.isArray(definition.actions)
+    ? (definition.actions as Record<string, unknown>[])
+        .filter((action) => action && action.isActive !== false)
+        .map((action) => ({
+          type:
+            (action.type as WorkflowActionType) ??
+            WorkflowActionType.SEND_EMAIL,
+          configuration: action.configuration,
+        }))
+    : [];
+  return { conditions: definition.conditions ?? [], actions };
+}
+
 @Injectable()
 export class WorkflowRuntimeService {
   private readonly logger = new Logger(WorkflowRuntimeService.name);
@@ -246,16 +271,14 @@ export class WorkflowRuntimeService {
         scopeKey: { in: scopeChain },
       },
       include: {
-        actions: {
-          where: { isActive: true },
-          orderBy: { sortOrder: 'asc' },
-        },
-        // The latest published version is what this run executes (every save of
-        // an ACTIVE workflow publishes one), so the run records it.
+        // The latest PUBLISHED version is what runs: its conditions and actions
+        // are an immutable snapshot, so what executes is exactly what was
+        // published and what the run records. The live rows only find candidates;
+        // every save of an ACTIVE workflow publishes a new version.
         versions: {
           orderBy: { version: 'desc' },
           take: 1,
-          select: { id: true },
+          select: { id: true, definition: true },
         },
       },
     });
@@ -270,8 +293,20 @@ export class WorkflowRuntimeService {
 
     let ran = 0;
     for (const workflow of workflows) {
-      const workflowVersionId = workflow.versions[0]?.id ?? null;
-      const malformed = findMalformedWorkflowCondition(workflow.conditions);
+      const pinned = workflow.versions?.[0] ?? null;
+      const workflowVersionId = pinned?.id ?? null;
+      if (!pinned) {
+        // An ACTIVE workflow with nothing published must not run from mutable rows.
+        await this.recordRun(workflow.id, context, {
+          workflowVersionId: null,
+          status: WorkflowRunStatus.FAILED,
+          actionsRun: 0,
+          error: 'No published version of this workflow; it was not run.',
+        });
+        continue;
+      }
+      const definition = readPinnedDefinition(pinned.definition);
+      const malformed = findMalformedWorkflowCondition(definition.conditions);
       if (malformed) {
         // Fail closed and say so: an unreadable rule must not act, and the
         // author needs to see why it stopped firing.
@@ -285,7 +320,7 @@ export class WorkflowRuntimeService {
       }
 
       const matches = evaluateWorkflowConditions(
-        workflow.conditions,
+        definition.conditions,
         evaluationContext,
       );
 
@@ -299,7 +334,14 @@ export class WorkflowRuntimeService {
         continue;
       }
 
-      const result = await this.runActions(workflow.actions, context);
+      const result = await this.runActions(
+        definition.actions.map((action, index) => ({
+          id: `${pinned.id}:${index}`,
+          type: action.type,
+          configuration: action.configuration,
+        })),
+        context,
+      );
       await this.recordRun(workflow.id, context, {
         ...result,
         workflowVersionId,
