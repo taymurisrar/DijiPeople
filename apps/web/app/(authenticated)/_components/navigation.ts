@@ -9,6 +9,7 @@ import {
   composeDashboardNavItems,
   type CustomModuleSummary,
 } from "@/lib/runtime/custom-modules/custom-module-navigation";
+import { isSelfServiceUser } from "@/lib/permissions";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 export type DashboardNavItem = {
@@ -343,6 +344,10 @@ export function applyDashboardNavOverrides(
     });
 }
 
+const SELF_SCOPED_MANAGEMENT_KEYS: ReadonlySet<string> = new Set([
+  "employees.update",
+]);
+
 export function resolveVisibleDashboardNavItems(
   input: ResolveVisibleDashboardNavItemsInput,
 ) {
@@ -354,6 +359,23 @@ export function resolveVisibleDashboardNavItems(
   const hasPrivilegedSidebar =
     !input.isSelfService &&
     (input.roleKeys ?? []).some((roleKey) => privilegedRoleKeys.has(roleKey));
+
+  /*
+   * "employees.update" is in the management list that defines a self-service
+   * user, yet the Employee role holds it for editing their own profile, so
+   * every seeded employee reads as "not self-service" and the entries marked
+   * hiddenForSelfService (Work Queues, Team Updates, Evidence Review, ...)
+   * showed in their sidebar. For those entries only, a user whose sole
+   * management key is that self-scoped one is treated as self-service. Found
+   * by the Flow R work journeys.
+   */
+  const holdsOnlySelfScopedManagement =
+    !input.isReportingManager &&
+    isSelfServiceUser(
+      (input.permissionKeys ?? []).filter(
+        (key) => !SELF_SCOPED_MANAGEMENT_KEYS.has(key),
+      ),
+    );
 
   const visibility = {
     principal: {
@@ -467,7 +489,7 @@ export function resolveVisibleDashboardNavItems(
       return [];
     }
 
-    if (item.hiddenForSelfService && input.isSelfService) {
+    if (item.hiddenForSelfService && (input.isSelfService || holdsOnlySelfScopedManagement)) {
       return [];
     }
 

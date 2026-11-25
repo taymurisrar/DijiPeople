@@ -101,9 +101,26 @@ export type ContributionSummary = {
     unverified: string | number;
     disputed: string | number;
   }[];
-  occurrences: number;
-  entries: number;
+  /*
+   * The API's own shape (contribution-math.ts LedgerSummary): occurrences are
+   * counted by verification, and entries are a breakdown, not one number. The
+   * screen used to type both as a bare number, so both tiles rendered blank.
+   * Found by the Flow R browser journeys.
+   */
+  occurrences: { verified: number; unverified: number; disputed: number };
+  entries: {
+    counted: number;
+    rejectedExcluded: number;
+    offline: number;
+    retrospective: number;
+  };
 };
+
+/** Every occurrence the person recorded in the period, whatever its verification. */
+export function totalOccurrences(summary: ContributionSummary): number {
+  const o = summary.occurrences;
+  return (o?.verified ?? 0) + (o?.unverified ?? 0) + (o?.disputed ?? 0);
+}
 
 export const WORK_KIND_LABELS: Record<ContributionWorkKind, string> = {
   TASK: "Task",

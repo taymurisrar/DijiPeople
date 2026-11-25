@@ -10,6 +10,7 @@ import {
   buildReasonPayload,
   buildReviewPayload,
   buildSummaryQuery,
+  totalOccurrences,
   describeAmount,
   emptyContributionForm,
   fieldsForMeasure,
@@ -313,5 +314,25 @@ describe("amounts and ranges", () => {
         includeHistory: true,
       }),
     ).toBe("verification=UNVERIFIED&includeHistory=true&take=100");
+  });
+});
+
+describe("totalOccurrences", () => {
+  /*
+   * The API reports occurrences by verification and entries as a breakdown
+   * (contribution-math.ts). The screen once typed both as bare numbers and drew
+   * blank tiles; this pins the shape the API really returns.
+   */
+  const summary = {
+    occurrences: { verified: 2, unverified: 3, disputed: 1 },
+    entries: { counted: 9, rejectedExcluded: 1, offline: 0, retrospective: 2 },
+  } as never;
+
+  it("adds every verification state", () => {
+    expect(totalOccurrences(summary)).toBe(6);
+  });
+
+  it("is zero when the API sent nothing", () => {
+    expect(totalOccurrences({} as never)).toBe(0);
   });
 });

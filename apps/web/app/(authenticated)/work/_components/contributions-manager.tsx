@@ -13,6 +13,7 @@ import {
   buildSummaryQuery,
   formatDuration,
   isLiveEntry,
+  totalOccurrences,
   validateReason,
   weekRange,
   type ContributionEntry,
@@ -138,8 +139,16 @@ export function ContributionsManager({
           <SummaryTile label="Blocked" value={formatDuration(time.blockedMinutes)} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <SummaryTile label="Occurrences" value={formatNumber(summary.occurrences)} />
-          <SummaryTile label="Entries" value={formatNumber(summary.entries)} />
+          <SummaryTile
+            detail={`Verified ${formatNumber(summary.occurrences.verified)}, unverified ${formatNumber(summary.occurrences.unverified)}, disputed ${formatNumber(summary.occurrences.disputed)}`}
+            label="Occurrences"
+            value={formatNumber(totalOccurrences(summary))}
+          />
+          <SummaryTile
+            detail={`Offline ${formatNumber(summary.entries.offline)}, late ${formatNumber(summary.entries.retrospective)}, rejected ${formatNumber(summary.entries.rejectedExcluded)}`}
+            label="Entries"
+            value={formatNumber(summary.entries.counted)}
+          />
           {summary.quantities.map((quantity) => (
             <SummaryTile
               detail={`Unverified ${quantity.unverified}, disputed ${quantity.disputed}`}

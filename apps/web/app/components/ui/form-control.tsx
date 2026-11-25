@@ -352,11 +352,17 @@ export function SelectField({
     setActiveIndex(-1);
   }
 
+  /*
+   * The select menu is portalled to <body>, so it competes with a Dialog
+   * backdrop (z-[110]) on stacking order alone. At z-[80] it opened *behind*
+   * the backdrop inside any dialog: visible, dimmed, and every click landed on
+   * the overlay. Found by the Flow R work journeys (New task > Priority).
+   */
   const selectMenu =
     isOpen && menuPosition
       ? createPortal(
           <div
-            className="fixed z-[80] rounded-2xl border border-border bg-white p-2 shadow-xl"
+            className="fixed z-[120] rounded-2xl border border-border bg-white p-2 shadow-xl"
             id={listboxId}
             ref={menuRef}
             role="listbox"
@@ -1303,11 +1309,17 @@ export function LookupField({
     setIsOpen(false);
   }
 
+  /*
+   * The lookup menu is portalled to <body>, so it competes with a Dialog
+   * backdrop (z-[110]) on stacking order alone. At z-[80] it opened *behind*
+   * the backdrop inside any dialog: visible, dimmed, and every click landed on
+   * the overlay. Found by the Flow R work journeys (New task > Priority).
+   */
   const lookupMenu =
     isOpen && menuPosition
       ? createPortal(
           <div
-            className="fixed z-[80] rounded-2xl border border-border bg-white p-3 shadow-xl"
+            className="fixed z-[120] rounded-2xl border border-border bg-white p-3 shadow-xl"
             ref={menuRef}
             style={{
               left: menuPosition.left,

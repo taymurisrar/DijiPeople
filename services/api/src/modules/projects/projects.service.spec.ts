@@ -26,6 +26,23 @@ describe('ProjectsService scoped reads', () => {
     );
   });
 
+  it('lets a business-unit reader always read a project they created themselves', async () => {
+    const user = buildUser(SecurityAccessLevel.BUSINESS_UNIT);
+    projectsRepository.findById.mockResolvedValue(null);
+
+    await expect(service.findByIdForUser(user, 'project-1')).rejects.toThrow(
+      NotFoundException,
+    );
+
+    // A creator whose project has no business unit (or another one) used to get a
+    // 404 on the project they had just created, found by the browser journeys.
+    const scope = projectsRepository.findById.mock.calls[0][2] as {
+      OR: Array<Record<string, unknown>>;
+    };
+    expect(scope.OR).toContainEqual({ createdById: user.userId });
+    expect(scope.OR).toHaveLength(2);
+  });
+
   it('limits self-service reads to created or actively assigned projects', async () => {
     const user = buildUser(SecurityAccessLevel.SELF);
     employeesRepository.findByUserIdAndTenant.mockResolvedValue({

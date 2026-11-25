@@ -166,15 +166,22 @@ export class ProjectsService {
       accessLevel === SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS
     ) {
       return {
-        businessUnitId: {
-          in: currentUser.accessContext?.businessUnitSubtreeIds ?? [],
-        },
+        OR: [
+          // A creator can always read what they created, at any reach.
+          { createdById: currentUser.userId },
+          {
+            businessUnitId: {
+              in: currentUser.accessContext?.businessUnitSubtreeIds ?? [],
+            },
+          },
+        ],
       };
     }
 
     if (accessLevel === SecurityAccessLevel.ORGANIZATION) {
       return {
         OR: [
+          { createdById: currentUser.userId },
           {
             organizationId:
               currentUser.accessContext?.organizationId ??
@@ -190,9 +197,14 @@ export class ProjectsService {
     }
 
     return {
-      businessUnitId:
-        currentUser.accessContext?.businessUnitId ??
-        '__rbac_no_business_unit__',
+      OR: [
+        { createdById: currentUser.userId },
+        {
+          businessUnitId:
+            currentUser.accessContext?.businessUnitId ??
+            '__rbac_no_business_unit__',
+        },
+      ],
     };
   }
 

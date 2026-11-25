@@ -8126,3 +8126,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes - mutated 2026-11-25: importing the formatter from the client module again fails 1 of 2 tests. The render itself is verified only in a real browser (QA-WORKFLOW-001). |
 | **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
 | **Active** | yes |
+
+### REG-732 - The agent tray kept saying monitoring was off after the policy was acknowledged
+
+| | |
+|---|---|
+| **Bug class** | `state-not-redrawn` |
+| **Module** | `apps/agent-desktop` |
+| **Bug record** | BUG-4776 |
+| **Root cause** | The acknowledgement path refreshed the config but never announced a change, and the tray redraws only on session events. |
+| **Regression test** | `apps/agent-desktop/src/main/policy-ack-tray.spec.ts` |
+| **Scenario** | QA-AGENT-010 |
+| **Fails without the fix** | Yes - the real-Electron journey failed its last check (8 of 9) before the fix; the spec pins the source ordering. The render is verified only in real Electron. |
+| **Fixed** | 2026-11-26, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |
+
+### REG-733 - A business-unit reader could not read a project they created
+
+| | |
+|---|---|
+| **Bug class** | `scope-excludes-creator` |
+| **Module** | `services/api/src/modules/projects` |
+| **Bug record** | BUG-4777 |
+| **Root cause** | The business-unit, subtree and organisation branches of the project read filter used placement alone. |
+| **Regression test** | `services/api/src/modules/projects/projects.service.spec.ts` |
+| **Scenario** | QA-PROJECTS-001 |
+| **Fails without the fix** | Yes - without the creator clause the scope has one entry and the new test fails. |
+| **Fixed** | 2026-11-26, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |

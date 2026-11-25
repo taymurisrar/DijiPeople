@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 242 |
-| No next action | 242 |
+| No acceptance criteria | 244 |
+| No next action | 244 |
 | Aging — 7d / 30d / 90d | 216 / 214 / 16 |
 | Architecture and technical debt | 8 |
-| Security gaps | 35 |
+| Security gaps | 36 |
 | Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -313,7 +313,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 242 |
+| Open total | 244 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |

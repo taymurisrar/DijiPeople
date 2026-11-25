@@ -366,3 +366,50 @@ describe("the Claims navigation entry", () => {
     expect(claimsEntry({ permissionKeys: ["leaves.read"] })).toBeUndefined();
   });
 });
+
+/*
+ * Found by the Flow R browser journeys: the seeded Employee role holds
+ * "employees.update" (to edit their own profile), which is in the management
+ * list, so the employee was not treated as self-service and saw Work Queues and
+ * Team Updates. Those entries are marked hiddenForSelfService; the employee's
+ * own self-scoped key must not defeat that.
+ */
+describe("the work entries marked hiddenForSelfService", () => {
+  const EMPLOYEE_KEYS = [
+    "employees.update",
+    "work-items.read",
+    "work-queues.read",
+    "contributions.read",
+    "daily-updates.read",
+  ];
+
+  function hrefs(permissionKeys: string[], isReportingManager = false) {
+    return resolveVisibleDashboardNavItems({
+      enabledFeatureKeys: null,
+      isReportingManager,
+      isSelfService: false,
+      permissionKeys,
+      roleKeys: [],
+      businessUnitAccess: { accessibleBusinessUnitIds: [] } as never,
+    }).map((item) => item.href);
+  }
+
+  it("keeps the employee's own entries and hides the team ones", () => {
+    const visible = hrefs(EMPLOYEE_KEYS);
+    expect(visible).toContain("/work");
+    expect(visible).toContain("/work/contributions");
+    expect(visible).toContain("/work/daily-update");
+    expect(visible).not.toContain("/work/queues");
+    expect(visible).not.toContain("/work/daily-updates");
+  });
+
+  it("shows them to someone with a real management key", () => {
+    const visible = hrefs([...EMPLOYEE_KEYS, "projects.create"]);
+    expect(visible).toContain("/work/queues");
+    expect(visible).toContain("/work/daily-updates");
+  });
+
+  it("shows them to a reporting manager", () => {
+    expect(hrefs(EMPLOYEE_KEYS, true)).toContain("/work/queues");
+  });
+});

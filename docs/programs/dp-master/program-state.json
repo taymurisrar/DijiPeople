@@ -1237,7 +1237,7 @@
       ],
       "workstream": "C",
       "status": "IN_PROGRESS",
-      "evidence": "Technical evidence executed 2026-11-25 (isolated API :4099 + web :3011 + real Electron 39 agent, throwaway DB dp_master_gui): BROWSER: workflow Run History PARTIALLY FAILED badge renders (after fixing BUG-4775, a server/client boundary crash found by this very pass), workflow builder offers the CANDIDATE recipient, /work and /work/queues create, claim, SLA and owner-history flows work for manager and HR, sidebar highlight bug found and fixed. ELECTRON: real agent logs in, loads config, registers device, starts a work session and heartbeats; tray shows \"Content monitoring: off\" until config loads, \"off until you acknowledge the policy\" before acknowledgement and \"ON (clipboard/screenshots)\" only after the acknowledgement is recorded; the full 6,833-character policy opens in a script-less window BEFORE the acknowledgement dialog (no truncation, JavaScript execution blocked). NOT executed: offline suspension after the 30-minute freshness window (unit-tested, not driven live), a live second sign-in on one device for buffer isolation (unit-tested), the OS-native message box itself (stubbed to answer; its text was recorded). HUMAN APPROVAL (separate, not given): review of the G4 diff by a person, and OD-DLP-POLICY-TEXT.",
+      "evidence": "Technical evidence executed 2026-11-25 (isolated API :4099 + web :3011 + real Electron 39 agent, throwaway DB dp_master_gui): BROWSER: workflow Run History PARTIALLY FAILED badge renders (after fixing BUG-4775, a server/client boundary crash found by this very pass), workflow builder offers the CANDIDATE recipient, /work and /work/queues create, claim, SLA and owner-history flows work for manager and HR, sidebar highlight bug found and fixed. ELECTRON: real agent logs in, loads config, registers device, starts a work session and heartbeats; tray shows \"Content monitoring: off\" until config loads, \"off until you acknowledge the policy\" before acknowledgement and \"ON (clipboard/screenshots)\" only after the acknowledgement is recorded; the full 6,833-character policy opens in a script-less window BEFORE the acknowledgement dialog (no truncation, JavaScript execution blocked). NOT executed: offline suspension after the 30-minute freshness window (unit-tested, not driven live), a live second sign-in on one device for buffer isolation (unit-tested), the OS-native message box itself (stubbed to answer; its text was recorded). HUMAN APPROVAL (separate, not given): review of the G4 diff by a person, and OD-DLP-POLICY-TEXT. | 2026-11-26 addendum: persisted real-Electron privacy journey e2e/electron/agent-dlp-privacy.cjs (9/9 after fixing BUG-4776: tray stale after acknowledgement); persisted browser suite flow-r (29/29). Still NOT done: offline suspension after the 30-minute window and cross-sign-in buffer isolation live; native OS message box (answered by the harness); axe audits; other browsers; drag and drop. Human G4 review and OD-DLP-POLICY-TEXT remain separate and pending.",
       "humanApprovalPending": [
         "G4 diff review by a human",
         "OD-DLP-POLICY-TEXT (legal text)"
@@ -1322,8 +1322,9 @@
         "WP-06.S1"
       ],
       "workstream": "A",
-      "status": "IN_PROGRESS",
-      "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine."
+      "status": "ACCEPTED",
+      "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine.",
+      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet."
     },
     {
       "id": "WP-06.S2",
@@ -1335,9 +1336,9 @@
         "WP-02.S1"
       ],
       "workstream": "A",
-      "status": "IN_PROGRESS",
+      "status": "ACCEPTED",
       "lease": "schema",
-      "evidence": "API: migration 20261128100000; MILESTONE kind, milestone roll-up with project inheritance, milestone cannot finish while tasks are open, progress (counts, each person once, null not 0%, approved timesheet hours by task id), workload on a named STANDARD_WEEK basis with unestimated work counted apart; project-work-and-daily-updates.e2e-spec (milestones/progress/workload block). NOT yet: timesheet entries selecting a work item (WP-06.S3), project templates/phases/WBS, sprints, retainers."
+      "evidence": "API: migration 20261128100000; MILESTONE kind, milestone roll-up with project inheritance, milestone cannot finish while tasks are open, progress (counts, each person once, null not 0%, approved timesheet hours by task id), workload on a named STANDARD_WEEK basis with unestimated work counted apart; project-work-and-daily-updates.e2e-spec (milestones/progress/workload block). NOT yet: timesheet entries selecting a work item (WP-06.S3), project templates/phases/WBS, sprints, retainers. | UI: project Work area on /projects/:id (Kanban by transition buttons, list, milestones with progress, workload with standard-week caveat, item detail with subtasks, dependencies and per-person contributors). BUG-4777 (creator could not read own project) fixed. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone."
     },
     {
       "id": "WP-06.S3",
@@ -1359,7 +1360,8 @@
         "WP-30.S1"
       ],
       "workstream": "B",
-      "status": "IN_PROGRESS"
+      "status": "ACCEPTED",
+      "evidence": "My evidence (record all three measures, correct, withdraw, dispute, history), Evidence review (verify, reject and dispute with required notes); jest specs mirror the API constants; seven work kinds, a quantity is shown under its own unit and never as minutes. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone."
     },
     {
       "id": "WP-27.S1",
@@ -1371,9 +1373,9 @@
         "WP-06.S1"
       ],
       "workstream": "B",
-      "status": "IN_PROGRESS",
+      "status": "ACCEPTED",
       "lease": "schema",
-      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts."
+      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts. | UI: Daily update (draft from records, sections, unplanned, blockers, achievements, submit, correct), Team updates (scoped list, acknowledge, missing), Settings > Daily updates. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone."
     },
     {
       "id": "WP-38.S1",

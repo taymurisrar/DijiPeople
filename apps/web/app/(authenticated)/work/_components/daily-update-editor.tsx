@@ -35,7 +35,11 @@ type Lines = Record<DailyUpdateSection, Line[]>;
  * correction: the version rises and review starts over.
  */
 export function DailyUpdateEditor({ canWrite }: { canWrite: boolean }) {
-  const [date, setDate] = useState(() => dateInputFor());
+  // Empty until the person picks a day: the API then answers for today in the
+  // workspace policy zone, which is the only clock that decides what a future
+  // day is. Sending the browser's own date failed whenever the browser zone was
+  // ahead of the policy zone (found by the browser journeys).
+  const [date, setDate] = useState("");
   const [update, setUpdate] = useState<DailyUpdate | null>(null);
   const [summary, setSummary] = useState("");
   const [lines, setLines] = useState<Lines | null>(null);
@@ -203,7 +207,7 @@ export function DailyUpdateEditor({ canWrite }: { canWrite: boolean }) {
           label="Update date"
           max={dateInputFor()}
           onChange={(value) => value && setDate(value)}
-          value={date}
+          value={date || update?.forDate?.slice(0, 10) || dateInputFor()}
         />
         {update ? (
           <div className="flex flex-wrap items-center gap-2">

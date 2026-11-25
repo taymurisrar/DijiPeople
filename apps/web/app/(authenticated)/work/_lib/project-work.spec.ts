@@ -131,7 +131,7 @@ describe("workload query", () => {
 describe("request bodies", () => {
   it("lists a project's tasks", () => {
     expect(buildProjectItemsQuery({ projectId: "p1" })).toBe(
-      "projectId=p1&kind=TASK&take=200",
+      "projectId=p1&kind=TASK&take=100",
     );
   });
 

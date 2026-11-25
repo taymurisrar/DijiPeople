@@ -82,3 +82,11 @@ Executed against an isolated API, web app and a real Electron 39 agent on a thro
 - Not executed: offline suspension after 30 minutes and cross-sign-in buffer isolation live (unit-tested only); the native message box is stubbed.
 - Human approval is separate and still required: a person's review of the G4 diff, and OD-DLP-POLICY-TEXT. G4 remains NOT_MET until both are recorded.
 
+## Browser and Electron coverage - 2026-11-26 (tested versus untested)
+
+Tested (isolated API + web + real Electron, throwaway database, synthetic users, credentials from the environment only):
+- Flow R, 29 Playwright journeys (Chromium): employee, manager, HR and admin journeys for My work, My evidence, Daily update, Team updates, Evidence review, queues, daily-update policy, project Work area, multi-recipient workflow builder; CRUD, validation messages, pagination (30 rows), RBAC 403s through the proxy, and 1440/768/390 px layouts with no horizontal overflow. Re-run: see the header of e2e/tests/flow-r-work-journeys.spec.ts.
+- Electron privacy journey, 9 checks (e2e/electron/agent-dlp-privacy.cjs).
+Not tested: drag and drop on the board; native OS dialogs; real e-mail delivery; offline sync; browsers other than Chromium; axe/accessibility audits; entitlement toggling (only RBAC); cross-tenant probes in the browser (covered in API e2e); the WP-35 work-profile page and the package engine UI (none exists for work components).
+Defects found by this pass and fixed: BUG-4776 (agent tray), BUG-4777 (creator cannot read own project), plus six defects in screens not yet released (see the slice evidence).
+

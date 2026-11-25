@@ -181,7 +181,8 @@ export function buildProjectItemsQuery(input: {
   params.set("projectId", input.projectId);
   params.set("kind", "TASK");
   if (input.milestoneId) params.set("milestoneId", input.milestoneId);
-  params.set("take", String(input.take ?? 200));
+  // The API caps take at 100 (ListWorkItemsDto); 200 made the whole Work area fail to load.
+  params.set("take", String(input.take ?? 100));
   return params.toString();
 }
 

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**835 records** — 589 bugs under [`docs/bugs/`](../bugs/), 246 non-bug items under [`items/`](items/).
+**837 records** — 591 bugs under [`docs/bugs/`](../bugs/), 246 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 242 |
+| Open (active work) | 244 |
 | Blocked | 4 |
 | Deferred | 127 |
 | Awaiting a product decision | 16 |
@@ -28,15 +28,15 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 5 |
 | HIGH | 50 |
-| MEDIUM | 152 |
+| MEDIUM | 154 |
 | LOW | 31 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 12 |
-| BUG | 73 |
+| AUTHORIZATION | 13 |
+| BUG | 74 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 127 |
 | PRODUCT_DECISION | 16 |
-| FIXED | 173 |
+| FIXED | 175 |
 | VERIFIED | 308 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -635,6 +635,8 @@ see [`README.md`](README.md) for why.
 | [BUG-4547](../../docs/bugs/BUG-4547-a-data-job-left-processing-by-a-dead-worker-is-never-recover.md) | A data job left PROCESSING by a dead worker is never recovered | BUG | MEDIUM | P2 | FIXED | api:data-management | FIX_NOW |
 | [BUG-4638](../../docs/bugs/BUG-4638-seat-quote-serves-another-customer-s-reserved-plan-price-to-.md) | Seat quote serves another customer's reserved plan price to any tenant | AUTHORIZATION | MEDIUM | P2 | FIXED | billing | FIX_NOW |
 | [BUG-4639](../../docs/bugs/BUG-4639-payroll-journal-reversal-fails-unique-index-on-payrollrunid-.md) | Payroll journal reversal fails: unique index on payrollRunId was never dropped | DATA_INTEGRITY | MEDIUM | P2 | OPEN | payroll | FIX_NOW |
+| [BUG-4776](../../docs/bugs/BUG-4776-agent-tray-keeps-saying-monitoring-is-off-after-the-policy-i.md) | Agent tray keeps saying monitoring is off after the policy is acknowledged | BUG | MEDIUM | P2 | FIXED | apps/agent-desktop | FIX_NOW |
+| [BUG-4777](../../docs/bugs/BUG-4777-a-business-unit-reader-cannot-read-a-project-they-created-th.md) | A business-unit reader cannot read a project they created themselves | AUTHORIZATION | MEDIUM | P2 | FIXED | api:projects | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
