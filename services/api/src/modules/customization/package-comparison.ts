@@ -14,8 +14,10 @@
  * is a CONFLICT even inside the package's own upgrade.
  */
 import {
+  canonicalJson,
   componentChecksum,
   displayValue,
+  isWorkComponentType,
   type PortableComponent,
   type PortableComponentInput,
 } from './package-artifact';
@@ -249,6 +251,30 @@ function classify(
       ],
     };
   }
+  /*
+   * WP-21.S1: a work unit, profile or queue that already exists here, belongs to
+   * no package and says exactly what the package says is adopted, not refused -
+   * the same configuration built by hand in this workspace. Anything that
+   * differs is still a CONFLICT: an import never overwrites what it does not own.
+   */
+  if (
+    isWorkComponentType(component.type) &&
+    entry.ownerKind === 'unowned' &&
+    !entry.ownedByImportingPackage &&
+    entry.definition &&
+    component.definition &&
+    canonicalJson(entry.definition) === canonicalJson(component.definition)
+  ) {
+    return {
+      ...base,
+      status: 'UPDATE',
+      apply: 'update',
+      blocking: false,
+      messages: [
+        `${describeKey(component.key)} already exists here with the same definition. This package adopts it; nothing is rewritten.`,
+      ],
+    };
+  }
   if (!entry.ownedByImportingPackage) {
     return {
       ...base,
@@ -390,6 +416,7 @@ const TYPE_LABELS: Record<string, string> = {
   environmentVariable: 'environment variable',
   workUnit: 'work unit',
   workProfile: 'work profile',
+  workQueue: 'work queue',
 };
 
 export function describeKey(key: string) {

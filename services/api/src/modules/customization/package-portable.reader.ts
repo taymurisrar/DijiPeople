@@ -26,13 +26,23 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   PORTABLE_COMPONENT_TYPES,
   PORTABLE_LAYER_ACTIONS,
+  WORK_COMPONENT_TYPES,
   componentChecksum,
+  isWorkComponentType,
   type PortableComponentInput,
-  type ModuleComponentType,
   type PortableComponentType,
   type PortableLayerAction,
 } from './package-artifact';
 import { readMetadataDependencies } from './dependency-validation';
+import type { WorkProfileDefinition } from '../work-profiles/work-profile-definition';
+import {
+  profileComponent,
+  profileDefinition,
+  queueComponent,
+  queueDefinition,
+  unitComponent,
+  unitDefinition,
+} from '../work-profiles/work-profile-portable';
 import type { TargetEntry } from './package-comparison';
 
 type Db = PrismaService | Prisma.TransactionClient;
@@ -174,8 +184,23 @@ export class PackagePortableReader {
     const components: PortableComponentInput[] = [];
     const rowByKey = new Map<string, CustomizationSolutionComponent>();
     const displayNames = new Map<string, string>();
+    const work = await this.readWorkComponents(tenantId, rows, db);
 
     for (const row of rows) {
+      if (isWorkComponentType(row.componentType)) {
+        /* Absent when the profile has no published version: nothing to carry. */
+        const component = work.get(`${row.componentType}|${row.objectId}`);
+        if (!component) continue;
+        components.push(component);
+        rowByKey.set(component.key, row);
+        displayNames.set(
+          component.key,
+          typeof component.definition?.name === 'string'
+            ? component.definition.name
+            : component.objectKey,
+        );
+        continue;
+      }
       if (
         !(PORTABLE_COMPONENT_TYPES as readonly string[]).includes(
           row.componentType,
@@ -254,6 +279,162 @@ export class PackagePortableReader {
   }
 
   /**
+   * Work units, profiles and queues in portable form, by membership row
+   * (`<type>|<objectId>`). Only what is the same in every environment: no row
+   * id, tenant, actor, timestamp, team or business unit. A profile travels as
+   * its latest PUBLISHED definition and depends on the units it measures in.
+   */
+  private async readWorkComponents(
+    tenantId: string,
+    rows: readonly CustomizationSolutionComponent[],
+    db: Db,
+  ) {
+    const idsOf = (type: string) =>
+      rows
+        .filter((row) => row.componentType === type)
+        .map((row) => row.objectId);
+    const result = new Map<string, PortableComponentInput>();
+    const [units, profiles, queues] = await Promise.all([
+      idsOf('workUnit').length
+        ? db.workUnit.findMany({
+            where: { tenantId, id: { in: idsOf('workUnit') } },
+            select: { id: true, key: true, name: true, kind: true },
+          })
+        : [],
+      idsOf('workProfile').length
+        ? db.workProfile.findMany({
+            where: { tenantId, id: { in: idsOf('workProfile') } },
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              description: true,
+              versions: {
+                where: { status: 'PUBLISHED' },
+                orderBy: { version: 'desc' },
+                take: 1,
+                select: { definition: true },
+              },
+            },
+          })
+        : [],
+      idsOf('workQueue').length
+        ? db.workQueue.findMany({
+            where: { tenantId, id: { in: idsOf('workQueue') } },
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              description: true,
+              responseSlaMinutes: true,
+              resolutionSlaMinutes: true,
+              isActive: true,
+            },
+          })
+        : [],
+    ]);
+    for (const unit of units) {
+      result.set(`workUnit|${unit.id}`, unitComponent(unit));
+    }
+    for (const profile of profiles) {
+      const published = profile.versions[0];
+      if (!published) continue;
+      result.set(
+        `workProfile|${profile.id}`,
+        profileComponent({
+          key: profile.key,
+          name: profile.name,
+          description: profile.description,
+          definition: published.definition as unknown as WorkProfileDefinition,
+        }),
+      );
+    }
+    for (const queue of queues) {
+      result.set(`workQueue|${queue.id}`, queueComponent(queue));
+    }
+    return result;
+  }
+
+  /** What this tenant holds under each work key, in the same portable shape. */
+  private async readWorkByKey(
+    db: Db,
+    tenantId: string,
+    keys: { workUnit: string[]; workProfile: string[]; workQueue: string[] },
+  ) {
+    const found = new Map<
+      string,
+      { id: string; isSystem: boolean; definition: Record<string, unknown> }
+    >();
+    const [units, profiles, queues] = await Promise.all([
+      keys.workUnit.length
+        ? db.workUnit.findMany({
+            where: { tenantId, key: { in: keys.workUnit } },
+            select: { id: true, key: true, name: true, kind: true },
+          })
+        : [],
+      keys.workProfile.length
+        ? db.workProfile.findMany({
+            where: { tenantId, key: { in: keys.workProfile } },
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              description: true,
+              versions: {
+                where: { status: 'PUBLISHED' },
+                orderBy: { version: 'desc' },
+                take: 1,
+                select: { definition: true },
+              },
+            },
+          })
+        : [],
+      keys.workQueue.length
+        ? db.workQueue.findMany({
+            where: { tenantId, key: { in: keys.workQueue } },
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              description: true,
+              responseSlaMinutes: true,
+              resolutionSlaMinutes: true,
+              isActive: true,
+            },
+          })
+        : [],
+    ]);
+    for (const unit of units) {
+      found.set(`workUnit:${unit.key}`, {
+        id: unit.id,
+        isSystem: false,
+        definition: unitDefinition(unit),
+      });
+    }
+    for (const profile of profiles) {
+      found.set(`workProfile:${profile.key}`, {
+        id: profile.id,
+        isSystem: false,
+        definition: profileDefinition({
+          key: profile.key,
+          name: profile.name,
+          description: profile.description,
+          definition: (profile.versions[0]?.definition ??
+            null) as unknown as WorkProfileDefinition,
+        }),
+      });
+    }
+    for (const queue of queues) {
+      found.set(`workQueue:${queue.key}`, {
+        id: queue.id,
+        isSystem: false,
+        definition: queueDefinition(queue),
+      });
+    }
+    return found;
+  }
+
+  /**
    * Module rows that should read `create` but were stored as `reference`.
    *
    * Until TASK-0033, adding a field to a custom module rewrote the owning
@@ -318,14 +499,21 @@ export class PackagePortableReader {
     const tableKeys = new Set<string>();
     for (const entry of parsed) {
       if (entry.type === 'table') tableKeys.add(entry.objectKey);
-      else if (entry.type !== 'environmentVariable')
+      else if (
+        entry.type !== 'environmentVariable' &&
+        !isWorkComponentType(entry.type)
+      )
         tableKeys.add(entry.objectKey.split('.')[0]);
     }
+    const workKeys = (type: string) =>
+      parsed
+        .filter((entry) => entry.type === type)
+        .map((entry) => entry.objectKey);
     const variableKeys = parsed
       .filter((entry) => entry.type === 'environmentVariable')
       .map((entry) => entry.objectKey);
 
-    const [tables, variables, importingPackage] = await Promise.all([
+    const [tables, variables, importingPackage, workBase] = await Promise.all([
       db.customizationTable.findMany({
         where: { tenantId, tableKey: { in: [...tableKeys] } },
       }),
@@ -334,6 +522,11 @@ export class PackagePortableReader {
       }),
       db.customizationSolution.findFirst({
         where: { tenantId, solutionKey: input.importingPackageKey },
+      }),
+      this.readWorkByKey(db, tenantId, {
+        workUnit: workKeys('workUnit'),
+        workProfile: workKeys('workProfile'),
+        workQueue: workKeys('workQueue'),
       }),
     ]);
     const tableIds = tables.map((row) => row.id);
@@ -396,6 +589,8 @@ export class PackagePortableReader {
         definition: definitionOf('environmentVariable', row),
       });
     }
+
+    for (const [key, entry] of workBase) baseByKey.set(key, entry);
 
     /*
      * Every component row that could own or layer one of these keys. JSON-only
@@ -538,12 +733,15 @@ export function parseKey(key: string) {
   const type = key.slice(0, index);
   const objectKey = key.slice(index + 1);
   if (
-    !(PORTABLE_COMPONENT_TYPES as readonly string[]).includes(type) ||
+    !(
+      (PORTABLE_COMPONENT_TYPES as readonly string[]).includes(type) ||
+      (WORK_COMPONENT_TYPES as readonly string[]).includes(type)
+    ) ||
     !objectKey
   ) {
     return null;
   }
-  return { type: type as ModuleComponentType, objectKey };
+  return { type: type as PortableComponentType, objectKey };
 }
 
 function toLayerAction(value: string, isSystem: boolean): PortableLayerAction {

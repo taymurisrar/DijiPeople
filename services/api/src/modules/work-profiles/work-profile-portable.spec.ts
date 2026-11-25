@@ -1,12 +1,17 @@
 import {
+  buildPackageArtifact,
   parsePackageArtifact,
   type PortableComponent,
 } from '../customization/package-artifact';
 import type { WorkProfileDefinition } from './work-profile-definition';
 import {
+  WORK_PROFILE_PUBLISHER,
   buildWorkProfilePackage,
   planWorkProfileImport,
+  profileComponent,
+  queueComponent,
   referencedUnitKeys,
+  unitComponent,
   workProfilePackageKey,
 } from './work-profile-portable';
 
@@ -286,5 +291,199 @@ describe('work profile import plan', () => {
       existingProfiles: [],
     });
     expect(foreign.problems.join(' ')).toMatch(/not a work component/);
+  });
+});
+
+describe('work components in the one engine (WP-21.S1)', () => {
+  const queue = {
+    key: 'support-l1',
+    name: 'Support L1',
+    description: null,
+    responseSlaMinutes: 30,
+    resolutionSlaMinutes: 480,
+    isActive: true,
+  };
+  const asComponents = () =>
+    buildPackageArtifact({
+      manifest: {
+        packageKey: 'wkp_pmix',
+        displayName: 'Mix',
+        description: null,
+        version: '1.0.0',
+        publisher: { ...WORK_PROFILE_PUBLISHER },
+        metadataSchemaVersion: '1.0.0',
+        sourceEnvironmentType: null,
+        releasedAt: null,
+        dependencies: [],
+        coreDependencies: [],
+      },
+      components: [
+        ...units.map(unitComponent),
+        profileComponent({
+          key: 'nurse-ward',
+          name: 'Ward nurse',
+          description: null,
+          definition,
+        }),
+        queueComponent(queue),
+        {
+          key: 'table:misAsset',
+          type: 'table',
+          objectKey: 'misAsset',
+          parentKey: null,
+          layerAction: 'create',
+          baseIsSystem: false,
+          definition: {
+            tableKey: 'misAsset',
+            displayName: 'Asset',
+            pluralDisplayName: 'Assets',
+            systemName: 'MisAsset',
+          },
+          layer: null,
+          dependsOn: [],
+        },
+      ],
+    }).artifact.components;
+  const engine = { standalone: false, syncMetadata: true };
+
+  it('the endpoint contract still refuses queues and modules', () => {
+    const plan = planWorkProfileImport({
+      components: asComponents(),
+      existingUnits: [],
+      existingProfiles: [],
+    });
+    expect(plan.problems.join(' ')).toMatch(
+      /queue:support-l1|workQueue:support-l1/,
+    );
+    expect(plan.problems.join(' ')).toMatch(/table:misAsset/);
+  });
+
+  it('the engine plans only the work components, units first', () => {
+    const plan = planWorkProfileImport({
+      components: asComponents(),
+      existingUnits: [],
+      existingProfiles: [],
+      existingQueues: [],
+      options: engine,
+    });
+    expect(plan.problems).toEqual([]);
+    expect(plan.items.map((item) => item.key)).toEqual([
+      'workUnit:1st-duty',
+      'workUnit:calls',
+      'workProfile:nurse-ward',
+      'workQueue:support-l1',
+    ]);
+    expect(plan.items.every((item) => item.action === 'create')).toBe(true);
+  });
+
+  it('unchanged queues and profiles are a no-op; a changed queue is an update', () => {
+    const existingProfile = {
+      key: 'nurse-ward',
+      name: 'Ward nurse',
+      description: null,
+      isActive: true,
+      hasDraft: false,
+      latestPublishedDefinition: definition,
+    };
+    const existingUnits = units.map((unit) => ({
+      ...unit,
+      isActive: true,
+    }));
+    const same = planWorkProfileImport({
+      components: asComponents(),
+      existingUnits,
+      existingProfiles: [existingProfile],
+      existingQueues: [queue],
+      options: engine,
+    });
+    expect(same.items.map((item) => item.action)).toEqual([
+      'unchanged',
+      'unchanged',
+      'unchanged',
+      'unchanged',
+    ]);
+    const changed = planWorkProfileImport({
+      components: asComponents(),
+      existingUnits,
+      existingProfiles: [existingProfile],
+      existingQueues: [{ ...queue, responseSlaMinutes: 10 }],
+      options: engine,
+    });
+    expect(changed.items[changed.items.length - 1]).toMatchObject({
+      key: 'workQueue:support-l1',
+      action: 'update',
+    });
+  });
+
+  it('a profile whose unit nobody provides is a problem, and so is an open draft', () => {
+    const missing = planWorkProfileImport({
+      components: asComponents().filter((c) => c.type === 'workProfile'),
+      existingUnits: [],
+      existingProfiles: [],
+      options: engine,
+    });
+    expect(missing.problems.join(' ')).toMatch(/does not exist/);
+    const draft = planWorkProfileImport({
+      components: asComponents(),
+      existingUnits: units.map((unit) => ({ ...unit, isActive: true })),
+      existingProfiles: [
+        {
+          key: 'nurse-ward',
+          name: 'Ward nurse',
+          description: null,
+          isActive: true,
+          hasDraft: true,
+          latestPublishedDefinition: definition,
+        },
+      ],
+      options: engine,
+    });
+    expect(draft.problems.join(' ')).toMatch(/open draft/);
+  });
+
+  it('syncs an existing profile name, and reactivates an inactive one only in the engine', () => {
+    const inactive = {
+      key: 'nurse-ward',
+      name: 'Old name',
+      description: null,
+      isActive: false,
+      hasDraft: false,
+      latestPublishedDefinition: definition,
+    };
+    const existingUnits = units.map((unit) => ({ ...unit, isActive: true }));
+    const viaEngine = planWorkProfileImport({
+      components: asComponents(),
+      existingUnits,
+      existingProfiles: [inactive],
+      options: engine,
+    });
+    expect(viaEngine.problems).toEqual([]);
+    expect(
+      viaEngine.items.find((item) => item.key === 'workProfile:nurse-ward'),
+    ).toEqual({
+      key: 'workProfile:nurse-ward',
+      action: 'update',
+      metadata: true,
+    });
+    const viaEndpoint = planWorkProfileImport({
+      components: asComponents().filter(
+        (c) => c.type !== 'workQueue' && c.type !== 'table',
+      ),
+      existingUnits,
+      existingProfiles: [inactive],
+    });
+    expect(viaEndpoint.problems.join(' ')).toMatch(/inactive/);
+  });
+
+  it('a queue never carries a team, business unit or tenant', () => {
+    const definitionKeys = Object.keys(queueComponent(queue).definition!);
+    expect(definitionKeys.sort()).toEqual([
+      'description',
+      'isActive',
+      'key',
+      'name',
+      'resolutionSlaMinutes',
+      'responseSlaMinutes',
+    ]);
   });
 });

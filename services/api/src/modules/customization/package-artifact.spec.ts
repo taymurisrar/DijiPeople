@@ -524,3 +524,72 @@ describe('definition values (untrusted input that becomes rows)', () => {
     );
   });
 });
+
+describe('work components (WP-21.S1)', () => {
+  const workQueue = (
+    definition: Record<string, unknown> = {},
+  ): PortableComponentInput => ({
+    key: 'workQueue:support-l1',
+    type: 'workQueue',
+    objectKey: 'support-l1',
+    parentKey: null,
+    layerAction: 'create',
+    baseIsSystem: false,
+    definition: {
+      key: 'support-l1',
+      name: 'Support L1',
+      description: null,
+      responseSlaMinutes: 30,
+      resolutionSlaMinutes: null,
+      isActive: true,
+      ...definition,
+    },
+    layer: null,
+    dependsOn: [],
+  });
+  const roundTrip = (components: PortableComponentInput[]) =>
+    parsePackageArtifact(
+      buildPackageArtifact({ manifest: manifest(), components }).serialized,
+    );
+
+  it('a queue round-trips with identical bytes and keeps its logical key', () => {
+    const first = buildPackageArtifact({
+      manifest: manifest(),
+      components: [workQueue()],
+    });
+    const parsed = parsePackageArtifact(first.serialized);
+    expect(parsed.problems).toEqual([]);
+    expect(parsed.artifact!.components[0].key).toBe('workQueue:support-l1');
+    expect(
+      buildPackageArtifact({ manifest: manifest(), components: [workQueue()] })
+        .serialized,
+    ).toBe(first.serialized);
+  });
+
+  it('refuses a queue whose SLA is not a sensible number of minutes', () => {
+    for (const bad of [0, -5, 1.5, 999_999, '30']) {
+      const parsed = roundTrip([workQueue({ responseSlaMinutes: bad })]);
+      expect(parsed.problems.map((p) => p.message).join()).toMatch(
+        /responseSlaMinutes must be a whole number of minutes/,
+      );
+    }
+  });
+
+  it('refuses a queue whose key disagrees with its identity', () => {
+    const parsed = roundTrip([workQueue({ key: 'other' })]);
+    expect(parsed.problems.map((p) => p.message).join()).toMatch(
+      /queue key does not match/,
+    );
+  });
+
+  it('an artifact with no work component serializes exactly as before', () => {
+    const { artifact } = buildPackageArtifact({
+      manifest: manifest(),
+      components: [table()],
+    });
+    expect(artifact.components.map((component) => component.type)).toEqual([
+      'table',
+    ]);
+    expect(parsePackageArtifact(JSON.stringify(artifact)).problems).toEqual([]);
+  });
+});

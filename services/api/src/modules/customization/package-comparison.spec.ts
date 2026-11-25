@@ -341,3 +341,75 @@ describe('comparePackageToTarget', () => {
     expect(result.blocking).toBe(true);
   });
 });
+
+describe('work components (WP-21.S1)', () => {
+  const unit = (name = 'Each'): PortableComponentInput => ({
+    key: 'workUnit:each',
+    type: 'workUnit',
+    objectKey: 'each',
+    parentKey: null,
+    layerAction: 'create',
+    baseIsSystem: false,
+    definition: { key: 'each', name, kind: 'COUNT' },
+    layer: null,
+    dependsOn: [],
+  });
+  const compareWork = (
+    component: PortableComponentInput,
+    target?: TargetEntry,
+  ) =>
+    comparePackageToTarget({
+      components: [withChecksum(component)],
+      target: new Map(target ? [[component.key, target]] : []),
+    }).items[0];
+
+  it('NEW - a unit the target does not have', () => {
+    expect(compareWork(unit())).toMatchObject({
+      status: 'NEW',
+      apply: 'create',
+    });
+  });
+
+  it('adopts an unowned unit that already says exactly what the package says', () => {
+    const item = compareWork(
+      unit(),
+      entry({
+        ownerKind: 'unowned',
+        ownerPackageKey: null,
+        ownerPackageName: null,
+        ownedByImportingPackage: false,
+        definition: { key: 'each', name: 'Each', kind: 'COUNT' },
+      }),
+    );
+    expect(item).toMatchObject({
+      status: 'UPDATE',
+      apply: 'update',
+      blocking: false,
+    });
+  });
+
+  it('CONFLICT - an unowned unit that differs is never overwritten', () => {
+    const item = compareWork(
+      unit('Each (package)'),
+      entry({
+        ownerKind: 'unowned',
+        ownerPackageKey: null,
+        ownerPackageName: null,
+        ownedByImportingPackage: false,
+        definition: { key: 'each', name: 'Each (local)', kind: 'COUNT' },
+      }),
+    );
+    expect(item).toMatchObject({ status: 'CONFLICT', blocking: true });
+  });
+
+  it('CONFLICT - a unit another package owns is never adopted', () => {
+    const item = compareWork(
+      unit(),
+      entry({
+        ownedByImportingPackage: false,
+        definition: { key: 'each', name: 'Each', kind: 'COUNT' },
+      }),
+    );
+    expect(item).toMatchObject({ status: 'CONFLICT', blocking: true });
+  });
+});

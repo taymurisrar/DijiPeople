@@ -1,16 +1,24 @@
 /*
- * DP-MASTER/WP-35.S2 (ADR-0030). Work profiles as portable `.djpkg` components.
+ * DP-MASTER/WP-35.S2 + WP-21.S1 (ADR-0030). Work units, profiles and queues as
+ * portable `.djpkg` components.
  *
- * A profile's PUBLISHED definition travels as `workProfile:<profile key>`, and
- * each unit it measures in as `workUnit:<unit key>`. Everything here is pure -
- * no database, no clock - so the export is byte-deterministic and the import
- * plan can be unit-tested without a server. The service in
- * work-profiles-portable.service.ts supplies the tenant's current state and
- * applies the plan.
+ * A profile's PUBLISHED definition travels as `workProfile:<profile key>`, each
+ * unit it measures in as `workUnit:<unit key>` and a queue as
+ * `workQueue:<queue key>`. Everything here is pure - no database, no clock - so
+ * the export is byte-deterministic and the import plan can be unit-tested
+ * without a server.
  *
- * Nothing tenant-specific crosses the boundary: no tenant id, row id, actor or
- * timestamp is written into a component, and an import refuses a package that
- * carries a `tenantId` anywhere (the tenant is always the importing user's).
+ * There is ONE package engine (customization/package-alm.service.ts). This file
+ * is the work components' contribution to it: how each is serialized, and the
+ * one planner that decides what applying them would do. The engine's reader
+ * builds components with the functions below, and both the engine and the
+ * work-profiles import endpoint plan with `planWorkProfileImport` and write
+ * through WorkComponentsService, so the two entry points cannot disagree.
+ *
+ * Nothing tenant-specific crosses the boundary: no tenant id, row id, actor,
+ * timestamp, team or business unit is written into a component, and an import
+ * refuses a package that carries a `tenantId` anywhere (the tenant is always
+ * the importing user's).
  */
 import {
   buildPackageArtifact,
@@ -50,6 +58,20 @@ export type PortableProfileSource = {
   publishedAt: Date | null;
 };
 
+/**
+ * Only what is the same in every environment. The team and business unit a
+ * queue belongs to are ids of THIS tenant and are deliberately absent: the
+ * target maps its own.
+ */
+export type PortableQueueSource = {
+  key: string;
+  name: string;
+  description: string | null;
+  responseSlaMinutes: number | null;
+  resolutionSlaMinutes: number | null;
+  isActive: boolean;
+};
+
 /** `wkp_p<alphanumerics>`: a package key must be `<prefix>_<letter><alnum>`. */
 export function workProfilePackageKey(profileKey: string): string {
   const alnum = profileKey.replace(/[^a-z0-9]/gi, '');
@@ -60,6 +82,88 @@ export function referencedUnitKeys(
   definition: WorkProfileDefinition,
 ): string[] {
   return [...new Set(definition.workTypes.map((type) => type.unitKey))].sort();
+}
+
+/* ------------------------------------------------- the portable shapes */
+
+const owned = {
+  parentKey: null,
+  layerAction: 'create',
+  baseIsSystem: false,
+  layer: null,
+} as const;
+
+export function unitDefinition(unit: PortableUnitSource) {
+  return { key: unit.key, name: unit.name, kind: unit.kind };
+}
+
+export function profileDefinition(profile: {
+  key: string;
+  name: string;
+  description: string | null;
+  definition: WorkProfileDefinition;
+}) {
+  return {
+    key: profile.key,
+    name: profile.name,
+    description: profile.description,
+    definition: profile.definition,
+  };
+}
+
+export function queueDefinition(queue: PortableQueueSource) {
+  return {
+    key: queue.key,
+    name: queue.name,
+    description: queue.description,
+    responseSlaMinutes: queue.responseSlaMinutes,
+    resolutionSlaMinutes: queue.resolutionSlaMinutes,
+    isActive: queue.isActive,
+  };
+}
+
+export function unitComponent(
+  unit: PortableUnitSource,
+): PortableComponentInput {
+  return {
+    ...owned,
+    key: `workUnit:${unit.key}`,
+    type: 'workUnit',
+    objectKey: unit.key,
+    definition: unitDefinition(unit),
+    dependsOn: [],
+  };
+}
+
+export function profileComponent(profile: {
+  key: string;
+  name: string;
+  description: string | null;
+  definition: WorkProfileDefinition;
+}): PortableComponentInput {
+  return {
+    ...owned,
+    key: `workProfile:${profile.key}`,
+    type: 'workProfile',
+    objectKey: profile.key,
+    definition: profileDefinition(profile),
+    dependsOn: referencedUnitKeys(profile.definition).map(
+      (unitKey) => `workUnit:${unitKey}`,
+    ),
+  };
+}
+
+export function queueComponent(
+  queue: PortableQueueSource,
+): PortableComponentInput {
+  return {
+    ...owned,
+    key: `workQueue:${queue.key}`,
+    type: 'workQueue',
+    objectKey: queue.key,
+    definition: queueDefinition(queue),
+    dependsOn: [],
+  };
 }
 
 export function buildWorkProfilePackage(input: {
@@ -77,36 +181,9 @@ export function buildWorkProfilePackage(input: {
         `Export refused: unit "${unitKey}" used by this profile does not exist.`,
       );
     }
-    components.push({
-      key: `workUnit:${unit.key}`,
-      type: 'workUnit',
-      objectKey: unit.key,
-      parentKey: null,
-      layerAction: 'create',
-      baseIsSystem: false,
-      definition: { key: unit.key, name: unit.name, kind: unit.kind },
-      layer: null,
-      dependsOn: [],
-    });
+    components.push(unitComponent(unit));
   }
-  components.push({
-    key: `workProfile:${profile.key}`,
-    type: 'workProfile',
-    objectKey: profile.key,
-    parentKey: null,
-    layerAction: 'create',
-    baseIsSystem: false,
-    definition: {
-      key: profile.key,
-      name: profile.name,
-      description: profile.description,
-      definition: profile.definition,
-    },
-    layer: null,
-    dependsOn: referencedUnitKeys(profile.definition).map(
-      (unitKey) => `workUnit:${unitKey}`,
-    ),
-  });
+  components.push(profileComponent(profile));
 
   return buildPackageArtifact({
     manifest: {
@@ -131,6 +208,7 @@ export type ExistingUnit = {
   key: string;
   kind: WorkUnitKindValue;
   isActive: boolean;
+  name?: string;
 };
 
 export type ExistingProfile = {
@@ -139,16 +217,41 @@ export type ExistingProfile = {
   hasDraft: boolean;
   /** The highest-numbered published version's definition, if any. */
   latestPublishedDefinition: unknown;
+  name?: string;
+  description?: string | null;
 };
 
-export type ImportAction = 'create' | 'new-version' | 'unchanged';
-export type ImportItem = { key: string; action: ImportAction };
+export type ExistingQueue = PortableQueueSource;
+
+export type ImportAction = 'create' | 'new-version' | 'update' | 'unchanged';
+export type ImportItem = {
+  key: string;
+  action: ImportAction;
+  /**
+   * Set (engine imports only) when the existing component's name, description
+   * or active flag must follow the package. Never set by the legacy endpoint,
+   * which leaves an existing component's metadata alone.
+   */
+  metadata?: true;
+};
 
 export type WorkProfileImportPlan = {
   items: ImportItem[];
   problems: string[];
   units: PortableComponent[];
   profiles: PortableComponent[];
+  queues: PortableComponent[];
+};
+
+export type PlanOptions = {
+  /**
+   * The work-profiles endpoint's contract: the package must hold nothing but
+   * units and profiles, and at least one profile. The engine (false) plans
+   * only the work components of a package that may hold anything.
+   */
+  standalone: boolean;
+  /** Existing components follow the package's name/description/active flag. */
+  syncMetadata: boolean;
 };
 
 function containsTenantKey(value: unknown): boolean {
@@ -168,18 +271,34 @@ export function planWorkProfileImport(input: {
   components: readonly PortableComponent[];
   existingUnits: readonly ExistingUnit[];
   existingProfiles: readonly ExistingProfile[];
+  existingQueues?: readonly ExistingQueue[];
+  options?: Partial<PlanOptions>;
 }): WorkProfileImportPlan {
+  const options: PlanOptions = {
+    standalone: true,
+    syncMetadata: false,
+    ...input.options,
+  };
   const problems: string[] = [];
   const items: ImportItem[] = [];
-  const units = input.components.filter(
-    (component) => component.type === 'workUnit',
-  );
-  const profiles = input.components.filter(
+  const considered = options.standalone
+    ? input.components
+    : input.components.filter((component) =>
+        isWorkComponentType(component.type),
+      );
+  const units = considered.filter((component) => component.type === 'workUnit');
+  const profiles = considered.filter(
     (component) => component.type === 'workProfile',
   );
+  const queues = considered.filter(
+    (component) => component.type === 'workQueue',
+  );
 
-  for (const component of input.components) {
-    if (!isWorkComponentType(component.type)) {
+  for (const component of considered) {
+    if (
+      !isWorkComponentType(component.type) ||
+      (options.standalone && component.type === 'workQueue')
+    ) {
       problems.push(
         `${component.key} is not a work component; this importer only applies work units and work profiles.`,
       );
@@ -192,7 +311,9 @@ export function planWorkProfileImport(input: {
       );
     }
   }
-  if (!profiles.length) problems.push('The package contains no work profile.');
+  if (options.standalone && !profiles.length) {
+    problems.push('The package contains no work profile.');
+  }
   if (profiles.length > WORK_PROFILE_IMPORT_MAX_PROFILES) {
     problems.push(
       `A package may import at most ${WORK_PROFILE_IMPORT_MAX_PROFILES} profiles at once.`,
@@ -206,6 +327,7 @@ export function planWorkProfileImport(input: {
   for (const component of units) {
     const definition = component.definition as {
       key: string;
+      name: string;
       kind: WorkUnitKindValue;
     };
     const existing = existingUnits.get(definition.key);
@@ -221,6 +343,12 @@ export function planWorkProfileImport(input: {
       problems.push(
         `${component.key}: this tenant's unit is a ${existing.kind} unit; the package expects ${definition.kind}.`,
       );
+    } else if (
+      options.syncMetadata &&
+      (!existing.isActive || existing.name !== definition.name)
+    ) {
+      effectiveUnits.set(definition.key, { ...existing, isActive: true });
+      items.push({ key: component.key, action: 'update', metadata: true });
     } else {
       items.push({ key: component.key, action: 'unchanged' });
     }
@@ -232,6 +360,8 @@ export function planWorkProfileImport(input: {
   for (const component of profiles) {
     const definition = component.definition as {
       key: string;
+      name: string;
+      description: string | null;
       definition: WorkProfileDefinition;
     };
     problems.push(
@@ -245,7 +375,13 @@ export function planWorkProfileImport(input: {
       items.push({ key: component.key, action: 'create' });
       continue;
     }
-    if (!existing.isActive) {
+    const reactivate = options.syncMetadata && !existing.isActive;
+    const metadataDiffers =
+      options.syncMetadata &&
+      (reactivate ||
+        existing.name !== definition.name ||
+        (existing.description ?? null) !== (definition.description ?? null));
+    if (!existing.isActive && !reactivate) {
       problems.push(
         `${component.key}: the profile is inactive and cannot publish a version.`,
       );
@@ -259,9 +395,35 @@ export function planWorkProfileImport(input: {
       canonicalJson(existing.latestPublishedDefinition) ===
         canonicalJson(definition.definition)
     ) {
+      items.push(
+        metadataDiffers
+          ? { key: component.key, action: 'update', metadata: true }
+          : { key: component.key, action: 'unchanged' },
+      );
+    } else {
+      items.push(
+        metadataDiffers
+          ? { key: component.key, action: 'new-version', metadata: true }
+          : { key: component.key, action: 'new-version' },
+      );
+    }
+  }
+
+  const existingQueues = new Map(
+    (input.existingQueues ?? []).map((queue) => [queue.key, queue]),
+  );
+  for (const component of queues) {
+    const definition = component.definition as unknown as PortableQueueSource;
+    const existing = existingQueues.get(definition.key);
+    if (!existing) {
+      items.push({ key: component.key, action: 'create' });
+    } else if (
+      canonicalJson(queueDefinition(existing)) ===
+      canonicalJson(queueDefinition(definition))
+    ) {
       items.push({ key: component.key, action: 'unchanged' });
     } else {
-      items.push({ key: component.key, action: 'new-version' });
+      items.push({ key: component.key, action: 'update', metadata: true });
     }
   }
 
@@ -270,5 +432,6 @@ export function planWorkProfileImport(input: {
     problems,
     units,
     profiles,
+    queues,
   };
 }

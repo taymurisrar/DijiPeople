@@ -23,6 +23,9 @@ import { AuditRepository } from '../src/modules/audit/audit.repository';
 import { AuditService } from '../src/modules/audit/audit.service';
 import { CustomizationService } from '../src/modules/customization/customization.service';
 import { PackageAlmService } from '../src/modules/customization/package-alm.service';
+import { WorkComponentsService } from '../src/modules/work-profiles/work-components.service';
+import { WorkProfilesService } from '../src/modules/work-profiles/work-profiles.service';
+import { WorkQueuesService } from '../src/modules/work-items/work-queues.service';
 import { PackagePortableReader } from '../src/modules/customization/package-portable.reader';
 import { readPublishedCustomizationIndex } from '../src/modules/data/published-custom-modules';
 import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
@@ -147,6 +150,9 @@ describeWithDatabase()(
           CustomizationService,
           PackageAlmService,
           PackagePortableReader,
+          WorkComponentsService,
+          WorkProfilesService,
+          WorkQueuesService,
           AuditRepository,
           AuditService,
           SecretEncryptionService,

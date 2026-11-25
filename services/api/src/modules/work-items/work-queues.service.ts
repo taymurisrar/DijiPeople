@@ -35,6 +35,19 @@ const SELECT = {
   updatedAt: true,
 } satisfies Prisma.WorkQueueSelect;
 
+/** WP-21.S1: a transaction the caller already holds (the package engine's). */
+type Db = Prisma.TransactionClient;
+
+/** What an update may set. A package clears a value by sending null. */
+export type WorkQueueChanges = Omit<
+  UpdateWorkQueueDto,
+  'description' | 'responseSlaMinutes' | 'resolutionSlaMinutes'
+> & {
+  description?: string | null;
+  responseSlaMinutes?: number | null;
+  resolutionSlaMinutes?: number | null;
+};
+
 @Injectable()
 export class WorkQueuesService {
   constructor(
@@ -64,10 +77,10 @@ export class WorkQueuesService {
     });
   }
 
-  async create(user: AuthenticatedUser, dto: CreateWorkQueueDto) {
-    await this.assertTeam(user.tenantId, dto.teamId);
+  async create(user: AuthenticatedUser, dto: CreateWorkQueueDto, db?: Db) {
+    await this.assertTeam(user.tenantId, dto.teamId, db);
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      return await this.run(db, async (tx) => {
         const created = await tx.workQueue.create({
           data: {
             tenantId: user.tenantId,
@@ -109,14 +122,23 @@ export class WorkQueuesService {
     }
   }
 
-  async update(user: AuthenticatedUser, id: string, dto: UpdateWorkQueueDto) {
-    if (dto.teamId) await this.assertTeam(user.tenantId, dto.teamId);
-    const before = await this.prisma.workQueue.findFirst({
+  private run<T>(db: Db | undefined, work: (tx: Db) => Promise<T>): Promise<T> {
+    return db ? work(db) : this.prisma.$transaction(work);
+  }
+
+  async update(
+    user: AuthenticatedUser,
+    id: string,
+    dto: WorkQueueChanges,
+    db?: Db,
+  ) {
+    if (dto.teamId) await this.assertTeam(user.tenantId, dto.teamId, db);
+    const before = await (db ?? this.prisma).workQueue.findFirst({
       where: { id, tenantId: user.tenantId },
       select: SELECT,
     });
     if (!before) throw new NotFoundException('Queue not found.');
-    return this.prisma.$transaction(async (tx) => {
+    return this.run(db, async (tx) => {
       const updated = await tx.workQueue.update({
         where: { id },
         data: {
@@ -151,9 +173,9 @@ export class WorkQueuesService {
     });
   }
 
-  private async assertTeam(tenantId: string, teamId?: string) {
+  private async assertTeam(tenantId: string, teamId?: string, db?: Db) {
     if (!teamId) return;
-    const team = await this.prisma.team.findFirst({
+    const team = await (db ?? this.prisma).team.findFirst({
       where: { id: teamId, tenantId },
       select: { id: true },
     });

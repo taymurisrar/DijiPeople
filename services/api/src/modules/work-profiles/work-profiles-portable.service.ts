@@ -12,26 +12,27 @@ import { parsePackageArtifact } from '../customization/package-artifact';
 import type { WorkProfileDefinition } from './work-profile-definition';
 import {
   buildWorkProfilePackage,
-  planWorkProfileImport,
   referencedUnitKeys,
-  type ImportItem,
 } from './work-profile-portable';
-import { WorkProfilesService } from './work-profiles.service';
+import { WorkComponentsService } from './work-components.service';
 
 /*
- * DP-MASTER/WP-35.S2. Export and import of work profiles as `.djpkg` components.
+ * DP-MASTER/WP-35.S2 + WP-21.S1. The work-profiles endpoint's way into the ONE
+ * package engine's work-component logic. It owns nothing but the file handling:
+ * planning and writing are WorkComponentsService, the same code the package
+ * engine (customization/package-alm.service) uses for a package that also
+ * carries modules, so there is no second importer to drift.
  *
  * Every read and write is scoped to the caller's tenant. The package never
- * names a tenant. Writes go through WorkProfilesService, so the same validation,
- * immutability and audit rules apply as for a profile built by hand. The plan is
- * fully validated before anything is written, and re-importing the same package
- * is a no-op: a profile only gets a new version when its definition changed.
+ * names a tenant. The plan is fully validated before anything is written, the
+ * whole import is one transaction, and re-importing the same package is a
+ * no-op: a profile only gets a new version when its definition changed.
  */
 @Injectable()
 export class WorkProfilesPortableService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly profiles: WorkProfilesService,
+    private readonly components: WorkComponentsService,
     private readonly audit: AuditService,
   ) {}
 
@@ -105,117 +106,50 @@ export class WorkProfilesPortableService {
     }
 
     const tenantId = user.tenantId;
-    const [units, profiles] = await Promise.all([
-      this.prisma.workUnit.findMany({
-        where: { tenantId },
-        select: { key: true, kind: true, isActive: true },
-      }),
-      this.prisma.workProfile.findMany({
-        where: {
-          tenantId,
-          key: {
-            in: parsed.artifact.components
-              .filter((component) => component.type === 'workProfile')
-              .map((component) => component.objectKey),
-          },
-        },
-        select: {
-          key: true,
-          isActive: true,
-          versions: {
-            orderBy: { version: 'desc' },
-            select: { status: true, definition: true },
-          },
-        },
-      }),
-    ]);
-
-    const plan = planWorkProfileImport({
-      components: parsed.artifact.components,
-      existingUnits: units,
-      existingProfiles: profiles.map((profile) => ({
-        key: profile.key,
-        isActive: profile.isActive,
-        hasDraft: profile.versions.some(
-          (version) => version.status === WorkProfileVersionStatus.DRAFT,
-        ),
-        latestPublishedDefinition:
-          profile.versions.find(
-            (version) => version.status === WorkProfileVersionStatus.PUBLISHED,
-          )?.definition ?? null,
-      })),
-    });
-    if (plan.problems.length) {
-      throw new BadRequestException({
+    const artifact = parsed.artifact;
+    const options = { standalone: true, syncMetadata: false };
+    const rejected = (problems: string[]) =>
+      new BadRequestException({
         code: 'WORK_PROFILE_PACKAGE_REJECTED',
-        message: plan.problems.join(' '),
+        message: problems.join(' '),
       });
-    }
-    if (dryRun) return { dryRun: true, items: plan.items };
 
-    const action = new Map<string, ImportItem['action']>(
-      plan.items.map((item) => [item.key, item.action]),
-    );
-    for (const component of plan.units) {
-      if (action.get(component.key) !== 'create') continue;
-      const definition = component.definition as {
-        key: string;
-        name: string;
-        kind: 'DURATION' | 'COUNT' | 'DUTY_COMPLETION' | 'CURRENCY';
-      };
-      await this.profiles.createUnit(user, {
-        key: definition.key,
-        name: definition.name,
-        kind: definition.kind,
-      });
+    if (dryRun) {
+      const plan = await this.components.plan(
+        this.prisma,
+        tenantId,
+        artifact.components,
+        options,
+      );
+      if (plan.problems.length) throw rejected(plan.problems);
+      return { dryRun: true, items: plan.items };
     }
-    for (const component of plan.profiles) {
-      const step = action.get(component.key);
-      if (step === 'unchanged') continue;
-      const definition = component.definition as {
-        key: string;
-        name: string;
-        description: string | null;
-        definition: Record<string, unknown>;
-      };
-      if (step === 'create') {
-        const created = await this.profiles.create(user, {
-          key: definition.key,
-          name: definition.name,
-          description: definition.description ?? undefined,
-          definition: definition.definition,
-        });
-        await this.profiles.publish(
-          user,
-          created.id,
-          created.versions[0].id,
-          {},
-        );
-      } else {
-        const existing = await this.prisma.workProfile.findFirstOrThrow({
-          where: { tenantId, key: definition.key },
-          select: { id: true },
-        });
-        const drafted = await this.profiles.createDraft(user, existing.id);
-        const draft = drafted.versions.find(
-          (version) => version.status === WorkProfileVersionStatus.DRAFT,
-        );
-        if (!draft) throw new ConflictException('The draft was not created.');
-        await this.profiles.updateDraft(user, existing.id, draft.id, {
-          definition: definition.definition,
-        });
-        await this.profiles.publish(user, existing.id, draft.id, {});
-      }
-    }
+
+    /*
+     * Planned AND applied inside one transaction, by the same planner and the
+     * same writer the package engine uses (WorkComponentsService): a problem
+     * anywhere, including one found while writing, leaves the tenant untouched.
+     */
+    const plan = await this.prisma.$transaction(async (tx) => {
+      const planned = await this.components.plan(
+        tx,
+        tenantId,
+        artifact.components,
+        options,
+      );
+      if (planned.problems.length) throw rejected(planned.problems);
+      await this.components.apply(tx, user, planned);
+      return planned;
+    });
 
     await this.audit.log({
       tenantId,
       actorUserId: user.userId,
       action: 'WORK_PROFILE_PACKAGE_IMPORTED',
       entityType: 'WorkProfile',
-      entityId: parsed.artifact.manifest.packageKey,
+      entityId: artifact.manifest.packageKey,
       afterSnapshot: {
-        checksum: parsed.artifact.contentChecksum,
+        checksum: artifact.contentChecksum,
         items: plan.items,
       },
     });

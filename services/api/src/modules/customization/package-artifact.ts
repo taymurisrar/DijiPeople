@@ -82,15 +82,21 @@ export const PORTABLE_COMPONENT_TYPES = [
 export type ModuleComponentType = (typeof PORTABLE_COMPONENT_TYPES)[number];
 
 /*
- * WP-35.S2 (ADR-0030). Work units and profiles are portable too, but they carry
- * their own logical keys (WORK_KEY_PATTERN, which allows "-" and a leading
- * digit) and have no parent module. The module package engine does NOT apply
- * them: its membership rows are typed by a database enum that does not list
- * them, so PORTABLE_COMPONENT_TYPES (what that engine writes) stays as it was
- * and a package holding work components is imported by the work-profiles
- * importer.
+ * WP-35.S2 / WP-21.S1 (ADR-0030). Work units, profiles and queues are portable
+ * too, but they carry their own logical keys (WORK_KEY_PATTERN, which allows
+ * "-" and a leading digit) and have no parent module. The ONE package engine
+ * carries them: the reader serializes them, comparison classifies them, and
+ * applying them goes through the work services (WorkComponentsService), so
+ * validation, immutability and audit stay where they already live.
+ * PORTABLE_COMPONENT_TYPES is the module metadata the engine writes itself and
+ * stays as it was; work types are added AFTER it so an artifact that holds none
+ * is byte-identical to what it always was.
  */
-export const WORK_COMPONENT_TYPES = ['workUnit', 'workProfile'] as const;
+export const WORK_COMPONENT_TYPES = [
+  'workUnit',
+  'workProfile',
+  'workQueue',
+] as const;
 export type WorkComponentType = (typeof WORK_COMPONENT_TYPES)[number];
 export const ARTIFACT_COMPONENT_TYPES = [
   ...PORTABLE_COMPONENT_TYPES,
@@ -1160,6 +1166,30 @@ function definitionProblem(
       return 'the unit key does not match the component.';
     }
     return first(text('name', 120), oneOf('kind', WORK_UNIT_KINDS));
+  }
+  if (type === 'workQueue') {
+    if (definition.key !== objectKey) {
+      return 'the queue key does not match the component.';
+    }
+    const minutes = (field: string) => {
+      const value = definition[field];
+      if (value === null || value === undefined) return null;
+      return typeof value === 'number' &&
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value <= 525_600
+        ? null
+        : `${field} must be a whole number of minutes between 1 and 525600.`;
+    };
+    return first(
+      text('name', 120),
+      text('description', 1000, false),
+      minutes('responseSlaMinutes'),
+      minutes('resolutionSlaMinutes'),
+      typeof definition.isActive === 'boolean'
+        ? null
+        : 'isActive must be true or false.',
+    );
   }
   if (type === 'workProfile') {
     if (definition.key !== objectKey) {

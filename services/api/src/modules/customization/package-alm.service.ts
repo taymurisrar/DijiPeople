@@ -32,6 +32,7 @@ import {
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { AuditService } from '../audit/audit.service';
 import { CustomizationService } from './customization.service';
+import { WorkComponentsService } from '../work-profiles/work-components.service';
 import {
   CUSTOMIZATION_METADATA_SCHEMA_VERSION,
   PORTABLE_COMPONENT_TYPES,
@@ -62,6 +63,7 @@ import {
 import { PackagePortableReader, parseKey } from './package-portable.reader';
 import { packageKind } from './package-kind';
 import type {
+  AddWorkComponentsDto,
   CreateCustomizationPublisherDto,
   CreateEnvironmentVariableDto,
   ExecutePackageImportDto,
@@ -70,6 +72,9 @@ import type {
 } from './dto/package-alm.dto';
 
 type Db = PrismaService | Prisma.TransactionClient;
+
+/* An import follows the package: existing work components take its name and active flag. */
+const WORK_IMPORT_OPTIONS = { standalone: false, syncMetadata: true } as const;
 
 export type PackageIssue = {
   code: string;
@@ -93,6 +98,7 @@ export class PackageAlmService {
     private readonly reader: PackagePortableReader,
     private readonly audit: AuditService,
     private readonly encryption: SecretEncryptionService,
+    private readonly work: WorkComponentsService,
   ) {}
 
   /* ============================================================ publishers */
@@ -503,6 +509,16 @@ export class PackageAlmService {
       read.components.map((component) => component.key),
     );
     for (const row of unsupported) {
+      if (isWorkComponentType(row.componentType)) {
+        issues.push(
+          issue(
+            'WORK_COMPONENT_NOT_EXPORTABLE',
+            'error',
+            `${describeKey(`${row.componentType}:${row.objectKey}`)} cannot be released: it no longer exists here or has no published version. Publish a version first, or remove it from the package.`,
+          ),
+        );
+        continue;
+      }
       if (
         [...componentKeys].some(
           (key) =>
@@ -1041,27 +1057,8 @@ export class PackageAlmService {
       }),
     );
 
-    const verified = parsePackageArtifact(file.buffer);
-    /*
-     * Work units and profiles are portable (WP-35.S2) but are applied by the
-     * work-profiles importer, not by this module engine, whose membership rows
-     * cannot hold them. Refuse here rather than half-apply a mixed package.
-     */
-    const workComponent = verified.artifact?.components.find((component) =>
-      isWorkComponentType(component.type),
-    );
-    const parsed = workComponent
-      ? {
-          artifact: null,
-          problems: [
-            {
-              path: `components.${workComponent.key}`,
-              message:
-                'This package carries work profiles. Import it from Settings, Work profiles.',
-            },
-          ],
-        }
-      : verified;
+    /* Work units, profiles and queues are ordinary components of the one engine (WP-21.S1). */
+    const parsed = parsePackageArtifact(file.buffer);
     if (!parsed.artifact) {
       const operation = await this.prisma.customizationPackageOperation.create({
         data: {
@@ -1381,6 +1378,37 @@ export class PackageAlmService {
       target: index.target,
       ownedByPackageInTarget: index.ownedByPackageInTarget,
     });
+
+    /*
+     * Work components (WP-21.S1): the same planner and permission rule the
+     * apply step uses, so a package that would fail while writing is refused
+     * here, with every reason, before anything is changed.
+     */
+    const workApply = this.workToApply(artifact, comparison);
+    if (workApply.length) {
+      const missing = this.work.missingPermissions(
+        currentUser,
+        workApply.map((component) => component.type),
+      );
+      for (const key of missing) {
+        packageIssues.push(
+          issue(
+            'WORK_PERMISSION_REQUIRED',
+            'error',
+            `Importing work components requires the ${key} permission.`,
+          ),
+        );
+      }
+      const workPlan = await this.work.plan(
+        db,
+        currentUser.tenantId,
+        workApply,
+        WORK_IMPORT_OPTIONS,
+      );
+      for (const problem of workPlan.problems) {
+        packageIssues.push(issue('WORK_COMPONENT_INVALID', 'error', problem));
+      }
+    }
 
     /* Environment variables this workspace must supply a value for. */
     const variableKeys = artifact.components
@@ -1843,6 +1871,40 @@ export class PackageAlmService {
       const item = statusByKey.get(component.key);
       return item !== undefined && item.status !== 'SKIPPED';
     });
+    /*
+     * Work components first, through the work services and THIS transaction:
+     * units before the profiles that measure in them, queues independent.
+     * Anything that fails here, or in a module step after it, rolls all of it
+     * back together.
+     */
+    const workApply = applicable.filter(
+      (component) =>
+        isWorkComponentType(component.type) &&
+        statusByKey.get(component.key)?.apply !== 'none',
+    );
+    if (workApply.length) {
+      onComponent(
+        `${workApply[0].key}${workApply.length > 1 ? ` (and ${workApply.length - 1} more work components)` : ''}`,
+      );
+      const workPlan = await this.work.plan(
+        tx,
+        tenantId,
+        workApply,
+        WORK_IMPORT_OPTIONS,
+      );
+      if (workPlan.problems.length) {
+        throw this.validation(workPlan.problems.join(' '));
+      }
+      await this.work.apply(tx, currentUser, workPlan);
+    }
+    const workIds = await this.work.idsByKey(
+      tx,
+      tenantId,
+      applicable.filter((component) => isWorkComponentType(component.type)),
+    );
+    for (const [key, objectId] of workIds) {
+      resolved.set(key, { objectId, tableId: null });
+    }
     for (const type of PORTABLE_COMPONENT_TYPES) {
       const batch = applicable.filter((component) => component.type === type);
       if (!batch.length) continue;
@@ -2361,6 +2423,17 @@ export class PackageAlmService {
             id: { in: owned('environmentVariable') },
           },
         });
+        /* Work components are deactivated, never deleted: history points at them. */
+        const retainedWork = await this.work.retire(
+          tx,
+          currentUser,
+          rows.filter(
+            (row) =>
+              isWorkComponentType(row.componentType) &&
+              row.layerAction === 'create' &&
+              !row.isSystem,
+          ),
+        );
         await tx.customizationSolution.delete({ where: { id: record.id } });
         const snapshotVersion = await this.customization.recordPublishSnapshot(
           currentUser,
@@ -2382,6 +2455,7 @@ export class PackageAlmService {
             completedAt: new Date(),
             resultJson: {
               removedComponents: rows.length,
+              retainedWorkComponents: retainedWork,
               snapshotVersion,
             } as Prisma.InputJsonValue,
           },
@@ -2492,6 +2566,20 @@ export class PackageAlmService {
         );
       }
 
+      /* 2b. Live work (assignments, open items, profiles using a unit) - WP-21.S1. */
+      const workRows = rows.filter((row) =>
+        isWorkComponentType(row.componentType),
+      );
+      if (workRows.length) {
+        for (const blocker of await this.work.useBlockers(
+          this.prisma,
+          tenantId,
+          workRows,
+        )) {
+          blockers.push(issue(blocker.code, 'error', blocker.message));
+        }
+      }
+
       /* 3. Records stored in modules this package created. */
       const tableIds = rows
         .filter((row) => row.componentType === 'table')
@@ -2515,6 +2603,109 @@ export class PackageAlmService {
       }
     }
     return blockers;
+  }
+
+  /**
+   * Puts existing work units, profiles and queues into an editable package so
+   * the next release carries them (WP-21.S1). Membership only: the components
+   * themselves are not touched. A component belongs to at most one package.
+   */
+  async addWorkComponents(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+    dto: AddWorkComponentsDto,
+  ) {
+    const record = await this.findPackage(currentUser, packageId);
+    this.assertEditable(record);
+    const missing = this.work.missingPermissions(
+      currentUser,
+      dto.components.map((entry) => entry.type),
+    );
+    if (missing.length) {
+      throw new AppError('RBAC_PERMISSION_MISSING', {
+        message: `Adding work components requires the ${missing.join(', ')} permission.`,
+      });
+    }
+    const tenantId = currentUser.tenantId;
+    const wanted = dto.components.map((entry) => ({
+      type: entry.type,
+      objectKey: entry.key,
+    }));
+    const ids = await this.work.idsByKey(this.prisma, tenantId, wanted);
+    const unknown = wanted.filter(
+      (entry) => !ids.has(`${entry.type}:${entry.objectKey}`),
+    );
+    if (unknown.length) {
+      throw this.validation(
+        `Not found in this workspace: ${unknown.map((entry) => `${entry.type}:${entry.objectKey}`).join(', ')}.`,
+      );
+    }
+    const added: string[] = [];
+    await this.prisma.$transaction(async (tx) => {
+      for (const entry of wanted) {
+        const key = `${entry.type}:${entry.objectKey}`;
+        const objectId = ids.get(key)!;
+        const owner = await tx.customizationSolutionComponent.findFirst({
+          where: {
+            tenantId,
+            componentType: entry.type as CustomizationSolutionComponentType,
+            objectId,
+            layerAction: 'create',
+            NOT: { solutionId: record.id },
+          },
+          include: { solution: { select: { displayName: true } } },
+        });
+        if (owner) {
+          throw this.validation(
+            `${describeKey(key)} already belongs to ${owner.solution.displayName}.`,
+          );
+        }
+        await tx.customizationSolutionComponent.upsert({
+          where: {
+            solutionId_componentType_objectId: {
+              solutionId: record.id,
+              componentType: entry.type as CustomizationSolutionComponentType,
+              objectId,
+            },
+          },
+          create: {
+            tenantId,
+            solutionId: record.id,
+            componentType: entry.type as CustomizationSolutionComponentType,
+            objectId,
+            objectKey: entry.objectKey,
+            layerAction: 'create',
+            lifecycleState: 'published',
+            layerOrder: 300,
+            version: record.version,
+            isSystem: false,
+            isCustom: true,
+            isManaged: false,
+            createdByUserId: currentUser.userId,
+            updatedByUserId: currentUser.userId,
+          },
+          update: { updatedByUserId: currentUser.userId },
+        });
+        added.push(key);
+      }
+    });
+    return { packageId: record.id, added: added.sort() };
+  }
+
+  /**
+   * The work components of an import that still have something to do. A
+   * component already installed unchanged (apply none) is not re-planned.
+   */
+  private workToApply(artifact: PackageArtifact, comparison: ComparisonResult) {
+    const applying = new Set(
+      comparison.items
+        .filter((item) => item.apply !== 'none')
+        .map((item) => item.key),
+    );
+    return artifact.components.filter(
+      (component) =>
+        isWorkComponentType(component.type) && applying.has(component.key),
+    );
   }
 
   /**

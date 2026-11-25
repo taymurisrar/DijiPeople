@@ -66,6 +66,14 @@ function checksum(definition: unknown): string {
   return createHash('sha256').update(JSON.stringify(definition)).digest('hex');
 }
 
+/**
+ * WP-21.S1: every write below may run inside a transaction the caller already
+ * holds (the package engine applies a whole import in one), in which case the
+ * caller's client is used for reads AND writes so the method sees what the same
+ * transaction wrote earlier. Without one, the method opens its own as before.
+ */
+type Db = Prisma.TransactionClient;
+
 function badRequest(code: string, problems: string[]): never {
   throw new BadRequestException({ code, message: problems.join(' ') });
 }
@@ -87,13 +95,17 @@ export class WorkProfilesService {
     });
   }
 
-  async createUnit(user: AuthenticatedUser, dto: CreateWorkUnitDto) {
-    const exists = await this.prisma.workUnit.findFirst({
+  private run<T>(db: Db | undefined, work: (tx: Db) => Promise<T>): Promise<T> {
+    return db ? work(db) : this.prisma.$transaction(work);
+  }
+
+  async createUnit(user: AuthenticatedUser, dto: CreateWorkUnitDto, db?: Db) {
+    const exists = await (db ?? this.prisma).workUnit.findFirst({
       where: { tenantId: user.tenantId, key: dto.key },
       select: { id: true },
     });
     if (exists) throw this.keyTaken('unit', dto.key);
-    const unit = await this.prisma.$transaction(async (tx) => {
+    const unit = await this.run(db, async (tx) => {
       const created = await tx.workUnit.create({
         data: {
           tenantId: user.tenantId,
@@ -125,13 +137,14 @@ export class WorkProfilesService {
     user: AuthenticatedUser,
     id: string,
     dto: UpdateWorkUnitDto,
+    db?: Db,
   ) {
-    const before = await this.prisma.workUnit.findFirst({
+    const before = await (db ?? this.prisma).workUnit.findFirst({
       where: { id, tenantId: user.tenantId },
       select: { id: true, key: true, name: true, kind: true, isActive: true },
     });
     if (!before) throw new NotFoundException('Work unit was not found.');
-    return this.prisma.$transaction(async (tx) => {
+    return this.run(db, async (tx) => {
       const updated = await tx.workUnit.update({
         where: { id },
         data: {
@@ -210,8 +223,8 @@ export class WorkProfilesService {
     }));
   }
 
-  async findOne(tenantId: string, id: string) {
-    const profile = await this.prisma.workProfile.findFirst({
+  async findOne(tenantId: string, id: string, db?: Db) {
+    const profile = await (db ?? this.prisma).workProfile.findFirst({
       where: { id, tenantId },
       select: {
         id: true,
@@ -226,18 +239,18 @@ export class WorkProfilesService {
     return profile;
   }
 
-  async create(user: AuthenticatedUser, dto: CreateWorkProfileDto) {
+  async create(user: AuthenticatedUser, dto: CreateWorkProfileDto, db?: Db) {
     const problems = validateWorkProfileDefinition(dto.definition);
     if (problems.length)
       badRequest('WORK_PROFILE_DEFINITION_INVALID', problems);
 
-    const exists = await this.prisma.workProfile.findFirst({
+    const exists = await (db ?? this.prisma).workProfile.findFirst({
       where: { tenantId: user.tenantId, key: dto.key },
       select: { id: true },
     });
     if (exists) throw this.keyTaken('profile', dto.key);
 
-    const id = await this.prisma.$transaction(async (tx) => {
+    const id = await this.run(db, async (tx) => {
       const profile = await tx.workProfile.create({
         data: {
           tenantId: user.tenantId,
@@ -271,16 +284,21 @@ export class WorkProfilesService {
       );
       return profile.id;
     });
-    return this.findOne(user.tenantId, id);
+    return this.findOne(user.tenantId, id, db);
   }
 
-  async update(user: AuthenticatedUser, id: string, dto: UpdateWorkProfileDto) {
-    const before = await this.prisma.workProfile.findFirst({
+  async update(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateWorkProfileDto,
+    db?: Db,
+  ) {
+    const before = await (db ?? this.prisma).workProfile.findFirst({
       where: { id, tenantId: user.tenantId },
       select: { name: true, description: true, isActive: true },
     });
     if (!before) throw new NotFoundException('Work profile was not found.');
-    await this.prisma.$transaction(async (tx) => {
+    await this.run(db, async (tx) => {
       await tx.workProfile.update({
         where: { id },
         data: {
@@ -305,14 +323,14 @@ export class WorkProfilesService {
         tx,
       );
     });
-    return this.findOne(user.tenantId, id);
+    return this.findOne(user.tenantId, id, db);
   }
 
   // ------------------------------------------------------------- versions
 
   /** Starts the next draft as a copy of the latest version. One draft at a time. */
-  async createDraft(user: AuthenticatedUser, profileId: string) {
-    await this.prisma.$transaction(async (tx) => {
+  async createDraft(user: AuthenticatedUser, profileId: string, db?: Db) {
+    await this.run(db, async (tx) => {
       await this.lockProfile(tx, user.tenantId, profileId);
       const versions = await tx.workProfileVersion.findMany({
         where: { profileId, tenantId: user.tenantId },
@@ -352,7 +370,7 @@ export class WorkProfilesService {
         tx,
       );
     });
-    return this.findOne(user.tenantId, profileId);
+    return this.findOne(user.tenantId, profileId, db);
   }
 
   async updateDraft(
@@ -360,12 +378,13 @@ export class WorkProfilesService {
     profileId: string,
     versionId: string,
     dto: UpdateWorkProfileVersionDto,
+    db?: Db,
   ) {
     const problems = validateWorkProfileDefinition(dto.definition);
     if (problems.length)
       badRequest('WORK_PROFILE_DEFINITION_INVALID', problems);
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.run(db, async (tx) => {
       await this.lockProfile(tx, user.tenantId, profileId);
       const version = await this.findVersion(
         tx,
@@ -396,7 +415,7 @@ export class WorkProfilesService {
         tx,
       );
     });
-    return this.findOne(user.tenantId, profileId);
+    return this.findOne(user.tenantId, profileId, db);
   }
 
   /**
@@ -409,8 +428,9 @@ export class WorkProfilesService {
     profileId: string,
     versionId: string,
     dto: PublishWorkProfileVersionDto,
+    db?: Db,
   ) {
-    await this.prisma.$transaction(async (tx) => {
+    await this.run(db, async (tx) => {
       const profile = await this.lockProfile(tx, user.tenantId, profileId);
       if (!profile.isActive) {
         throw new ConflictException({
@@ -498,7 +518,7 @@ export class WorkProfilesService {
         tx,
       );
     });
-    return this.findOne(user.tenantId, profileId);
+    return this.findOne(user.tenantId, profileId, db);
   }
 
   // ---------------------------------------------------------- assignments
