@@ -67,6 +67,8 @@ function ledger() {
       findUnique: jest.fn(({ where }: { where: { tenantId_stepKey: Row } }) =>
         Promise.resolve(stepAt(where) ?? null),
       ),
+      // No template has been pinned by an earlier send in these in-memory runs.
+      findFirst: jest.fn(() => Promise.resolve(null)),
       createMany: jest.fn(({ data }: { data: Row[] }) => {
         let count = 0;
         for (const item of data) {

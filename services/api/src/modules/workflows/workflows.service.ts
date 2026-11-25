@@ -304,10 +304,26 @@ export class WorkflowsService {
           );
         }
         const mode = action.recipientMode ?? 'SUBJECT';
-        if (mode === 'FIXED' && !action.recipientAddress?.trim()) {
+        if (
+          !action.recipients?.length &&
+          mode === 'FIXED' &&
+          !action.recipientAddress?.trim()
+        ) {
           throw new BadRequestException(
             'Enter the address to send to when using a fixed recipient.',
           );
+        }
+        for (const entry of action.recipients ?? []) {
+          if (entry.mode === 'FIXED' && !entry.address?.trim()) {
+            throw new BadRequestException(
+              'Enter the address for every fixed recipient.',
+            );
+          }
+          if (entry.mode === 'ROLE' && !entry.roleKey?.trim()) {
+            throw new BadRequestException(
+              'Choose the role for every role recipient.',
+            );
+          }
         }
       }
 
@@ -320,6 +336,13 @@ export class WorkflowsService {
           templateKey: action.templateKey?.trim() || undefined,
           recipientMode: action.recipientMode ?? 'SUBJECT',
           recipientAddress: action.recipientAddress?.trim() || undefined,
+          recipients: action.recipients?.length
+            ? action.recipients.map((entry) => ({
+                mode: entry.mode,
+                address: entry.address?.trim() || undefined,
+                roleKey: entry.roleKey?.trim() || undefined,
+              }))
+            : undefined,
         } as Prisma.InputJsonValue,
       };
     });
@@ -500,6 +523,9 @@ export class WorkflowsService {
           templateKey: (configuration.templateKey as string) ?? null,
           recipientMode: (configuration.recipientMode as string) ?? 'SUBJECT',
           recipientAddress: (configuration.recipientAddress as string) ?? null,
+          recipients: Array.isArray(configuration.recipients)
+            ? (configuration.recipients as unknown[])
+            : [],
         };
       }),
       createdAt: workflow.createdAt,

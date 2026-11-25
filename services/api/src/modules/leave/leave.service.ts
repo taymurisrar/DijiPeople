@@ -806,6 +806,8 @@ export class LeaveService {
       actorUserId: currentUser.userId,
       relatedEntityType: 'leaveRequest',
       relatedEntityId: leaveRequest.id,
+      // One submission is one transition, however often it is announced.
+      transitionId: `submitted:${new Date(leaveRequest.updatedAt).getTime()}`,
       relatedRecordNumber: leaveRequest.id,
       metadata: {
         employeeName: `${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName}`,
@@ -1930,6 +1932,8 @@ export class LeaveService {
       relatedEntityType: 'leaveRequest',
       relatedEntityId: updated.id,
       relatedRecordNumber: updated.id,
+      // The decision and the instant it was taken identify the transition.
+      transitionId: `${action}:${new Date(updated.updatedAt).getTime()}`,
       metadata: {
         employeeName: `${updated.employee.firstName} ${updated.employee.lastName}`,
         leaveTypeName: updated.leaveType.name,

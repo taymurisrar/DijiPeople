@@ -8,6 +8,7 @@ import { EmailService } from '../src/modules/notifications/email/email.service';
 import { OutboxDispatcherService } from '../src/modules/outbox/outbox-dispatcher.service';
 import { OutboxService } from '../src/modules/outbox/outbox.service';
 import { WorkflowActionHandler } from '../src/modules/workflows/workflow-action.handler';
+import { WorkflowDeliveryReconciler } from '../src/modules/workflows/workflow-delivery-reconciler';
 import { WorkflowDispatchService } from '../src/modules/workflows/workflow-dispatch.service';
 import { WorkflowRuntimeService } from '../src/modules/workflows/workflow-runtime.service';
 import { WorkflowsService } from '../src/modules/workflows/workflows.service';
@@ -34,6 +35,9 @@ describeWithDatabase()(
     const verdicts = new Map<string, 'sink' | 'skipped' | 'refused'>();
     // Holds a send open so a second delivery can race it.
     let gate: Promise<void> | null = null;
+    // address -> an EmailDeliveryLog id the stub reports back, so steps can pin
+    // the template and be reconciled against the log later.
+    const logs = new Map<string, string>();
     const result = (over: Record<string, unknown>) => ({
       sent: true,
       delivered: true,
@@ -63,7 +67,7 @@ describeWithDatabase()(
           });
         }
         sent.push(input.recipient);
-        return result({});
+        return result({ deliveryLogId: logs.get(input.recipient) });
       }),
     };
 
@@ -163,6 +167,7 @@ describeWithDatabase()(
       sent.length = 0;
       failing.clear();
       verdicts.clear();
+      logs.clear();
       gate = null;
       process.env.WORKFLOW_EXECUTION_MODE = 'durable';
     });
@@ -654,6 +659,300 @@ describeWithDatabase()(
       await makeDue(event.id);
       await privateDispatcher().drain(50);
       expect(sent).toEqual(['refused@example.com']);
+    });
+
+    const startWith = async (name: string, action: object) => {
+      const created = await workflows.create(asUser(), {
+        name,
+        eventCode,
+        status: 'ACTIVE',
+        conditions: [],
+        actions: [{ templateKey: 'x', ...action }],
+      } as never);
+      return created.id;
+    };
+    const stepsOf = (workflowId: string, eventId: string) =>
+      prisma.workflowRunStep.findMany({
+        where: { run: { workflowId, eventId } },
+        orderBy: [{ actionIndex: 'asc' }, { recipientIndex: 'asc' }],
+      });
+
+    it('one action with several recipients is one step each; the same person named twice is one message', async () => {
+      const workflowId = await startWith('Many', {
+        recipients: [
+          { mode: 'FIXED', address: 'one@example.com' },
+          { mode: 'FIXED', address: 'two@example.com' },
+          { mode: 'FIXED', address: 'ONE@example.com' },
+        ],
+      });
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+
+      expect(sent.sort()).toEqual(['one@example.com', 'two@example.com']);
+      const steps = await stepsOf(workflowId, event.id);
+      expect(steps.map((step) => step.recipientIndex)).toEqual([0, 1]);
+      expect(steps[1].stepKey).toBe(
+        `${event.id}:${steps[1].stepKey.split(':')[1]}:0:r1`,
+      );
+      const run = await prisma.workflowRun.findFirstOrThrow({
+        where: { workflowId, eventId: event.id },
+      });
+      expect(run).toMatchObject({ status: 'SUCCEEDED', actionsRun: 2 });
+    });
+
+    it('a retry mails only the recipient that failed', async () => {
+      const workflowId = await startWith('Many retry', {
+        recipients: [
+          { mode: 'FIXED', address: 'ok@example.com' },
+          { mode: 'FIXED', address: 'flaky2@example.com' },
+        ],
+      });
+      failing.set('flaky2@example.com', 1);
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+      expect(sent).toEqual(['ok@example.com']);
+
+      await makeDue(event.id);
+      await privateDispatcher().drain(50);
+      expect(sent).toEqual(['ok@example.com', 'flaky2@example.com']);
+      expect(
+        (await stepsOf(workflowId, event.id)).map((step) => step.attempts),
+      ).toEqual([1, 2]);
+    });
+
+    it('a role recipient is expanded once and pinned: members added before the retry are not mailed', async () => {
+      const roleKey = `wfrole-${suffix}`;
+      const role = await prisma.role.create({
+        data: { tenantId, key: roleKey, name: `WF role ${suffix}` },
+        select: { id: true },
+      });
+      const unit = (
+        await prisma.businessUnit.findFirstOrThrow({
+          where: { tenantId },
+          select: { id: true },
+        })
+      ).id;
+      const makeUser = async (label: string) => {
+        const u = await actors.tenantUser(tenantId, unit, label);
+        await prisma.userRole.create({
+          data: { tenantId, userId: u.id, roleId: role.id },
+        });
+        return u.email;
+      };
+      const first = await makeUser('wfr-a');
+      const second = await makeUser('wfr-b');
+      const workflowId = await startWith('Role', {
+        recipients: [{ mode: 'ROLE', roleKey }],
+      });
+      failing.set(second, 1);
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+      expect(sent).toEqual([first]);
+
+      const third = await makeUser('wfr-c'); // joins the role after the event
+      await makeDue(event.id);
+      await privateDispatcher().drain(50);
+      expect(sent.sort()).toEqual([first, second].sort());
+      expect(sent).not.toContain(third);
+      expect((await stepsOf(workflowId, event.id)).length).toBe(2);
+    });
+
+    it('a recipient that cannot be resolved is a recorded permanent failure beside the ones that worked', async () => {
+      const workflowId = await startWith('Partial resolve', {
+        recipients: [
+          { mode: 'FIXED', address: 'there@example.com' },
+          { mode: 'SUBJECT' },
+        ],
+      });
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+      const steps = await stepsOf(workflowId, event.id);
+      expect(steps.map((step) => [step.status, step.permanent])).toEqual([
+        ['SUCCEEDED', false],
+        ['FAILED', true],
+      ]);
+      const run = await prisma.workflowRun.findFirstOrThrow({
+        where: { workflowId, eventId: event.id },
+      });
+      expect(run.status).toBe('PARTIALLY_FAILED');
+    });
+
+    it('authoring refuses a fixed recipient with no address and a role recipient with no role', async () => {
+      await expect(
+        workflows.create(asUser(), {
+          name: 'Bad fixed',
+          eventCode,
+          status: 'ACTIVE',
+          conditions: [],
+          actions: [{ templateKey: 'x', recipients: [{ mode: 'FIXED' }] }],
+        } as never),
+      ).rejects.toThrow('fixed recipient');
+      await expect(
+        workflows.create(asUser(), {
+          name: 'Bad role',
+          eventCode,
+          status: 'ACTIVE',
+          conditions: [],
+          actions: [{ templateKey: 'x', recipients: [{ mode: 'ROLE' }] }],
+        } as never),
+      ).rejects.toThrow('role');
+    });
+
+    it('the first send pins the template and a later edit is flagged, not silently followed; the delivery log is recorded', async () => {
+      const event0 = await prisma.notificationEvent.findFirstOrThrow({
+        where: { code: eventCode },
+        select: { code: true },
+      });
+      const template = await prisma.emailTemplate.create({
+        data: {
+          tenantId,
+          scopeKey: `TENANT:${tenantId}`,
+          eventCode: event0.code,
+          templateKey: `pin-${suffix}`,
+          name: 'Pin test',
+          subjectTemplate: 's',
+          htmlTemplate: 'h',
+          availableVariables: [],
+          status: 'ACTIVE',
+        },
+        select: { id: true, version: true },
+      });
+      const mkLog = async (recipient: string) =>
+        (
+          await prisma.emailDeliveryLog.create({
+            data: {
+              tenantId,
+              eventCode,
+              templateId: template.id,
+              recipient,
+              subject: 's',
+              status: 'SENT',
+            },
+            select: { id: true },
+          })
+        ).id;
+      logs.set('p1@example.com', await mkLog('p1@example.com'));
+      logs.set('p2@example.com', await mkLog('p2@example.com'));
+      const workflowId = await startWith('Pinned', {
+        templateKey: undefined,
+        templateId: template.id,
+        recipients: [
+          { mode: 'FIXED', address: 'p1@example.com' },
+          { mode: 'FIXED', address: 'p2@example.com' },
+        ],
+      });
+      failing.set('p2@example.com', 1);
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+
+      // The template is edited between the first recipient and the retry.
+      await prisma.emailTemplate.update({
+        where: { id: template.id },
+        data: { version: template.version + 1 },
+      });
+      await makeDue(event.id);
+      await privateDispatcher().drain(50);
+
+      const steps = await stepsOf(workflowId, event.id);
+      expect(steps[0]).toMatchObject({
+        templateId: template.id,
+        templateVersion: template.version,
+        templateDrift: false,
+        deliveryStatus: 'SENT',
+      });
+      expect(steps[0].deliveryLogId).toBe(logs.get('p1@example.com'));
+      expect(steps[1]).toMatchObject({
+        templateId: template.id,
+        templateVersion: template.version,
+        templateDrift: true,
+      });
+      await prisma.emailDeliveryLog.deleteMany({
+        where: { tenantId, templateId: template.id },
+      });
+      await prisma.workflowRunStep.updateMany({
+        where: { tenantId },
+        data: { deliveryLogId: null },
+      });
+      await prisma.emailTemplate.delete({ where: { id: template.id } });
+    });
+
+    it('reconciliation reads the provider result back: a message that failed after hand-off turns its step and its run into failures', async () => {
+      const event0 = await prisma.notificationEvent.findFirstOrThrow({
+        where: { code: eventCode },
+        select: { code: true },
+      });
+      void event0;
+      const mkLog = async (recipient: string) =>
+        (
+          await prisma.emailDeliveryLog.create({
+            data: {
+              tenantId,
+              eventCode,
+              recipient,
+              subject: 's',
+              status: 'SENT',
+            },
+            select: { id: true },
+          })
+        ).id;
+      const goodLog = await mkLog('rec-good@example.com');
+      const badLog = await mkLog('rec-bad@example.com');
+      logs.set('rec-good@example.com', goodLog);
+      logs.set('rec-bad@example.com', badLog);
+      const workflowId = await startWith('Reconcile', {
+        recipients: [
+          { mode: 'FIXED', address: 'rec-good@example.com' },
+          { mode: 'FIXED', address: 'rec-bad@example.com' },
+        ],
+      });
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+      expect(
+        (
+          await prisma.workflowRun.findFirstOrThrow({
+            where: { workflowId, eventId: event.id },
+          })
+        ).status,
+      ).toBe('SUCCEEDED');
+
+      await prisma.emailDeliveryLog.update({
+        where: { id: goodLog },
+        data: { status: 'DELIVERED' },
+      });
+      await prisma.emailDeliveryLog.update({
+        where: { id: badLog },
+        data: { status: 'FAILED' },
+      });
+      const reconciler = app.get(WorkflowDeliveryReconciler);
+      const first = await reconciler.reconcile(tenantId);
+      expect(first).toMatchObject({ failed: 1 });
+
+      const steps = await stepsOf(workflowId, event.id);
+      expect(steps.map((step) => [step.status, step.deliveryStatus])).toEqual([
+        ['SUCCEEDED', 'DELIVERED'],
+        ['FAILED', 'FAILED'],
+      ]);
+      const run = await prisma.workflowRun.findFirstOrThrow({
+        where: { workflowId, eventId: event.id },
+      });
+      expect(run).toMatchObject({ status: 'PARTIALLY_FAILED', actionsRun: 1 });
+      // Nothing left to read: a second pass changes nothing.
+      expect(await reconciler.reconcile(tenantId)).toMatchObject({
+        changed: 0,
+      });
+      await prisma.workflowRunStep.updateMany({
+        where: { tenantId },
+        data: { deliveryLogId: null },
+      });
+      await prisma.emailDeliveryLog.deleteMany({
+        where: { id: { in: [goodLog, badLog] } },
+      });
     });
 
     it('a malformed outbox payload needs manual action instead of retrying forever', async () => {

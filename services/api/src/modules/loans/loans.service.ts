@@ -456,6 +456,7 @@ export class LoansService {
       actorUserId: user.userId,
       relatedEntityType: 'loanRequest',
       relatedEntityId: updated.id,
+      transitionId: `submitted:${new Date(updated.updatedAt).getTime()}`,
       relatedRecordNumber: updated.requestNumber,
       metadata: {
         approvalAssigneeUserIds: route[0]?.candidateUserIds ?? [],

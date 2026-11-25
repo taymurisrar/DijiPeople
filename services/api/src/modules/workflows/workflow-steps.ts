@@ -62,6 +62,16 @@ export function inlineEventIdFor(context: {
     .slice(0, 40)}`;
 }
 
+/** One recipient of a multi-recipient action: the action key plus its position. */
+export function buildRecipientStepKey(
+  eventId: string,
+  workflowVersionId: string,
+  actionIndex: number,
+  recipientIndex: number,
+): string {
+  return `${buildWorkflowStepKey(eventId, workflowVersionId, actionIndex)}:r${recipientIndex}`;
+}
+
 export type RunSummary =
   | {
       settled: false;

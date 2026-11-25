@@ -12188,9 +12188,22 @@ model WorkflowRunStep {
   lastError     String?
   startedAt     DateTime           @default(now())
   finishedAt    DateTime?
+  /// Position of the recipient inside the action (0 for the first or only one).
+  recipientIndex Int               @default(0)
+  /// The template this step rendered, pinned by the first send of the action so a
+  /// retry or a later recipient never switches template, and the version it had.
+  templateId    String?
+  templateVersion Int?
+  /// True when the template was edited between the pinned send and this one.
+  templateDrift Boolean            @default(false)
+  /// The delivery log row the e-mail service wrote, and what that row said last.
+  deliveryLogId String?
+  deliveryStatus EmailDeliveryStatus?
+  reconciledAt  DateTime?
   run           WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, stepKey])
+  @@index([tenantId, deliveryStatus])
   @@index([runId])
   @@index([tenantId, status])
 }

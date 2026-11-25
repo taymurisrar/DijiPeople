@@ -1,6 +1,7 @@
 import { WorkflowRunStatus } from '@prisma/client';
 import { resolveExecutionMode } from './workflow-dispatch.service';
 import {
+  buildRecipientStepKey,
   buildTransitionKey,
   buildWorkflowStepKey,
   classifyEmailOutcome,
@@ -179,5 +180,14 @@ describe('summarizeRun with skipped steps', () => {
       status: WorkflowRunStatus.SKIPPED,
       error: 'sink',
     });
+  });
+});
+
+describe('buildRecipientStepKey', () => {
+  it('extends the action key with the recipient position, leaving the single-recipient key unchanged', () => {
+    expect(buildRecipientStepKey('evt', 'ver', 1, 3)).toBe('evt:ver:1:r3');
+    expect(buildRecipientStepKey('evt', 'ver', 1, 0)).not.toBe(
+      buildWorkflowStepKey('evt', 'ver', 1),
+    );
   });
 });

@@ -18,12 +18,16 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateWorkflowDto, UpdateWorkflowDto } from './dto/workflow.dto';
+import { WorkflowDeliveryReconciler } from './workflow-delivery-reconciler';
 import { WorkflowsService } from './workflows.service';
 
 @Controller('workflows')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class WorkflowsController {
-  constructor(private readonly workflowsService: WorkflowsService) {}
+  constructor(
+    private readonly workflowsService: WorkflowsService,
+    private readonly reconciler: WorkflowDeliveryReconciler,
+  ) {}
 
   @Get()
   @Permissions('workflows.read')
@@ -52,6 +56,14 @@ export class WorkflowsController {
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listRuns(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.workflowsService.listRuns(user, id);
+  }
+
+  /** Reads delivery results back onto the steps that handed a message off. */
+  @Post('reconcile-deliveries')
+  @Permissions('workflows.manage')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'manage')
+  reconcileDeliveries(@CurrentUser() user: AuthenticatedUser) {
+    return this.reconciler.reconcile(user.tenantId);
   }
 
   @Post()

@@ -18,6 +18,7 @@ import {
   findMalformedWorkflowCondition,
 } from './workflow-conditions';
 import {
+  buildRecipientStepKey,
   buildWorkflowStepKey,
   classifyEmailOutcome,
   inlineEventIdFor,
@@ -141,11 +142,32 @@ export const WORKFLOW_RECIPIENT_MODES = [
 
 export type WorkflowRecipientMode = (typeof WORKFLOW_RECIPIENT_MODES)[number];
 
+/** A list entry may also name a role: every active holder gets the message. */
+export const WORKFLOW_LIST_RECIPIENT_MODES = [
+  ...WORKFLOW_RECIPIENT_MODES,
+  'ROLE',
+] as const;
+
+export type WorkflowRecipientEntry = {
+  mode: WorkflowRecipientMode | 'ROLE';
+  address?: string;
+  roleKey?: string;
+};
+
+export const MAX_RECIPIENTS_PER_ACTION = 50;
+
+type PlannedRecipient = {
+  mode: WorkflowRecipientMode | 'ROLE';
+  address: string | null;
+};
+
 type SendEmailConfiguration = {
   templateId?: string;
   templateKey?: string;
   recipientMode?: WorkflowRecipientMode;
   recipientAddress?: string;
+  /** Several recipients for one action; supersedes recipientMode/Address. */
+  recipients?: WorkflowRecipientEntry[];
 };
 
 /*
@@ -489,18 +511,23 @@ export class WorkflowRuntimeService {
   }
 
   /**
-   * Runs each action as its own ledgered step. A step that already finished is
-   * never run again; a step that failed for good is not retried; everything else
-   * (never run, failed but retryable, claimed by a crashed attempt) runs.
+   * Runs each action as ledgered steps, one per recipient. A step that already
+   * finished is never run again; a step that failed for good is not retried;
+   * everything else (never run, failed but retryable, claimed by a crashed
+   * attempt) runs.
+   *
+   * An action with a `recipients` list is expanded ONCE, by the first delivery,
+   * into a pinned list on the run (see planRecipients), so recipient `i` is the
+   * same person on every retry even if a role gained or lost members meanwhile.
+   * An action without one keeps its original single step and key.
    *
    * A step is claimed with a compare-and-set, never read-then-write: the row is
    * inserted, or an existing retryable/expired row is taken over by a conditional
    * UPDATE, and only the delivery whose statement changed a row sends. Two
-   * deliveries of one event (an outbox claim reclaimed while the first worker is
-   * still alive) therefore cannot both send; the loser reports the step as busy
-   * and the outbox retries it later. Delivery is still at-least-once: a crash
-   * between the send and the ledger write can repeat one email once the lease
-   * expires, and the ledger exists to make that the only way it can.
+   * deliveries of one event therefore cannot both send; the loser reports the
+   * step as busy and the outbox retries it later. Delivery is still at-least-once:
+   * a crash between the send and the ledger write can repeat one email once the
+   * lease expires, and the ledger exists to make that the only way it can.
    */
   private async runSteps(
     runId: string,
@@ -517,95 +544,222 @@ export class WorkflowRuntimeService {
 
     for (const [index, action] of actions.entries()) {
       if (action.type !== WorkflowActionType.SEND_EMAIL) continue;
-
-      const stepKey = buildWorkflowStepKey(eventId, versionId, index);
-      const where = {
-        tenantId_stepKey: { tenantId: context.tenantId, stepKey },
-      };
-      const mode =
-        (action.configuration as SendEmailConfiguration | null)
-          ?.recipientMode ?? 'SUBJECT';
-
-      const claim = await this.claimStep({
-        tenantId: context.tenantId,
+      const configuration = (action.configuration ??
+        {}) as SendEmailConfiguration;
+      const planned = await this.planRecipients(
         runId,
-        stepKey,
         index,
-        type: action.type,
-        mode,
-      });
-      if (claim.kind === 'DONE') {
-        if (claim.status === WorkflowStepStatus.SUCCEEDED) succeeded += 1;
-        else {
-          skipped += 1;
-          if (claim.lastError) errors.push(claim.lastError);
-        }
-        continue;
-      }
-      if (claim.kind === 'PERMANENT') {
-        failedPermanent += 1;
-        if (claim.lastError) errors.push(claim.lastError);
-        continue;
-      }
-      if (claim.kind === 'BUSY') {
-        retryable += 1;
-        errors.push('The step is being processed by another delivery.');
-        continue;
-      }
+        configuration,
+        context,
+      );
 
-      try {
-        const sent = await this.sendEmailAction(action.configuration, context);
-        if (!sent) {
-          const message = 'No recipient could be resolved for the email.';
+      for (const [position, recipient] of planned.list.entries()) {
+        const stepKey = planned.legacy
+          ? buildWorkflowStepKey(eventId, versionId, index)
+          : buildRecipientStepKey(eventId, versionId, index, position);
+        const where = {
+          tenantId_stepKey: { tenantId: context.tenantId, stepKey },
+        };
+
+        const claim = await this.claimStep({
+          tenantId: context.tenantId,
+          runId,
+          stepKey,
+          index,
+          position,
+          type: action.type,
+          mode: recipient.mode,
+        });
+        if (claim.kind === 'DONE') {
+          if (claim.status === WorkflowStepStatus.SUCCEEDED) succeeded += 1;
+          else {
+            skipped += 1;
+            if (claim.lastError) errors.push(claim.lastError);
+          }
+          continue;
+        }
+        if (claim.kind === 'PERMANENT') {
           failedPermanent += 1;
+          if (claim.lastError) errors.push(claim.lastError);
+          continue;
+        }
+        if (claim.kind === 'BUSY') {
+          retryable += 1;
+          errors.push('The step is being processed by another delivery.');
+          continue;
+        }
+
+        try {
+          const address = planned.legacy
+            ? await this.resolveRecipient(configuration, context)
+            : recipient.address;
+          if (!address) {
+            const message = 'No recipient could be resolved for the email.';
+            failedPermanent += 1;
+            errors.push(message);
+            await this.settleStep(
+              where,
+              WorkflowStepStatus.FAILED,
+              message,
+              true,
+            );
+            continue;
+          }
+          const sent = await this.sendEmailAction(
+            configuration,
+            context,
+            address,
+            runId,
+            index,
+          );
+          const verdict = classifyEmailOutcome(sent.result);
+          if (verdict.status === 'SUCCEEDED') {
+            succeeded += 1;
+            await this.settleStep(
+              where,
+              WorkflowStepStatus.SUCCEEDED,
+              null,
+              false,
+              sent.record,
+            );
+          } else if (verdict.status === 'SKIPPED') {
+            skipped += 1;
+            errors.push(verdict.reason);
+            await this.settleStep(
+              where,
+              WorkflowStepStatus.SKIPPED,
+              verdict.reason,
+              true,
+              sent.record,
+            );
+          } else {
+            retryable += 1;
+            errors.push(verdict.reason);
+            await this.settleStep(
+              where,
+              WorkflowStepStatus.FAILED,
+              verdict.reason,
+              false,
+              sent.record,
+            );
+          }
+        } catch (error) {
+          const message = (
+            error instanceof Error ? error.message : String(error)
+          ).slice(0, 500);
+          retryable += 1;
           errors.push(message);
           await this.settleStep(
             where,
             WorkflowStepStatus.FAILED,
             message,
-            true,
-          );
-          continue;
-        }
-        const verdict = classifyEmailOutcome(sent.result);
-        if (verdict.status === 'SUCCEEDED') {
-          succeeded += 1;
-          await this.settleStep(
-            where,
-            WorkflowStepStatus.SUCCEEDED,
-            null,
-            false,
-          );
-        } else if (verdict.status === 'SKIPPED') {
-          skipped += 1;
-          errors.push(verdict.reason);
-          await this.settleStep(
-            where,
-            WorkflowStepStatus.SKIPPED,
-            verdict.reason,
-            true,
-          );
-        } else {
-          retryable += 1;
-          errors.push(verdict.reason);
-          await this.settleStep(
-            where,
-            WorkflowStepStatus.FAILED,
-            verdict.reason,
             false,
           );
         }
-      } catch (error) {
-        const message = (
-          error instanceof Error ? error.message : String(error)
-        ).slice(0, 500);
-        retryable += 1;
-        errors.push(message);
-        await this.settleStep(where, WorkflowStepStatus.FAILED, message, false);
       }
     }
 
     return { succeeded, skipped, failedPermanent, retryable, errors };
+  }
+
+  /**
+   * Who an action sends to. Legacy actions (no `recipients` list) resolve their
+   * single recipient at send time, as before. A list is resolved once and pinned
+   * on the run under the row lock, so concurrent first deliveries agree.
+   */
+  private async planRecipients(
+    runId: string,
+    actionIndex: number,
+    configuration: SendEmailConfiguration,
+    context: WorkflowEventContext,
+  ): Promise<{ legacy: boolean; list: PlannedRecipient[] }> {
+    const entries = configuration.recipients;
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return {
+        legacy: true,
+        list: [
+          {
+            mode: configuration.recipientMode ?? 'SUBJECT',
+            address: null,
+          },
+        ],
+      };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "WorkflowRun" WHERE "id" = ${runId} FOR UPDATE`;
+      const run = await tx.workflowRun.findUniqueOrThrow({
+        where: { id: runId },
+        select: { context: true },
+      });
+      const base = (run.context ?? {}) as Record<string, unknown>;
+      const pins = (base.recipientPins ?? {}) as Record<
+        string,
+        PlannedRecipient[]
+      >;
+      const pinned = pins[String(actionIndex)];
+      if (pinned) return { legacy: false, list: pinned };
+
+      const resolved: PlannedRecipient[] = [];
+      const seen = new Set<string>();
+      for (const entry of entries.slice(0, MAX_RECIPIENTS_PER_ACTION)) {
+        const addresses =
+          entry.mode === 'ROLE'
+            ? await this.expandRole(tx, context.tenantId, entry.roleKey)
+            : [
+                await this.resolveRecipient(
+                  {
+                    recipientMode: entry.mode,
+                    recipientAddress: entry.address,
+                  },
+                  context,
+                ),
+              ];
+        if (addresses.length === 0 || addresses[0] === null) {
+          // Kept, so the gap is a recorded failed step and not a silent omission.
+          resolved.push({ mode: entry.mode, address: null });
+          continue;
+        }
+        for (const address of addresses) {
+          if (!address) continue;
+          const key = address.trim().toLowerCase();
+          // The same person named twice is one message.
+          if (seen.has(key)) continue;
+          seen.add(key);
+          resolved.push({ mode: entry.mode, address: address.trim() });
+        }
+      }
+      await tx.workflowRun.update({
+        where: { id: runId },
+        data: {
+          context: {
+            ...base,
+            recipientPins: { ...pins, [String(actionIndex)]: resolved },
+          } as Prisma.InputJsonValue,
+        },
+      });
+      return { legacy: false, list: resolved };
+    });
+  }
+
+  /** Active users of the tenant holding a role: their e-mail addresses. */
+  private async expandRole(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    roleKey: string | undefined,
+  ): Promise<Array<string | null>> {
+    if (!roleKey) return [null];
+    const users = await tx.user.findMany({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        userRoles: { some: { tenantId, role: { key: roleKey } } },
+      },
+      select: { email: true },
+      orderBy: { email: 'asc' },
+      take: MAX_RECIPIENTS_PER_ACTION,
+    });
+    return users.length ? users.map((user) => user.email) : [null];
   }
 
   /**
@@ -618,6 +772,7 @@ export class WorkflowRuntimeService {
     runId: string;
     stepKey: string;
     index: number;
+    position: number;
     type: WorkflowActionType;
     mode: string;
   }): Promise<
@@ -636,6 +791,7 @@ export class WorkflowRuntimeService {
           runId: input.runId,
           stepKey: input.stepKey,
           actionIndex: input.index,
+          recipientIndex: input.position,
           actionType: input.type,
           recipientMode: input.mode,
           status: WorkflowStepStatus.IN_PROGRESS,
@@ -685,46 +841,93 @@ export class WorkflowRuntimeService {
     status: WorkflowStepStatus,
     lastError: string | null,
     permanent: boolean,
+    record: Prisma.WorkflowRunStepUncheckedUpdateInput = {},
   ) {
     return this.prisma.workflowRunStep.update({
       where,
-      data: { status, lastError, permanent, finishedAt: new Date() },
+      data: { ...record, status, lastError, permanent, finishedAt: new Date() },
     });
   }
 
-  /** The e-mail result, or null when no recipient could be resolved. */
+  /**
+   * Sends to one address and says what happened: the e-mail result, and what the
+   * step should remember about it (the pinned template, its version, whether it
+   * drifted, and the delivery log row for later reconciliation).
+   */
   private async sendEmailAction(
-    rawConfiguration: unknown,
+    configuration: SendEmailConfiguration,
     context: WorkflowEventContext,
+    recipient: string,
+    runId: string,
+    actionIndex: number,
   ) {
-    const configuration = (rawConfiguration ?? {}) as SendEmailConfiguration;
-    const recipient = await this.resolveRecipient(configuration, context);
-    if (!recipient) return null;
+    // The first send of an action pins the template; every retry and every later
+    // recipient of that action renders the same template row.
+    const pin = await this.prisma.workflowRunStep.findFirst({
+      where: {
+        runId,
+        actionIndex,
+        templateId: { not: null },
+      },
+      select: { templateId: true, templateVersion: true },
+      orderBy: { recipientIndex: 'asc' },
+    });
+    const pinnedId = pin?.templateId ?? configuration.templateId ?? undefined;
 
     const result = await this.emailService.sendTemplateEmail({
       tenantId: context.tenantId,
       eventCode: context.eventCode,
-      templateId: configuration.templateId,
-      templateKey: configuration.templateKey,
+      templateId: pin?.templateId ?? configuration.templateId,
+      templateKey: pin?.templateId ? undefined : configuration.templateKey,
       recipient,
       variables: context.variables ?? {},
       requestedByUserId: context.actorUserId ?? null,
       organizationId: context.organizationId,
       businessUnitId: context.businessUnitId,
       departmentId: context.departmentId,
-      teamId: context.teamId,
       subjectEmployeeId: context.subjectEmployeeId,
       subjectUserId: context.subjectUserId,
+      teamId: context.teamId,
       metadata: {
         source: 'workflow',
         correlationId: context.correlationId ?? null,
       },
     });
-    return { result };
+
+    const record: Prisma.WorkflowRunStepUncheckedUpdateInput = {};
+    const logId = (result as { deliveryLogId?: string } | undefined)
+      ?.deliveryLogId;
+    if (logId) {
+      record.deliveryLogId = logId;
+      record.deliveryStatus = result.status;
+      const log = await this.prisma.emailDeliveryLog.findFirst({
+        where: { id: logId, tenantId: context.tenantId },
+        select: { templateId: true },
+      });
+      const usedId = log?.templateId ?? pinnedId ?? null;
+      if (usedId) {
+        const template = await this.prisma.emailTemplate.findUnique({
+          where: { id: usedId },
+          select: { version: true },
+        });
+        record.templateId = usedId;
+        // The version recorded is the one first pinned; later steps that find a
+        // newer version are flagged rather than silently re-pinned.
+        record.templateVersion = pin?.templateVersion ?? template?.version;
+        record.templateDrift =
+          pin?.templateVersion != null &&
+          template?.version != null &&
+          template.version !== pin.templateVersion;
+      }
+    }
+    return { result, record };
   }
 
   private async resolveRecipient(
-    configuration: SendEmailConfiguration,
+    configuration: Pick<
+      SendEmailConfiguration,
+      'recipientMode' | 'recipientAddress'
+    >,
     context: WorkflowEventContext,
   ) {
     const mode = configuration.recipientMode ?? 'SUBJECT';
