@@ -28,6 +28,9 @@ export type WorkItem = {
   priority: WorkItemPriority;
   ownerEmployeeId: string | null;
   ownerName?: string | null;
+  projectId?: string | null;
+  parentId?: string | null;
+  milestoneId?: string | null;
   queueId: string | null;
   dueAt: string | null;
   resolutionDueAt: string | null;

@@ -6,9 +6,12 @@ import { messageFromErrorBody } from "./work-items";
  * message.
  */
 export async function workRequest<T>(
-  resource: "work-items" | "work-queues",
+  resource: "work-items" | "work-queues" | "contributions" | "daily-updates",
   path: string,
-  init: { method?: "GET" | "POST" | "PATCH"; body?: unknown } = {},
+  init: {
+    method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+    body?: unknown;
+  } = {},
 ): Promise<T> {
   const response = await fetch(`/api/${resource}${path}`, {
     method: init.method ?? "GET",

@@ -91,6 +91,7 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   shifts: SETTINGS_CORE,
   "work-schedules": SETTINGS_CORE,
   "work-profiles": SETTINGS_CORE,
+  "daily-updates": SETTINGS_CORE,
   attendance: FEATURE_KEYS.ATTENDANCE,
   timesheets: FEATURE_KEYS.TIMESHEETS,
   "document-categories": FEATURE_KEYS.DOCUMENTS,

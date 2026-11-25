@@ -1280,7 +1280,7 @@
       "workstream": "A",
       "status": "INTEGRATED",
       "lease": "schema",
-      "evidence": "migration 20261127090000 (additive); contributions module; contribution-math.spec 16 unit tests; work-scope.e2e-spec ledger block (seven work types, provenance from the caller, overlap counted once, quantity never time, offline retry deduplicated incl. racing, retrospective reason, revisions kept, self-review refused, scope by access level, cross-tenant 404); mutation: removing the self-review check and the read filter each fail tests",
+      "evidence": "migration 20261127090000 (additive); contributions module; contribution-math.spec 16 unit tests; work-scope.e2e-spec ledger block (seven work types, provenance from the caller, overlap counted once, quantity never time, offline retry deduplicated incl. racing, retrospective reason, revisions kept, self-review refused, scope by access level, cross-tenant 404); mutation: removing the self-review check and the read filter each fail tests | UI: see WP-30.S2.",
       "integratedSha": "d260bdb3"
     },
     {
@@ -1308,8 +1308,9 @@
         "WP-04.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
-      "note": "Tracked here per the owner: the S3 ledger is per action, so a single action addressed to several recipients is still one step; template pinning needs the notification template version id on the step."
+      "status": "ACCEPTED",
+      "note": "Tracked here per the owner: the S3 ledger is per action, so a single action addressed to several recipients is still one step; template pinning needs the notification template version id on the step.",
+      "evidence": "migration 20261128090000 (additive); recipients list (SUBJECT/ACTOR/FIXED/CANDIDATE/ROLE) expanded once and pinned on the run, one step per recipient with its own claim and retry, duplicate address = one message, unresolvable recipient = recorded permanent failure; template pinned by the first send with drift flagged; delivery log read back by WorkflowDeliveryReconciler (a message that failed after hand-off turns its step and run into failures); transitionId adopted by leave (2), loans (1) and claims (1) producers; workflow-durable-execution.e2e-spec 24 tests; mutation: removing the recipient pin fails the role test. NOT covered: template pin in templateKey mode against a second same-key template (the pin test uses the template id); an automatic scheduler for reconciliation (it is an endpoint, POST /workflows/reconcile-deliveries)."
     },
     {
       "id": "WP-21.S1",
@@ -1321,8 +1322,95 @@
         "WP-06.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
+      "status": "IN_PROGRESS",
       "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine."
+    },
+    {
+      "id": "WP-06.S2",
+      "wp": "WP-06",
+      "title": "Projects on universal work items: milestones, progress, workload, Kanban and project work journeys (no parallel task model)",
+      "release": "R2",
+      "deps": [
+        "WP-06.S1",
+        "WP-02.S1"
+      ],
+      "workstream": "A",
+      "status": "IN_PROGRESS",
+      "lease": "schema",
+      "evidence": "API: migration 20261128100000; MILESTONE kind, milestone roll-up with project inheritance, milestone cannot finish while tasks are open, progress (counts, each person once, null not 0%, approved timesheet hours by task id), workload on a named STANDARD_WEEK basis with unestimated work counted apart; project-work-and-daily-updates.e2e-spec (milestones/progress/workload block). NOT yet: timesheet entries selecting a work item (WP-06.S3), project templates/phases/WBS, sprints, retainers."
+    },
+    {
+      "id": "WP-06.S3",
+      "wp": "WP-06",
+      "title": "Timesheet entries select a work item (taskId = work item id), approved hours feed progress; project templates, phases/WBS, review and closure",
+      "release": "R2",
+      "deps": [
+        "WP-06.S2"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-30.S2",
+      "wp": "WP-30",
+      "title": "Contribution employee/manager UI: record, correct, withdraw, dispute, verify",
+      "release": "R4",
+      "deps": [
+        "WP-30.S1"
+      ],
+      "workstream": "B",
+      "status": "IN_PROGRESS"
+    },
+    {
+      "id": "WP-27.S1",
+      "wp": "WP-27",
+      "title": "Daily updates: policy, evidence-backed drafts, unplanned work/achievements/blockers, submit, correct, acknowledge, missing-update list, employee/manager UI",
+      "release": "R4",
+      "deps": [
+        "WP-30.S1",
+        "WP-06.S1"
+      ],
+      "workstream": "B",
+      "status": "IN_PROGRESS",
+      "lease": "schema",
+      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts."
+    },
+    {
+      "id": "WP-38.S1",
+      "wp": "WP-38",
+      "title": "Operational dependencies and accountability on work items: blocker reason/category/cause, owner and due date, affected work, escalation, worker-controllable vs external causes (no automatic blame)",
+      "release": "R2",
+      "deps": [
+        "WP-06.S2",
+        "WP-02.S1"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-28.S1",
+      "wp": "WP-28",
+      "title": "Meetings, discussions and decision register linked to work items and blockers",
+      "release": "R4",
+      "deps": [
+        "WP-27.S1",
+        "WP-38.S1"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-29.S1",
+      "wp": "WP-29",
+      "title": "Stakeholder updates and digests: audience subscriptions, schedules, relevance, suppression/dedup, redacted customer reports",
+      "release": "R4",
+      "deps": [
+        "WP-28.S1",
+        "WP-27.S1",
+        "WP-03.S4"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
     }
   ],
   "nextExecutable": [

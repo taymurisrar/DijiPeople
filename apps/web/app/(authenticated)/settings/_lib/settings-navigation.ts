@@ -485,6 +485,15 @@ export const settingsNavGroups = [
         ],
       },
       {
+        key: "daily-updates",
+        href: "/settings/daily-updates",
+        label: "Daily Updates",
+        description: "Who reports each day, by when, and whether it is acknowledged.",
+        icon: "clipboard-list",
+        keywords: ["daily update", "standup", "status report", "deadline"],
+        requiredAnyPermissions: [PERMISSION_KEYS.DAILY_UPDATES_MANAGE],
+      },
+      {
         key: "attendance",
         href: "/settings/people/attendance/attendance",
         label: "Attendance Settings",

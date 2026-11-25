@@ -107,6 +107,36 @@ export const dashboardNavItems: DashboardNavItem[] = [
     hiddenForSelfService: true,
     requiredAnyPermissions: [PERMISSION_KEYS.WORK_QUEUES_READ],
   },
+  /*
+   * WP-30.S1/27 and WP-03.S4 - contribution evidence and daily updates. Not
+   * plan-gated, for the same reason as work items: no feature key sells them.
+   */
+  {
+    href: "/work/contributions",
+    label: "My Evidence",
+    description: "Record what you did and see how it has been verified.",
+    requiredAnyPermissions: [PERMISSION_KEYS.CONTRIBUTIONS_READ],
+  },
+  {
+    href: "/work/daily-update",
+    label: "Daily Update",
+    description: "Report the day: what was done, what is next, what blocks you.",
+    requiredAnyPermissions: [PERMISSION_KEYS.DAILY_UPDATES_READ],
+  },
+  {
+    href: "/work/daily-updates",
+    label: "Team Updates",
+    description: "Daily updates from the people in your reach, and who is missing.",
+    hiddenForSelfService: true,
+    requiredAnyPermissions: [PERMISSION_KEYS.DAILY_UPDATES_READ],
+  },
+  {
+    href: "/work/contributions/review",
+    label: "Evidence Review",
+    description: "Verify, reject or dispute the evidence people have recorded.",
+    hiddenForSelfService: true,
+    requiredAnyPermissions: [PERMISSION_KEYS.CONTRIBUTIONS_VERIFY],
+  },
   {
     href: "/approvals",
     label: "Approvals",

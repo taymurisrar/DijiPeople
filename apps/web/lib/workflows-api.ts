@@ -1,5 +1,6 @@
 import { API_ERROR_HANDLING_HEADER } from "@/lib/api-error";
 import type { EmailTemplateScopeLevel, ScopeTarget } from "./notifications-api";
+import type { WorkflowRecipient } from "./workflow-recipients";
 
 export type WorkflowStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 export type WorkflowRecipientMode = "SUBJECT" | "ACTOR" | "FIXED" | "CANDIDATE";
@@ -19,6 +20,8 @@ export type WorkflowAction = {
   templateKey: string | null;
   recipientMode: WorkflowRecipientMode;
   recipientAddress: string | null;
+  /** Several recipients; supersedes recipientMode/recipientAddress. Empty for a legacy action. */
+  recipients?: WorkflowRecipient[];
 };
 
 export type Workflow = {

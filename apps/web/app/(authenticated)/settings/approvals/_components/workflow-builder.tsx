@@ -14,6 +14,17 @@ import {
   updateWorkflow,
 } from "@/lib/workflows-api";
 import {
+  MAX_RECIPIENTS_PER_ACTION,
+  RECIPIENT_MODE_LABELS,
+  WORKFLOW_LIST_RECIPIENT_MODES,
+  buildActionRecipientFields,
+  draftsFromAction,
+  emptyRecipientDraft,
+  validateRecipients,
+  type RecipientDraft,
+  type WorkflowListRecipientMode,
+} from "@/lib/workflow-recipients";
+import {
   ScopePicker,
   ScopeValue,
   validateScope,
@@ -34,7 +45,12 @@ import {
  * workflow.
  */
 
-type ActionDraft = Omit<WorkflowAction, "id">;
+type ActionDraft = Omit<WorkflowAction, "id" | "recipients"> & {
+  /* The recipient rows being edited; the legacy pair above is not edited directly. */
+  recipientDrafts: RecipientDraft[];
+  /* Whether the saved action already carried a recipient list. */
+  hadRecipientList: boolean;
+};
 
 const EMPTY_ACTION: ActionDraft = {
   type: "SEND_EMAIL",
@@ -44,7 +60,23 @@ const EMPTY_ACTION: ActionDraft = {
   templateKey: null,
   recipientMode: "SUBJECT",
   recipientAddress: null,
+  recipientDrafts: [emptyRecipientDraft("SUBJECT")],
+  hadRecipientList: false,
 };
+
+function draftFromSaved(action: WorkflowAction): ActionDraft {
+  const { recipients, ...rest } = action;
+  return {
+    ...rest,
+    recipientDrafts: draftsFromAction(action),
+    hadRecipientList: Boolean(recipients && recipients.length > 0),
+  };
+}
+
+const RECIPIENT_MODE_OPTIONS = WORKFLOW_LIST_RECIPIENT_MODES.map((value) => ({
+  value,
+  label: RECIPIENT_MODE_LABELS[value],
+}));
 
 export function WorkflowBuilder({
   options,
@@ -75,8 +107,8 @@ export function WorkflowBuilder({
   );
   const [actions, setActions] = useState<ActionDraft[]>(
     workflow?.actions.length
-      ? workflow.actions.map((action) => ({ ...action }))
-      : [{ ...EMPTY_ACTION }],
+      ? workflow.actions.map(draftFromSaved)
+      : [{ ...EMPTY_ACTION, recipientDrafts: [emptyRecipientDraft("SUBJECT")] }],
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -109,6 +141,25 @@ export function WorkflowBuilder({
     );
   }
 
+  function updateRecipient(
+    actionIndex: number,
+    recipientIndex: number,
+    patch: Partial<RecipientDraft>,
+  ) {
+    setActions((current) =>
+      current.map((action, position) =>
+        position === actionIndex
+          ? {
+              ...action,
+              recipientDrafts: action.recipientDrafts.map((recipient, at) =>
+                at === recipientIndex ? { ...recipient, ...patch } : recipient,
+              ),
+            }
+          : action,
+      ),
+    );
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -124,11 +175,8 @@ export function WorkflowBuilder({
       if (!action.templateId) {
         return setError("Choose an email template for every action.");
       }
-      if (action.recipientMode === "FIXED" && !action.recipientAddress?.trim()) {
-        return setError(
-          "Enter the address to send to when using a fixed recipient.",
-        );
-      }
+      const recipientError = validateRecipients(action.recipientDrafts);
+      if (recipientError) return setError(recipientError);
     }
 
     const cleanConditions = conditions.filter((condition) =>
@@ -149,8 +197,10 @@ export function WorkflowBuilder({
         sortOrder: index,
         isActive: action.isActive,
         templateId: action.templateId,
-        recipientMode: action.recipientMode,
-        recipientAddress: action.recipientAddress?.trim() || null,
+        ...buildActionRecipientFields(
+          action.recipientDrafts,
+          action.hadRecipientList,
+        ),
       })),
     };
 
@@ -384,45 +434,105 @@ export function WorkflowBuilder({
                   </span>
                 )}
               </Field>
-              <Field label="Send to">
-                <select
-                  className={inputClassName}
-                  onChange={(event) =>
-                    updateAction(index, {
-                      recipientMode: event.target
-                        .value as ActionDraft["recipientMode"],
-                    })
-                  }
-                  value={action.recipientMode}
-                >
-                  {options.recipientModes.map((mode) => (
-                    <option key={mode.value} value={mode.value}>
-                      {mode.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field
-                label="Address"
-                required={action.recipientMode === "FIXED"}
+              <fieldset
+                aria-label={`Recipients for action ${index + 1}`}
+                className="grid gap-2 md:col-span-2"
               >
-                <input
-                  className={inputClassName}
-                  disabled={action.recipientMode !== "FIXED"}
-                  onChange={(event) =>
-                    updateAction(index, {
-                      recipientAddress: event.target.value,
-                    })
-                  }
-                  placeholder={
-                    action.recipientMode === "FIXED"
-                      ? "hr@example.com"
-                      : "Resolved from the record"
-                  }
-                  type="email"
-                  value={action.recipientAddress ?? ""}
-                />
-              </Field>
+                <legend className="mb-1 text-sm font-medium text-foreground">
+                  Send to
+                </legend>
+                {action.recipientDrafts.map((recipient, position) => (
+                  <div
+                    className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+                    key={`recipient-${position}`}
+                  >
+                    <select
+                      aria-label={`Recipient ${position + 1} of action ${index + 1}`}
+                      className={inputClassName}
+                      onChange={(event) =>
+                        updateRecipient(index, position, {
+                          mode: event.target.value as WorkflowListRecipientMode,
+                        })
+                      }
+                      value={recipient.mode}
+                    >
+                      {RECIPIENT_MODE_OPTIONS.map((mode) => (
+                        <option key={mode.value} value={mode.value}>
+                          {mode.label}
+                        </option>
+                      ))}
+                    </select>
+                    {recipient.mode === "FIXED" ? (
+                      <input
+                        aria-label={`Address for recipient ${position + 1} of action ${index + 1}`}
+                        className={inputClassName}
+                        onChange={(event) =>
+                          updateRecipient(index, position, {
+                            address: event.target.value,
+                          })
+                        }
+                        placeholder="hr@example.com"
+                        type="email"
+                        value={recipient.address}
+                      />
+                    ) : recipient.mode === "ROLE" ? (
+                      <input
+                        aria-label={`Role key for recipient ${position + 1} of action ${index + 1}`}
+                        className={inputClassName}
+                        onChange={(event) =>
+                          updateRecipient(index, position, {
+                            roleKey: event.target.value,
+                          })
+                        }
+                        placeholder="hr-manager"
+                        value={recipient.roleKey}
+                      />
+                    ) : (
+                      <span aria-hidden="true" />
+                    )}
+                    {action.recipientDrafts.length > 1 ? (
+                      <Button
+                        aria-label={`Remove recipient ${position + 1} of action ${index + 1}`}
+                        onClick={() =>
+                          updateAction(index, {
+                            recipientDrafts: action.recipientDrafts.filter(
+                              (_, at) => at !== position,
+                            ),
+                          })
+                        }
+                        size="sm"
+                        type="button"
+                        variant="danger-soft"
+                      >
+                        Remove
+                      </Button>
+                    ) : (
+                      <span aria-hidden="true" />
+                    )}
+                  </div>
+                ))}
+                <div>
+                  <Button
+                    aria-label={`Add recipient to action ${index + 1}`}
+                    disabled={
+                      action.recipientDrafts.length >= MAX_RECIPIENTS_PER_ACTION
+                    }
+                    onClick={() =>
+                      updateAction(index, {
+                        recipientDrafts: [
+                          ...action.recipientDrafts,
+                          emptyRecipientDraft("SUBJECT"),
+                        ],
+                      })
+                    }
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    Add recipient
+                  </Button>
+                </div>
+              </fieldset>
               {actions.length > 1 ? (
                 <div className="md:col-span-3">
                   <Button
@@ -446,7 +556,11 @@ export function WorkflowBuilder({
               onClick={() =>
                 setActions((current) => [
                   ...current,
-                  { ...EMPTY_ACTION, sortOrder: current.length },
+                  {
+                    ...EMPTY_ACTION,
+                    sortOrder: current.length,
+                    recipientDrafts: [emptyRecipientDraft("SUBJECT")],
+                  },
                 ])
               }
               size="sm"

@@ -126,6 +126,7 @@ const itemPlacement: Record<
   shifts: ["people", "work-management", "Work Management"],
   "work-schedules": ["people", "work-management", "Work Management"],
   "work-profiles": ["people", "work-management", "Work Management"],
+  "daily-updates": ["people", "work-management", "Work Management"],
   attendance: ["people", "attendance", "Attendance & Time"],
   timesheets: ["people", "attendance", "Attendance & Time"],
   "employee-settings": ["people", "workforce", "Workforce Structure"],
@@ -334,6 +335,7 @@ const routeKeys: Record<string, string> = {
 
 const implementationRoutes: Record<string, string> = {
   "work-profiles": "/settings/work-profiles",
+  "daily-updates": "/settings/daily-updates",
   "payroll-settings": "/settings/payroll/configuration/payroll-settings",
   notifications: "/settings/notifications/rules",
   /*
@@ -645,6 +647,8 @@ export const DEDICATED_PAGE_KEYS = new Set<string>([
   // Versioned definitions, publish and time-effective assignments are not
   // record CRUD (ADR-0030); the page lives at /settings/work-profiles.
   "work-profiles",
+  // The daily update policy is one record, not a list; it has its own page.
+  "daily-updates",
   /*
    * Attendance integrations. These are purpose-built pages: an integration is
    * set up through a connector-driven wizard and carries lifecycle actions and

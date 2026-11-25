@@ -179,6 +179,15 @@ export const PERMISSION_KEYS = {
   WORK_QUEUES_READ: "work-queues.read",
   WORK_QUEUES_MANAGE: "work-queues.manage",
 
+  CONTRIBUTIONS_READ: "contributions.read",
+  CONTRIBUTIONS_WRITE: "contributions.write",
+  CONTRIBUTIONS_VERIFY: "contributions.verify",
+
+  DAILY_UPDATES_READ: "daily-updates.read",
+  DAILY_UPDATES_WRITE: "daily-updates.write",
+  DAILY_UPDATES_ACKNOWLEDGE: "daily-updates.acknowledge",
+  DAILY_UPDATES_MANAGE: "daily-updates.manage",
+
   TIMESHEETS_READ: "timesheets.read",
   TIMESHEETS_CREATE: "timesheets.create",
   TIMESHEETS_WRITE: "timesheets.write",
