@@ -86,3 +86,25 @@ export function totalEffort(
 }
 
 export const MAX_SUBTASK_DEPTH = 5;
+
+export type SlaState = 'NONE' | 'ON_TRACK' | 'AT_RISK' | 'BREACHED' | 'MET';
+
+/**
+ * Where an item stands against a promise made when it was queued. A promise is a
+ * due time stamped on the item, so editing a queue's SLA later never rewrites
+ * what an old item was promised. AT_RISK is the last quarter of the window.
+ */
+export function slaState(input: {
+  dueAt: Date | null;
+  startedAt: Date;
+  /** When the promise was met (first response, or completion); null if not yet. */
+  metAt: Date | null;
+  now: Date;
+}): SlaState {
+  if (!input.dueAt) return 'NONE';
+  if (input.metAt) return input.metAt <= input.dueAt ? 'MET' : 'BREACHED';
+  if (input.now > input.dueAt) return 'BREACHED';
+  const window = input.dueAt.getTime() - input.startedAt.getTime();
+  const left = input.dueAt.getTime() - input.now.getTime();
+  return window > 0 && left <= window / 4 ? 'AT_RISK' : 'ON_TRACK';
+}

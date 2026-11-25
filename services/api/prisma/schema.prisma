@@ -2130,6 +2130,8 @@ model Tenant {
   workProfileVersions             WorkProfileVersion[]
   employeeWorkProfileAssignments  EmployeeWorkProfileAssignment[]
   workItems                       WorkItem[]
+  workQueues                      WorkQueue[]
+  contributionEntries             ContributionEntry[]
   /// Identities whose last-used workspace is this tenant. Advisory only —
   /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
   /// preference rather than orphaning or blocking the identity.
@@ -5315,6 +5317,7 @@ model Employee {
   workProfileAssignments         EmployeeWorkProfileAssignment[]
   ownedWorkItems                 WorkItem[]                    @relation("WorkItemOwner")
   workItemContributions          WorkItemContributor[]
+  contributionEntries            ContributionEntry[]
 }
 
 model EmploymentType {
@@ -15528,16 +15531,27 @@ model WorkItem {
   /// A pointer to the same work in another system. Never trusted as an identity.
   externalSystem       String?
   externalRef          String?
+  /// The queue this item waits in (WP-06.S1). Optional: most work is not queued.
+  queueId              String?
+  /// When someone first picked it up or answered. Null until then.
+  respondedAt          DateTime?
+  /// Fixed when the item is queued, from the queue's SLA at that moment, so a
+  /// later change to the queue never rewrites what an item was promised.
+  responseDueAt        DateTime?
+  resolutionDueAt      DateTime?
   createdById          String?
   updatedById          String?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   tenant               Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  queue                WorkQueue?       @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  ownerChanges         WorkItemOwnerChange[]
   owner                Employee?        @relation("WorkItemOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
   project              Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   parent               WorkItem?        @relation("WorkItemSubtasks", fields: [parentId], references: [id], onDelete: SetNull)
   children             WorkItem[]       @relation("WorkItemSubtasks")
   contributors         WorkItemContributor[]
+  contributions        ContributionEntry[]
   dependsOn            WorkItemDependency[]  @relation("WorkItemDependent")
   blocks               WorkItemDependency[]  @relation("WorkItemPrerequisite")
 
@@ -15548,6 +15562,8 @@ model WorkItem {
   @@index([tenantId, kind, status])
   @@index([tenantId, archivedAt])
   @@index([tenantId, externalSystem, externalRef])
+  @@index([tenantId, queueId, status])
+  @@index([tenantId, resolutionDueAt])
 }
 
 /// One person's share of a work item, with their own estimate and actual. Totals
@@ -15623,4 +15639,180 @@ model EmployeeWorkProfileAssignment {
 
   @@index([tenantId, employeeId, effectiveFrom])
   @@index([tenantId, profileId])
+}
+
+/// DP-MASTER WP-30.S1 (M01, M02). One piece of evidence that work happened:
+/// planned or unplanned, in any of the seven work types, from any source. It is
+/// not a timesheet and not a performance score. Entries are immutable facts; a
+/// correction appends a revision that supersedes the entry, so history is never
+/// rewritten. Time (an interval) and output (a quantity) are different things and
+/// are never converted into one another here: a quantity keeps its own unit.
+model ContributionEntry {
+  id                   String                     @id @default(uuid())
+  tenantId             String
+  /// Whose contribution this is.
+  employeeId           String
+  workKind             ContributionWorkKind
+  /// The work type key inside the profile version (WP-35), if any.
+  workTypeKey          String?
+  /// The profile version in force when the entry was recorded; never recalculated.
+  workProfileVersionId String?
+  /// Optional link to work that has a lifecycle. Not required: a mentoring hour
+  /// or a counted transaction has no work item.
+  workItemId           String?
+  category             ContributionCategory       @default(PLANNED)
+  measure              ContributionMeasure
+  /// Event time. For an INTERVAL it equals startsAt.
+  occurredAt           DateTime
+  startsAt             DateTime?
+  endsAt               DateTime?
+  /// IANA zone the entry was captured in; needed to read a shift or an overnight
+  /// interval the way the person experienced it.
+  timezone             String
+  /// Aggregate count for QUANTITY entries, in the unit below. Never converted.
+  quantity             Decimal?                   @db.Decimal(18, 4)
+  unitKey              String?
+  source               ContributionSource
+  sourceSystem         String?
+  sourceRef            String?
+  /// Tenant-unique identity of the real-world event, so the same event arriving
+  /// twice (a retried upload, two integrations) is one entry. Moves to the newest
+  /// revision when an entry is corrected.
+  dedupeKey            String?
+  verification         ContributionVerification   @default(UNVERIFIED)
+  reviewedById         String?
+  reviewedAt           DateTime?
+  reviewNote           String?
+  /// Captured without a connection and synced later; first-class, not an error.
+  capturedOffline      Boolean                    @default(false)
+  /// The device clock when it was captured, for offline entries.
+  capturedAt           DateTime?
+  /// Recorded after the allowed window; always needs a reason.
+  retrospective        Boolean                    @default(false)
+  note                 String?
+  state                ContributionState          @default(ACTIVE)
+  /// 1 for the original; each correction is the previous revision + 1.
+  revision             Int                        @default(1)
+  supersedesId         String?
+  correctionReason     String?
+  createdById          String?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  tenant               Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workItem             WorkItem?                  @relation(fields: [workItemId], references: [id], onDelete: SetNull)
+  supersedes           ContributionEntry?         @relation("ContributionRevisions", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy         ContributionEntry[]        @relation("ContributionRevisions")
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, employeeId, occurredAt])
+  @@index([tenantId, employeeId, state, verification])
+  @@index([tenantId, workItemId])
+  @@index([tenantId, workKind, occurredAt])
+}
+
+/// The seven approved work types (U01).
+enum ContributionWorkKind {
+  TASK
+  TRANSACTION
+  DUTY
+  OUTPUT
+  SERVICE
+  EVENT
+  CONTRIBUTION
+}
+
+enum ContributionCategory {
+  PLANNED
+  UNPLANNED
+  SUPPORT
+  MENTORING
+  KNOWLEDGE
+  QUALITY
+  SALES
+  ADMIN
+  TRAINING
+  COVER
+  /// Time the worker could not work for a reason outside their control.
+  DOWNTIME
+  /// Time waiting on a dependency; distinct from downtime and from idle.
+  BLOCKED
+}
+
+enum ContributionMeasure {
+  /// A start and an end: elapsed time.
+  INTERVAL
+  /// A count of units. Not time.
+  QUANTITY
+  /// It happened (a duty performed, an event attended); no duration or count.
+  OCCURRENCE
+}
+
+enum ContributionSource {
+  SELF_REPORT
+  SUPERVISOR
+  MANUAL_IMPORT
+  INTEGRATION
+  WORK_RECORD
+  TIME_RECORD
+}
+
+enum ContributionVerification {
+  /// Recorded, not yet reviewed. Different from "no evidence", which is the
+  /// absence of an entry.
+  UNVERIFIED
+  VERIFIED
+  /// The employee or a reviewer says it is wrong.
+  DISPUTED
+  REJECTED
+}
+
+enum ContributionState {
+  ACTIVE
+  /// Replaced by a later revision; kept as history.
+  SUPERSEDED
+  WITHDRAWN
+}
+
+/// DP-MASTER WP-06.S1. A place work waits before and while someone does it: a
+/// service desk, a clinic's request list, a production line's job board. It
+/// needs no Project. The SLA minutes are defaults stamped onto each item when it
+/// is queued.
+model WorkQueue {
+  id                   String     @id @default(uuid())
+  tenantId             String
+  /// Stable lowercase key; what packages and integrations name.
+  key                  String
+  name                 String
+  description          String?
+  teamId               String?
+  businessUnitId       String?
+  responseSlaMinutes   Int?
+  resolutionSlaMinutes Int?
+  isActive             Boolean    @default(true)
+  createdById          String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  tenant               Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items                WorkItem[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+/// Who held a work item and who it went to, so a reassignment view can show the
+/// chain without reading the audit log. Append-only.
+model WorkItemOwnerChange {
+  id             String   @id @default(uuid())
+  tenantId       String
+  workItemId     String
+  fromEmployeeId String?
+  toEmployeeId   String?
+  reason         String?
+  changedById    String?
+  createdAt      DateTime @default(now())
+  workItem       WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workItemId, createdAt])
+  @@index([tenantId, toEmployeeId])
 }

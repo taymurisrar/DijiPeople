@@ -65,6 +65,11 @@ export class CreateWorkItemDto {
   @IsDateString()
   dueAt?: string;
 
+  /** The queue the item waits in. Optional; most work is not queued. */
+  @IsOptional()
+  @IsUUID()
+  queueId?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(80)
@@ -148,7 +153,36 @@ export class AddDependencyDto {
   dependsOnId!: string;
 }
 
+export class MoveQueueDto {
+  /** Null takes the item out of any queue. */
+  @IsOptional()
+  @IsUUID()
+  queueId?: string;
+}
+
 export class ListWorkItemsDto {
+  @IsOptional()
+  @IsUUID()
+  queueId?: string;
+
+  /** Items nobody owns yet. */
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  unassigned?: boolean;
+
+  /** Items I own or contribute to. */
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  mine?: boolean;
+
+  /** Unfinished items past their resolution due time. */
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  overdue?: boolean;
+
   @IsOptional()
   @IsIn(WORK_ITEM_STATUSES as unknown as string[])
   status?: string;

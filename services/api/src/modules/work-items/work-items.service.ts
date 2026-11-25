@@ -1,17 +1,27 @@
 import {
   BadRequestException,
+  ForbiddenException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, WorkItemStatus } from '@prisma/client';
+import {
+  Prisma,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+  WorkItemStatus,
+} from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { employeeScopeWhere } from '../../common/security/employee-scope';
+import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
 import {
   AddDependencyDto,
   CreateWorkItemDto,
   ListWorkItemsDto,
+  MoveQueueDto,
   ReassignWorkItemDto,
   SetContributorDto,
   TransitionWorkItemDto,
@@ -20,6 +30,7 @@ import {
 import {
   canTransition,
   MAX_SUBTASK_DEPTH,
+  slaState,
   TERMINAL_STATUSES,
   totalEffort,
   wouldCreateCycle,
@@ -39,6 +50,8 @@ const AUDIT = {
   REASSIGNED: 'WORK_ITEM_REASSIGNED',
   ARCHIVED: 'WORK_ITEM_ARCHIVED',
   UNARCHIVED: 'WORK_ITEM_UNARCHIVED',
+  CLAIMED: 'WORK_ITEM_CLAIMED',
+  QUEUE_MOVED: 'WORK_ITEM_QUEUE_MOVED',
   CONTRIBUTOR_SET: 'WORK_ITEM_CONTRIBUTOR_SET',
   CONTRIBUTOR_REMOVED: 'WORK_ITEM_CONTRIBUTOR_REMOVED',
   DEPENDENCY_ADDED: 'WORK_ITEM_DEPENDENCY_ADDED',
@@ -63,9 +76,49 @@ const ITEM_SELECT = {
   archivedAt: true,
   externalSystem: true,
   externalRef: true,
+  queueId: true,
+  respondedAt: true,
+  responseDueAt: true,
+  resolutionDueAt: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.WorkItemSelect;
+
+/** An item with the SLA standing it has right now. */
+function withSla<
+  T extends {
+    createdAt: Date;
+    respondedAt: Date | null;
+    completedAt: Date | null;
+    responseDueAt: Date | null;
+    resolutionDueAt: Date | null;
+  },
+>(item: T, now = new Date()) {
+  return {
+    ...item,
+    sla: {
+      response: slaState({
+        dueAt: item.responseDueAt,
+        startedAt: item.createdAt,
+        metAt: item.respondedAt,
+        now,
+      }),
+      resolution: slaState({
+        dueAt: item.resolutionDueAt,
+        startedAt: item.createdAt,
+        metAt: item.completedAt,
+        now,
+      }),
+    },
+  };
+}
+
+function denied(): never {
+  throw new ForbiddenException({
+    code: 'WORK_ITEM_OUT_OF_SCOPE',
+    message: 'You cannot assign or change work for that person.',
+  });
+}
 
 function problem(code: string, message: string): never {
   throw new BadRequestException({ code, message });
@@ -78,11 +131,41 @@ export class WorkItemsService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(tenantId: string, query: ListWorkItemsDto) {
+  async list(user: AuthenticatedUser, query: ListWorkItemsDto) {
+    const tenantId = user.tenantId;
+    const visible = await this.readFilter(user);
+    if (visible === null) return { items: [], total: 0 };
+    const own = query.mine ? await this.ownEmployeeId(user) : null;
+    if (query.mine && !own) return { items: [], total: 0 };
     const where: Prisma.WorkItemWhereInput = {
       tenantId,
+      AND: [
+        visible,
+        ...(query.mine
+          ? [
+              {
+                OR: [
+                  { ownerEmployeeId: own },
+                  { contributors: { some: { employeeId: own as string } } },
+                ],
+              },
+            ]
+          : []),
+      ],
+      ...(query.queueId ? { queueId: query.queueId } : {}),
+      ...(query.unassigned
+        ? { ownerEmployeeId: null, contributors: { none: {} } }
+        : {}),
+      ...(query.overdue
+        ? {
+            resolutionDueAt: { lt: new Date() },
+            status: { in: ['OPEN', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW'] },
+          }
+        : {}),
       ...(query.includeArchived ? {} : { archivedAt: null }),
-      ...(query.status ? { status: query.status as WorkItemStatus } : {}),
+      ...(query.status && !query.overdue
+        ? { status: query.status as WorkItemStatus }
+        : {}),
       ...(query.kind ? { kind: query.kind as never } : {}),
       ...(query.ownerEmployeeId
         ? { ownerEmployeeId: query.ownerEmployeeId }
@@ -103,12 +186,15 @@ export class WorkItemsService {
       }),
       this.prisma.workItem.count({ where }),
     ]);
-    return { items, total };
+    return { items: items.map((item) => withSla(item)), total };
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(user: AuthenticatedUser, id: string) {
+    const tenantId = user.tenantId;
+    const visible = await this.readFilter(user);
+    if (visible === null) throw new NotFoundException('Work item not found.');
     const item = await this.prisma.workItem.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, AND: [visible] },
       select: {
         ...ITEM_SELECT,
         contributors: {
@@ -128,15 +214,196 @@ export class WorkItemsService {
     });
     if (!item) throw new NotFoundException('Work item not found.');
     return {
-      ...item,
+      ...withSla(item),
       effort: totalEffort(item.contributors),
     };
   }
 
+  /** What is waiting in a queue and how it stands against its promises. */
+  async queueSummary(user: AuthenticatedUser, queueId: string) {
+    const visible = await this.readFilter(user);
+    const queue = await this.prisma.workQueue.findFirst({
+      where: { id: queueId, tenantId: user.tenantId },
+      select: { id: true, key: true, name: true, isActive: true },
+    });
+    if (!queue || visible === null) {
+      throw new NotFoundException('Queue not found.');
+    }
+    const open = await this.prisma.workItem.findMany({
+      where: {
+        tenantId: user.tenantId,
+        queueId,
+        archivedAt: null,
+        status: { in: ['OPEN', 'IN_PROGRESS', 'BLOCKED', 'IN_REVIEW'] },
+        AND: [visible],
+      },
+      select: {
+        status: true,
+        ownerEmployeeId: true,
+        createdAt: true,
+        respondedAt: true,
+        completedAt: true,
+        responseDueAt: true,
+        resolutionDueAt: true,
+      },
+      take: 5000,
+    });
+    const now = new Date();
+    const byStatus: Record<string, number> = {};
+    let unassigned = 0;
+    const sla = { atRisk: 0, breached: 0, responseBreached: 0 };
+    for (const item of open) {
+      byStatus[item.status] = (byStatus[item.status] ?? 0) + 1;
+      if (!item.ownerEmployeeId) unassigned += 1;
+      const standing = withSla(item, now).sla;
+      if (standing.resolution === 'AT_RISK') sla.atRisk += 1;
+      if (standing.resolution === 'BREACHED') sla.breached += 1;
+      if (standing.response === 'BREACHED') sla.responseBreached += 1;
+    }
+    return {
+      queue,
+      open: open.length,
+      byStatus,
+      unassigned,
+      sla,
+      // Honest about the cap: a larger queue is counted from its first 5,000.
+      truncated: open.length === 5000,
+    };
+  }
+
+  /** Who moved this item between people, newest last. */
+  async ownerHistory(user: AuthenticatedUser, id: string) {
+    await this.findOne(user, id);
+    return this.prisma.workItemOwnerChange.findMany({
+      where: { tenantId: user.tenantId, workItemId: id },
+      select: {
+        fromEmployeeId: true,
+        toEmployeeId: true,
+        reason: true,
+        changedById: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    });
+  }
+
+  /** The item to its owner, with the SLA clock started if it is queued. */
+  async claim(user: AuthenticatedUser, id: string) {
+    const own = await this.ownEmployeeId(user);
+    if (!own) {
+      problem(
+        'WORK_ITEM_NO_EMPLOYEE',
+        'Your account is not linked to an employee record.',
+      );
+    }
+    await this.findOne(user, id); // 404 unless it is visible to you
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.lock(tx, user.tenantId, id);
+      if (before.archivedAt || before.ownerEmployeeId) {
+        throw new ConflictException({
+          code: 'WORK_ITEM_NOT_CLAIMABLE',
+          message: 'That work item already has an owner.',
+        });
+      }
+      const now = new Date();
+      const updated = await tx.workItem.update({
+        where: { id },
+        data: {
+          ownerEmployeeId: own,
+          respondedAt: before.respondedAt ?? now,
+          updatedById: user.userId,
+        },
+        select: ITEM_SELECT,
+      });
+      await tx.workItemOwnerChange.create({
+        data: {
+          tenantId: user.tenantId,
+          workItemId: id,
+          fromEmployeeId: null,
+          toEmployeeId: own,
+          reason: 'Claimed from the queue',
+          changedById: user.userId,
+        },
+      });
+      await this.audit.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: AUDIT.CLAIMED,
+          entityType: 'WorkItem',
+          entityId: id,
+          beforeSnapshot: { ownerEmployeeId: null },
+          afterSnapshot: { ownerEmployeeId: own },
+        },
+        tx,
+      );
+      return withSla(updated);
+    });
+  }
+
+  /** Put an item in a queue (stamping its SLA) or take it out. */
+  async moveToQueue(user: AuthenticatedUser, id: string, dto: MoveQueueDto) {
+    await this.assertWrite(user, id);
+    const queue = dto.queueId
+      ? await this.activeQueue(user.tenantId, dto.queueId)
+      : null;
+    return this.prisma.$transaction(async (tx) => {
+      const before = await this.lock(tx, user.tenantId, id);
+      const now = new Date();
+      const updated = await tx.workItem.update({
+        where: { id },
+        data: {
+          queueId: queue?.id ?? null,
+          responseDueAt: this.dueFrom(
+            before.createdAt,
+            queue?.responseSlaMinutes,
+          ),
+          resolutionDueAt: this.dueFrom(
+            before.createdAt,
+            queue?.resolutionSlaMinutes,
+          ),
+          updatedById: user.userId,
+        },
+        select: ITEM_SELECT,
+      });
+      void now;
+      await this.audit.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: AUDIT.QUEUE_MOVED,
+          entityType: 'WorkItem',
+          entityId: id,
+          beforeSnapshot: { queueId: before.queueId },
+          afterSnapshot: { queueId: updated.queueId },
+        },
+        tx,
+      );
+      return withSla(updated);
+    });
+  }
+
   async create(user: AuthenticatedUser, dto: CreateWorkItemDto) {
     const tenantId = user.tenantId;
-    if (dto.ownerEmployeeId)
-      await this.assertEmployee(tenantId, dto.ownerEmployeeId);
+    // Your reach decides whose work you may create. A person who can only reach
+    // themselves gets the item as its owner; nobody assigns outside their scope.
+    let ownerEmployeeId = dto.ownerEmployeeId ?? null;
+    if (ownerEmployeeId) {
+      await this.assertEmployee(tenantId, ownerEmployeeId);
+      await this.assertInWriteScope(user, ownerEmployeeId);
+    } else if (this.writesOnlyOwn(user)) {
+      ownerEmployeeId = await this.ownEmployeeId(user);
+      if (!ownerEmployeeId) {
+        problem(
+          'WORK_ITEM_NO_EMPLOYEE',
+          'Your account is not linked to an employee record.',
+        );
+      }
+    }
+    const queue = dto.queueId
+      ? await this.activeQueue(tenantId, dto.queueId)
+      : null;
     if (dto.projectId) {
       const project = await this.prisma.project.findFirst({
         where: { id: dto.projectId, tenantId },
@@ -162,6 +429,7 @@ export class WorkItemsService {
     }
     if (dto.parentId) await this.assertParentDepth(tenantId, dto.parentId);
 
+    const createdAt = new Date();
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.workItem.create({
         data: {
@@ -170,7 +438,13 @@ export class WorkItemsService {
           title: dto.title.trim(),
           description: dto.description ?? null,
           priority: dto.priority ?? 'NORMAL',
-          ownerEmployeeId: dto.ownerEmployeeId ?? null,
+          ownerEmployeeId,
+          queueId: queue?.id ?? null,
+          // One instant for the row and for its promises, so the due times are
+          // exactly createdAt + the queue's minutes.
+          createdAt: createdAt,
+          responseDueAt: this.dueFrom(createdAt, queue?.responseSlaMinutes),
+          resolutionDueAt: this.dueFrom(createdAt, queue?.resolutionSlaMinutes),
           projectId: dto.projectId ?? null,
           parentId: dto.parentId ?? null,
           workTypeKey: dto.workTypeKey ?? null,
@@ -194,11 +468,12 @@ export class WorkItemsService {
         },
         tx,
       );
-      return created;
+      return withSla(created);
     });
   }
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateWorkItemDto) {
+    await this.assertWrite(user, id);
     return this.prisma.$transaction(async (tx) => {
       const before = await this.lock(tx, user.tenantId, id);
       const updated = await tx.workItem.update({
@@ -241,6 +516,7 @@ export class WorkItemsService {
     id: string,
     dto: TransitionWorkItemDto,
   ) {
+    await this.assertWrite(user, id);
     return this.prisma.$transaction(async (tx) => {
       const before = await this.lock(tx, user.tenantId, id);
       if (before.archivedAt) {
@@ -280,6 +556,9 @@ export class WorkItemsService {
           startedAt:
             dto.to === 'IN_PROGRESS' && !before.startedAt ? now : undefined,
           completedAt: dto.to === 'DONE' ? now : null,
+          // The first time anyone acts on a queued item is its first response.
+          respondedAt:
+            before.respondedAt === null && from === 'OPEN' ? now : undefined,
           updatedById: user.userId,
         },
         select: ITEM_SELECT,
@@ -305,8 +584,10 @@ export class WorkItemsService {
     id: string,
     dto: ReassignWorkItemDto,
   ) {
+    await this.assertWrite(user, id);
     if (dto.ownerEmployeeId) {
       await this.assertEmployee(user.tenantId, dto.ownerEmployeeId);
+      await this.assertInWriteScope(user, dto.ownerEmployeeId);
     }
     return this.prisma.$transaction(async (tx) => {
       const before = await this.lock(tx, user.tenantId, id);
@@ -320,9 +601,24 @@ export class WorkItemsService {
         where: { id },
         data: {
           ownerEmployeeId: dto.ownerEmployeeId ?? null,
+          // Handing it to someone is the first response to a queued item.
+          respondedAt:
+            dto.ownerEmployeeId && before.respondedAt === null
+              ? new Date()
+              : undefined,
           updatedById: user.userId,
         },
         select: ITEM_SELECT,
+      });
+      await tx.workItemOwnerChange.create({
+        data: {
+          tenantId: user.tenantId,
+          workItemId: id,
+          fromEmployeeId: before.ownerEmployeeId,
+          toEmployeeId: dto.ownerEmployeeId ?? null,
+          reason: dto.reason ?? null,
+          changedById: user.userId,
+        },
       });
       await this.audit.log(
         {
@@ -345,6 +641,7 @@ export class WorkItemsService {
 
   /** Archive, never delete: an item may carry evidence and time. Finished items only. */
   async archive(user: AuthenticatedUser, id: string) {
+    await this.assertWrite(user, id);
     return this.prisma.$transaction(async (tx) => {
       const before = await this.lock(tx, user.tenantId, id);
       if (!TERMINAL_STATUSES.includes(before.status as WorkItemStatusValue)) {
@@ -378,6 +675,7 @@ export class WorkItemsService {
   }
 
   async unarchive(user: AuthenticatedUser, id: string) {
+    await this.assertWrite(user, id);
     return this.prisma.$transaction(async (tx) => {
       const before = await this.lock(tx, user.tenantId, id);
       const updated = await tx.workItem.update({
@@ -409,7 +707,9 @@ export class WorkItemsService {
     employeeId: string,
     dto: SetContributorDto,
   ) {
+    await this.assertWrite(user, id);
     await this.assertEmployee(user.tenantId, employeeId);
+    await this.assertInWriteScope(user, employeeId);
     return this.prisma.$transaction(async (tx) => {
       await this.lock(tx, user.tenantId, id);
       // One row per person: setting again updates, never adds a second share.
@@ -456,6 +756,8 @@ export class WorkItemsService {
     id: string,
     employeeId: string,
   ) {
+    await this.assertWrite(user, id);
+    await this.assertInWriteScope(user, employeeId);
     return this.prisma.$transaction(async (tx) => {
       await this.lock(tx, user.tenantId, id);
       const removed = await tx.workItemContributor.deleteMany({
@@ -484,6 +786,9 @@ export class WorkItemsService {
     id: string,
     dto: AddDependencyDto,
   ) {
+    await this.assertWrite(user, id);
+    // You may only wire an item to work you can at least see.
+    await this.findOne(user, dto.dependsOnId);
     return this.prisma.$transaction(async (tx) => {
       // The cycle check reads every edge of the tenant and the insert must see the
       // same graph another writer sees. A tenant-wide advisory lock serialises
@@ -552,6 +857,7 @@ export class WorkItemsService {
     id: string,
     dependsOnId: string,
   ) {
+    await this.assertWrite(user, id);
     return this.prisma.$transaction(async (tx) => {
       await this.lock(tx, user.tenantId, id);
       const removed = await tx.workItemDependency.deleteMany({
@@ -574,6 +880,134 @@ export class WorkItemsService {
   }
 
   // --------------------------------------------------------------- helpers
+
+  private dueFrom(from: Date, minutes: number | null | undefined) {
+    return minutes ? new Date(from.getTime() + minutes * 60_000) : null;
+  }
+
+  private async activeQueue(tenantId: string, queueId: string) {
+    const queue = await this.prisma.workQueue.findFirst({
+      where: { id: queueId, tenantId, isActive: true },
+      select: {
+        id: true,
+        responseSlaMinutes: true,
+        resolutionSlaMinutes: true,
+      },
+    });
+    if (!queue) problem('WORK_ITEM_QUEUE_INVALID', 'The queue was not found.');
+    return queue;
+  }
+
+  private async ownEmployeeId(user: AuthenticatedUser) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { tenantId: user.tenantId, userId: user.userId },
+      select: { id: true },
+    });
+    return employee?.id ?? null;
+  }
+
+  /** True when the caller's write reach is themselves and nobody else. */
+  private writesOnlyOwn(user: AuthenticatedUser) {
+    const level = resolveEffectiveAccessLevel(
+      user,
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.WRITE,
+    );
+    return (
+      level === SecurityAccessLevel.SELF || level === SecurityAccessLevel.USER
+    );
+  }
+
+  /**
+   * Which items this user may see: those owned by, or shared with, a person they
+   * reach, those they created, and unowned items waiting in a queue they belong
+   * to. null = may see none. {} = may see all.
+   */
+  private async readFilter(
+    user: AuthenticatedUser,
+  ): Promise<Prisma.WorkItemWhereInput | null> {
+    const scope = employeeScopeWhere(user, SecurityPrivilege.READ);
+    if (scope === null) return null;
+    if (Object.keys(scope).length === 0) return {};
+    const wide = !(
+      resolveEffectiveAccessLevel(
+        user,
+        ENTITY_KEYS.EMPLOYEES,
+        SecurityPrivilege.READ,
+      ) === SecurityAccessLevel.SELF ||
+      resolveEffectiveAccessLevel(
+        user,
+        ENTITY_KEYS.EMPLOYEES,
+        SecurityPrivilege.READ,
+      ) === SecurityAccessLevel.USER
+    );
+    const teamIds = user.accessContext?.teamIds ?? [];
+    return {
+      OR: [
+        { owner: scope },
+        { contributors: { some: { employee: scope } } },
+        { createdById: user.userId },
+        {
+          ownerEmployeeId: null,
+          contributors: { none: {} },
+          queue: {
+            OR: [
+              { teamId: { in: teamIds } },
+              ...(wide ? [{ teamId: null }] : []),
+            ],
+          },
+        },
+      ],
+    };
+  }
+
+  /** Is this employee someone the caller may assign work to or change work for? */
+  private async assertInWriteScope(
+    user: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    const scope = employeeScopeWhere(user, SecurityPrivilege.WRITE);
+    if (scope === null) denied();
+    const reachable = await this.prisma.employee.count({
+      where: { AND: [{ tenantId: user.tenantId, id: employeeId }, scope] },
+    });
+    if (reachable !== 1) denied();
+  }
+
+  /**
+   * May the caller change this item? Yes when it is owned by, or shared with,
+   * someone they can write for; or it is unowned and they reach beyond
+   * themselves; or they created it. Otherwise it does not exist for them.
+   */
+  private async assertWrite(user: AuthenticatedUser, id: string) {
+    const item = await this.prisma.workItem.findFirst({
+      where: { id, tenantId: user.tenantId },
+      select: {
+        ownerEmployeeId: true,
+        createdById: true,
+        contributors: { select: { employeeId: true } },
+      },
+    });
+    if (!item) throw new NotFoundException('Work item not found.');
+    const scope = employeeScopeWhere(user, SecurityPrivilege.WRITE);
+    if (scope === null) throw new NotFoundException('Work item not found.');
+    if (Object.keys(scope).length === 0) return;
+    if (item.createdById === user.userId) return;
+    const people = [
+      ...(item.ownerEmployeeId ? [item.ownerEmployeeId] : []),
+      ...item.contributors.map((c) => c.employeeId),
+    ];
+    if (!people.length) {
+      if (this.writesOnlyOwn(user)) {
+        throw new NotFoundException('Work item not found.');
+      }
+      return;
+    }
+    const reachable = await this.prisma.employee.count({
+      where: { AND: [{ tenantId: user.tenantId, id: { in: people } }, scope] },
+    });
+    if (reachable === 0) throw new NotFoundException('Work item not found.');
+  }
 
   /** Row-locks the item inside the tenant and returns it; 404 if it is not the tenant's. */
   private async lock(

@@ -1118,6 +1118,24 @@
         "delete": "A work item may carry evidence, time and history that other records point at: it is archived (finished items only), never deleted (ADR-0030). Contributor and dependency edges can be removed."
       },
       "classifiedBy": "DP-MASTER WP-02.S1"
+    },
+    {
+      "controller": "services/api/src/modules/contributions/contributions.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "Evidence is never deleted: a correction appends a revision that supersedes the entry, and an author can only withdraw one, which keeps it in history (WP-30.S1, M02)."
+      },
+      "classifiedBy": "DP-MASTER WP-30.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-queues.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A queue holds work that points at it: it is deactivated (isActive=false), never deleted, so items keep their queue and history (WP-06.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-06.S1"
     }
   ],
   "baseline": {

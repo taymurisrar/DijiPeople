@@ -1116,6 +1116,9 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.CEO]: [
+    'work-items.read',
+    'work-queues.read',
+    'contributions.read',
     // `dashboard.view` gates GET /employees/me/context and /dashboard/summary, so every
     // role that signs in to the tenant app needs it (DP-QA-002). It is listed in
     // BASE_ROLE_PERMISSION_KEYS, but nothing in production reads that map, so
@@ -1132,6 +1135,12 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.MANAGER]: [
     'dashboard.view',
+    'work-items.read',
+    'work-items.write',
+    'work-queues.read',
+    'contributions.read',
+    'contributions.write',
+    'contributions.verify',
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     'approvals.readAssigned',
     'attendance.correction.create',
@@ -1236,6 +1245,11 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'work-profiles.manage',
     'work-items.read',
     'work-items.write',
+    'work-queues.read',
+    'work-queues.manage',
+    'contributions.read',
+    'contributions.write',
+    'contributions.verify',
     'documents.categories.manage',
     'documents.types.manage',
     'hierarchy.read',
@@ -1297,6 +1311,13 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.EMPLOYEE]: [
     'dashboard.view',
+    // Your own work and your own evidence. What else you reach is decided in the
+    // service by your access level on employees (SELF for an employee).
+    'work-items.read',
+    'work-items.write',
+    'work-queues.read',
+    'contributions.read',
+    'contributions.write',
     // Routes demand these and BASE_ROLE_PERMISSION_KEYS said employees hold them,
     // but nothing granted them, so no employee could submit a timesheet (found
     // when the wiring invariant stopped trusting that map).
@@ -1989,6 +2010,11 @@ export function legacyPermissionToMatrixPrivileges(
     [['work-profiles.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
     [['work-items.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
     [['work-items.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
+    [['work-queues.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['work-queues.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
+    [['contributions.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['contributions.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
+    [['contributions.verify'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
     [
       [
         'leave-types.read',

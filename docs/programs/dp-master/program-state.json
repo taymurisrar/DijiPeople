@@ -1267,27 +1267,55 @@
       "id": "WP-30.S1",
       "wp": "WP-30",
       "title": "Contribution/evidence ledger core: entry model, provenance, verification state, dedupe, correction history (seven work types; quantity never silently converted to time)",
-      "release": "R3",
+      "release": "R4",
       "deps": [
         "WP-02.S1",
         "WP-35.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED",
-      "lease": "schema"
+      "status": "ACCEPTED",
+      "lease": "schema",
+      "evidence": "migration 20261127090000 (additive); contributions module; contribution-math.spec 16 unit tests; work-scope.e2e-spec ledger block (seven work types, provenance from the caller, overlap counted once, quantity never time, offline retry deduplicated incl. racing, retrospective reason, revisions kept, self-review refused, scope by access level, cross-tenant 404); mutation: removing the self-review check and the read filter each fail tests"
     },
     {
       "id": "WP-06.S1",
       "wp": "WP-06",
       "title": "Work queue over work items: non-project service queue, assignment/reassignment views, SLA fields; Project optional",
-      "release": "R3",
+      "release": "R2",
       "deps": [
         "WP-02.S1",
         "WP-03.S3"
       ],
       "workstream": "B",
+      "status": "IN_PROGRESS",
+      "lease": "schema",
+      "evidence": "API accepted: migration 20261127100000 (additive); work queues with SLA stamped per item, claim, queue summary, owner history; work items scoped by the access level on EMPLOYEES (employee own / manager business unit / HR tenant); work-scope.e2e-spec. UI: see web files; not browser-verified."
+    },
+    {
+      "id": "WP-03.S4",
+      "wp": "WP-03",
+      "title": "Workflow step ledger per recipient (multi-recipient rules) and e-mail template version pinning on retry",
+      "release": "R2",
+      "deps": [
+        "WP-03.S3",
+        "WP-04.S1"
+      ],
+      "workstream": "A",
       "status": "NOT_STARTED",
-      "lease": "schema"
+      "note": "Tracked here per the owner: the S3 ledger is per action, so a single action addressed to several recipients is still one step; template pinning needs the notification template version id on the step."
+    },
+    {
+      "id": "WP-21.S1",
+      "wp": "WP-21",
+      "title": "Work profile, work unit, work queue and work-type components in the one existing .djpkg package engine (ALM): export, dependency order, atomic import, idempotent upgrade, dependency-safe uninstall",
+      "release": "R7",
+      "deps": [
+        "WP-35.S2",
+        "WP-06.S1"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED",
+      "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine."
     }
   ],
   "nextExecutable": [

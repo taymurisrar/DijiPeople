@@ -19,12 +19,15 @@
       "id": "U02",
       "section": "6.1",
       "ownerWp": "WP-02/35",
-      "classification": "MISSING",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
       "release": "R2",
-      "tests": [],
-      "evidence": "Inherited from WP-02 (SCHEMA_SCAN): No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "tests": [
+        "services/api/test/work-items.e2e-spec.ts",
+        "services/api/test/work-scope.e2e-spec.ts"
+      ],
+      "evidence": "WP-02.S1 + WP-30.S1: a work item exists only for work with a lifecycle (ADR-0030); contribution entries point at work by workKind (the seven types) with an optional workItemId, so a transaction or output is a ledger entry and never one task per checkout. Typed domain records keep their own tables. NOT yet: comments/attachments on work, cross-module references from WP-09/36/37.",
       "auditDepth": "INHERITED_FROM_WP-02"
     },
     {
@@ -266,24 +269,30 @@
       "id": "M01",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "MISSING",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
       "release": "R4",
-      "tests": [],
-      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "tests": [
+        "services/api/test/work-scope.e2e-spec.ts",
+        "services/api/src/modules/contributions/contribution-math.spec.ts"
+      ],
+      "evidence": "WP-30.S1 (2026-11-27): ContributionEntry records provenance (SELF_REPORT / SUPERVISOR set by the server from who is calling, never by the client), source system/ref, verification state, event time with IANA timezone, interval or quantity, category and linked work. work-scope.e2e-spec (ledger block, real DB over HTTP). NOT yet: approved-timesheet and integration sources feeding the ledger (WP-18/WP-23), stakeholder feedback as a source, optional desktop aggregate signal (WP-17 contract).",
       "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
       "id": "M02",
       "section": "6.4",
       "ownerWp": "WP-30/15/18/31",
-      "classification": "MISSING",
+      "classification": "PARTIAL",
       "verification": "NOT_VERIFIED",
       "slice": null,
       "release": "R4",
-      "tests": [],
-      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found.",
+      "tests": [
+        "services/api/test/work-scope.e2e-spec.ts",
+        "services/api/src/modules/contributions/contribution-math.spec.ts"
+      ],
+      "evidence": "WP-30.S1: overlapping evidence is counted once (union of intervals; an unverified entry inside a verified one adds nothing), quantities are summed per unit and never converted to time, verified/unverified/disputed/rejected are separate figures, corrections append revisions and keep history, withdraw keeps the entry, an offline upload retried is one entry (client request id), retrospective entries need a reason, employees can view, dispute and correct their own records and nobody reviews their own. contribution-math.spec (hand-computed fixtures) and work-scope.e2e-spec. NOT yet: dedupe by tenant/source/external event for integrations (no integration source exists), configured retrospective deadline/approval (a fixed 7-day rule is used), appeal workflow beyond dispute.",
       "auditDepth": "INHERITED_FROM_WP-30"
     },
     {
@@ -307,7 +316,7 @@
       "slice": null,
       "release": "R4",
       "tests": [],
-      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found. | WP-35.S1 validates standard effort per unit (only QUANTITY/COMPLETION, never TIMED) and refuses unit/mode mismatches; the calculation itself is WP-30/WP-15. | Re-audited 2026-11-26: contributors store separate estimate and actual per person and effort totals sum one row per person (work-items.e2e-spec: shared work not double counted; a missing value is not read as zero). Still no contribution ledger, so quantity-to-time conversion rules are untested.",
+      "evidence": "Inherited from WP-30 (SCHEMA_SCAN): No contribution ledger found. | WP-35.S1 validates standard effort per unit (only QUANTITY/COMPLETION, never TIMED) and refuses unit/mode mismatches; the calculation itself is WP-30/WP-15. | Re-audited 2026-11-26: contributors store separate estimate and actual per person and effort totals sum one row per person (work-items.e2e-spec: shared work not double counted; a missing value is not read as zero). Still no contribution ledger, so quantity-to-time conversion rules are untested. | WP-30.S1: a quantity entry carries its own unit and is reported beside time, never inside it (contribution-math.spec \"never converts a quantity into time\"). The standard-equivalent calculation and efficiency remain WP-15.",
       "auditDepth": "INHERITED_FROM_WP-30"
     },
     {

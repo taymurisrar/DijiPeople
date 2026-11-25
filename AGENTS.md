@@ -208,7 +208,7 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-**70 modules** under `services/api/src/modules/`, verified at commit 11b31412 (checked against the directory by `scripts/validate-framework.mjs`).
+**71 modules** under `services/api/src/modules/`, verified at commit 11b31412 (checked against the directory by `scripts/validate-framework.mjs`).
 
 | Area | Modules |
 |---|---|
@@ -219,7 +219,7 @@ Three authenticated surfaces plus one public one:
 | Talent | `recruitment`, `onboarding`, `projects`, `documents`, `policies` |
 | Governance | `approvals`, `workflows`, `sla`, `audit`, `error-logs`, `permissions`, `roles` |
 | Commercial | `legal` (versioned legal documents, publication, acknowledgements), `leads`, `partners`, `partner-experience`, `contracts`, `support-cases`, `billing`, `super-admin` (customers, plans, subscriptions, invoices, payments, tenant provisioning) |
-| Configuration | `work-profiles` (configurable work units, versioned work profiles, employee assignments), `work-items` (tasks, service jobs and duty occurrences with a lifecycle, contributors and dependencies), `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
+| Configuration | `work-profiles` (configurable work units, versioned work profiles, employee assignments), `work-items` (tasks, service jobs and duty occurrences with a lifecycle, contributors and dependencies), `contributions` (the contribution/evidence ledger: provenance, verification, overlap counted once, revisions), `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
 | Messaging | `notifications` — the only route for tenant notification and email; catalog → orchestrator → queue → processor |
 | Platform ops | `platform-auth`, `platform-users`, `platform-events`, `outbox` (transactional outbox — the delivery half `platform-events` deliberately is not), `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `tenant-control-plane`, `tenant-domains`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` (the four legacy summary endpoints), `reporting` (the Reports & Analytics platform: semantic layer, metric registry, query engine, exports, schedules) |
 

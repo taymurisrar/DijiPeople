@@ -106,3 +106,27 @@ recalculate when a definition changes.
 
 - `docs/programs/dp-master/program-state.json` slices WP-35.S0, WP-02.S0
 - Master plan sections 5 (WP-35, WP-02) and 6.1 (U01-U06)
+
+## Amendments
+
+### 2026-11-27 - ledger, queues and the scope rule (WP-30.S1, WP-06.S1)
+
+- **Contribution ledger.** `ContributionEntry` is an immutable fact keyed by the seven work kinds. An entry is
+  an `INTERVAL` (time), a `QUANTITY` (a count in its own unit) or an `OCCURRENCE`; the three are never converted
+  into one another. Provenance (`SELF_REPORT` / `SUPERVISOR`) is decided by the server from who is calling,
+  never by the client. A correction appends a revision that supersedes the entry; a withdrawal keeps it in
+  history. Overlapping evidence is counted once (union of intervals, verified before unverified before
+  disputed); rejected evidence is excluded and counted. A client request id makes an offline retry one entry.
+  Work recorded more than 7 days late needs a stated reason (a fixed rule until a tenant-configurable deadline
+  exists).
+- **Queues.** `WorkQueue` needs no Project. Its SLA minutes are stamped onto each item as due times when the
+  item joins (`createdAt` + minutes), so editing a queue never rewrites a promise already made. A queue is
+  deactivated, never deleted. `WorkItemOwnerChange` is the append-only reassignment chain.
+- **Scope rule (no second permission model).** Whose work or evidence a caller reaches follows the access
+  level their roles already hold on the `EMPLOYEES` entity (`common/security/employee-scope.ts`): an employee
+  (SELF) their own, a manager their business unit, HR the tenant. An out-of-scope record does not exist for the
+  caller (404). Unowned queued items are visible to the queue's team, and to non-SELF readers when the queue
+  has no team. Nobody assigns work outside their write scope, and nobody reviews their own contribution.
+- **Permissions.** `work-queues.read|manage`, `contributions.read|write|verify` are granted to the employee,
+  manager, HR and CEO roles as listed in `rbac-matrix.ts`; `work-items.read|write` now also reach employees
+  and managers, where the scope rule above, not the key, limits them. No entitlement or plan mapping changed.

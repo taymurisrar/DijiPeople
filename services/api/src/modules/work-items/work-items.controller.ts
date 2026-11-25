@@ -24,6 +24,7 @@ import {
   AddDependencyDto,
   CreateWorkItemDto,
   ListWorkItemsDto,
+  MoveQueueDto,
   ReassignWorkItemDto,
   SetContributorDto,
   TransitionWorkItemDto,
@@ -47,7 +48,7 @@ export class WorkItemsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListWorkItemsDto,
   ) {
-    return this.service.list(user.tenantId, query);
+    return this.service.list(user, query);
   }
 
   @Post()
@@ -67,7 +68,7 @@ export class WorkItemsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.service.findOne(user.tenantId, id);
+    return this.service.findOne(user, id);
   }
 
   @Patch(':id')
@@ -101,6 +102,37 @@ export class WorkItemsController {
     @Body() dto: ReassignWorkItemDto,
   ) {
     return this.service.reassign(user, id, dto);
+  }
+
+  @Get(':id/owner-history')
+  @Permissions('work-items.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  ownerHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.ownerHistory(user, id);
+  }
+
+  @Post(':id/claim')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  claim(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.claim(user, id);
+  }
+
+  @Post(':id/queue')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
+  moveToQueue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: MoveQueueDto,
+  ) {
+    return this.service.moveToQueue(user, id, dto);
   }
 
   @Post(':id/archive')

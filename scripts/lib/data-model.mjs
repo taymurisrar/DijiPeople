@@ -51,6 +51,7 @@ export const MODULE_DOMAINS = new Map(
     'employment-types': 'People',
     'work-profiles': 'People',
     'work-items': 'People',
+    contributions: 'People',
     teams: 'People',
     organization: 'People',
 
