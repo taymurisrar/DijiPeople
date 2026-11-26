@@ -47,6 +47,16 @@ describe("consent status shown to the employee", () => {
     );
   });
 
+  it("says capture is PAUSED, not on, when the server has not been heard from recently", () => {
+    expect(contentMonitoringLabel(granted, false, true)).toBe(
+      "Content monitoring: paused (no recent contact with the server)",
+    );
+    // Waiting for acknowledgement outranks everything.
+    expect(contentMonitoringLabel(waiting, false, true)).toBe(
+      "Content monitoring: off until you acknowledge the policy",
+    );
+  });
+
   it("reports capture truthfully once acknowledged", () => {
     expect(awaitingAcknowledgement(granted)).toBe(false);
     expect(contentMonitoringLabel(granted, true)).toContain("ON");

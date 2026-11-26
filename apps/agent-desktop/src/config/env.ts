@@ -43,6 +43,17 @@ export const agentEnv = {
     "Agent refresh token TTL",
   ),
 
+  /**
+   * How long the last answer from the server is trusted for content capture
+   * (DLP). Past it capture pauses and what is buffered is dropped. Default 30
+   * minutes; never below 10 seconds. Shortening it exists so the offline behaviour
+   * can be exercised without waiting half an hour.
+   */
+  dlpConfigMaxAgeSeconds: Math.max(
+    10,
+    readNumber(process.env.AGENT_DLP_CONFIG_MAX_AGE_SECONDS, 1800),
+  ),
+
   sessionIdleTimeoutSeconds: readNumber(
     process.env.AGENT_SESSION_IDLE_TIMEOUT_SECONDS,
     2592000,

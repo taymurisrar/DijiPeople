@@ -20,6 +20,8 @@ type CreateAgentTrayParams = {
    * read the clipboard and screen must never do so invisibly.
    */
   isDlpCaptureActive?: () => boolean;
+  /** Enabled and acknowledged, but paused because the config is stale. */
+  isDlpCapturePaused?: () => boolean;
   /** Opens the monitoring-policy review and acknowledgement dialog. */
   onReviewMonitoringPolicy?: () => void;
 };
@@ -75,6 +77,7 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
           label: contentMonitoringLabel(
             params.configManager.current,
             params.isDlpCaptureActive?.() ?? false,
+            params.isDlpCapturePaused?.() ?? false,
           ),
           enabled: false,
         },

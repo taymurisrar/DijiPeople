@@ -25,6 +25,7 @@
  *    clicked): an OS message box cannot be driven by Playwright.
  *  - Unset ELECTRON_RUN_AS_NODE, or Electron starts as plain Node.
  */
+const http = require('node:http');
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
@@ -63,6 +64,51 @@ function check(name, ok, detail) {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  ' + JSON.stringify(detail) : ''}`);
 }
 
+/*
+ * A forwarding proxy in front of the (local) API. The agent talks to the proxy, so
+ * the journey can take the server away and bring it back without touching the
+ * real API process: the offline checks are about the agent, not about the server.
+ */
+function createProxy(target) {
+  const upstream = new URL(target);
+  let server = null;
+  const sockets = new Set();
+  const start = (port = 0) =>
+    new Promise((resolve) => {
+      server = http.createServer((req, res) => {
+        const forward = http.request(
+          {
+            host: upstream.hostname,
+            port: upstream.port,
+            path: req.url,
+            method: req.method,
+            headers: { ...req.headers, host: upstream.host },
+          },
+          (up) => {
+            res.writeHead(up.statusCode || 502, up.headers);
+            up.pipe(res);
+          },
+        );
+        forward.on('error', () => {
+          res.writeHead(502);
+          res.end();
+        });
+        req.pipe(forward);
+      });
+      server.on('connection', (socket) => {
+        sockets.add(socket);
+        socket.on('close', () => sockets.delete(socket));
+      });
+      server.listen(port, '127.0.0.1', () => resolve(server.address().port));
+    });
+  const stop = () =>
+    new Promise((resolve) => {
+      for (const socket of sockets) socket.destroy();
+      server.close(() => resolve());
+    });
+  return { start, stop };
+}
+
 async function clearStoredToken() {
   try {
     const keytar = require(require.resolve('keytar', { paths: [appDir] }));
@@ -75,12 +121,17 @@ async function clearStoredToken() {
 (async () => {
   await clearStoredToken();
   const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'dp-agent-e2e-'));
+  const proxy = createProxy(new URL(apiBase).origin);
+  const proxyPort = await proxy.start();
   const app = await _electron.launch({
     executablePath: electronPath,
     args: [appDir, `--user-data-dir=${userData}`],
     env: {
       ...process.env,
-      AGENT_API_BASE_URL: apiBase,
+      AGENT_API_BASE_URL: `http://127.0.0.1:${proxyPort}${new URL(apiBase).pathname}`,
+      // Short windows so offline behaviour is observable in seconds, not half an hour.
+      AGENT_DLP_CONFIG_MAX_AGE_SECONDS: '15',
+      AGENT_CONFIG_REFRESH_INTERVAL_SECONDS: '10',
       AGENT_APP_NAME: 'DijiPeople Agent (e2e)',
       AGENT_APP_VERSION: '1.0.0',
       AGENT_ACCESS_TOKEN_TTL: '15m',
@@ -108,10 +159,17 @@ async function clearStoredToken() {
         return original.call(this, menu);
       };
     });
-    const labels = () =>
-      app.evaluate(() =>
-        (globalThis.__menus.at(-1)?.items ?? []).map((x) => x.label).filter(Boolean),
-      );
+    // A frequently-redrawn tray can race Playwright's evaluate; a failed read is
+    // just an empty observation, and the polling loops try again.
+    const labels = async () => {
+      try {
+        return await app.evaluate(() =>
+          (globalThis.__menus.at(-1)?.items ?? []).map((x) => x.label).filter(Boolean),
+        );
+      } catch {
+        return [];
+      }
+    };
 
     const login = await app.firstWindow({ timeout: 60000 });
     await login.waitForLoadState('domcontentloaded');
@@ -145,6 +203,8 @@ async function clearStoredToken() {
         const html = decodeURIComponent(
           w.webContents.getURL().replace(/^data:text\/html[^,]*,/, ''),
         );
+        // The window exists a moment before its content has loaded.
+        if (html.length === 0) return null;
         return {
           chars: html.length,
           dialogsBefore: globalThis.__dialogs.length,
@@ -185,6 +245,39 @@ async function clearStoredToken() {
       'monitoring turns on only after the acknowledgement',
       after.some((l) => /Content monitoring: ON/i.test(l)),
     );
+
+    // ---- offline: the server goes away; capture must stop, and say so.
+    await proxy.stop();
+    let paused = [];
+    for (let i = 0; i < 240; i += 1) {
+      await sleep(500);
+      paused = await labels();
+      if (paused.some((l) => /Content monitoring: paused/i.test(l))) break;
+    }
+    check(
+      'offline: content monitoring pauses once the server has not been heard from recently',
+      paused.some((l) => /Content monitoring: paused/i.test(l)),
+      paused.filter((l) => /monitoring/i.test(l)),
+    );
+    check(
+      'offline: the tray never claims monitoring is ON while paused',
+      !paused.some((l) => /Content monitoring: ON/i.test(l)),
+    );
+
+    // ---- back online: capture resumes by itself from a fresh answer.
+    await proxy.start(proxyPort);
+    let resumed = [];
+    for (let i = 0; i < 240; i += 1) {
+      await sleep(500);
+      resumed = await labels();
+      if (resumed.some((l) => /Content monitoring: ON/i.test(l))) break;
+    }
+    check(
+      'back online: monitoring resumes after a fresh config, without another acknowledgement',
+      resumed.some((l) => /Content monitoring: ON/i.test(l)),
+      resumed.filter((l) => /monitoring/i.test(l)),
+    );
+    check('no second policy window or dialog was needed to resume', (await app.evaluate(() => globalThis.__dialogs)).length === 1);
   } catch (error) {
     check('journey ran to the end', false, String(error).slice(0, 600));
     console.log(
@@ -197,6 +290,7 @@ async function clearStoredToken() {
     );
   } finally {
     await app.close().catch(() => undefined);
+    await proxy.stop().catch(() => undefined);
     await clearStoredToken();
     fs.rmSync(userData, { recursive: true, force: true });
   }

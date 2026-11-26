@@ -17,9 +17,15 @@ export function awaitingAcknowledgement(
 export function contentMonitoringLabel(
   config: Pick<AgentConfig, "dlpConsent">,
   captureActive: boolean,
+  paused = false,
 ): string {
   if (awaitingAcknowledgement(config)) {
     return "Content monitoring: off until you acknowledge the policy";
+  }
+  // Enabled and acknowledged, but the server has not been heard from recently
+  // enough to trust: nothing is being captured, and the employee is told so.
+  if (paused) {
+    return "Content monitoring: paused (no recent contact with the server)";
   }
   return captureActive
     ? "Content monitoring: ON (clipboard/screenshots)"

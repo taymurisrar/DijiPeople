@@ -23,6 +23,7 @@ import {
   ActiveWindowForegroundProvider,
   ElectronScreenshotCapturer,
 } from "./dlp/electron-adapters";
+import { agentEnv } from "../config/env";
 import { resolveAgentAsset } from "./assets";
 import {
   isAllowedNavigation,
@@ -94,7 +95,7 @@ function syncDlpCapture(): void {
 
 // Consent is re-checked against the server, so a config older than this is not
 // proof of anything: capture pauses (and buffers are dropped) until it refreshes.
-const DLP_CONFIG_MAX_AGE_MS = 30 * 60 * 1000;
+const DLP_CONFIG_MAX_AGE_MS = agentEnv.dlpConfigMaxAgeSeconds * 1000;
 dlpManager.setFreshnessCheck(() =>
   configManager.isFresh(DLP_CONFIG_MAX_AGE_MS),
 );
@@ -181,11 +182,25 @@ async function reviewMonitoringPolicy(): Promise<void> {
 }
 
 /** True when a DLP capture capability is on, for the tray indicator. */
-function isDlpCaptureActive(): boolean {
+function isDlpCaptureEnabled(): boolean {
   const dlp = configManager.current.dlp;
   return (
     Boolean(sessionManager.user) &&
     (dlp.clipboardCaptureEnabled || dlp.screenshotCaptureEnabled)
+  );
+}
+
+/** On AND the server has been heard from recently enough to rely on. */
+function isDlpCaptureActive(): boolean {
+  return (
+    isDlpCaptureEnabled() && configManager.isFresh(DLP_CONFIG_MAX_AGE_MS)
+  );
+}
+
+/** On, but paused: the last server answer is too old to trust. */
+function isDlpCapturePaused(): boolean {
+  return (
+    isDlpCaptureEnabled() && !configManager.isFresh(DLP_CONFIG_MAX_AGE_MS)
   );
 }
 
@@ -747,6 +762,7 @@ app.on("ready", async () => {
     onShowDevicePermissions: createPermissionsWindow,
     onCheckUpdates: () => void updateManager.checkForUpdates(),
     isDlpCaptureActive,
+    isDlpCapturePaused,
     onReviewMonitoringPolicy: () => void reviewMonitoringPolicy(),
   });
 
