@@ -77,14 +77,30 @@ export type WorkloadPerson = {
   committedMinutes: number;
   unestimatedItems: number;
   overdue: number;
+  /** Weekdays the person is on approved leave in the period. */
+  leaveDays: number;
+  /** Weekdays that are holidays for the person in the period. */
+  holidayDays: number;
+  /** Capacity after leave and holidays; zero means no capacity. */
+  netCapacityMinutes: number;
+  /** Null when there is no capacity to divide by. */
   loadPercent: number | null;
 };
 
 export type Workload = {
-  basis: "STANDARD_WEEK";
+  basis: "NET_OF_LEAVE_AND_HOLIDAYS" | "STANDARD_WEEK";
+  limits?: "WEEKDAYS_ONLY_NO_SHIFTS_NO_HALF_DAYS";
+  /** A plain period of weekdays, for reference. */
   capacityMinutes: number;
   people: WorkloadPerson[];
 };
+
+/** Whole or part days, as people say them: "0 days", "1 day", "2.5 days". */
+export function dayCountLabel(days: number | null | undefined): string {
+  const value = days ?? 0;
+  const text = Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+  return value === 1 ? `${text} day` : `${text} days`;
+}
 
 export type WorkItemContributor = {
   employeeId: string;
@@ -130,7 +146,7 @@ export function loadTone(
 }
 
 export const WORKLOAD_CAVEAT =
-  "Capacity is a standard week (Monday to Friday, 8 hours a day). It is not reduced for leave or holidays. Items with no estimate are counted separately, never as zero.";
+  "Capacity is net of approved leave and holidays. It counts weekdays only (8 hours a day): shifts and half days are not yet taken into account. Items with no estimate are counted separately, never as zero.";
 
 /** Today and the next 27 days, as date inputs. */
 export function defaultWorkloadPeriod(now: Date = new Date()): {

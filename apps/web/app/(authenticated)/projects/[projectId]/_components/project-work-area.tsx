@@ -10,6 +10,11 @@ import { SectionCard } from "@/app/components/ui/section-card";
 import { SegmentedControl } from "@/app/components/ui/segmented-control";
 import { SummaryTile } from "../../../work/_components/summary-tile";
 import { WorkItemsTable } from "../../../work/_components/work-items-table";
+import {
+  buildBlockersQuery,
+  openBlockerCounts,
+  type BlockerPage,
+} from "../../../work/_lib/blockers";
 import type { PersonOption } from "../../../work/_lib/people";
 import {
   buildCreateMilestonePayload,
@@ -67,8 +72,37 @@ export function ProjectWorkArea({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState<"task" | "milestone" | null>(null);
+  /** Null when the blockers could not be read; the rest of the Work area still works. */
+  const [blockerStats, setBlockerStats] = useState<{
+    open: number;
+    overdue: number;
+    counts: Record<string, number>;
+  } | null>(null);
+
+  const loadBlockers = useCallback(async () => {
+    try {
+      const [open, overdue] = await Promise.all([
+        workRequest<BlockerPage>(
+          "work-blockers",
+          `?${buildBlockersQuery({ status: "OPEN", projectId })}`,
+        ),
+        workRequest<BlockerPage>(
+          "work-blockers",
+          `?${buildBlockersQuery({ status: "OPEN", overdue: true, projectId, take: 1 })}`,
+        ),
+      ]);
+      setBlockerStats({
+        open: open.total,
+        overdue: overdue.total,
+        counts: openBlockerCounts(open.items),
+      });
+    } catch {
+      setBlockerStats(null);
+    }
+  }, [projectId]);
 
   const load = useCallback(async () => {
+    void loadBlockers();
     try {
       const [page, summary] = await Promise.all([
         workRequest<WorkItemPage>(
@@ -88,7 +122,7 @@ export function ProjectWorkArea({
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [loadBlockers, projectId]);
 
   useEffect(() => {
     void load();
@@ -161,6 +195,27 @@ export function ProjectWorkArea({
                 value={progress.approvedTimesheetHours}
               />
             </section>
+            {blockerStats ? (
+              <section
+                aria-label="Project blockers"
+                className="flex flex-wrap items-center gap-3 rounded-[20px] border border-border bg-surface p-4"
+              >
+                <h3 className="text-sm font-semibold text-foreground">Blockers</h3>
+                <span className="text-sm text-foreground">
+                  {`${blockerStats.open} open`}
+                </span>
+                <span className="text-sm text-foreground">
+                  {`${blockerStats.overdue} overdue`}
+                </span>
+                <Button
+                  href={`/work/blockers?projectId=${encodeURIComponent(projectId)}`}
+                  size="xs"
+                  variant="outline"
+                >
+                  View blockers
+                </Button>
+              </section>
+            ) : null}
             {progress.truncated ? (
               <p className="text-sm text-muted" role="status">
                 This project has more work than can be summarised exactly; figures cover the first part.
@@ -212,6 +267,7 @@ export function ProjectWorkArea({
                 />
               ) : (
                 <WorkBoard
+                  blockerCounts={blockerStats?.counts}
                   busyId={busyId}
                   canWrite={canWrite}
                   items={items}

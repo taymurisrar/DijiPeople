@@ -585,7 +585,7 @@ export type PackageOperation = {
   correlationId: string;
   counts: { created: number; updated: number; unchanged: number; skipped: number; conflicts: number; warnings: number };
   plan: PackageImportPlan | null;
-  result: { mode?: string; journal?: { key: string; action: string }[]; snapshotVersion?: number; removedFromSource?: { key: string }[] } | null;
+  result: { mode?: string; journal?: { key: string; action: string }[]; snapshotVersion?: number; removedFromSource?: { key: string }[]; retainedWorkComponents?: string[] } | null;
   error: { message?: string; failedComponent?: string | null; rolledBack?: boolean; problems?: { path: string; message: string }[] } | null;
   createdAt: string;
   startedAt: string | null;

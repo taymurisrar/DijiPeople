@@ -11,6 +11,7 @@ import { workRequest } from "../../../work/_lib/work-client";
 import {
   WORKLOAD_CAVEAT,
   buildWorkloadQuery,
+  dayCountLabel,
   defaultWorkloadPeriod,
   formatMinutes,
   loadLabel,
@@ -35,6 +36,28 @@ const COLUMNS: DataTableColumn<WorkloadPerson>[] = [
     sortable: true,
     sortAccessor: (row) => row.openItems,
     render: (row) => row.openItems,
+  },
+  {
+    key: "leaveDays",
+    header: "Leave days",
+    sortable: true,
+    sortAccessor: (row) => row.leaveDays,
+    render: (row) => dayCountLabel(row.leaveDays),
+  },
+  {
+    key: "holidayDays",
+    header: "Holiday days",
+    sortable: true,
+    sortAccessor: (row) => row.holidayDays,
+    render: (row) => dayCountLabel(row.holidayDays),
+  },
+  {
+    key: "netCapacity",
+    header: "Net capacity",
+    sortable: true,
+    sortAccessor: (row) => row.netCapacityMinutes,
+    render: (row) =>
+      row.netCapacityMinutes ? formatMinutes(row.netCapacityMinutes) : "No capacity",
   },
   {
     key: "committed",
@@ -70,7 +93,7 @@ const COLUMNS: DataTableColumn<WorkloadPerson>[] = [
   },
 ];
 
-/** Who is committed to how much of a period, against a standard week. */
+/** Who is committed to how much of a period, against capacity net of leave and holidays. */
 export function WorkloadPanel({ projectId }: { projectId: string }) {
   const [period, setPeriod] = useState(() => defaultWorkloadPeriod());
   const [data, setData] = useState<Workload | null>(null);
@@ -137,7 +160,7 @@ export function WorkloadPanel({ projectId }: { projectId: string }) {
       {data ? (
         <div aria-busy={loading}>
           <p className="mb-2 text-sm text-foreground">
-            {`Capacity for the period: ${formatMinutes(data.capacityMinutes)} per person`}
+            {`A plain period of weekdays is ${formatMinutes(data.capacityMinutes)} per person; each person's net capacity below is after leave and holidays.`}
           </p>
           <DataTable
             columns={COLUMNS}

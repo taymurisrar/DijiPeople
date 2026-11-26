@@ -1325,7 +1325,7 @@
       "workstream": "A",
       "status": "INTEGRATED",
       "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine.",
-      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet.",
+      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet. | UTF-8 ALM rollback test: the earlier failure was the private cluster being WIN1252; on a UTF-8 database (CREATE DATABASE … ENCODING UTF8 TEMPLATE template0) customization-package-alm.e2e-spec passes 19/19. Decisions recorded in ADR-0031.",
       "integratedSha": "c2f8dc2b"
     },
     {
@@ -1352,7 +1352,8 @@
         "WP-06.S2"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED"
+      "status": "IN_PROGRESS",
+      "evidence": "API: an entry taskId that IS a work item of the tenant is a link (free text stays free text); the employee must own or share it, it must not be archived and must agree with the entry project (6 unit tests incl. free text not queried); GET /work-items/:id/hours puts self-reported actual beside approved and pending timesheet minutes and names the gap (MATCHES / REPORTED_NOT_YET_APPROVED / APPROVED_EXCEEDS_REPORTED / NO_ACTUAL_REPORTED / NOTHING_BOOKED), scoped like the item; workload capacity is net of approved leave and holidays, each day removed once, limits named, no capacity = unavailable (work-capacity-and-hours.e2e-spec 4 tests + 5 pure tests). Shared calendar facts also drive the daily-update missing list. NOT yet: shifts, part-time and half days (WP-09.S1); the timesheet entry UI choosing a work item; project templates/phases/WBS; review and closure."
     },
     {
       "id": "WP-30.S2",
@@ -1379,7 +1380,7 @@
       "workstream": "B",
       "status": "INTEGRATED",
       "lease": "schema",
-      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts. | UI: Daily update (draft from records, sections, unplanned, blockers, achievements, submit, correct), Team updates (scoped list, acknowledge, missing), Settings > Daily updates. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone.",
+      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts. | UI: Daily update (draft from records, sections, unplanned, blockers, achievements, submit, correct), Team updates (scoped list, acknowledge, missing), Settings > Daily updates. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone. | Hardening 2026-11-26: save/submit/acknowledge are guarded by the version the person or reviewer read (two saves racing: one wins, the other is told to reload; an acknowledgement is of the text read and is refused if it was corrected first); a person on approved leave or a holiday is not owed an update (missing list shows excludedOnLeaveOrHoliday). Scoped policies and per-shift cadence -> WP-27.S2.",
       "integratedSha": "c2f8dc2b"
     },
     {
@@ -1392,7 +1393,8 @@
         "WP-02.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED"
+      "status": "IN_PROGRESS",
+      "evidence": "API: blockers with category, cause (UNDETERMINED by default, never inferred; set only by a reviewer who is not a party to the delay), owner, due date, escalation (bounded at 3, race-safe), resolve/cancel (concurrent closers collapse to one; the last close frees the item), visibility for the person a blocker waits on, blocked-time summary by cause and category beside effort; work-blockers.e2e-spec 7 tests; mutation: removing the party check fails the cause test. NOT yet: downtime tied to schedules/WP-30 intervals, cross-team routing, root-cause analysis and corrective actions (WP-37 links)."
     },
     {
       "id": "WP-28.S1",
@@ -1415,6 +1417,90 @@
         "WP-28.S1",
         "WP-27.S1",
         "WP-03.S4"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-03.S5",
+      "wp": "WP-03",
+      "title": "Workflow delivery hardening: claim fencing, recipient eligibility on every attempt, uncertain-delivery recovery from the delivery log, bounded fan-out, scheduled reconciliation",
+      "release": "R2",
+      "deps": [
+        "WP-03.S4"
+      ],
+      "workstream": "C",
+      "status": "ACCEPTED",
+      "evidence": "workflow-durable-execution.e2e-spec 29 tests: a leaver is skipped on first attempt and on retry; a late worker that lost its claim cannot settle the step (mutation: removing the attempt fence fails the test); an expired claim whose delivery log shows the provider took it is not re-sent (and is re-sent when there is no evidence); 27 workflows -> 25 run + 2 refused visibly, 5x50 recipients -> 200 steps and the rest refused; WorkflowReconciliationScheduler (off unless WORKFLOW_RECONCILE_ENABLED=true, env registered in render.yaml and docs). NOT done: immutable template rendering (templates are edited in place; drift is flagged, not prevented) -> WP-04.S2; transactional enqueue adopted by producers that run inside a transaction (WorkflowDispatchService.enqueue exists and is tested, four producers pass transition ids but post-commit)."
+    },
+    {
+      "id": "WP-04.S2",
+      "wp": "WP-04",
+      "title": "Immutable e-mail template revisions: a retry renders exactly the content of the revision first used",
+      "release": "R2",
+      "deps": [
+        "WP-03.S5"
+      ],
+      "workstream": "C",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-09.S1",
+      "wp": "WP-09",
+      "title": "Workforce scheduling foundation: roster calendar, shifts and shift templates, effective schedules per person, replacing the plain-week capacity basis",
+      "release": "R2",
+      "deps": [
+        "WP-06.S3"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-36.S1",
+      "wp": "WP-36",
+      "title": "Duties, checklists and handovers: recurring duty templates generating duty-occurrence work items, checklist completion with evidence, shift handover notes",
+      "release": "R2",
+      "deps": [
+        "WP-09.S1",
+        "WP-02.S1"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-27.S2",
+      "wp": "WP-27",
+      "title": "Daily updates: policies scoped by team/business unit, per-shift cadence, missed-update escalation notification",
+      "release": "R4",
+      "deps": [
+        "WP-27.S1",
+        "WP-09.S1"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-15.S1",
+      "wp": "WP-15",
+      "title": "Capacity, utilization and labor cost foundation on reconciled net capacity and recognised time",
+      "release": "R5",
+      "deps": [
+        "WP-09.S1",
+        "WP-30.S1",
+        "WP-38.S1",
+        "WP-06.S3"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-18.S1",
+      "wp": "WP-18",
+      "title": "Workforce/organizational intelligence: role dashboards drilling through to source",
+      "release": "R5",
+      "deps": [
+        "WP-15.S1",
+        "WP-29.S1"
       ],
       "workstream": "B",
       "status": "NOT_STARTED"

@@ -3,6 +3,7 @@
 import { Button } from "@/app/components/ui/button";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { formatDate } from "@/lib/formatting-context";
+import { openBlockerCountLabel } from "../../../work/_lib/blockers";
 import {
   BOARD_COLUMNS,
   groupByColumn,
@@ -22,12 +23,15 @@ import {
  * refusal is shown by the caller. Cards carry text for status and priority.
  */
 export function WorkBoard({
+  blockerCounts = {},
   busyId,
   canWrite,
   items,
   onMove,
   onOpen,
 }: {
+  /** Open blockers per work item id; a card with some says so in text. */
+  blockerCounts?: Record<string, number>;
   busyId: string | null;
   canWrite: boolean;
   items: WorkItem[];
@@ -81,6 +85,11 @@ export function WorkBoard({
                     <span className="text-xs text-muted">{`Due ${formatDate(item.dueAt)}`}</span>
                   ) : null}
                 </div>
+                {blockerCounts[item.id] ? (
+                  <p className="text-xs font-medium text-danger">
+                    {openBlockerCountLabel(blockerCounts[item.id])}
+                  </p>
+                ) : null}
                 {canWrite ? (
                   <div className="flex flex-wrap gap-1.5">
                     {allowedTransitions(item.status).map((action) => (

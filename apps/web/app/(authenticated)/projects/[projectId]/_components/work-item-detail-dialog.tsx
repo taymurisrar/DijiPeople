@@ -1,11 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DataTable } from "@/app/components/data-table/data-table";
+import type { DataTableColumn } from "@/app/components/data-table/types";
 import { Button } from "@/app/components/ui/button";
 import { Dialog } from "@/app/components/ui/dialog";
 import { SelectField, TextField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { formatDate } from "@/lib/formatting-context";
+import { BlockerBadges } from "../../../work/_components/blocker-badges";
+import {
+  BlockerDialogs,
+  type BlockerPending,
+} from "../../../work/_components/blocker-dialogs";
+import { BlockerRowActions } from "../../../work/_components/blocker-row-actions";
+import {
+  BLOCKED_TIME_NOTE,
+  hoursGapLabel,
+  hoursGapTone,
+  isOpenBlocker,
+  reportedLabel,
+  type HoursPerson,
+  type WorkBlocker,
+  type WorkItemHours,
+} from "../../../work/_lib/blockers";
 import {
   buildContributorPayload,
   buildDependencyPayload,
@@ -25,6 +43,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   buildReassignPayload,
+  isTerminal,
   priorityTone,
   statusTone,
   type WorkItem,
@@ -33,6 +52,44 @@ import {
 type MinuteDraft = { estimate: string; actual: string };
 
 const NO_MILESTONE = "";
+
+/** Reported actual time and approved timesheet time, side by side with the gap in words. */
+const HOURS_COLUMNS: DataTableColumn<HoursPerson>[] = [
+  {
+    key: "name",
+    header: "Person",
+    render: (row) => <span className="font-medium text-foreground">{row.name}</span>,
+  },
+  {
+    key: "estimate",
+    header: "Estimate",
+    render: (row) => reportedLabel(row.estimateMinutes),
+  },
+  {
+    key: "reported",
+    header: "Reported actual",
+    render: (row) => reportedLabel(row.reportedActualMinutes),
+  },
+  {
+    key: "approved",
+    header: "Approved timesheet",
+    render: (row) => formatMinutes(row.approvedTimesheetMinutes),
+  },
+  {
+    key: "pending",
+    header: "Pending timesheet",
+    render: (row) => formatMinutes(row.pendingTimesheetMinutes),
+  },
+  {
+    key: "gap",
+    header: "Gap",
+    render: (row) => (
+      <StatusPill tone={hoursGapTone(row.reconciliation)}>
+        {hoursGapLabel(row)}
+      </StatusPill>
+    ),
+  },
+];
 
 function draftFor(
   contributor: WorkItemDetail["contributors"][number],
@@ -94,9 +151,49 @@ export function WorkItemDetailDialog({
     );
   }, []);
 
+  const [blockers, setBlockers] = useState<WorkBlocker[] | null>(null);
+  const [hours, setHours] = useState<WorkItemHours | null>(null);
+  const [blockersError, setBlockersError] = useState<string | null>(null);
+  const [hoursError, setHoursError] = useState<string | null>(null);
+  const [pendingBlocker, setPendingBlocker] = useState<BlockerPending | null>(
+    null,
+  );
+  const [causeRefused, setCauseRefused] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  /** Blockers and the hours reconciliation load apart: either may be refused alone. */
+  const loadRelated = useCallback(async () => {
+    const [blockerResult, hoursResult] = await Promise.allSettled([
+      workRequest<WorkBlocker[]>("work-items", `/${itemId}/blockers`),
+      workRequest<WorkItemHours>("work-items", `/${itemId}/hours`),
+    ]);
+    if (blockerResult.status === "fulfilled") {
+      setBlockers(blockerResult.value);
+      setBlockersError(null);
+    } else {
+      setBlockersError(
+        blockerResult.reason instanceof Error
+          ? blockerResult.reason.message
+          : "The request failed.",
+      );
+    }
+    if (hoursResult.status === "fulfilled") {
+      setHours(hoursResult.value);
+      setHoursError(null);
+    } else {
+      setHoursError(
+        hoursResult.reason instanceof Error
+          ? hoursResult.reason.message
+          : "The request failed.",
+      );
+    }
+  }, [itemId]);
+
   const reload = useCallback(async () => {
     apply(await workRequest<WorkItemDetail>("work-items", `/${itemId}`));
-  }, [apply, itemId]);
+    await loadRelated();
+  }, [apply, itemId, loadRelated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,10 +206,11 @@ export function WorkItemDetailDialog({
           setError(e instanceof Error ? e.message : "The request failed.");
         }
       });
+    void loadRelated();
     return () => {
       cancelled = true;
     };
-  }, [apply, itemId]);
+  }, [apply, itemId, loadRelated]);
 
   /** Run one change, refresh the detail and the screen behind it, or show why not. */
   const run = async (action: () => Promise<unknown>): Promise<boolean> => {
@@ -148,11 +246,13 @@ export function WorkItemDetailDialog({
   const personOptions = personSelectOptions(people);
 
   return (
+    <>
+    {/* A blocker action's own dialog replaces this one while it is open, so two focus traps never compete. */}
     <Dialog
       busy={busy}
       footer={<Button onClick={onClose}>Close</Button>}
       onClose={onClose}
-      open
+      open={!pendingBlocker}
       size="xl"
       title={detail?.title ?? "Work item"}
       variant="panel"
@@ -371,6 +471,107 @@ export function WorkItemDetailDialog({
               ) : null}
             </section>
 
+            <section aria-label="Blockers" className="grid gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-foreground">Blockers</h3>
+                {canWrite && !isTerminal(detail.status) ? (
+                  <Button
+                    disabled={busy}
+                    onClick={() =>
+                      setPendingBlocker({
+                        kind: "raise",
+                        workItemId: itemId,
+                        workItemTitle: detail.title,
+                      })
+                    }
+                    size="xs"
+                    variant="secondary"
+                  >
+                    Raise blocker
+                  </Button>
+                ) : null}
+              </div>
+              {blockersError ? (
+                <p className="text-sm text-danger" role="alert">
+                  {blockersError}
+                </p>
+              ) : null}
+              {blockers === null ? (
+                blockersError ? null : (
+                  <p className="text-sm text-muted" role="status">
+                    Loading blockers
+                  </p>
+                )
+              ) : blockers.length === 0 ? (
+                <p className="text-sm text-muted">No blockers on this item.</p>
+              ) : (
+                <ul className="grid gap-3">
+                  {blockers.map((blocker) => (
+                    <li
+                      className="grid gap-2 rounded-xl border border-border p-3"
+                      key={blocker.id}
+                    >
+                      <p className="text-sm font-medium text-foreground">
+                        {blocker.reason}
+                      </p>
+                      <BlockerBadges blocker={blocker} />
+                      <p className="text-xs text-muted">
+                        {`Owner: ${blocker.ownerName ?? "No owner yet"}`}
+                        {blocker.dueAt ? `. Due ${formatDate(blocker.dueAt)}` : ""}
+                        {blocker.raisedAt
+                          ? `. Raised ${formatDate(blocker.raisedAt)}`
+                          : ""}
+                      </p>
+                      {blocker.resolution ? (
+                        <p className="text-xs text-muted">{`Resolution: ${blocker.resolution}`}</p>
+                      ) : null}
+                      {canWrite && isOpenBlocker(blocker) ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          <BlockerRowActions
+                            blocker={blocker}
+                            canWrite={canWrite}
+                            causeRefused={causeRefused.has(blocker.id)}
+                            disabled={busy}
+                            onAction={setPendingBlocker}
+                          />
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-muted">{BLOCKED_TIME_NOTE}</p>
+            </section>
+
+            <section aria-label="Hours" className="grid gap-3">
+              <h3 className="text-sm font-semibold text-foreground">Hours</h3>
+              {hoursError ? (
+                <p className="text-sm text-danger" role="alert">
+                  {hoursError}
+                </p>
+              ) : null}
+              {hours === null ? (
+                hoursError ? null : (
+                  <p className="text-sm text-muted" role="status">
+                    Loading hours
+                  </p>
+                )
+              ) : (
+                <DataTable
+                  columns={HOURS_COLUMNS}
+                  emptyState={
+                    <p className="p-4 text-sm text-muted">
+                      No one has reported or booked time on this item.
+                    </p>
+                  }
+                  enableSearch={false}
+                  entityLogicalName="work-item-hours"
+                  getRowKey={(row) => row.employeeId}
+                  rows={hours.people}
+                />
+              )}
+            </section>
+
             <section aria-label="Contributors" className="grid gap-3">
               <h3 className="text-sm font-semibold text-foreground">Contributors</h3>
               {detail.contributors.length === 0 ? (
@@ -506,5 +707,21 @@ export function WorkItemDetailDialog({
         )}
       </div>
     </Dialog>
+    <BlockerDialogs
+      onCauseRefused={(id) =>
+        setCauseRefused((current) => new Set(current).add(id))
+      }
+      onClose={() => setPendingBlocker(null)}
+      onDone={() => {
+        void reload()
+          .then(onChanged)
+          .catch((e: unknown) =>
+            setError(e instanceof Error ? e.message : "The request failed."),
+          );
+      }}
+      pending={pendingBlocker}
+      people={people}
+    />
+    </>
   );
 }

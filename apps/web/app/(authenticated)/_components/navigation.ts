@@ -108,6 +108,13 @@ export const dashboardNavItems: DashboardNavItem[] = [
     hiddenForSelfService: true,
     requiredAnyPermissions: [PERMISSION_KEYS.WORK_QUEUES_READ],
   },
+  /* WP-38.S1 - blockers reuse the work-items permissions; no feature key sells them. */
+  {
+    href: "/work/blockers",
+    label: "Blockers",
+    description: "What is holding work up, who must act, and for how long.",
+    requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
+  },
   /*
    * WP-30.S1/27 and WP-03.S4 - contribution evidence and daily updates. Not
    * plan-gated, for the same reason as work items: no feature key sells them.
