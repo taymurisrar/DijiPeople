@@ -38,12 +38,13 @@ function tx(
 describe('assertWorkItemLinks', () => {
   it('leaves free-text tasks alone and does not even query for them', async () => {
     const t = tx([]);
+    const findMany = jest.spyOn(t.workItem, 'findMany');
     await assertWorkItemLinks(t, 'tenant', ME, [
       { taskId: 'Fix the printer' },
       { taskId: null },
       { taskId: '   ' },
     ]);
-    expect(t.workItem.findMany).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('ignores an id that is not a work item of the tenant', async () => {
