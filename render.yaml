@@ -233,6 +233,12 @@ services:
       # Switch only after OUTBOX_WORKER_ENABLED is confirmed live (WP-03.S3).
       - key: WORKFLOW_EXECUTION_MODE
         value: "inline"
+      # Reads provider delivery results back onto workflow steps. OFF unless set
+      # (WP-03.S4); the same pass exists as POST /workflows/reconcile-deliveries.
+      - key: WORKFLOW_RECONCILE_ENABLED
+        value: "false"
+      - key: WORKFLOW_RECONCILE_INTERVAL_MS
+        value: "300000"
       # Reports & Analytics (TASK-0028). Both workers are OFF unless set here,
       # so a deploy that omits them changes nothing rather than quietly starting
       # background work. The scheduler is what sends scheduled reports by email;

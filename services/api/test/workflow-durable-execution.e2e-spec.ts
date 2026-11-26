@@ -9,6 +9,7 @@ import { OutboxDispatcherService } from '../src/modules/outbox/outbox-dispatcher
 import { OutboxService } from '../src/modules/outbox/outbox.service';
 import { WorkflowActionHandler } from '../src/modules/workflows/workflow-action.handler';
 import { WorkflowDeliveryReconciler } from '../src/modules/workflows/workflow-delivery-reconciler';
+import { WorkflowReconciliationScheduler } from '../src/modules/workflows/workflow-reconciliation.scheduler';
 import { WorkflowDispatchService } from '../src/modules/workflows/workflow-dispatch.service';
 import { WorkflowRuntimeService } from '../src/modules/workflows/workflow-runtime.service';
 import { WorkflowsService } from '../src/modules/workflows/workflows.service';
@@ -38,6 +39,8 @@ describeWithDatabase()(
     // address -> an EmailDeliveryLog id the stub reports back, so steps can pin
     // the template and be reconciled against the log later.
     const logs = new Map<string, string>();
+    // A queue of log ids handed out in call order for one address (fencing test).
+    const logQueue: string[] = [];
     const result = (over: Record<string, unknown>) => ({
       sent: true,
       delivered: true,
@@ -67,7 +70,11 @@ describeWithDatabase()(
           });
         }
         sent.push(input.recipient);
-        return result({ deliveryLogId: logs.get(input.recipient) });
+        return result({
+          deliveryLogId: logQueue.length
+            ? logQueue.shift()
+            : logs.get(input.recipient),
+        });
       }),
     };
 
@@ -168,6 +175,7 @@ describeWithDatabase()(
       failing.clear();
       verdicts.clear();
       logs.clear();
+      logQueue.length = 0;
       gate = null;
       process.env.WORKFLOW_EXECUTION_MODE = 'durable';
     });
@@ -953,6 +961,283 @@ describeWithDatabase()(
       await prisma.emailDeliveryLog.deleteMany({
         where: { id: { in: [goodLog, badLog] } },
       });
+    });
+
+    it('a recipient who stops being an active user is not mailed, on the first attempt or on a retry', async () => {
+      const unit = (
+        await prisma.businessUnit.findFirstOrThrow({
+          where: { tenantId },
+          select: { id: true },
+        })
+      ).id;
+      const leaver = await actors.tenantUser(tenantId, unit, 'wf-leaver');
+      const stays = await actors.tenantUser(tenantId, unit, 'wf-stays');
+      const workflowId = await startWith('Eligibility', {
+        recipients: [
+          { mode: 'FIXED', address: leaver.email },
+          { mode: 'FIXED', address: stays.email },
+        ],
+      });
+      failing.set(leaver.email, 1);
+      await emit();
+      const event = await outboxEventFor();
+      await privateDispatcher().drain(50);
+      expect(sent).toEqual([stays.email]); // the leaver's first attempt failed in transit
+
+      // They leave before the retry: the retry must not send.
+      await prisma.user.update({
+        where: { id: leaver.id },
+        data: { status: 'DISABLED' },
+      });
+      await makeDue(event.id);
+      await privateDispatcher().drain(50);
+      expect(sent).toEqual([stays.email]);
+      const steps = await stepsOf(workflowId, event.id);
+      expect(steps[0]).toMatchObject({ status: 'SKIPPED', permanent: true });
+      expect(steps[0].lastError).toContain('no longer an active user');
+      // Someone outside the tenant, typed by the author, is still allowed.
+      await prisma.user.update({
+        where: { id: leaver.id },
+        data: { status: 'ACTIVE' },
+      });
+    });
+
+    it('a late result from a worker that lost its claim is discarded while the delivery that took over is still working', async () => {
+      await startWith('Fenced', {
+        recipients: [{ mode: 'FIXED', address: 'fence@example.com' }],
+      });
+      const context = { tenantId, eventCode, variables: {} };
+      const eventId = `fence-${suffix}`;
+      const stepOf = () =>
+        prisma.workflowRunStep.findFirstOrThrow({
+          where: { stepKey: { startsWith: `${eventId}:` } },
+        });
+      // Ids are handed out in the order the sends COMPLETE: the first (late)
+      // worker is released first, the claim holder second.
+      logQueue.push('log-of-the-late-worker', 'log-of-the-claim-holder');
+      const parked = (): [Promise<void>, () => void] => {
+        let release: () => void = () => undefined;
+        const promise = new Promise<void>((resolve) => {
+          release = resolve;
+          // A safety valve so a broken fence fails the assertions, not hangs.
+          setTimeout(resolve, 20000);
+        });
+        return [promise, release];
+      };
+
+      const [gateOne, releaseOne] = parked();
+      gate = gateOne;
+      const first = runtime.execute(context, { eventId, finalAttempt: false });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      // The first worker is parked mid-send and its lease is declared expired.
+      await prisma.workflowRunStep.updateMany({
+        where: { stepKey: { startsWith: `${eventId}:` } },
+        data: { startedAt: new Date(Date.now() - 10 * 60 * 1000) },
+      });
+      const [gateTwo, releaseTwo] = parked();
+      gate = gateTwo;
+      const second = runtime.execute(context, { eventId, finalAttempt: false });
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect((await stepOf()).attempts).toBe(2); // the second worker holds the claim
+
+      // The late worker finishes NOW. Its result must not touch the step.
+      releaseOne();
+      await first;
+      const mid = await stepOf();
+      expect(mid).toMatchObject({ status: 'IN_PROGRESS', deliveryLogId: null });
+
+      releaseTwo();
+      await second;
+      const done = await stepOf();
+      expect(done).toMatchObject({
+        status: 'SUCCEEDED',
+        attempts: 2,
+        deliveryLogId: 'log-of-the-claim-holder',
+      });
+      // Both sent: at-least-once is the documented limit. Only one outcome is recorded.
+      expect(sent).toEqual(['fence@example.com', 'fence@example.com']);
+    });
+
+    it('a claim left IN_PROGRESS by a crashed worker is not re-sent when the delivery log shows the provider took it', async () => {
+      const workflowId = await startWith('Uncertain', {
+        recipients: [{ mode: 'FIXED', address: 'uncertain@example.com' }],
+      });
+      const context = { tenantId, eventCode, variables: {} };
+      const eventId = `unc-${suffix}`;
+      failing.set('uncertain@example.com', 1);
+      await runtime.execute(context, { eventId, finalAttempt: false });
+      const step = await prisma.workflowRunStep.findFirstOrThrow({
+        where: { stepKey: { startsWith: `${eventId}:` } },
+      });
+      // The crash: claimed, the message went out, nothing was recorded.
+      await prisma.workflowRunStep.update({
+        where: { id: step.id },
+        data: {
+          status: 'IN_PROGRESS',
+          finishedAt: null,
+          startedAt: new Date(Date.now() - 10 * 60 * 1000),
+        },
+      });
+      const log = await prisma.emailDeliveryLog.create({
+        data: {
+          tenantId,
+          eventCode,
+          recipient: 'uncertain@example.com',
+          subject: 's',
+          status: 'SENT',
+          metadata: { stepKey: step.stepKey },
+        },
+        select: { id: true },
+      });
+      const recovered = await runtime.execute(context, {
+        eventId,
+        finalAttempt: false,
+      });
+      expect(recovered.retryable).toBe(0);
+      expect(sent).toEqual([]); // not sent a second time
+      const after = await prisma.workflowRunStep.findUniqueOrThrow({
+        where: { id: step.id },
+      });
+      expect(after).toMatchObject({
+        status: 'SUCCEEDED',
+        deliveryLogId: log.id,
+        deliveryStatus: 'SENT',
+      });
+
+      // The same crash with NO evidence of a send is retried.
+      const eventId2 = `unc2-${suffix}`;
+      failing.set('uncertain@example.com', 1);
+      await runtime.execute(context, {
+        eventId: eventId2,
+        finalAttempt: false,
+      });
+      const step2 = await prisma.workflowRunStep.findFirstOrThrow({
+        where: { stepKey: { startsWith: `${eventId2}:` } },
+      });
+      await prisma.workflowRunStep.update({
+        where: { id: step2.id },
+        data: {
+          status: 'IN_PROGRESS',
+          finishedAt: null,
+          startedAt: new Date(Date.now() - 10 * 60 * 1000),
+        },
+      });
+      await runtime.execute(context, {
+        eventId: eventId2,
+        finalAttempt: false,
+      });
+      expect(sent).toEqual(['uncertain@example.com']);
+      await prisma.emailDeliveryLog.delete({ where: { id: log.id } });
+      void workflowId;
+    });
+
+    it('fan-out is bounded: workflows per event and recipient steps per run', async () => {
+      const many: string[] = [];
+      for (let i = 0; i < 27; i += 1) {
+        many.push(
+          await startWith(`Fan ${i}`, {
+            recipients: [{ mode: 'FIXED', address: `fan${i}@example.com` }],
+          }),
+        );
+      }
+      const context = { tenantId, eventCode, variables: {} };
+      const eventId = `fan-${suffix}`;
+      const result = await runtime.execute(context, {
+        eventId,
+        finalAttempt: true,
+      });
+      expect(result.matched).toBe(25);
+      expect(sent).toHaveLength(25);
+      const refused = await prisma.workflowRun.findMany({
+        where: { tenantId, eventId, status: 'FAILED' },
+        select: { error: true },
+      });
+      expect(refused).toHaveLength(2);
+      expect(refused[0].error).toContain('more than 25 workflows');
+      await prisma.workflow.updateMany({
+        where: { id: { in: many } },
+        data: { status: 'INACTIVE' },
+      });
+      sent.length = 0;
+
+      // 5 actions of 50 distinct recipients: only 200 steps are created.
+      const wide = await workflows.create(asUser(), {
+        name: 'Wide',
+        eventCode,
+        status: 'ACTIVE',
+        conditions: [],
+        actions: Array.from({ length: 5 }, (_, a) => ({
+          templateKey: 'x',
+          recipients: Array.from({ length: 50 }, (__, r) => ({
+            mode: 'FIXED',
+            address: `w${a}-${r}@example.com`,
+          })),
+        })),
+      } as never);
+      const eventId2 = `wide-${suffix}`;
+      await runtime.execute(context, { eventId: eventId2, finalAttempt: true });
+      expect(
+        await prisma.workflowRunStep.count({
+          where: { stepKey: { startsWith: `${eventId2}:` } },
+        }),
+      ).toBe(200);
+      const run = await prisma.workflowRun.findFirstOrThrow({
+        where: { workflowId: wide.id, eventId: eventId2 },
+      });
+      expect(run.status).toBe('PARTIALLY_FAILED');
+      expect(run.error).toContain('at most 200');
+    });
+
+    it('the scheduled reconciliation reads results back for every tenant with a step still waiting, and does nothing when disabled', async () => {
+      const log = await prisma.emailDeliveryLog.create({
+        data: {
+          tenantId,
+          eventCode,
+          recipient: 'sched@example.com',
+          subject: 's',
+          status: 'SENT',
+        },
+        select: { id: true },
+      });
+      logs.set('sched@example.com', log.id);
+      const workflowId = await startWith('Scheduled', {
+        recipients: [{ mode: 'FIXED', address: 'sched@example.com' }],
+      });
+      await emit();
+      await outboxEventFor();
+      await privateDispatcher().drain(50);
+      await prisma.emailDeliveryLog.update({
+        where: { id: log.id },
+        data: { status: 'FAILED' },
+      });
+
+      const off = new WorkflowReconciliationScheduler(
+        { get: () => undefined } as never,
+        prisma,
+        app.get(WorkflowDeliveryReconciler),
+      );
+      expect(off.isEnabled()).toBe(false);
+      const on = new WorkflowReconciliationScheduler(
+        {
+          get: (k: string) =>
+            k === 'WORKFLOW_RECONCILE_ENABLED' ? 'true' : undefined,
+        } as never,
+        prisma,
+        app.get(WorkflowDeliveryReconciler),
+      );
+      expect(on.isEnabled()).toBe(true);
+      const pass = await on.tick();
+      expect(pass.changed).toBeGreaterThanOrEqual(1);
+      const run = await prisma.workflowRun.findFirstOrThrow({
+        where: { workflowId },
+      });
+      expect(run.status).toBe('FAILED');
+      expect(await on.tick()).toMatchObject({ changed: 0 });
+      await prisma.workflowRunStep.updateMany({
+        where: { tenantId },
+        data: { deliveryLogId: null },
+      });
+      await prisma.emailDeliveryLog.delete({ where: { id: log.id } });
     });
 
     it('a malformed outbox payload needs manual action instead of retrying forever', async () => {

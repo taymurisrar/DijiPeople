@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  EmailDeliveryStatus,
   Prisma,
   WorkflowActionType,
   WorkflowRunStatus,
@@ -132,6 +133,20 @@ export type WorkflowEventContext = {
 
 /** How long a step claim is trusted before a later delivery may take it over. */
 const STEP_CLAIM_LEASE_MS = 5 * 60 * 1000;
+
+/** Most recipient steps one run may create across all of its actions. */
+export const MAX_STEPS_PER_RUN = 200;
+
+/** Most workflows one event may start; the rest are recorded as refused. */
+export const MAX_WORKFLOWS_PER_EVENT = 25;
+
+/** Delivery log statuses that mean the provider took the message. */
+const HANDED_OFF: EmailDeliveryStatus[] = [
+  EmailDeliveryStatus.QUEUED,
+  EmailDeliveryStatus.SENT,
+  EmailDeliveryStatus.DELIVERED,
+  EmailDeliveryStatus.PROCESSING,
+];
 
 export const WORKFLOW_RECIPIENT_MODES = [
   'SUBJECT',
@@ -379,6 +394,31 @@ export class WorkflowRuntimeService {
 
     if (!workflows.length) return { matched: 0, ran: 0, retryable: 0 };
 
+    // One event cannot fan out into an unbounded number of workflows. The first
+    // MAX are run; each one beyond is recorded as a refused run so the omission is
+    // visible in run history rather than silent.
+    if (workflows.length > MAX_WORKFLOWS_PER_EVENT) {
+      const refused = workflows.splice(MAX_WORKFLOWS_PER_EVENT);
+      for (const workflow of refused.slice(0, MAX_WORKFLOWS_PER_EVENT)) {
+        const run = await this.openRun(
+          workflow.id,
+          context,
+          options.eventId,
+          workflow.versions?.[0]?.id ?? null,
+        );
+        if (run.status === WorkflowRunStatus.RUNNING) {
+          await this.finishRun(run.id, {
+            status: WorkflowRunStatus.FAILED,
+            actionsRun: 0,
+            error: `Refused: this event matched more than ${MAX_WORKFLOWS_PER_EVENT} workflows.`,
+          });
+        }
+      }
+      this.logger.warn(
+        `Event ${context.eventCode} matched ${refused.length + MAX_WORKFLOWS_PER_EVENT} workflows for tenant ${context.tenantId}; ${refused.length} refused.`,
+      );
+    }
+
     const evaluationContext = {
       ...(context.variables ?? {}),
       eventCode: context.eventCode,
@@ -540,6 +580,7 @@ export class WorkflowRuntimeService {
     let skipped = 0;
     let failedPermanent = 0;
     let retryable = 0;
+    let stepBudget = MAX_STEPS_PER_RUN;
     const errors: string[] = [];
 
     for (const [index, action] of actions.entries()) {
@@ -554,6 +595,14 @@ export class WorkflowRuntimeService {
       );
 
       for (const [position, recipient] of planned.list.entries()) {
+        if (stepBudget <= 0) {
+          failedPermanent += 1;
+          errors.push(
+            `Refused: a run may create at most ${MAX_STEPS_PER_RUN} recipient steps.`,
+          );
+          break;
+        }
+        stepBudget -= 1;
         const stepKey = planned.legacy
           ? buildWorkflowStepKey(eventId, versionId, index)
           : buildRecipientStepKey(eventId, versionId, index, position);
@@ -588,6 +637,7 @@ export class WorkflowRuntimeService {
           errors.push('The step is being processed by another delivery.');
           continue;
         }
+        const fence = claim.attempt;
 
         try {
           const address = planned.legacy
@@ -599,11 +649,48 @@ export class WorkflowRuntimeService {
             errors.push(message);
             await this.settleStep(
               where,
+              fence,
               WorkflowStepStatus.FAILED,
               message,
               true,
             );
             continue;
+          }
+          // Authorised again on EVERY attempt, not just the first: someone who left
+          // the organisation between the event and a retry must not be mailed.
+          const eligibility = await this.recipientEligibility(
+            context.tenantId,
+            address,
+          );
+          if (!eligibility.ok) {
+            skipped += 1;
+            errors.push(eligibility.reason);
+            await this.settleStep(
+              where,
+              fence,
+              WorkflowStepStatus.SKIPPED,
+              eligibility.reason,
+              true,
+            );
+            continue;
+          }
+          // A claim taken over from a crashed worker may already have sent. The
+          // delivery log is the evidence: if the provider took the message, that
+          // step succeeded and is not sent a second time.
+          if (claim.uncertain) {
+            const prior = await this.findHandedOff(context.tenantId, stepKey);
+            if (prior) {
+              succeeded += 1;
+              await this.settleStep(
+                where,
+                fence,
+                WorkflowStepStatus.SUCCEEDED,
+                null,
+                false,
+                { deliveryLogId: prior.id, deliveryStatus: prior.status },
+              );
+              continue;
+            }
           }
           const sent = await this.sendEmailAction(
             configuration,
@@ -611,12 +698,14 @@ export class WorkflowRuntimeService {
             address,
             runId,
             index,
+            stepKey,
           );
           const verdict = classifyEmailOutcome(sent.result);
           if (verdict.status === 'SUCCEEDED') {
             succeeded += 1;
             await this.settleStep(
               where,
+              fence,
               WorkflowStepStatus.SUCCEEDED,
               null,
               false,
@@ -627,6 +716,7 @@ export class WorkflowRuntimeService {
             errors.push(verdict.reason);
             await this.settleStep(
               where,
+              fence,
               WorkflowStepStatus.SKIPPED,
               verdict.reason,
               true,
@@ -637,6 +727,7 @@ export class WorkflowRuntimeService {
             errors.push(verdict.reason);
             await this.settleStep(
               where,
+              fence,
               WorkflowStepStatus.FAILED,
               verdict.reason,
               false,
@@ -651,6 +742,7 @@ export class WorkflowRuntimeService {
           errors.push(message);
           await this.settleStep(
             where,
+            fence,
             WorkflowStepStatus.FAILED,
             message,
             false,
@@ -776,7 +868,7 @@ export class WorkflowRuntimeService {
     type: WorkflowActionType;
     mode: string;
   }): Promise<
-    | { kind: 'OWNED' }
+    | { kind: 'OWNED'; attempt: number; uncertain: boolean }
     | { kind: 'BUSY' }
     | { kind: 'PERMANENT'; lastError: string | null }
     | { kind: 'DONE'; status: WorkflowStepStatus; lastError: string | null }
@@ -800,7 +892,9 @@ export class WorkflowRuntimeService {
       ],
       skipDuplicates: true,
     });
-    if (inserted.count === 1) return { kind: 'OWNED' };
+    if (inserted.count === 1) {
+      return { kind: 'OWNED', attempt: 1, uncertain: false };
+    }
 
     const prior = await this.prisma.workflowRunStep.findUnique({ where });
     if (!prior) return { kind: 'BUSY' };
@@ -814,6 +908,9 @@ export class WorkflowRuntimeService {
       return { kind: 'PERMANENT', lastError: prior.lastError };
     }
 
+    // What the row was BEFORE we took it: only an expired IN_PROGRESS claim is
+    // uncertain (the previous worker may have sent and died).
+    const priorStatus = prior.status;
     const taken = await this.prisma.workflowRunStep.updateMany({
       where: {
         tenantId: input.tenantId,
@@ -833,20 +930,91 @@ export class WorkflowRuntimeService {
         finishedAt: null,
       },
     });
-    return taken.count === 1 ? { kind: 'OWNED' } : { kind: 'BUSY' };
+    if (taken.count !== 1) return { kind: 'BUSY' };
+    const claimed = await this.prisma.workflowRunStep.findUnique({ where });
+    return {
+      kind: 'OWNED',
+      attempt: claimed?.attempts ?? prior.attempts + 1,
+      // An IN_PROGRESS row whose lease ran out: the worker may have sent and died.
+      uncertain: priorStatus === WorkflowStepStatus.IN_PROGRESS,
+    };
   }
 
-  private settleStep(
+  /** A delivery log row the provider took for this step, if one exists. */
+  private async findHandedOff(tenantId: string, stepKey: string) {
+    return this.prisma.emailDeliveryLog.findFirst({
+      where: {
+        tenantId,
+        status: { in: HANDED_OFF },
+        metadata: { path: ['stepKey'], equals: stepKey },
+      },
+      select: { id: true, status: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * May this address be mailed right now? An address that belongs to a person of
+   * this tenant must belong to an ACTIVE user and a non-terminated employee. An
+   * address outside the tenant (a fixed external one an author typed) is allowed:
+   * authoring it needed workflows.manage, and it names nobody the tenant employs.
+   */
+  private async recipientEligibility(
+    tenantId: string,
+    address: string,
+  ): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const email = address.trim();
+    const [user, employee] = await Promise.all([
+      this.prisma.user.findFirst({
+        where: { tenantId, email: { equals: email, mode: 'insensitive' } },
+        select: { status: true },
+      }),
+      this.prisma.employee.findFirst({
+        where: { tenantId, email: { equals: email, mode: 'insensitive' } },
+        select: { employmentStatus: true },
+      }),
+    ]);
+    if (user && user.status !== 'ACTIVE') {
+      return {
+        ok: false,
+        reason: 'The recipient is no longer an active user.',
+      };
+    }
+    if (employee && employee.employmentStatus === 'TERMINATED') {
+      return { ok: false, reason: 'The recipient has left the organisation.' };
+    }
+    return { ok: true };
+  }
+
+  /**
+   * Settles a step ONLY if this delivery still holds the claim. The fence is the
+   * attempt number it was given: if a later delivery took the step over (our lease
+   * expired while we were slow), our late result is discarded instead of
+   * overwriting theirs.
+   */
+  private async settleStep(
     where: { tenantId_stepKey: { tenantId: string; stepKey: string } },
+    fence: number,
     status: WorkflowStepStatus,
     lastError: string | null,
     permanent: boolean,
     record: Prisma.WorkflowRunStepUncheckedUpdateInput = {},
   ) {
-    return this.prisma.workflowRunStep.update({
-      where,
+    const result = await this.prisma.workflowRunStep.updateMany({
+      where: {
+        tenantId: where.tenantId_stepKey.tenantId,
+        stepKey: where.tenantId_stepKey.stepKey,
+        attempts: fence,
+        status: WorkflowStepStatus.IN_PROGRESS,
+      },
       data: { ...record, status, lastError, permanent, finishedAt: new Date() },
     });
+    if (result.count !== 1) {
+      this.logger.warn(
+        `Step ${where.tenantId_stepKey.stepKey} lost its claim (fence ${fence}); the late result was discarded.`,
+      );
+    }
+    return result;
   }
 
   /**
@@ -860,6 +1028,7 @@ export class WorkflowRuntimeService {
     recipient: string,
     runId: string,
     actionIndex: number,
+    stepKey: string,
   ) {
     // The first send of an action pins the template; every retry and every later
     // recipient of that action renders the same template row.
@@ -891,6 +1060,8 @@ export class WorkflowRuntimeService {
       metadata: {
         source: 'workflow',
         correlationId: context.correlationId ?? null,
+        // Lets a later delivery ask the log whether THIS step already sent.
+        stepKey,
       },
     });
 

@@ -30,6 +30,7 @@ import {
   TransitionWorkItemDto,
   UpdateWorkItemDto,
 } from './dto/work-item.dto';
+import { netWorkingDays } from './work-item-capacity';
 import {
   canTransition,
   MAX_SUBTASK_DEPTH,
@@ -474,12 +475,8 @@ export class WorkItemsService {
       },
       take: 5000,
     });
-    let workdays = 0;
-    for (let t = from.getTime(); t < to.getTime(); t += 86_400_000) {
-      const day = new Date(t).getUTCDay();
-      if (day !== 0 && day !== 6) workdays += 1;
-    }
-    const capacityMinutes = workdays * 8 * 60;
+    const standard = netWorkingDays({ from, to, leave: [], holidays: [] });
+    const standardCapacityMinutes = standard.standardDays * 8 * 60;
     const people = new Map<
       string,
       {
@@ -513,21 +510,201 @@ export class WorkItemsService {
         people.set(c.employeeId, p);
       }
     }
+
+    const ids = [...people.keys()];
+    const [employees, leave, assignments] = ids.length
+      ? await Promise.all([
+          this.prisma.employee.findMany({
+            where: { tenantId: user.tenantId, id: { in: ids } },
+            select: { id: true, businessUnitId: true, organizationId: true },
+          }),
+          this.prisma.leaveRequest.findMany({
+            where: {
+              tenantId: user.tenantId,
+              employeeId: { in: ids },
+              status: 'APPROVED',
+              startDate: { lt: to },
+              endDate: { gte: from },
+            },
+            select: { employeeId: true, startDate: true, endDate: true },
+            take: 5000,
+          }),
+          this.prisma.holidayCalendarAssignment.findMany({
+            where: {
+              tenantId: user.tenantId,
+              status: 'ACTIVE',
+              projectId: null,
+              OR: [
+                { effectiveStartDate: null },
+                { effectiveStartDate: { lt: to } },
+              ],
+              AND: [
+                {
+                  OR: [
+                    { effectiveEndDate: null },
+                    { effectiveEndDate: { gte: from } },
+                  ],
+                },
+              ],
+            },
+            select: {
+              businessUnitId: true,
+              organizationId: true,
+              isDefault: true,
+              holidayCalendar: {
+                select: {
+                  holidays: {
+                    where: {
+                      isActive: true,
+                      isHalfDay: false,
+                      holidayDate: { gte: from, lt: to },
+                    },
+                    select: { holidayDate: true },
+                  },
+                },
+              },
+            },
+          }),
+        ])
+      : [[], [], []];
+    const placement = new Map(employees.map((e) => [e.id, e]));
+    // The calendar closest to the person: their business unit, then their
+    // organisation, then the tenant default.
+    const holidaysFor = (employeeId: string): Date[] => {
+      const e = placement.get(employeeId);
+      const chosen =
+        assignments.find(
+          (a) => e?.businessUnitId && a.businessUnitId === e.businessUnitId,
+        ) ??
+        assignments.find(
+          (a) =>
+            e?.organizationId &&
+            a.organizationId === e.organizationId &&
+            !a.businessUnitId,
+        ) ??
+        assignments.find(
+          (a) => a.isDefault && !a.businessUnitId && !a.organizationId,
+        );
+      return chosen?.holidayCalendar.holidays.map((h) => h.holidayDate) ?? [];
+    };
+
     return {
-      basis: 'STANDARD_WEEK',
+      basis: 'NET_OF_LEAVE_AND_HOLIDAYS',
+      // Monday to Friday only: no shifts, part-time or half days until the
+      // scheduling work (WP-09) lands. A holiday on a leave day is removed once.
+      limits: 'WEEKDAYS_ONLY_NO_SHIFTS_NO_HALF_DAYS',
       period: { from: from.toISOString(), to: to.toISOString() },
-      capacityMinutes,
+      capacityMinutes: standardCapacityMinutes,
       people: [...people.values()]
-        .map((p) => ({
-          ...p,
-          // An unestimated item is not zero minutes: it is unknown, and counted apart.
-          loadPercent: capacityMinutes
-            ? Math.round((p.committedMinutes / capacityMinutes) * 100)
-            : null,
-        }))
+        .map((p) => {
+          const net = netWorkingDays({
+            from,
+            to,
+            leave: leave.filter((l) => l.employeeId === p.employeeId),
+            holidays: holidaysFor(p.employeeId),
+          });
+          const netCapacityMinutes = net.netDays * 8 * 60;
+          return {
+            ...p,
+            leaveDays: net.leaveDays,
+            holidayDays: net.holidayDays,
+            netCapacityMinutes,
+            // An unestimated item is not zero minutes: it is unknown, and counted
+            // apart. No capacity (all leave) is unavailable, never a divide by zero.
+            loadPercent: netCapacityMinutes
+              ? Math.round((p.committedMinutes / netCapacityMinutes) * 100)
+              : null,
+          };
+        })
         .sort((a, b) => b.committedMinutes - a.committedMinutes)
         .slice(0, 200),
     };
+  }
+
+  /**
+   * What each person says they spent on an item against what their approved
+   * timesheets say. Self-reported actual minutes and approved hours are different
+   * facts; this puts them side by side and names the gap, it never overwrites one
+   * with the other. Only people whose work the caller can see are listed.
+   */
+  async hours(user: AuthenticatedUser, id: string) {
+    const item = await this.findOne(user, id); // 404 unless visible
+    const rows = await this.prisma.timesheetEntry.groupBy({
+      by: ['employeeId', 'approvalStatus'],
+      where: { tenantId: user.tenantId, taskId: id },
+      _sum: { hours: true },
+    });
+    const byPerson = new Map<
+      string,
+      { approvedMinutes: number; pendingMinutes: number }
+    >();
+    for (const row of rows) {
+      const minutes = Math.round(Number(row._sum.hours ?? 0) * 60);
+      const entry = byPerson.get(row.employeeId) ?? {
+        approvedMinutes: 0,
+        pendingMinutes: 0,
+      };
+      if (row.approvalStatus === 'APPROVED') entry.approvedMinutes += minutes;
+      else if (
+        row.approvalStatus === 'PENDING' ||
+        row.approvalStatus === 'DRAFT'
+      ) {
+        entry.pendingMinutes += minutes;
+      }
+      byPerson.set(row.employeeId, entry);
+    }
+    const scope = employeeScopeWhere(user, SecurityPrivilege.READ);
+    const ids = [
+      ...new Set([
+        ...item.contributors.map((c) => c.employeeId),
+        ...byPerson.keys(),
+      ]),
+    ];
+    const visible =
+      scope === null || !ids.length
+        ? []
+        : await this.prisma.employee.findMany({
+            where: {
+              AND: [{ tenantId: user.tenantId, id: { in: ids } }, scope],
+            },
+            select: { id: true, firstName: true, lastName: true },
+          });
+    const people = visible.map((p) => {
+      const contributor = item.contributors.find((c) => c.employeeId === p.id);
+      const booked = byPerson.get(p.id) ?? {
+        approvedMinutes: 0,
+        pendingMinutes: 0,
+      };
+      const reported = contributor?.actualMinutes ?? null;
+      let reconciliation:
+        | 'MATCHES'
+        | 'REPORTED_NOT_YET_APPROVED'
+        | 'APPROVED_EXCEEDS_REPORTED'
+        | 'NO_ACTUAL_REPORTED'
+        | 'NOTHING_BOOKED';
+      if (reported === null) {
+        reconciliation =
+          booked.approvedMinutes || booked.pendingMinutes
+            ? 'NO_ACTUAL_REPORTED'
+            : 'NOTHING_BOOKED';
+      } else if (reported === booked.approvedMinutes)
+        reconciliation = 'MATCHES';
+      else if (reported > booked.approvedMinutes)
+        reconciliation = 'REPORTED_NOT_YET_APPROVED';
+      else reconciliation = 'APPROVED_EXCEEDS_REPORTED';
+      return {
+        employeeId: p.id,
+        name: `${p.firstName} ${p.lastName}`.trim(),
+        estimateMinutes: contributor?.estimateMinutes ?? null,
+        reportedActualMinutes: reported,
+        approvedTimesheetMinutes: booked.approvedMinutes,
+        pendingTimesheetMinutes: booked.pendingMinutes,
+        differenceMinutes:
+          reported === null ? null : reported - booked.approvedMinutes,
+        reconciliation,
+      };
+    });
+    return { workItemId: id, people };
   }
 
   /** Who moved this item between people, newest last. */

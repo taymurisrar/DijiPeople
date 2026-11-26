@@ -86,6 +86,19 @@ function ledger() {
       }),
       // The compare-and-set the runtime uses to take a retryable step over.
       updateMany: jest.fn(({ where, data }: { where: Row; data: Row }) => {
+        // The fenced settle: only the delivery holding the claim may write.
+        if (where.attempts !== undefined) {
+          const held = steps.find(
+            (r) =>
+              r.tenantId === where.tenantId &&
+              r.stepKey === where.stepKey &&
+              r.attempts === where.attempts &&
+              r.status === where.status,
+          );
+          if (!held) return Promise.resolve({ count: 0 });
+          Object.assign(held, data);
+          return Promise.resolve({ count: 1 });
+        }
         const row = steps.find(
           (r) =>
             r.tenantId === where.tenantId &&
@@ -167,6 +180,9 @@ function build(
   const book = ledger();
   const runs = book.runs;
   const prisma = {
+    // Nobody in these specs is a tenant person, so every address is eligible.
+    user: { findFirst: jest.fn().mockResolvedValue(null) },
+    employee: { findFirst: jest.fn().mockResolvedValue(null) },
     workflowRun: book.workflowRun,
     workflowRunStep: book.workflowRunStep,
     workflow: {
@@ -292,6 +308,8 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
   function candidateHarness(application: unknown) {
     const book = ledger();
     const prisma = {
+      user: { findFirst: jest.fn().mockResolvedValue(null) },
+      employee: { findFirst: jest.fn().mockResolvedValue(null) },
       workflow: {
         findMany: jest.fn().mockResolvedValue([
           {

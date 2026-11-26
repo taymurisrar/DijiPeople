@@ -127,6 +127,16 @@ export class WorkItemsController {
     return this.service.reassign(user, id, dto);
   }
 
+  @Get(':id/hours')
+  @Permissions('work-items.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  hours(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.hours(user, id);
+  }
+
   @Get(':id/owner-history')
   @Permissions('work-items.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')

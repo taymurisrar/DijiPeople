@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { WorkflowDeliveryReconciler } from './workflow-delivery-reconciler';
+import { WorkflowReconciliationScheduler } from './workflow-reconciliation.scheduler';
 import { WorkflowActionHandler } from './workflow-action.handler';
 import { WorkflowDispatchService } from './workflow-dispatch.service';
 import { WorkflowRuntimeService } from './workflow-runtime.service';
@@ -16,6 +17,8 @@ import { WorkflowsService } from './workflows.service';
     WorkflowRuntimeService,
     WorkflowDispatchService,
     WorkflowDeliveryReconciler,
+    // Off unless WORKFLOW_RECONCILE_ENABLED=true (WP-03.S4).
+    WorkflowReconciliationScheduler,
     // Registers itself with the outbox dispatcher on init (WP-03.S3).
     WorkflowActionHandler,
     WorkflowsService,
