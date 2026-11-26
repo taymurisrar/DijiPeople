@@ -1436,6 +1436,11 @@ export class WorkItemsService {
    * reach, those they created, and unowned items waiting in a queue they belong
    * to. null = may see none. {} = may see all.
    */
+  /** The visibility rule, for other work-item features (blockers) to apply. */
+  visibilityFilter(user: AuthenticatedUser) {
+    return this.readFilter(user);
+  }
+
   private async readFilter(
     user: AuthenticatedUser,
   ): Promise<Prisma.WorkItemWhereInput | null> {
@@ -1460,6 +1465,8 @@ export class WorkItemsService {
         { owner: scope },
         { contributors: { some: { employee: scope } } },
         { createdById: user.userId },
+        // Whoever an open blocker waits on must be able to see the work to clear it.
+        { blockers: { some: { status: 'OPEN', owner: { userId: user.userId } } } },
         {
           ownerEmployeeId: null,
           contributors: { none: {} },
@@ -1492,7 +1499,7 @@ export class WorkItemsService {
    * someone they can write for; or it is unowned and they reach beyond
    * themselves; or they created it. Otherwise it does not exist for them.
    */
-  private async assertWrite(user: AuthenticatedUser, id: string) {
+  async assertWrite(user: AuthenticatedUser, id: string) {
     const item = await this.prisma.workItem.findFirst({
       where: { id, tenantId: user.tenantId },
       select: {

@@ -1145,6 +1145,15 @@
         "delete": "A daily update is a record of what a person reported on a day: it is corrected (version bump, audited before/after) and acknowledged, never deleted (WP-27)."
       },
       "classifiedBy": "DP-MASTER WP-27"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-blockers.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A blocker is evidence of why work was delayed and feeds blocked-time reporting: it is resolved or cancelled and stays in history, never deleted (WP-38.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-38.S1"
     }
   ],
   "baseline": {

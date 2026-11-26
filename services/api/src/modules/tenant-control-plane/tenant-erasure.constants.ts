@@ -468,6 +468,7 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'workflowRunStep',
   'workflowRun',
   'workflowVersion',
+  'workItemBlocker',
   'dailyUpdateItem',
   'dailyUpdate',
   'dailyUpdatePolicy',

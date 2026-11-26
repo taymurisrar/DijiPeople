@@ -5319,6 +5319,7 @@ model Employee {
   workProfileAssignments         EmployeeWorkProfileAssignment[]
   ownedWorkItems                 WorkItem[]                    @relation("WorkItemOwner")
   workItemContributions          WorkItemContributor[]
+  ownedWorkBlockers              WorkItemBlocker[]
   contributionEntries            ContributionEntry[]
   dailyUpdates                   DailyUpdate[]
 }
@@ -15570,6 +15571,7 @@ model WorkItem {
   milestone            WorkItem?        @relation("WorkItemMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
   milestoneItems       WorkItem[]       @relation("WorkItemMilestone")
   ownerChanges         WorkItemOwnerChange[]
+  blockers             WorkItemBlocker[]
   owner                Employee?        @relation("WorkItemOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
   project              Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   parent               WorkItem?        @relation("WorkItemSubtasks", fields: [parentId], references: [id], onDelete: SetNull)
@@ -15926,4 +15928,66 @@ enum DailyUpdateItemOrigin {
   /// Proposed from recorded evidence; the employee can edit or remove it.
   DRAFTED
   MANUAL
+}
+
+/// DP-MASTER WP-38.S1. Why a piece of work cannot move, who must act, and by when.
+/// A blocker is about the WORK, not the person: the cause is recorded by people
+/// and may be reclassified by a reviewer, but it is never inferred, and it
+/// starts UNDETERMINED so nobody is blamed by default. The time a blocker was
+/// open is reported beside effort, never subtracted from it.
+model WorkItemBlocker {
+  id               String                @id @default(uuid())
+  tenantId         String
+  workItemId       String
+  category         WorkBlockerCategory
+  /// Who or what is responsible for the delay. Never set by the system.
+  cause            WorkBlockerCause      @default(UNDETERMINED)
+  causeSetById     String?
+  reason           String
+  status           WorkBlockerStatus     @default(OPEN)
+  /// The person who must act to clear it. Optional until someone is named.
+  ownerEmployeeId  String?
+  dueAt            DateTime?
+  raisedById       String?
+  raisedAt         DateTime              @default(now())
+  /// 0 = not escalated. Each escalation is a deliberate act, audited.
+  escalationLevel  Int                   @default(0)
+  escalatedAt      DateTime?
+  resolvedAt       DateTime?
+  resolvedById     String?
+  resolution       String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  workItem         WorkItem              @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  owner            Employee?             @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, workItemId, status])
+  @@index([tenantId, status, dueAt])
+  @@index([tenantId, ownerEmployeeId, status])
+}
+
+enum WorkBlockerCategory {
+  WAITING_ON_PERSON
+  WAITING_ON_APPROVAL
+  EQUIPMENT_OR_SYSTEM_DOWNTIME
+  EXTERNAL_PARTY
+  MATERIAL_OR_STOCK
+  DECISION_NEEDED
+  ACCESS_OR_TOOLING
+  OTHER
+}
+
+enum WorkBlockerCause {
+  /// Not yet judged. The default; the system never assigns another value.
+  UNDETERMINED
+  WORKER_CONTROLLABLE
+  TEAM_CONTROLLABLE
+  MANAGEMENT
+  EXTERNAL
+}
+
+enum WorkBlockerStatus {
+  OPEN
+  RESOLVED
+  CANCELLED
 }
