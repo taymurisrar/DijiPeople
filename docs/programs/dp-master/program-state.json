@@ -1353,7 +1353,8 @@
       ],
       "workstream": "A",
       "status": "IN_PROGRESS",
-      "evidence": "API: an entry taskId that IS a work item of the tenant is a link (free text stays free text); the employee must own or share it, it must not be archived and must agree with the entry project (6 unit tests incl. free text not queried); GET /work-items/:id/hours puts self-reported actual beside approved and pending timesheet minutes and names the gap (MATCHES / REPORTED_NOT_YET_APPROVED / APPROVED_EXCEEDS_REPORTED / NO_ACTUAL_REPORTED / NOTHING_BOOKED), scoped like the item; workload capacity is net of approved leave and holidays, each day removed once, limits named, no capacity = unavailable (work-capacity-and-hours.e2e-spec 4 tests + 5 pure tests). Shared calendar facts also drive the daily-update missing list. NOT yet: shifts, part-time and half days (WP-09.S1); the timesheet entry UI choosing a work item; project templates/phases/WBS; review and closure. | BROWSER: hours section shows reported vs approved with the gap in words (\"Not reported\", never 0); workload shows leave days, holiday days, net capacity and \"No capacity\". Remaining in this slice: the timesheet entry UI choosing a work item, project templates/phases/WBS, review and closure."
+      "evidence": "API: an entry taskId that IS a work item of the tenant is a link (free text stays free text); the employee must own or share it, it must not be archived and must agree with the entry project (6 unit tests incl. free text not queried); GET /work-items/:id/hours puts self-reported actual beside approved and pending timesheet minutes and names the gap (MATCHES / REPORTED_NOT_YET_APPROVED / APPROVED_EXCEEDS_REPORTED / NO_ACTUAL_REPORTED / NOTHING_BOOKED), scoped like the item; workload capacity is net of approved leave and holidays, each day removed once, limits named, no capacity = unavailable (work-capacity-and-hours.e2e-spec 4 tests + 5 pure tests). Shared calendar facts also drive the daily-update missing list. NOT yet: shifts, part-time and half days (WP-09.S1); the timesheet entry UI choosing a work item; project templates/phases/WBS; review and closure. | BROWSER: hours section shows reported vs approved with the gap in words (\"Not reported\", never 0); workload shows leave days, holiday days, net capacity and \"No capacity\". Remaining in this slice: the timesheet entry UI choosing a work item, project templates/phases/WBS, review and closure.",
+      "integratedSha": "34899bfa"
     },
     {
       "id": "WP-30.S2",
@@ -1393,8 +1394,9 @@
         "WP-02.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
-      "evidence": "API: blockers with category, cause (UNDETERMINED by default, never inferred; set only by a reviewer who is not a party to the delay), owner, due date, escalation (bounded at 3, race-safe), resolve/cancel (concurrent closers collapse to one; the last close frees the item), visibility for the person a blocker waits on, blocked-time summary by cause and category beside effort; work-blockers.e2e-spec 7 tests; mutation: removing the party check fails the cause test. NOT yet: downtime tied to schedules/WP-30 intervals, cross-team routing, root-cause analysis and corrective actions (WP-37 links). | UI: /work/blockers (filters, summary by cause with undetermined and worker-controllable rows distinct, paging), blocker section and hours section in the work item panel, project blockers strip. BROWSER (Flow S 20/20 twice): raise moves the item to Blocked with cause shown as text (never pre-filled), the employee cannot set the cause, escalation stops at 3, resolve frees the item, the person a blocker waits on sees only that item; axe: no serious/critical violations on 9 screens plus dialogs."
+      "status": "INTEGRATED",
+      "evidence": "API: blockers with category, cause (UNDETERMINED by default, never inferred; set only by a reviewer who is not a party to the delay), owner, due date, escalation (bounded at 3, race-safe), resolve/cancel (concurrent closers collapse to one; the last close frees the item), visibility for the person a blocker waits on, blocked-time summary by cause and category beside effort; work-blockers.e2e-spec 7 tests; mutation: removing the party check fails the cause test. NOT yet: downtime tied to schedules/WP-30 intervals, cross-team routing, root-cause analysis and corrective actions (WP-37 links). | UI: /work/blockers (filters, summary by cause with undetermined and worker-controllable rows distinct, paging), blocker section and hours section in the work item panel, project blockers strip. BROWSER (Flow S 20/20 twice): raise moves the item to Blocked with cause shown as text (never pre-filled), the employee cannot set the cause, escalation stops at 3, resolve frees the item, the person a blocker waits on sees only that item; axe: no serious/critical violations on 9 screens plus dialogs.",
+      "integratedSha": "34899bfa"
     },
     {
       "id": "WP-28.S1",
@@ -1430,8 +1432,9 @@
         "WP-03.S4"
       ],
       "workstream": "C",
-      "status": "ACCEPTED",
-      "evidence": "workflow-durable-execution.e2e-spec 29 tests: a leaver is skipped on first attempt and on retry; a late worker that lost its claim cannot settle the step (mutation: removing the attempt fence fails the test); an expired claim whose delivery log shows the provider took it is not re-sent (and is re-sent when there is no evidence); 27 workflows -> 25 run + 2 refused visibly, 5x50 recipients -> 200 steps and the rest refused; WorkflowReconciliationScheduler (off unless WORKFLOW_RECONCILE_ENABLED=true, env registered in render.yaml and docs). NOT done: immutable template rendering (templates are edited in place; drift is flagged, not prevented) -> WP-04.S2; transactional enqueue adopted by producers that run inside a transaction (WorkflowDispatchService.enqueue exists and is tested, four producers pass transition ids but post-commit)."
+      "status": "INTEGRATED",
+      "evidence": "workflow-durable-execution.e2e-spec 29 tests: a leaver is skipped on first attempt and on retry; a late worker that lost its claim cannot settle the step (mutation: removing the attempt fence fails the test); an expired claim whose delivery log shows the provider took it is not re-sent (and is re-sent when there is no evidence); 27 workflows -> 25 run + 2 refused visibly, 5x50 recipients -> 200 steps and the rest refused; WorkflowReconciliationScheduler (off unless WORKFLOW_RECONCILE_ENABLED=true, env registered in render.yaml and docs). NOT done: immutable template rendering (templates are edited in place; drift is flagged, not prevented) -> WP-04.S2; transactional enqueue adopted by producers that run inside a transaction (WorkflowDispatchService.enqueue exists and is tested, four producers pass transition ids but post-commit).",
+      "integratedSha": "34899bfa"
     },
     {
       "id": "WP-04.S2",
@@ -1532,5 +1535,5 @@
     "bug": "BUG-4774",
     "backlogItem": "ITEM-0245"
   },
-  "integratedSha": "c2f8dc2b"
+  "integratedSha": "34899bfa"
 }
