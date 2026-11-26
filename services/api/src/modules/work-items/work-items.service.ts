@@ -31,6 +31,7 @@ import {
   UpdateWorkItemDto,
 } from './dto/work-item.dto';
 import { netWorkingDays } from './work-item-capacity';
+import { loadCalendarFacts } from './work-calendar';
 import {
   canTransition,
   MAX_SUBTASK_DEPTH,
@@ -511,82 +512,13 @@ export class WorkItemsService {
       }
     }
 
-    const ids = [...people.keys()];
-    const [employees, leave, assignments] = ids.length
-      ? await Promise.all([
-          this.prisma.employee.findMany({
-            where: { tenantId: user.tenantId, id: { in: ids } },
-            select: { id: true, businessUnitId: true, organizationId: true },
-          }),
-          this.prisma.leaveRequest.findMany({
-            where: {
-              tenantId: user.tenantId,
-              employeeId: { in: ids },
-              status: 'APPROVED',
-              startDate: { lt: to },
-              endDate: { gte: from },
-            },
-            select: { employeeId: true, startDate: true, endDate: true },
-            take: 5000,
-          }),
-          this.prisma.holidayCalendarAssignment.findMany({
-            where: {
-              tenantId: user.tenantId,
-              status: 'ACTIVE',
-              projectId: null,
-              OR: [
-                { effectiveStartDate: null },
-                { effectiveStartDate: { lt: to } },
-              ],
-              AND: [
-                {
-                  OR: [
-                    { effectiveEndDate: null },
-                    { effectiveEndDate: { gte: from } },
-                  ],
-                },
-              ],
-            },
-            select: {
-              businessUnitId: true,
-              organizationId: true,
-              isDefault: true,
-              holidayCalendar: {
-                select: {
-                  holidays: {
-                    where: {
-                      isActive: true,
-                      isHalfDay: false,
-                      holidayDate: { gte: from, lt: to },
-                    },
-                    select: { holidayDate: true },
-                  },
-                },
-              },
-            },
-          }),
-        ])
-      : [[], [], []];
-    const placement = new Map(employees.map((e) => [e.id, e]));
-    // The calendar closest to the person: their business unit, then their
-    // organisation, then the tenant default.
-    const holidaysFor = (employeeId: string): Date[] => {
-      const e = placement.get(employeeId);
-      const chosen =
-        assignments.find(
-          (a) => e?.businessUnitId && a.businessUnitId === e.businessUnitId,
-        ) ??
-        assignments.find(
-          (a) =>
-            e?.organizationId &&
-            a.organizationId === e.organizationId &&
-            !a.businessUnitId,
-        ) ??
-        assignments.find(
-          (a) => a.isDefault && !a.businessUnitId && !a.organizationId,
-        );
-      return chosen?.holidayCalendar.holidays.map((h) => h.holidayDate) ?? [];
-    };
+    const facts = await loadCalendarFacts(
+      this.prisma,
+      user.tenantId,
+      [...people.keys()],
+      from,
+      to,
+    );
 
     return {
       basis: 'NET_OF_LEAVE_AND_HOLIDAYS',
@@ -600,8 +532,8 @@ export class WorkItemsService {
           const net = netWorkingDays({
             from,
             to,
-            leave: leave.filter((l) => l.employeeId === p.employeeId),
-            holidays: holidaysFor(p.employeeId),
+            leave: facts.leave.get(p.employeeId) ?? [],
+            holidays: facts.holidays.get(p.employeeId) ?? [],
           });
           const netCapacityMinutes = net.netDays * 8 * 60;
           return {
@@ -1466,7 +1398,11 @@ export class WorkItemsService {
         { contributors: { some: { employee: scope } } },
         { createdById: user.userId },
         // Whoever an open blocker waits on must be able to see the work to clear it.
-        { blockers: { some: { status: 'OPEN', owner: { userId: user.userId } } } },
+        {
+          blockers: {
+            some: { status: 'OPEN', owner: { userId: user.userId } },
+          },
+        },
         {
           ownerEmployeeId: null,
           contributors: { none: {} },

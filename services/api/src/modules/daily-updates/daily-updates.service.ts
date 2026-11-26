@@ -16,6 +16,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { employeeScopeWhere } from '../../common/security/employee-scope';
 import { AuditService } from '../audit/audit.service';
+import { isDayOff, loadCalendarFacts } from '../work-items/work-calendar';
 import {
   buildDraftItems,
   isLate,
@@ -403,6 +404,16 @@ export class DailyUpdatesService {
   /** Replace the lines of one's own update. After submission this is a correction. */
   async save(user: AuthenticatedUser, id: string, dto: SaveDailyUpdateDto) {
     const before = await this.loadOwn(user, id);
+    if (
+      dto.expectedVersion !== undefined &&
+      dto.expectedVersion !== before.version
+    ) {
+      throw new ConflictException({
+        code: 'DAILY_UPDATE_CHANGED',
+        message:
+          'This update was changed somewhere else since you opened it. Reload it before saving.',
+      });
+    }
     const employeeId = before.employeeId;
     const entryIds = dto.items.flatMap((i) =>
       i.contributionEntryId ? [i.contributionEntryId] : [],
@@ -439,6 +450,19 @@ export class DailyUpdatesService {
     );
 
     return this.prisma.$transaction(async (tx) => {
+      // Take the version first. Two saves racing both read the same version; only
+      // the one whose guarded bump matches proceeds, the other is told to reload.
+      const claimed = await tx.dailyUpdate.updateMany({
+        where: { id, tenantId: user.tenantId, version: before.version },
+        data: { version: { increment: 1 } },
+      });
+      if (claimed.count !== 1) {
+        throw new ConflictException({
+          code: 'DAILY_UPDATE_CHANGED',
+          message:
+            'This update was changed somewhere else since you opened it. Reload it before saving.',
+        });
+      }
       await tx.dailyUpdateItem.deleteMany({
         where: { tenantId: user.tenantId, dailyUpdateId: id },
       });
@@ -472,7 +496,6 @@ export class DailyUpdatesService {
                 status: DailyUpdateStatus.SUBMITTED,
                 acknowledgedById: null,
                 acknowledgedAt: null,
-                version: { increment: 1 },
               }
             : {}),
         },
@@ -512,6 +535,24 @@ export class DailyUpdatesService {
     const submittedAt = new Date();
     const forDate = before.forDate.toISOString().slice(0, 10);
     return this.prisma.$transaction(async (tx) => {
+      // Only a DRAFT at the version we read is submitted, once. A save or another
+      // submit landing in between makes this a conflict, not a lost write.
+      const guard = await tx.dailyUpdate.updateMany({
+        where: {
+          id,
+          tenantId: user.tenantId,
+          status: DailyUpdateStatus.DRAFT,
+          version: before.version,
+        },
+        data: { version: { increment: 0 } },
+      });
+      if (guard.count !== 1) {
+        throw new ConflictException({
+          code: 'DAILY_UPDATE_CHANGED',
+          message:
+            'This update changed while you were submitting it. Reload it and try again.',
+        });
+      }
       const after = await tx.dailyUpdate.update({
         where: { id },
         data: {
@@ -576,6 +617,29 @@ export class DailyUpdatesService {
       });
     }
     return this.prisma.$transaction(async (tx) => {
+      // The acknowledgement is of the text the reviewer READ: if the author
+      // corrected it meanwhile (version moved) or it is no longer submitted, it is
+      // refused rather than acknowledging text nobody reviewed.
+      const guard = await tx.dailyUpdate.updateMany({
+        where: {
+          id,
+          tenantId: user.tenantId,
+          status: DailyUpdateStatus.SUBMITTED,
+          version: update.version,
+        },
+        data: {
+          status: DailyUpdateStatus.ACKNOWLEDGED,
+          acknowledgedById: user.userId,
+          acknowledgedAt: new Date(),
+        },
+      });
+      if (guard.count !== 1) {
+        throw new ConflictException({
+          code: 'DAILY_UPDATE_CHANGED',
+          message:
+            'This update changed while you were reviewing it. Read it again before acknowledging.',
+        });
+      }
       const after = await tx.dailyUpdate.update({
         where: { id },
         data: {
@@ -688,10 +752,21 @@ export class DailyUpdatesService {
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       take: 200,
     });
+    // Nobody is owed an update on a day they are on approved leave or it is their
+    // holiday: no off-duty prompts.
+    const facts = await loadCalendarFacts(
+      this.prisma,
+      user.tenantId,
+      people.map((p) => p.id),
+      this.dateValue(date),
+      new Date(this.dateValue(date).getTime() + 86_400_000),
+    );
+    const owed = people.filter((p) => !isDayOff(facts, p.id, date).off);
     return {
       date,
       due: true,
-      people: people.map((p) => ({
+      excludedOnLeaveOrHoliday: people.length - owed.length,
+      people: owed.map((p) => ({
         employeeId: p.id,
         name: `${p.firstName} ${p.lastName}`.trim(),
       })),

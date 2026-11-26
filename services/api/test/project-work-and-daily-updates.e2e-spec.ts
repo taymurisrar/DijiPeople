@@ -345,7 +345,7 @@ describeWithDatabase()('Project work and daily updates (e2e)', () => {
         `/work-items/workload?from=${from}&to=${to}&projectId=${projectId}`,
       );
       expect(res.status).toBe(200);
-      expect(res.body.basis).toBe('STANDARD_WEEK');
+      expect(res.body.basis).toBe('NET_OF_LEAVE_AND_HOLIDAYS');
       const bo2 = res.body.people.find(
         (p: { employeeId: string }) => p.employeeId === emp.bo,
       );
@@ -625,16 +625,19 @@ describeWithDatabase()('Project work and daily updates (e2e)', () => {
     });
 
     it('correcting after submission bumps the version, reopens review and is audited with before and after', async () => {
+      const prevVersion = (await call(bo, 'get', `/daily-updates/${updateId}`))
+        .body.version as number;
       const edit = await call(bo, 'put', `/daily-updates/${updateId}`, {
         summary: 'Corrected',
         items: [{ section: 'COMPLETED', text: 'Corrected line' }],
       });
       expect(edit.status).toBe(200);
+      // The version is the concurrency token: every save moves it on.
       expect(edit.body).toMatchObject({
         status: 'SUBMITTED',
-        version: 2,
         acknowledgedAt: null,
       });
+      expect(edit.body.version).toBeGreaterThan(prevVersion);
       const trail = await prisma.auditLog.findMany({
         where: {
           tenantId,
@@ -644,6 +647,105 @@ describeWithDatabase()('Project work and daily updates (e2e)', () => {
         },
       });
       expect(trail.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('two saves racing from the same version: one wins, the other is told to reload; a stale tab is refused', async () => {
+      const current = (await call(bo, 'get', `/daily-updates/${updateId}`))
+        .body;
+      const lines = [{ section: 'COMPLETED', text: 'Race line' }];
+      const race = await Promise.all([
+        call(bo, 'put', `/daily-updates/${updateId}`, {
+          expectedVersion: current.version,
+          items: lines,
+          summary: 'tab one',
+        }),
+        call(bo, 'put', `/daily-updates/${updateId}`, {
+          expectedVersion: current.version,
+          items: lines,
+          summary: 'tab two',
+        }),
+      ]);
+      expect(race.map((r) => r.status).sort()).toEqual([200, 409]);
+      expect(race.find((r) => r.status === 409)?.body.code).toBe(
+        'DAILY_UPDATE_CHANGED',
+      );
+      // The stale tab, even alone, is refused.
+      const stale = await call(bo, 'put', `/daily-updates/${updateId}`, {
+        expectedVersion: current.version,
+        items: lines,
+      });
+      expect(stale.status).toBe(409);
+      // Reloading gives the current version and the save goes through.
+      const fresh = (await call(bo, 'get', `/daily-updates/${updateId}`)).body;
+      expect(
+        (
+          await call(bo, 'put', `/daily-updates/${updateId}`, {
+            expectedVersion: fresh.version,
+            items: lines,
+          })
+        ).status,
+      ).toBe(200);
+    });
+
+    it('an acknowledgement is of the text that was read: it is refused if the author corrected it first', async () => {
+      // Submitted and acknowledged earlier; a correction reopened it. Ack now succeeds once.
+      const acked = await call(
+        maya,
+        'post',
+        `/daily-updates/${updateId}/acknowledge`,
+      );
+      expect(acked.status).toBe(201);
+      // A second reviewer's acknowledgement of the same, already-acknowledged text is refused.
+      expect(
+        (await call(hana, 'post', `/daily-updates/${updateId}/acknowledge`))
+          .status,
+      ).toBe(409);
+      // The author corrects: it is back to SUBMITTED and acknowledgeable again, once.
+      await call(bo, 'put', `/daily-updates/${updateId}`, {
+        items: [{ section: 'COMPLETED', text: 'Corrected after review' }],
+      });
+      const again = await Promise.all([
+        call(maya, 'post', `/daily-updates/${updateId}/acknowledge`),
+        call(hana, 'post', `/daily-updates/${updateId}/acknowledge`),
+      ]);
+      expect(again.map((r) => r.status).sort()).toEqual([201, 409]);
+    });
+
+    it('nobody is owed an update on a day they are on approved leave', async () => {
+      const day = today;
+      const type = await prisma.leaveType.create({
+        data: {
+          tenantId,
+          name: `Annual ${suffix}`,
+          code: `AN-${suffix}`,
+          category: 'ANNUAL' as never,
+        },
+        select: { id: true },
+      });
+      await prisma.leaveRequest.create({
+        data: {
+          tenantId,
+          employeeId: emp.ana,
+          leaveTypeId: type.id,
+          startDate: new Date(`${day}T00:00:00.000Z`),
+          endDate: new Date(`${day}T00:00:00.000Z`),
+          totalDays: '1',
+          status: 'APPROVED',
+        },
+      });
+      await call(hana, 'put', '/daily-updates/policy', {
+        enabled: true,
+        workingDays: [1, 2, 3, 4, 5, 6, 7],
+        deadlineMinutes: 1,
+      });
+      const res = await call(maya, 'get', `/daily-updates/missing?date=${day}`);
+      expect(res.body.due).toBe(true);
+      expect(
+        res.body.people.map((p: { employeeId: string }) => p.employeeId),
+      ).not.toContain(emp.ana);
+      expect(res.body.excludedOnLeaveOrHoliday).toBeGreaterThanOrEqual(1);
+      await prisma.leaveRequest.deleteMany({ where: { tenantId } });
+      await prisma.leaveType.deleteMany({ where: { tenantId } });
     });
 
     it('missing updates are listed for the people in reach, only after the deadline, only on working days, and never for the submitted', async () => {

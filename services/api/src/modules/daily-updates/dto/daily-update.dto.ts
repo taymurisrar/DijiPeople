@@ -83,6 +83,15 @@ export class DailyUpdateItemDto {
 }
 
 export class SaveDailyUpdateDto {
+  /**
+   * The version the editor loaded. If someone else (the same person in another
+   * tab) saved since, the save is refused with 409 instead of overwriting them.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  expectedVersion?: number;
+
   @IsOptional()
   @IsString()
   @MaxLength(2000)

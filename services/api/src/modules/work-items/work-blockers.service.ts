@@ -116,7 +116,11 @@ export class WorkBlockersService {
   private async ownsBlocker(user: AuthenticatedUser, row: Row) {
     if (!row.ownerEmployeeId) return false;
     const employee = await this.prisma.employee.findFirst({
-      where: { id: row.ownerEmployeeId, tenantId: user.tenantId, userId: user.userId },
+      where: {
+        id: row.ownerEmployeeId,
+        tenantId: user.tenantId,
+        userId: user.userId,
+      },
       select: { id: true },
     });
     return !!employee;
@@ -132,9 +136,14 @@ export class WorkBlockersService {
     }
   }
 
-  async raise(user: AuthenticatedUser, workItemId: string, dto: RaiseBlockerDto) {
+  async raise(
+    user: AuthenticatedUser,
+    workItemId: string,
+    dto: RaiseBlockerDto,
+  ) {
     await this.items.assertWrite(user, workItemId);
-    if (dto.ownerEmployeeId) await this.assertEmployee(user.tenantId, dto.ownerEmployeeId);
+    if (dto.ownerEmployeeId)
+      await this.assertEmployee(user.tenantId, dto.ownerEmployeeId);
     const raiser = await this.prisma.employee.findFirst({
       where: { tenantId: user.tenantId, userId: user.userId },
       select: { id: true },
@@ -149,7 +158,11 @@ export class WorkBlockersService {
         where: { id: workItemId, tenantId: user.tenantId },
         select: { status: true, archivedAt: true },
       });
-      if (item.archivedAt || item.status === 'DONE' || item.status === 'CANCELLED') {
+      if (
+        item.archivedAt ||
+        item.status === 'DONE' ||
+        item.status === 'CANCELLED'
+      ) {
         throw new ConflictException({
           code: 'WORK_BLOCKER_ITEM_FINISHED',
           message: 'A finished or archived work item cannot be blocked.',
@@ -166,7 +179,10 @@ export class WorkBlockersService {
           raisedById: raiser?.id ?? null,
           // Never inferred. A reporter may offer their own view, on the record.
           ...(dto.cause
-            ? { cause: dto.cause as WorkBlockerCause, causeSetById: user.userId }
+            ? {
+                cause: dto.cause as WorkBlockerCause,
+                causeSetById: user.userId,
+              }
             : {}),
         },
         select: SELECT,
@@ -185,7 +201,10 @@ export class WorkBlockersService {
           action: AUDIT.RAISED,
           entityType: 'WorkItemBlocker',
           entityId: created.id,
-          afterSnapshot: { ...present(created), workItemStatusBefore: item.status },
+          afterSnapshot: {
+            ...present(created),
+            workItemStatusBefore: item.status,
+          },
         },
         tx,
       );
@@ -243,21 +262,27 @@ export class WorkBlockersService {
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateBlockerDto) {
     const before = await this.visibleBlocker(user, id);
-    if (!(await this.canAct(user, before))) throw new NotFoundException('Blocker was not found.');
+    if (!(await this.canAct(user, before)))
+      throw new NotFoundException('Blocker was not found.');
     if (before.status !== WorkBlockerStatus.OPEN) {
       throw new ConflictException({
         code: 'WORK_BLOCKER_NOT_OPEN',
         message: 'Only an open blocker can be changed.',
       });
     }
-    if (dto.ownerEmployeeId) await this.assertEmployee(user.tenantId, dto.ownerEmployeeId);
+    if (dto.ownerEmployeeId)
+      await this.assertEmployee(user.tenantId, dto.ownerEmployeeId);
     return this.prisma.$transaction(async (tx) => {
       const after = await tx.workItemBlocker.update({
         where: { id },
         data: {
-          ...(dto.ownerEmployeeId !== undefined ? { ownerEmployeeId: dto.ownerEmployeeId } : {}),
+          ...(dto.ownerEmployeeId !== undefined
+            ? { ownerEmployeeId: dto.ownerEmployeeId }
+            : {}),
           ...(dto.dueAt !== undefined ? { dueAt: new Date(dto.dueAt) } : {}),
-          ...(dto.category !== undefined ? { category: dto.category as WorkBlockerCategory } : {}),
+          ...(dto.category !== undefined
+            ? { category: dto.category as WorkBlockerCategory }
+            : {}),
           ...(dto.reason !== undefined ? { reason: dto.reason.trim() } : {}),
         },
         select: SELECT,
@@ -279,7 +304,12 @@ export class WorkBlockersService {
   }
 
   /** Record WHO the delay is attributable to, on the record. Never automatic. */
-  async setCause(user: AuthenticatedUser, id: string, cause: string, note?: string) {
+  async setCause(
+    user: AuthenticatedUser,
+    id: string,
+    cause: string,
+    note?: string,
+  ) {
     const before = await this.visibleBlocker(user, id);
     // Only someone with authority over the work may judge a cause; the person the
     // blocker waits on cannot clear their own name by reclassifying it.
@@ -288,7 +318,8 @@ export class WorkBlockersService {
     } catch {
       throw new ForbiddenException({
         code: 'WORK_BLOCKER_CAUSE_FORBIDDEN',
-        message: 'Only someone with authority over this work can set the cause.',
+        message:
+          'Only someone with authority over this work can set the cause.',
       });
     }
     if (before.ownerEmployeeId && (await this.ownsBlocker(user, before))) {
@@ -313,7 +344,8 @@ export class WorkBlockersService {
     if (party) {
       throw new ForbiddenException({
         code: 'WORK_BLOCKER_CAUSE_PARTY',
-        message: 'A cause is set by a reviewer, not by someone doing the delayed work.',
+        message:
+          'A cause is set by a reviewer, not by someone doing the delayed work.',
       });
     }
     return this.prisma.$transaction(async (tx) => {
@@ -329,7 +361,10 @@ export class WorkBlockersService {
           action: AUDIT.CAUSE,
           entityType: 'WorkItemBlocker',
           entityId: id,
-          beforeSnapshot: { cause: before.cause, causeSetById: before.causeSetById },
+          beforeSnapshot: {
+            cause: before.cause,
+            causeSetById: before.causeSetById,
+          },
           afterSnapshot: { cause: after.cause, note: note ?? null },
         },
         tx,
@@ -340,7 +375,8 @@ export class WorkBlockersService {
 
   async escalate(user: AuthenticatedUser, id: string, note?: string) {
     const before = await this.visibleBlocker(user, id);
-    if (!(await this.canAct(user, before))) throw new NotFoundException('Blocker was not found.');
+    if (!(await this.canAct(user, before)))
+      throw new NotFoundException('Blocker was not found.');
     if (before.status !== WorkBlockerStatus.OPEN) {
       throw new ConflictException({
         code: 'WORK_BLOCKER_NOT_OPEN',
@@ -367,7 +403,8 @@ export class WorkBlockersService {
       if (moved.count !== 1) {
         throw new ConflictException({
           code: 'WORK_BLOCKER_CHANGED',
-          message: 'The blocker changed while you were escalating it. Reload and try again.',
+          message:
+            'The blocker changed while you were escalating it. Reload and try again.',
         });
       }
       const after = await tx.workItemBlocker.findFirstOrThrow({
@@ -382,7 +419,10 @@ export class WorkBlockersService {
           entityType: 'WorkItemBlocker',
           entityId: id,
           beforeSnapshot: { escalationLevel: before.escalationLevel },
-          afterSnapshot: { escalationLevel: after.escalationLevel, note: note ?? null },
+          afterSnapshot: {
+            escalationLevel: after.escalationLevel,
+            note: note ?? null,
+          },
         },
         tx,
       );
@@ -405,7 +445,8 @@ export class WorkBlockersService {
     text: string,
   ) {
     const before = await this.visibleBlocker(user, id);
-    if (!(await this.canAct(user, before))) throw new NotFoundException('Blocker was not found.');
+    if (!(await this.canAct(user, before)))
+      throw new NotFoundException('Blocker was not found.');
     const closer = await this.prisma.employee.findFirst({
       where: { tenantId: user.tenantId, userId: user.userId },
       select: { id: true },
@@ -429,15 +470,26 @@ export class WorkBlockersService {
       }
       // The last open blocker going away frees the item to move again.
       const stillOpen = await tx.workItemBlocker.count({
-        where: { tenantId: user.tenantId, workItemId: before.workItemId, status: WorkBlockerStatus.OPEN },
+        where: {
+          tenantId: user.tenantId,
+          workItemId: before.workItemId,
+          status: WorkBlockerStatus.OPEN,
+        },
       });
       if (stillOpen === 0) {
         await tx.workItem.updateMany({
-          where: { id: before.workItemId, tenantId: user.tenantId, status: 'BLOCKED' },
+          where: {
+            id: before.workItemId,
+            tenantId: user.tenantId,
+            status: 'BLOCKED',
+          },
           data: { status: 'IN_PROGRESS', updatedById: user.userId },
         });
       }
-      const after = await tx.workItemBlocker.findFirstOrThrow({ where: { id }, select: SELECT });
+      const after = await tx.workItemBlocker.findFirstOrThrow({
+        where: { id },
+        select: SELECT,
+      });
       await this.audit.log(
         {
           tenantId: user.tenantId,
@@ -460,26 +512,50 @@ export class WorkBlockersService {
    * and from the not-yet-judged, so an outage or an approval that sat for a week is
    * never read as an employee's low output.
    */
-  async summary(user: AuthenticatedUser, query: { from: string; to: string; projectId?: string }) {
+  async summary(
+    user: AuthenticatedUser,
+    query: { from: string; to: string; projectId?: string },
+  ) {
     const from = new Date(query.from);
     const to = new Date(query.to);
-    if (!(to > from)) problem('WORK_BLOCKER_PERIOD_INVALID', 'The period is empty.');
+    if (!(to > from))
+      problem('WORK_BLOCKER_PERIOD_INVALID', 'The period is empty.');
     if (to.getTime() - from.getTime() > 366 * 86_400_000) {
-      problem('WORK_BLOCKER_PERIOD_INVALID', 'A summary covers at most a year.');
+      problem(
+        'WORK_BLOCKER_PERIOD_INVALID',
+        'A summary covers at most a year.',
+      );
     }
     const visible = await this.items.visibilityFilter(user);
-    const empty = { period: { from: from.toISOString(), to: to.toISOString() }, blockers: 0, byCategory: [], byCause: [], open: 0, overdue: 0 };
+    const empty = {
+      period: { from: from.toISOString(), to: to.toISOString() },
+      blockers: 0,
+      byCategory: [],
+      byCause: [],
+      open: 0,
+      overdue: 0,
+    };
     if (visible === null) return empty;
     const now = new Date();
     const rows = await this.prisma.workItemBlocker.findMany({
       where: {
         tenantId: user.tenantId,
-        workItem: { AND: [visible], ...(query.projectId ? { projectId: query.projectId } : {}) },
+        workItem: {
+          AND: [visible],
+          ...(query.projectId ? { projectId: query.projectId } : {}),
+        },
         status: { not: WorkBlockerStatus.CANCELLED },
         raisedAt: { lt: to },
         OR: [{ resolvedAt: null }, { resolvedAt: { gte: from } }],
       },
-      select: { category: true, cause: true, status: true, raisedAt: true, resolvedAt: true, dueAt: true },
+      select: {
+        category: true,
+        cause: true,
+        status: true,
+        raisedAt: true,
+        resolvedAt: true,
+        dueAt: true,
+      },
       take: 5000,
     });
     // Minutes the blocker was in the way DURING the period only.
@@ -489,7 +565,10 @@ export class WorkBlockersService {
       return Math.max(0, Math.round((end - start) / 60_000));
     };
     const group = (key: 'category' | 'cause') => {
-      const map = new Map<string, { count: number; open: number; minutes: number }>();
+      const map = new Map<
+        string,
+        { count: number; open: number; minutes: number }
+      >();
       for (const row of rows) {
         const g = map.get(row[key]) ?? { count: 0, open: 0, minutes: 0 };
         g.count += 1;
@@ -505,7 +584,9 @@ export class WorkBlockersService {
       period: { from: from.toISOString(), to: to.toISOString() },
       blockers: rows.length,
       open: rows.filter((r) => r.status === WorkBlockerStatus.OPEN).length,
-      overdue: rows.filter((r) => r.status === WorkBlockerStatus.OPEN && r.dueAt && r.dueAt < now).length,
+      overdue: rows.filter(
+        (r) => r.status === WorkBlockerStatus.OPEN && r.dueAt && r.dueAt < now,
+      ).length,
       byCategory: group('category'),
       byCause: group('cause'),
       truncated: rows.length === 5000,
@@ -517,6 +598,7 @@ export class WorkBlockersService {
       where: { id: employeeId, tenantId },
       select: { id: true },
     });
-    if (!employee) problem('WORK_BLOCKER_EMPLOYEE_INVALID', 'Employee not found.');
+    if (!employee)
+      problem('WORK_BLOCKER_EMPLOYEE_INVALID', 'Employee not found.');
   }
 }
