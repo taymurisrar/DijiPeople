@@ -11,7 +11,7 @@
     "backfill:leave-entitlement": "ts-node prisma/backfill-leave-entitlement.ts",
     "backfill:workforce-snapshots": "ts-node prisma/backfill-workforce-snapshots.ts",
     "backfill:workspace-domains": "ts-node prisma/backfill-workspace-domains.ts",
-    "build": "npm run clean:dist && npm run prisma:generate && node --max-old-space-size=3072 ./node_modules/@nestjs/cli/bin/nest.js build",
+    "build": "npm run clean:dist && npm run prisma:generate && nest build",
     "check-types": "tsc --noEmit -p tsconfig.build.json",
     "check:prisma-client": "node ../../scripts/check-prisma-client-fresh.mjs",
     "clean:dist": "node -e \"const fs=require('fs'); for (const p of ['dist','tsconfig.build.tsbuildinfo']) fs.rmSync(p,{recursive:true,force:true,maxRetries:5,retryDelay:200})\"",

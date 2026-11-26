@@ -977,6 +977,11 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-
       - name: Monorepo build
+        # The API type-check inside `nest build` outgrew the default Node heap (exit 134,
+        # "JavaScript heap out of memory") as the Prisma client and module count grew.
+        # The runner has 16 GB; this only lifts the V8 cap, it relaxes no check.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npm run build
 
   # lint-api-report was PROMOTED on 2026-08-17 and no longer exists.
