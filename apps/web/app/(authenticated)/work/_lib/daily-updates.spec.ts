@@ -88,6 +88,15 @@ describe("save payload", () => {
     expect(body.items[0]).not.toHaveProperty("origin");
   });
 
+  it("sends the loaded version so a stale save is refused, and omits it when unknown", () => {
+    expect(
+      buildSavePayload({ summary: "", items: [], expectedVersion: 3 }),
+    ).toEqual({ expectedVersion: 3, items: [] });
+    expect(buildSavePayload({ summary: "", items: [] })).not.toHaveProperty(
+      "expectedVersion",
+    );
+  });
+
   it("rejects an over-long line", () => {
     expect(
       validateUpdate({

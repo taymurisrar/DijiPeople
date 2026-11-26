@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**837 records** — 591 bugs under [`docs/bugs/`](../bugs/), 246 non-bug items under [`items/`](items/).
+**839 records** — 591 bugs under [`docs/bugs/`](../bugs/), 248 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,8 +15,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 244 |
 | Blocked | 4 |
-| Deferred | 127 |
-| Awaiting a product decision | 16 |
+| Deferred | 128 |
+| Awaiting a product decision | 17 |
 | Completed / closed | 446 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **50** |
@@ -59,8 +59,8 @@ see [`README.md`](README.md) for why.
 | OPEN | 32 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
-| DEFERRED | 127 |
-| PRODUCT_DECISION | 16 |
+| DEFERRED | 128 |
+| PRODUCT_DECISION | 17 |
 | FIXED | 175 |
 | VERIFIED | 308 |
 | DUPLICATE | 11 |
@@ -910,6 +910,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0174](../../docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md) | Unify the notification catalog on one key convention (dotted form) | TECH_DEBT | — | P3 | DEFERRED | notifications | DEFER |
 | [ITEM-0178](../../docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md) | Recruitment job opening edit page is bespoke while its detail page already uses the shared record shell | ARCHITECTURE | — | P3 | DEFERRED | app:web | DEFER |
 | [ITEM-0191](../../docs/backlog/items/ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins.md) | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | P3 | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
+| [ITEM-0247](../../docs/backlog/items/ITEM-0247-custom-conflict-codes-work-blocker-daily-update-reach-client.md) | Custom conflict codes (WORK_BLOCKER_*, DAILY_UPDATE_*) reach clients as DATABASE_CONSTRAINT_FAILED because they are not in the error catalog | TECH_DEBT | — | P3 | DEFERRED | services/api/src/common/filters | DEFER |
+| [ITEM-0248](../../docs/backlog/items/ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-.md) | No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles | PRODUCT_DECISION | — | P3 | PRODUCT_DECISION | api:customization | PRODUCT_DECISION |
 
 ## Views
 

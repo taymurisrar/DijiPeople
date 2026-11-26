@@ -11,8 +11,8 @@
 | Open HIGH | **50** |
 | Open total | 244 |
 | Blocked | 4 |
-| Awaiting a product decision | 16 |
-| Deferred | 127 |
+| Awaiting a product decision | 17 |
+| Deferred | 128 |
 | Completed | 446 |
 | Awaiting Architect triage | 3 |
 
@@ -101,6 +101,7 @@
 | [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
+| [[ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-|ITEM-0248]] | No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles | PRODUCT_DECISION | — | PRODUCT_DECISION | api:customization | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -895,6 +896,7 @@
 - [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding|ADR-0028 - Final subscription entitlements]]
 - [[ADR-0029-bank-transfer-is-a-payment-channel-settled-only-by-operator-verification|ADR-0029 - Bank transfer is a payment channel settled only by operator verification]]
 - [[ADR-0030-work-profile-and-work-identity-contracts|ADR-0030 - Work profile and work identity contracts]]
+- [[ADR-0031-work-components-in-the-package-engine-and-accountability-rules|ADR-0031 - Work components in the package engine, and accountability rules for blockers]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -905,14 +907,14 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 591 |
-| Backlog items | 246 |
+| Backlog items | 248 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 34 |
+| Decision notes (ADR + generated) | 35 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 3.** A record nobody has

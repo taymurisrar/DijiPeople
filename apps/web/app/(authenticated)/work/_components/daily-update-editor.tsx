@@ -23,7 +23,7 @@ import {
   type DailyUpdateItem,
   type DailyUpdateSection,
 } from "../_lib/daily-updates";
-import { workRequest } from "../_lib/work-client";
+import { WorkRequestError, workRequest } from "../_lib/work-client";
 
 type Line = DailyUpdateItem & { key: string };
 type Lines = Record<DailyUpdateSection, Line[]>;
@@ -75,10 +75,18 @@ export function DailyUpdateEditor({ canWrite }: { canWrite: boolean }) {
     setLoading(true);
     setError(null);
     setNotice(null);
-    workRequest<DailyUpdate>("daily-updates", "/draft", {
-      method: "POST",
-      body: buildDraftPayload(date),
-    })
+    const requestDraft = () =>
+      workRequest<DailyUpdate>("daily-updates", "/draft", {
+        method: "POST",
+        body: buildDraftPayload(date),
+      });
+    // Two tabs opening the same new day race for its one update; the loser is told
+    // "open it instead" (409). Opening it is exactly what a second request does.
+    requestDraft()
+      .catch((e: unknown) => {
+        if (e instanceof WorkRequestError && e.status === 409) return requestDraft();
+        throw e;
+      })
       .then((next) => {
         if (!cancelled) apply(next);
       })
@@ -150,7 +158,16 @@ export function DailyUpdateEditor({ canWrite }: { canWrite: boolean }) {
     const saved = await workRequest<DailyUpdate>(
       "daily-updates",
       `/${update.id}`,
-      { method: "PUT", body: buildSavePayload({ summary, items: flat() }) },
+      {
+        method: "PUT",
+        // The version this tab loaded: a save over a newer one is refused (409)
+        // instead of silently replacing what another tab wrote.
+        body: buildSavePayload({
+          summary,
+          items: flat(),
+          expectedVersion: update.version,
+        }),
+      },
     );
     apply(saved);
     return saved;

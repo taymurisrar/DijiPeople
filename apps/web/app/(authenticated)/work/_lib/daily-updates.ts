@@ -133,8 +133,11 @@ export function validateUpdate(input: {
 export function buildSavePayload(input: {
   summary: string;
   items: readonly DailyUpdateItem[];
+  /** The version this tab loaded; the API refuses a save over a newer one (409). */
+  expectedVersion?: number;
 }): {
   summary?: string;
+  expectedVersion?: number;
   items: {
     section: DailyUpdateSection;
     text: string;
@@ -145,6 +148,9 @@ export function buildSavePayload(input: {
   const summary = input.summary.trim();
   return {
     ...(summary ? { summary } : {}),
+    ...(input.expectedVersion !== undefined
+      ? { expectedVersion: input.expectedVersion }
+      : {}),
     items: input.items
       .filter((item) => item.text.trim())
       .map((item) => ({

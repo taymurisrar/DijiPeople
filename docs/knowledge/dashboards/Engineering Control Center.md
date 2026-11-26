@@ -17,7 +17,7 @@
 | Open CRITICAL | **5** |
 | Open HIGH | 50 |
 | Awaiting Architect triage | 3 |
-| Owner decisions pending | 16 |
+| Owner decisions pending | 17 |
 | QA coverage gaps | 167 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -32,7 +32,7 @@ survives every review by being unfalsifiable.
 | Ownerless actionable records | 0 |
 | No acceptance criteria | 244 |
 | No next action | 244 |
-| Aging — 7d / 30d / 90d | 216 / 214 / 16 |
+| Aging — 7d / 30d / 90d | 227 / 214 / 16 |
 | Architecture and technical debt | 8 |
 | Security gaps | 36 |
 | Database gaps | 19 |
@@ -133,6 +133,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices**
 - [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] — **Agreement template 55b74891 content decisions and signer notification gaps**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
+- [[ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-|ITEM-0248]] — **No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles**
 
 ## QA Coverage Gaps
 
@@ -315,8 +316,8 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 244 |
 | Blocked | 4 |
-| Deferred | 127 |
-| Awaiting a product decision | 16 |
+| Deferred | 128 |
+| Awaiting a product decision | 17 |
 | Awaiting Architect triage | 3 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.

@@ -1114,10 +1114,11 @@ test.describe('Flow R - work journeys', () => {
       await expect(milestones).toContainText(/\d+ of \d+ tasks done/);
 
       await page.getByRole('radio', { name: 'Workload' }).click();
-      await expect(page.getByText(/standard week/i)).toBeVisible();
+      // The caveat names the basis: net of approved leave and holidays, weekdays only.
+      await expect(page.getByText(/net of approved leave and holidays/i)).toBeVisible();
       await expect(page.getByText(/counted separately, never as zero/i)).toBeVisible();
       await page.getByRole('button', { name: 'Show workload' }).click();
-      await expect(page.getByText(/Capacity for the period/)).toBeVisible();
+      await expect(page.getByText(/net capacity below is after leave and holidays/i)).toBeVisible();
       await expect(page.getByRole('columnheader', { name: /Unestimated items/ })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: /Committed/ })).toBeVisible();
       const workload = await api(

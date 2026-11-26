@@ -214,8 +214,8 @@ export function BlockersManager({
   ];
 
   return (
-    <div className="grid gap-6">
-      <section aria-label="Blocked time summary" className="grid gap-4">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
+      <section aria-label="Blocked time summary" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <div className="flex flex-wrap items-end gap-4">
           <DateField
             label="Summary period start"
@@ -317,7 +317,7 @@ export function BlockersManager({
         ) : null}
       </section>
 
-      <section aria-label="Blockers list" className="grid gap-4">
+      <section aria-label="Blockers list" className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         <div className="flex flex-wrap items-end gap-4">
           <SelectField
             label="Status"
