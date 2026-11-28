@@ -853,6 +853,75 @@ describeWithDatabase()('Meetings and decision register (e2e)', () => {
     ).not.toContain(d);
   });
 
+  it('the open-actions report lists a decision for the owner of one of its actions, read-only and only their own action', async () => {
+    const d = await decision(maya, { title: 'Report owner probe' });
+    const anaAction = await call(maya, 'post', `/work-decisions/${d}/actions`, {
+      title: 'Ana owns this',
+      ownerEmployeeId: emp.ana,
+      dueAt: future(),
+    });
+    expect(anaAction.status).toBe(201);
+    const boAction = await call(maya, 'post', `/work-decisions/${d}/actions`, {
+      title: 'Bo owns this',
+      ownerEmployeeId: emp.bo,
+      dueAt: future(),
+    });
+    expect(boAction.status).toBe(201);
+
+    const idsOf = (res: { body: { items: Array<{ id: string }> } }) =>
+      res.body.items.map((i) => i.id);
+
+    // Ana was in no meeting and reaches nobody, yet the report lists the decision
+    // because she owns one of its actions - as the single read already allows.
+    const anaReport = await call(ana, 'get', '/work-decisions/open-actions');
+    expect(anaReport.status).toBe(200);
+    expect(idsOf(anaReport)).toContain(d);
+    const row = anaReport.body.items.find((i: { id: string }) => i.id === d);
+    // Only her own action is named: Bo's title and owner stay out of her report.
+    expect(
+      row.openActions.map((a: { workItemId: string }) => a.workItemId),
+    ).toEqual([anaAction.body.workItemId]);
+    expect(JSON.stringify(anaReport.body)).not.toContain('Bo owns this');
+
+    // The same person reads it on the single path too.
+    expect((await call(ana, 'get', `/work-decisions/${d}`)).status).toBe(200);
+
+    // Reading it grants no say over it.
+    expect(
+      (
+        await call(ana, 'post', `/work-decisions/${d}/reverse`, {
+          reason: 'not mine to reverse',
+        })
+      ).status,
+    ).toBe(403);
+
+    // Cy owns no action of it and reaches nobody involved.
+    expect(
+      idsOf(await call(cy, 'get', '/work-decisions/open-actions')),
+    ).not.toContain(d);
+
+    // The listing leaves with the action: once Ana's work is done the decision is
+    // no longer in her report, while Bo's open action keeps it in Bo's.
+    for (const to of ['IN_PROGRESS', 'DONE']) {
+      expect(
+        (
+          await call(
+            ana,
+            'post',
+            `/work-items/${anaAction.body.workItemId}/transition`,
+            { to },
+          )
+        ).status,
+      ).toBeLessThan(300);
+    }
+    expect(
+      idsOf(await call(ana, 'get', '/work-decisions/open-actions')),
+    ).not.toContain(d);
+    expect(
+      idsOf(await call(bo, 'get', '/work-decisions/open-actions')),
+    ).toContain(d);
+  });
+
   it('actions respect reach and leave no orphan work item behind', async () => {
     const d = await decision(ana, { title: 'Ana decision' });
     const title = `Orphan probe ${suffix}`;

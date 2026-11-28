@@ -22,6 +22,7 @@ import type {
   CreateDutyTemplateDto,
   GenerateDutiesDto,
   ListDutyHandoversDto,
+  ListHandoverRecipientsDto,
   ListDutyOccurrencesDto,
   ListDutyTemplatesDto,
   UpdateDutyTemplateDto,
@@ -79,6 +80,8 @@ type GenerationContext = {
   tenantId: string;
   actorUserId: string | null;
   sourceModule: string | null;
+  /** When set, only templates read in this IANA zone are generated. */
+  timezone?: string;
 };
 const GENERATE_CAP = 500;
 
@@ -428,21 +431,36 @@ export class WorkDutiesService {
   async listTemplates(user: AuthenticatedUser, query: ListDutyTemplatesDto) {
     const ids = await this.reachableEmployeeIds(user, SecurityPrivilege.READ);
     const scope = employeeScopeWhere(user, SecurityPrivilege.READ);
+    const search = query.search?.trim();
     const where: Prisma.DutyTemplateWhereInput = {
       tenantId: user.tenantId,
       ...(query.active === undefined ? {} : { isActive: query.active }),
-      ...(ids === null
-        ? {}
-        : {
-            OR: [
-              { createdById: user.userId },
-              { assigneeEmployeeId: { in: ids } },
-              ...(scope !== null &&
-              !this.reachesOnlySelf(user, SecurityPrivilege.READ)
-                ? [{ assigneeEmployeeId: null }]
-                : []),
-            ],
-          }),
+      AND: [
+        ...(ids === null
+          ? []
+          : [
+              {
+                OR: [
+                  { createdById: user.userId },
+                  { assigneeEmployeeId: { in: ids } },
+                  ...(scope !== null &&
+                  !this.reachesOnlySelf(user, SecurityPrivilege.READ)
+                    ? [{ assigneeEmployeeId: null }]
+                    : []),
+                ],
+              },
+            ]),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' as const } },
+                  { key: { contains: search, mode: 'insensitive' as const } },
+                ],
+              },
+            ]
+          : []),
+      ],
     };
     const [rows, total] = await Promise.all([
       this.prisma.dutyTemplate.findMany({
@@ -615,15 +633,22 @@ export class WorkDutiesService {
    * (a null actor, marked by sourceModule). The tenant id is an argument and is
    * the only thing that scopes it. Idempotent for the same reason a manual run is.
    */
-  async generateForTenantAsSystem(tenantId: string, date: string) {
+  async generateForTenantAsSystem(
+    tenantId: string,
+    date: string,
+    timezone?: string,
+  ) {
     if (!isValidDateOnly(date)) {
       problem(
         'DUTY_DATE_INVALID',
         'date must be a real calendar date, YYYY-MM-DD.',
       );
     }
+    // `timezone` narrows the pass to templates read in that zone: the scheduler's
+    // "today" is a different calendar date in different zones, so it generates one
+    // zone at a time, each for its own local date.
     return this.generateForDate(
-      { tenantId, actorUserId: null, sourceModule: SYSTEM_SOURCE },
+      { tenantId, actorUserId: null, sourceModule: SYSTEM_SOURCE, timezone },
       date,
       null,
     );
@@ -636,7 +661,11 @@ export class WorkDutiesService {
   ) {
     const tenantId = ctx.tenantId;
     const templates = await this.prisma.dutyTemplate.findMany({
-      where: { tenantId, isActive: true },
+      where: {
+        tenantId,
+        isActive: true,
+        ...(ctx.timezone ? { timezone: ctx.timezone } : {}),
+      },
       select: TEMPLATE_SELECT,
       orderBy: { key: 'asc' },
       take: GENERATE_CAP,
@@ -1282,6 +1311,48 @@ export class WorkDutiesService {
       );
       return (await this.presentHandovers(tenantId, [created]))[0];
     });
+  }
+
+  /**
+   * Who a handover may be addressed to. createHandover accepts any live, non-
+   * terminated employee of the tenant, but a person whose employee reach is only
+   * themselves cannot list colleagues through the employees API, so they could
+   * not name a receiver at all. This lists only what a handover needs (id, name,
+   * code) for the caller's own tenant, never the caller, and reveals nothing else.
+   */
+  async listHandoverRecipients(
+    user: AuthenticatedUser,
+    query: ListHandoverRecipientsDto,
+  ) {
+    const own = await this.ownEmployee(user);
+    const search = query.search?.trim();
+    const rows = await this.prisma.employee.findMany({
+      where: {
+        tenantId: user.tenantId,
+        isDeleted: false,
+        employmentStatus: { not: 'TERMINATED' },
+        ...(own ? { id: { not: own.id } } : {}),
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { employeeCode: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: { id: true, firstName: true, lastName: true, employeeCode: true },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { id: 'asc' }],
+      take: 20,
+    });
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        fullName: `${row.firstName} ${row.lastName}`.trim(),
+        employeeCode: row.employeeCode,
+      })),
+    };
   }
 
   async listHandovers(user: AuthenticatedUser, query: ListDutyHandoversDto) {

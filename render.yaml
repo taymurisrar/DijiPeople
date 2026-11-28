@@ -243,6 +243,10 @@ services:
       # set (WP-36.S2); the same pass exists as POST /work-duties/generate.
       - key: WORK_DUTY_GENERATION_ENABLED
         value: "false"
+      # Escalates missed daily updates to reporting managers on a timer. OFF unless
+      # set (WP-27.S3); the same pass exists as POST /daily-updates/escalations/run.
+      - key: WORK_DAILY_UPDATE_ESCALATION_ENABLED
+        value: "false"
       # Reports & Analytics (TASK-0028). Both workers are OFF unless set here,
       # so a deploy that omits them changes nothing rather than quietly starting
       # background work. The scheduler is what sends scheduled reports by email;

@@ -385,6 +385,7 @@ the same defect again.
 | [ITEM-0198](../../docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md) | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | P2 | DONE | apps/admin, api:error-logs, api:platform-monitoring | DONE |
 | [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | DONE | apps/admin, api:super-admin | DONE |
 | [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DONE | api:contracts, api:partners, api:leads | DONE |
+| [ITEM-0250](../../docs/backlog/items/ITEM-0250-work-routes-have-no-plan-entitlement-gate-no-work-management.md) | Work routes have no plan entitlement gate; no work-management feature key exists | PRODUCT_DECISION | MEDIUM | P2 | DONE | — | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
 | [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DONE | api:platform-runtime, apps/admin | DONE |
@@ -445,6 +446,7 @@ the same defect again.
 | [ITEM-0244](../../docs/backlog/items/ITEM-0244-tenant-entitlement-service-spec-intermittent-failure-serves-.md) | tenant-entitlement.service.spec intermittent failure: serves the last known snapshot when a refresh fails | TEST_GAP | — | P2 | DONE | — | DONE |
 | [ITEM-0246](../../docs/backlog/items/ITEM-0246-regression-id-allocator-is-inflated-by-validate-framework-pr.md) | Regression id allocator is inflated by validate-framework probes and cannot hand out 3-digit REG ids | TEST_GAP | — | P2 | DONE | framework, qa | DONE |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
+| [ITEM-0248](../../docs/backlog/items/ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-.md) | No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles | PRODUCT_DECISION | — | P3 | DONE | api:customization | DONE |
 
 ## Accepted risk
 

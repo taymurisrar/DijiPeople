@@ -6,6 +6,19 @@ import Link from "next/link";
 import { SideToast } from "@/app/components/notifications";
 import { PermissionGate } from "../../_components/permission-gate";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
+import { SelectField, TextField } from "@/app/components/ui/form-control";
+import {
+  FREE_TEXT_TASK,
+  TASK_ID_MAX_LENGTH,
+  applyPickerChoice,
+  isWorkItemLinkError,
+  pickerItems,
+  pickerValue,
+  taskDisplay,
+  taskIdForPayload,
+  taskMode,
+  type LinkableWorkItem,
+} from "../_lib/work-item-link";
 import type {
   TimesheetDay,
   TimesheetRecord,
@@ -26,6 +39,8 @@ type DraftEntry = Omit<TimesheetWeekEntry, "id" | "hours"> & {
   clientId: string;
   id?: string;
   hours: string;
+  /** The person chose "other task": the task is free text, not a work item. */
+  freeTask?: boolean;
 };
 type DraftDay = Omit<TimesheetDay, "entries"> & { entries: DraftEntry[] };
 type DraftWeek = Omit<TimesheetWeek, "days"> & { days: DraftDay[] };
@@ -38,10 +53,13 @@ type TimesheetNotification = {
 export function TimesheetMONTHLYEditor({
   projectOptions = [],
   workLocationOptions = [],
+  workItems = [],
   timesheet,
 }: {
   projectOptions?: readonly ProjectOption[];
   workLocationOptions?: readonly LookupOption[];
+  /** The person's own work items, for linking an entry; empty when none or not entitled. */
+  workItems?: readonly LinkableWorkItem[];
   settings?: Record<string, unknown>;
   timesheet: TimesheetRecord;
 }) {
@@ -49,6 +67,9 @@ export function TimesheetMONTHLYEditor({
   const [weeks, setWeeks] = useState<DraftWeek[]>(() => draftWeeks(timesheet));
   const [busyWeekId, setBusyWeekId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A refusal of a work-item link belongs next to the linked entries, not in the
+  // generic "action not completed" dialog.
+  const [workItemError, setWorkItemError] = useState<string | null>(null);
   const [notification, setNotification] =
     useState<TimesheetNotification | null>(null);
   const [correctionOpen, setCorrectionOpen] = useState(false);
@@ -203,6 +224,7 @@ export function TimesheetMONTHLYEditor({
                 entry.projectAssignmentId ??
                 null,
               workLocationId: entry.workLocationId || null,
+              taskId: taskIdForPayload(entry.taskId),
               hours: entry.hours,
               notes: entry.notes || null,
             })),
@@ -340,6 +362,7 @@ export function TimesheetMONTHLYEditor({
   ) {
     setBusyWeekId(weekId);
     setError(null);
+    setWorkItemError(null);
     setNotification(null);
     try {
       const response = await fetch(
@@ -356,8 +379,14 @@ export function TimesheetMONTHLYEditor({
       const data = (await response.json()) as TimesheetRecord & {
         message?: string | string[];
         warnings?: string[];
+        errorCode?: string;
+        code?: string;
       };
-      if (!response.ok) throw new Error(readMessage(data.message));
+      if (!response.ok) {
+        throw Object.assign(new Error(readMessage(data.message)), {
+          code: data.errorCode ?? data.code,
+        });
+      }
       if (Array.isArray(data.weeks)) setWeeks(draftWeeks(data));
       if (successMessage) {
         setNotification({ title: successMessage, variant: "success" });
@@ -365,11 +394,18 @@ export function TimesheetMONTHLYEditor({
       router.refresh();
       return data;
     } catch (caught) {
-      setError(
+      const message =
         caught instanceof Error
           ? caught.message
-          : "The timesheet action failed.",
+          : "The timesheet action failed.";
+      const code = (caught as { code?: unknown }).code;
+      const linked = weeks.some((week) =>
+        week.days.some((day) =>
+          day.entries.some((entry) => taskMode(entry, workItems) === "item"),
+        ),
       );
+      if (isWorkItemLinkError(code, message) && linked) setWorkItemError(message);
+      else setError(message);
       return null;
     } finally {
       setBusyWeekId(null);
@@ -733,6 +769,8 @@ export function TimesheetMONTHLYEditor({
                     }
                     projects={projectOptions}
                     attendanceEnabled={attendanceEnabled}
+                    workItemError={workItemError}
+                    workItems={workItems}
                     workLocations={workLocationOptions}
                   />
                 ))}
@@ -1025,6 +1063,8 @@ function DayEditor({
   onChange,
   onRemove,
   projects,
+  workItemError,
+  workItems,
   workLocations,
 }: {
   attendanceEnabled: boolean;
@@ -1034,6 +1074,8 @@ function DayEditor({
   onChange: (clientId: string, patch: Partial<DraftEntry>) => void;
   onRemove: (clientId: string) => void;
   projects: readonly ProjectOption[];
+  workItemError: string | null;
+  workItems: readonly LinkableWorkItem[];
   workLocations: readonly LookupOption[];
 }) {
   return (
@@ -1185,6 +1227,41 @@ function DayEditor({
                 </button>
               ) : null}
             </div>
+            {editable ? (
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <SelectField
+                  error={
+                    taskMode(entry, workItems) === "item"
+                      ? (workItemError ?? undefined)
+                      : undefined
+                  }
+                  label="Work item"
+                  onChange={(choice) => onChange(entry.clientId, applyPickerChoice(choice))}
+                  options={[
+                    { value: "", label: "No work item" },
+                    ...pickerItems(workItems, entry.taskId?.trim()).map(
+                      (item) => ({ value: item.id, label: item.title }),
+                    ),
+                    { value: FREE_TEXT_TASK, label: "Other task" },
+                  ]}
+                  value={pickerValue(entry, workItems)}
+                />
+                {taskMode(entry, workItems) === "text" ? (
+                  <TextField
+                    label="Task"
+                    maxLength={TASK_ID_MAX_LENGTH}
+                    onChange={(text) =>
+                      onChange(entry.clientId, { taskId: text, freeTask: true })
+                    }
+                    value={entry.taskId ?? ""}
+                  />
+                ) : null}
+              </div>
+            ) : entry.taskId ? (
+              <p className="mt-2 text-xs text-foreground">
+                {`Work item: ${taskDisplay(entry.taskId, workItems)}`}
+              </p>
+            ) : null}
             <p className="mt-1 text-[11px] text-muted">
               Source: {friendly(entry.source)}
             </p>

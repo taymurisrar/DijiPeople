@@ -154,6 +154,12 @@ export class UpdateDutyTemplateDto {
 }
 
 export class ListDutyTemplatesDto {
+  /** Case-insensitive match on the template name or key, inside the caller's own tenant and reach. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
   @IsOptional()
   @Transform(toBoolean)
   @IsBoolean()
@@ -229,6 +235,13 @@ export class CreateDutyHandoverDto {
   @IsOptional()
   @IsUUID()
   occurrenceId?: string;
+}
+
+export class ListHandoverRecipientsDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 }
 
 export class ListDutyHandoversDto {

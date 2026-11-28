@@ -45,3 +45,8 @@ export async function POST(request: Request, context: RouteContext) {
 export async function PUT(request: Request, context: RouteContext) {
   return proxy(request, context);
 }
+
+// Scoped policies are removed with DELETE /daily-updates/scope-policies/:id.
+export async function DELETE(request: Request, context: RouteContext) {
+  return proxy(request, context);
+}

@@ -19,6 +19,8 @@ export const TENANT_FEATURE_KEYS = {
   ATTENDANCE: 'attendance',
   TIMESHEETS: 'timesheets',
   PROJECTS: 'projects',
+  WORK_MANAGEMENT: 'work-management',
+  WORK_INTELLIGENCE: 'work-intelligence',
   RECRUITMENT: 'recruitment',
   ONBOARDING: 'onboarding',
   DOCUMENTS: 'documents',
@@ -67,6 +69,10 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
   payroll: TENANT_FEATURE_KEYS.PAYROLL,
   payslips: TENANT_FEATURE_KEYS.PAYROLL,
   projects: TENANT_FEATURE_KEYS.PROJECTS,
+  'work-items': TENANT_FEATURE_KEYS.WORK_MANAGEMENT,
+  'daily-updates': TENANT_FEATURE_KEYS.WORK_MANAGEMENT,
+  'work-profiles': TENANT_FEATURE_KEYS.WORK_MANAGEMENT,
+  contributions: TENANT_FEATURE_KEYS.WORK_MANAGEMENT,
   recruitment: TENANT_FEATURE_KEYS.RECRUITMENT,
   'tax-rules': TENANT_FEATURE_KEYS.PAYROLL,
   'time-payroll': TENANT_FEATURE_KEYS.PAYROLL,
@@ -155,6 +161,8 @@ export const ENTITLEMENT_UNGATED_FEATURE_KEYS: Readonly<
     'Enforced inside the email template authoring service (create/update/clone), because the template routes share a controller with notification settings that every plan keeps.',
   [TENANT_FEATURE_KEYS.EMAIL_WHITE_LABEL]:
     'Not a route: it decides at send time whether the DijiPeople attribution is dropped from branded transactional email. Essential branding itself is open to every plan.',
+  [TENANT_FEATURE_KEYS.WORK_INTELLIGENCE]:
+    'Enforced in the service layer (TenantEntitlementService.assertEntitled) at the work-component ALM paths, because the controllers that reach them are shared with work-management, which Growth also buys.',
   [TENANT_FEATURE_KEYS.ADVANCED_DATA_MANAGEMENT]:
     'Premium tier of data management (saved mappings, scheduled jobs, transformations, integrations). None of those routes exist yet, so nothing can be gated; whoever builds one must gate it with this key and move it out of this register. Basic import/export is data-import-export and is open to every plan.',
 };

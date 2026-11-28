@@ -18,11 +18,15 @@ import {
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   DailyUpdatePolicyDto,
   DailyUpdateScopePolicyDto,
   DraftDailyUpdateDto,
+  EffectivePolicyQueryDto,
   ListDailyUpdatesDto,
   MissingDailyUpdatesDto,
   RunEscalationDto,
@@ -37,7 +41,8 @@ import { DailyUpdatesService } from './daily-updates.service';
  * decided in the service from the caller's access level on the employee.
  */
 @Controller('daily-updates')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.WORK_MANAGEMENT)
 export class DailyUpdatesController {
   constructor(private readonly service: DailyUpdatesService) {}
 
@@ -61,8 +66,11 @@ export class DailyUpdatesController {
   @Get('policy/effective')
   @Permissions('daily-updates.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
-  effectivePolicy(@CurrentUser() user: AuthenticatedUser) {
-    return this.service.effectivePolicy(user);
+  effectivePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: EffectivePolicyQueryDto,
+  ) {
+    return this.service.effectivePolicy(user, query.employeeId);
   }
 
   @Get('scope-policies')

@@ -19,6 +19,9 @@ import {
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   AddDependencyDto,
@@ -40,7 +43,8 @@ import { WorkItemsService } from './work-items.service';
  * `work-items.write`. Nothing deletes a work item: it is archived.
  */
 @Controller('work-items')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.WORK_MANAGEMENT)
 export class WorkItemsController {
   constructor(private readonly service: WorkItemsService) {}
 

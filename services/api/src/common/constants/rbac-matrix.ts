@@ -674,6 +674,12 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'customization:CONFIGURE': SecurityAccessLevel.TENANT,
     'customization:CUSTOMIZE': SecurityAccessLevel.TENANT,
     'customization:EXPORT': SecurityAccessLevel.TENANT,
+    // ITEM-0248 (ADR-0032): package import routes require this privilege, which the
+    // role did not hold, so it could add components to a package but not import one.
+    // Deliberately NO employees privilege: the work profile and queue configuration
+    // routes accept customization:READ/CONFIGURE (ADR-0032), so this role has no
+    // access to employee data.
+    'customization:IMPORT': SecurityAccessLevel.TENANT,
     'settings:CUSTOMIZE': SecurityAccessLevel.TENANT,
     'documents:READ': SecurityAccessLevel.TENANT,
     'documents:CONFIGURE': SecurityAccessLevel.TENANT,
@@ -1094,6 +1100,12 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_RELEASE,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_IMPORT,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_UNINSTALL,
+    // ITEM-0248 (ADR-0032): the role that owns ALM packaging also owns the work
+    // components a package carries, so one seeded role can add them to a package.
+    'work-profiles.read',
+    'work-profiles.manage',
+    'work-queues.read',
+    'work-queues.manage',
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH_CENTER_READ,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_IMPORT_PREVIEW,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_EXPORT,

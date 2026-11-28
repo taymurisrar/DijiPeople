@@ -116,6 +116,22 @@ export function zonedInstant(
   return new Date(guess);
 }
 
+/**
+ * `days` consecutive local calendar dates starting with the date `instant` falls on
+ * in `zone`. The same instant is a different "today" in different zones, so the
+ * scheduler counts days ahead from each template zone's own today.
+ */
+export function localDatesFrom(
+  instant: Date,
+  zone: string,
+  days: number,
+): string[] {
+  const start = dateOnlyToDate(localDateInZone(instant, zone)).getTime();
+  return Array.from({ length: days }, (_, i) =>
+    new Date(start + i * 86_400_000).toISOString().slice(0, 10),
+  );
+}
+
 /** Does a template recur on this local calendar date? */
 export function recursOn(weekdays: readonly number[], date: string): boolean {
   return weekdays.includes(isoWeekdayOfDate(date));

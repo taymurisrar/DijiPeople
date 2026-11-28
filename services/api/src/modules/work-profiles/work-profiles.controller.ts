@@ -12,11 +12,14 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   Permissions,
-  RequirePermission,
+  RequireAnyPermission,
 } from '../../common/decorators/permissions.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   CreateAssignmentDto,
@@ -45,7 +48,8 @@ import { WorkProfilesService } from './work-profiles.service';
  * before `:id` so they are never captured as a profile id.
  */
 @Controller('work-profiles')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.WORK_MANAGEMENT)
 export class WorkProfilesController {
   constructor(
     private readonly service: WorkProfilesService,
@@ -56,14 +60,20 @@ export class WorkProfilesController {
 
   @Get('units')
   @Permissions('work-profiles.read')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'read' },
+  )
   listUnits(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listUnits(user.tenantId);
   }
 
   @Post('units')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   createUnit(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateWorkUnitDto,
@@ -73,7 +83,10 @@ export class WorkProfilesController {
 
   @Patch('units/:id')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   updateUnit(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -86,7 +99,10 @@ export class WorkProfilesController {
 
   @Get('assignments')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   listAssignments(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListAssignmentsDto,
@@ -96,7 +112,10 @@ export class WorkProfilesController {
 
   @Post('assignments')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   assign(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateAssignmentDto,
@@ -106,7 +125,10 @@ export class WorkProfilesController {
 
   @Patch('assignments/:id/end')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   endAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -119,7 +141,10 @@ export class WorkProfilesController {
 
   @Post('import')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   importPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ImportWorkProfilePackageDto,
@@ -131,7 +156,10 @@ export class WorkProfilesController {
 
   @Get()
   @Permissions('work-profiles.read')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'read' },
+  )
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListWorkProfilesDto,
@@ -141,7 +169,10 @@ export class WorkProfilesController {
 
   @Post()
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateWorkProfileDto,
@@ -151,7 +182,10 @@ export class WorkProfilesController {
 
   @Get(':id')
   @Permissions('work-profiles.read')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'read' },
+  )
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -161,7 +195,10 @@ export class WorkProfilesController {
 
   @Get(':id/export')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   exportPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -171,7 +208,10 @@ export class WorkProfilesController {
 
   @Patch(':id')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -182,7 +222,10 @@ export class WorkProfilesController {
 
   @Post(':id/versions')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   createDraft(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -192,7 +235,10 @@ export class WorkProfilesController {
 
   @Patch(':id/versions/:versionId')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   updateDraft(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -204,7 +250,10 @@ export class WorkProfilesController {
 
   @Post(':id/versions/:versionId/publish')
   @Permissions('work-profiles.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   publish(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

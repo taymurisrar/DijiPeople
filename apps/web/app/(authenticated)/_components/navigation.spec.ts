@@ -399,6 +399,9 @@ describe("the work entries marked hiddenForSelfService", () => {
     expect(visible).toContain("/work");
     expect(visible).toContain("/work/contributions");
     expect(visible).toContain("/work/daily-update");
+    expect(visible).toContain("/work/duties");
+    expect(visible).toContain("/work/meetings");
+    expect(visible).toContain("/work/decisions");
     expect(visible).not.toContain("/work/queues");
     expect(visible).not.toContain("/work/daily-updates");
   });

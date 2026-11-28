@@ -249,3 +249,156 @@ export function buildPolicyPayload(input: {
     requireAcknowledgement: input.requireAcknowledgement,
   };
 }
+
+/* ---------- scoped policies and escalation (WP-27.S3) ---------- */
+
+export const CADENCES = ["WORKING_DAYS", "PER_SHIFT"] as const;
+export type Cadence = (typeof CADENCES)[number];
+
+export const CADENCE_LABELS: Record<Cadence, string> = {
+  WORKING_DAYS: "Working days",
+  PER_SHIFT: "Per shift",
+};
+
+export const MAX_ESCALATE_AFTER_MINUTES = 10080;
+
+export type ScopePolicy = {
+  id: string;
+  teamId: string | null;
+  businessUnitId: string | null;
+  enabled: boolean;
+  cadence: Cadence;
+  workingDays: number[];
+  deadlineMinutes: number;
+  timezone: string;
+  requireAcknowledgement: boolean;
+  escalateAfterMinutes: number | null;
+};
+
+export type EffectivePolicy = Omit<ScopePolicy, "id" | "teamId" | "businessUnitId"> & {
+  source: "TEAM" | "BUSINESS_UNIT" | "TENANT";
+};
+
+export type EscalationSummary = {
+  evaluated: number;
+  escalated: number;
+  alreadyEscalated: number;
+  noManager: number;
+  failed: number;
+};
+
+export const SOURCE_LABELS: Record<EffectivePolicy["source"], string> = {
+  TEAM: "Team policy",
+  BUSINESS_UNIT: "Business unit policy",
+  TENANT: "Tenant policy",
+};
+
+export type ScopeTarget =
+  | { kind: "TEAM"; id: string }
+  | { kind: "BUSINESS_UNIT"; id: string };
+
+export function scopeTargetOf(policy: Pick<ScopePolicy, "teamId" | "businessUnitId">): ScopeTarget | null {
+  if (policy.teamId) return { kind: "TEAM", id: policy.teamId };
+  if (policy.businessUnitId) return { kind: "BUSINESS_UNIT", id: policy.businessUnitId };
+  return null;
+}
+
+/** Exactly one of a team or a business unit, named. */
+export function validateScopePolicy(input: {
+  targetKind: "TEAM" | "BUSINESS_UNIT";
+  targetId: string;
+  workingDays: readonly number[];
+  cadence: Cadence;
+  deadlineTime: string;
+  deadlineMinutes: string;
+  timezone: string;
+  escalateAfter: string;
+}): string | null {
+  if (!input.targetId) {
+    return input.targetKind === "TEAM" ? "Choose a team." : "Choose a business unit.";
+  }
+  if (input.cadence === "WORKING_DAYS" && input.workingDays.length === 0) {
+    return "Choose at least one working day.";
+  }
+  if (input.cadence === "WORKING_DAYS") {
+    if (timeToMinutes(input.deadlineTime) === null) return "Enter the deadline as a time.";
+  } else {
+    const minutes = Number(input.deadlineMinutes);
+    if (!input.deadlineMinutes.trim() || !Number.isInteger(minutes) || minutes < 0 || minutes > 1439) {
+      return "Enter the deadline as minutes after the shift ends (0 to 1439).";
+    }
+  }
+  if (!input.timezone.trim()) return "Enter the time zone the deadline is read in.";
+  if (input.escalateAfter.trim()) {
+    const after = Number(input.escalateAfter);
+    if (!Number.isInteger(after) || after < 0 || after > MAX_ESCALATE_AFTER_MINUTES) {
+      return `Enter escalation as whole minutes (0 to ${MAX_ESCALATE_AFTER_MINUTES}).`;
+    }
+  }
+  return null;
+}
+
+/**
+ * The save body. A team and a business unit are never sent together, a blank
+ * escalation sends null (which turns escalation off), and the deadline is a time
+ * of day for working-day cadence but minutes after the shift for per-shift.
+ */
+export function buildScopePolicyPayload(input: {
+  targetKind: "TEAM" | "BUSINESS_UNIT";
+  targetId: string;
+  enabled: boolean;
+  cadence: Cadence;
+  workingDays: readonly number[];
+  deadlineTime: string;
+  deadlineMinutes: string;
+  timezone: string;
+  requireAcknowledgement: boolean;
+  escalateAfter: string;
+}) {
+  return {
+    ...(input.targetKind === "TEAM"
+      ? { teamId: input.targetId }
+      : { businessUnitId: input.targetId }),
+    enabled: input.enabled,
+    cadence: input.cadence,
+    workingDays: [...new Set(input.workingDays)].sort((a, b) => a - b),
+    deadlineMinutes:
+      input.cadence === "WORKING_DAYS"
+        ? (timeToMinutes(input.deadlineTime) ?? 0)
+        : Number(input.deadlineMinutes),
+    timezone: input.timezone.trim(),
+    requireAcknowledgement: input.requireAcknowledgement,
+    escalateAfterMinutes: input.escalateAfter.trim() ? Number(input.escalateAfter) : null,
+  };
+}
+
+/** "Escalates after 30 min" / "No escalation". */
+export function escalationLabel(minutes: number | null): string {
+  if (minutes === null) return "No escalation";
+  if (minutes === 0) return "Escalates at the deadline";
+  return `Escalates after ${minutes} min`;
+}
+
+export function deadlineLabel(policy: Pick<ScopePolicy, "cadence" | "deadlineMinutes">): string {
+  return policy.cadence === "PER_SHIFT"
+    ? `${policy.deadlineMinutes} min after the shift`
+    : minutesToTime(policy.deadlineMinutes);
+}
+
+export function workingDaysLabel(days: readonly number[]): string {
+  return [...days]
+    .sort((a, b) => a - b)
+    .map((d) => (WEEKDAY_LABELS[d] ?? "").slice(0, 3))
+    .join(", ");
+}
+
+/** The counts one escalation run returned, as plain label/value pairs. */
+export function escalationRows(summary: EscalationSummary): { label: string; value: number }[] {
+  return [
+    { label: "Evaluated", value: summary.evaluated },
+    { label: "Escalated", value: summary.escalated },
+    { label: "Already escalated", value: summary.alreadyEscalated },
+    { label: "No manager", value: summary.noManager },
+    { label: "Failed", value: summary.failed },
+  ];
+}

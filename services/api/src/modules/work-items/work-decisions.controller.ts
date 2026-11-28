@@ -17,6 +17,9 @@ import {
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   AddDecisionActionDto,
@@ -40,7 +43,8 @@ import { WorkDecisionsService } from './work-decisions.service';
  * route for a decision: it is superseded or reversed, and stays in the register.
  */
 @Controller()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.WORK_MANAGEMENT)
 export class WorkDecisionsController {
   constructor(private readonly service: WorkDecisionsService) {}
 

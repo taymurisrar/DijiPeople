@@ -108,6 +108,18 @@ describe('effective entitlement on a custom plan', () => {
     expect(await allowed(grandfathered.svc, AGENT)).toBe(true);
   });
 
+  it('a custom plan sells work-management and work-intelligence independently, and a MANUAL row cannot grant either', async () => {
+    const WM = TENANT_FEATURE_KEYS.WORK_MANAGEMENT;
+    const WI = TENANT_FEATURE_KEYS.WORK_INTELLIGENCE;
+    const only = build([WM]);
+    expect(await allowed(only.svc, WM)).toBe(true);
+    expect(await allowed(only.svc, WI)).toBe(false);
+    const neither = build([], [{ key: WM, isEnabled: true, source: 'MANUAL' }]);
+    expect(await allowed(neither.svc, WM)).toBe(false);
+    const granted = build([], [{ key: WI, isEnabled: true, source: 'CUSTOM' }]);
+    expect(await allowed(granted.svc, WI)).toBe(true);
+  });
+
   it('a lapsed subscription is a billing state: the gate reports it, it does not re-decide the plan', async () => {
     const { svc } = build([AGENT], [], 'CANCELED');
     expect((await svc.decide('t', [AGENT])).outcome).toBe(

@@ -2617,6 +2617,10 @@ export class PackageAlmService {
   ) {
     const record = await this.findPackage(currentUser, packageId);
     this.assertEditable(record);
+    await this.work.assertPackagingEntitled(
+      currentUser.tenantId,
+      'customization/packages/work-components',
+    );
     const missing = this.work.missingPermissions(
       currentUser,
       dto.components.map((entry) => entry.type),

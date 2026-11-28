@@ -12,11 +12,14 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   Permissions,
-  RequirePermission,
+  RequireAnyPermission,
 } from '../../common/decorators/permissions.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateWorkQueueDto, UpdateWorkQueueDto } from './dto/work-queue.dto';
 import { WorkItemsService } from './work-items.service';
@@ -27,7 +30,8 @@ import { WorkQueuesService } from './work-queues.service';
  * a queue needs `work-queues.manage`. A queue is deactivated, never deleted.
  */
 @Controller('work-queues')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.WORK_MANAGEMENT)
 export class WorkQueuesController {
   constructor(
     private readonly queues: WorkQueuesService,
@@ -36,7 +40,10 @@ export class WorkQueuesController {
 
   @Get()
   @Permissions('work-queues.read')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'read' },
+  )
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query('includeInactive') includeInactive?: string,
@@ -46,7 +53,10 @@ export class WorkQueuesController {
 
   @Get(':id/summary')
   @Permissions('work-queues.read')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'read' },
+  )
   summary(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -56,7 +66,10 @@ export class WorkQueuesController {
 
   @Post()
   @Permissions('work-queues.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateWorkQueueDto,
@@ -66,7 +79,10 @@ export class WorkQueuesController {
 
   @Patch(':id')
   @Permissions('work-queues.manage')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'manage' },
+    { entityKey: ENTITY_KEYS.CUSTOMIZATION, action: 'configure' },
+  )
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

@@ -6,6 +6,8 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { PortableComponent } from '../customization/package-artifact';
 import { WorkQueuesService } from '../work-items/work-queues.service';
 import type { WorkProfileDefinition } from './work-profile-definition';
@@ -52,7 +54,23 @@ export class WorkComponentsService {
     private readonly prisma: PrismaService,
     private readonly profiles: WorkProfilesService,
     private readonly queues: WorkQueuesService,
+    private readonly entitlements: TenantEntitlementService,
   ) {}
+
+  /**
+   * Packaging work components for ALM (adding them to a package, analysing or
+   * applying an import) is the Enterprise-only `work-intelligence` capability.
+   * Enforced here, in the service, because the controllers that reach it are
+   * shared with `work-management`, which Growth also buys. Non-work components
+   * never come through this service, so they are unaffected.
+   */
+  assertPackagingEntitled(tenantId: string, route: string) {
+    return this.entitlements.assertEntitled(
+      tenantId,
+      [TENANT_FEATURE_KEYS.WORK_INTELLIGENCE],
+      route,
+    );
+  }
 
   /** Permission keys the importing user lacks for the given component types. */
   missingPermissions(
@@ -79,6 +97,9 @@ export class WorkComponentsService {
     components: readonly PortableComponent[],
     options: Partial<PlanOptions>,
   ): Promise<WorkProfileImportPlan> {
+    if (components.length) {
+      await this.assertPackagingEntitled(tenantId, 'work-components/plan');
+    }
     const keysOf = (type: string) =>
       components
         .filter((component) => component.type === type)

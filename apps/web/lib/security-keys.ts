@@ -378,6 +378,8 @@ export const FEATURE_KEYS = {
   ATTENDANCE: "attendance",
   TIMESHEETS: "timesheets",
   PROJECTS: "projects",
+  WORK_MANAGEMENT: "work-management",
+  WORK_INTELLIGENCE: "work-intelligence",
   PAYROLL: "payroll",
   RECRUITMENT: "recruitment",
   ONBOARDING: "onboarding",

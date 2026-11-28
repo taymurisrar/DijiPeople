@@ -764,6 +764,23 @@ export const ERROR_CATALOG = {
     'payroll',
     'Submit your outstanding timesheets to restore access.',
   ),
+  // WP-06.S3 work-item links on a timesheet entry. Thrown by assertWorkItemLinks
+  // with a specific message; the entries exist so the code reaches the browser
+  // (which shows it beside the work item) instead of collapsing to VALIDATION_FAILED.
+  TIMESHEET_WORK_ITEM_NOT_YOURS: entry(
+    400,
+    'Work item cannot be booked',
+    'Time can only be booked to a work item you own or share, and that is not archived.',
+    'warning',
+    'payroll',
+  ),
+  TIMESHEET_WORK_ITEM_PROJECT: entry(
+    400,
+    'Work item is on another project',
+    'The work item belongs to a different project than the entry.',
+    'warning',
+    'payroll',
+  ),
   TIMESHEET_SUBMISSION_FAILED: entry(
     400,
     'Timesheet submission failed',

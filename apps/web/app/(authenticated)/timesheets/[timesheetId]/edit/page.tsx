@@ -1,5 +1,6 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { TimesheetMONTHLYEditor } from "../../_components/timesheet-monthly-editor";
+import { loadMyWorkItems } from "../../_lib/load-work-items";
 import type { TimesheetRecord } from "../../types";
 
 type PageProps = {
@@ -11,7 +12,7 @@ export default async function EditTimesheetPage({ params }: PageProps) {
   const timesheet = await apiRequestJson<TimesheetRecord>(
     `/timesheets/${timesheetId}`,
   );
-  const [projectOptions, workLocationOptions] = await Promise.all([
+  const [projectOptions, workLocationOptions, workItems] = await Promise.all([
       timesheet.canCurrentUserEdit
         ? apiRequestJson<AssignedProjectOption[]>(
             "/projects/assigned/me",
@@ -22,6 +23,7 @@ export default async function EditTimesheetPage({ params }: PageProps) {
             .then(lookupItems)
             .catch(() => [])
         : Promise.resolve([]),
+      loadMyWorkItems(),
     ]);
 
   return (
@@ -29,6 +31,7 @@ export default async function EditTimesheetPage({ params }: PageProps) {
       <TimesheetMONTHLYEditor
         projectOptions={projectOptions}
         timesheet={timesheet}
+        workItems={workItems}
         workLocationOptions={workLocationOptions}
       />
     </div>

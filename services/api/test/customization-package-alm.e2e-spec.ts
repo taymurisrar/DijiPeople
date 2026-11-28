@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 
 import { PrismaModule } from '../src/common/prisma/prisma.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { TenantEntitlementService } from '../src/common/security/tenant-entitlement.service';
 import { RequestContextModule } from '../src/common/request-context/request-context.module';
 import { SecretEncryptionService } from '../src/common/security/secret-encryption.service';
 import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-request.interface';
@@ -176,6 +177,7 @@ describeWithDatabase({ requireUtf8: true })(
           WorkComponentsService,
           WorkProfilesService,
           WorkQueuesService,
+          TenantEntitlementService,
           AuditRepository,
           AuditService,
           SecretEncryptionService,

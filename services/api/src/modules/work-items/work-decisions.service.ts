@@ -11,6 +11,7 @@ import {
   MeetingStatus,
   Prisma,
   SecurityPrivilege,
+  WorkItemStatus,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -227,9 +228,18 @@ export class WorkDecisionsService {
   private async actionOwnerDecisionIds(
     user: AuthenticatedUser,
     own: string,
+    openOnly = false,
   ): Promise<string[]> {
     const items = await this.prisma.workItem.findMany({
-      where: { tenantId: user.tenantId, ownerEmployeeId: own },
+      where: {
+        tenantId: user.tenantId,
+        ownerEmployeeId: own,
+        // The open-actions report follows work that is still outstanding: once the
+        // owner's own action is closed the decision leaves their report.
+        ...(openOnly
+          ? { status: { notIn: CLOSED_ITEM as WorkItemStatus[] } }
+          : {}),
+      },
       select: { id: true },
       take: 5000,
     });
@@ -247,14 +257,14 @@ export class WorkDecisionsService {
 
   private async decisionWhere(
     user: AuthenticatedUser,
-    options: { readOnly?: boolean } = {},
+    options: { readOnly?: boolean; openOnly?: boolean } = {},
   ): Promise<Prisma.WorkDecisionWhereInput | null> {
     const { where: meeting, reach, own } = await this.meetingWhere(user);
     // The owner of an action reads the decision it came from even when they were
     // not in the meeting and reach nobody, so that clause stands apart from reach.
     const viaAction =
       options.readOnly && own
-        ? await this.actionOwnerDecisionIds(user, own)
+        ? await this.actionOwnerDecisionIds(user, own, options.openOnly)
         : [];
     if (reach?.all) return { tenantId: user.tenantId };
     if (!reach || !meeting) {
@@ -1332,7 +1342,12 @@ export class WorkDecisionsService {
     user: AuthenticatedUser,
     query: { take?: number; skip?: number },
   ) {
-    const visible = await this.decisionWhere(user);
+    // Read-only: the owner of one of a decision's actions reads that decision here
+    // exactly as on the single-decision path. It never widens what they may change.
+    const visible = await this.decisionWhere(user, {
+      readOnly: true,
+      openOnly: true,
+    });
     if (!visible) return { items: [], total: 0 };
     const open = await this.prisma.$queryRaw<{ decisionId: string }[]>`
       SELECT DISTINCT da."decisionId" AS "decisionId"
@@ -1385,7 +1400,23 @@ export class WorkDecisionsService {
           },
         })
       : [];
-    const byId = new Map(work.map((w) => [w.id, w]));
+    // An action is a work item: its title and owner go only to someone who may see
+    // it, as on the single-decision read. An action owner reaching the decision
+    // does not thereby see the other people's actions.
+    const seeable = new Set(
+      (
+        await Promise.all(
+          work.map(
+            async (w) => [w.id, await this.canSeeWorkItem(user, w.id)] as const,
+          ),
+        )
+      )
+        .filter(([, ok]) => ok)
+        .map(([workId]) => workId),
+    );
+    const byId = new Map(
+      work.filter((w) => seeable.has(w.id)).map((w) => [w.id, w]),
+    );
     const now = new Date();
     return {
       items: counted.map((row) => ({

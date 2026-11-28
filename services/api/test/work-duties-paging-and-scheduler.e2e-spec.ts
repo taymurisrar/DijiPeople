@@ -331,6 +331,59 @@ describeWithDatabase()('Duty paging and generation scheduler (e2e)', () => {
     expect(res.body).toEqual({ items: [], total: 0 });
   });
 
+  it('searches templates by name or key inside the tenant, so none is out of reach of a lookup', async () => {
+    const tag = `srch${suffix}`;
+    await prisma.dutyTemplate.createMany({
+      data: [
+        {
+          tenantId,
+          key: `${tag}-alpha`,
+          name: 'Zebra opening',
+          weekdays: [1],
+          timezone: 'UTC',
+          assigneeEmployeeId: emp.maya,
+        },
+        {
+          tenantId,
+          key: `other-${suffix}`,
+          name: `Closing ${tag.toUpperCase()}`,
+          weekdays: [1],
+          timezone: 'UTC',
+          assigneeEmployeeId: emp.maya,
+        },
+        {
+          tenantId: otherTenantId,
+          key: `${tag}-foreign`,
+          name: 'Foreign opening',
+          weekdays: [1],
+          timezone: 'UTC',
+        },
+      ],
+    });
+    const found = await call(
+      maya,
+      'get',
+      `/work-duties/templates?search=${tag}&take=20`,
+    );
+    expect(found.status).toBe(200);
+    const keys = (found.body.items as Array<{ key: string }>).map((t) => t.key);
+    // matched on the key (case-insensitively) and on the name; the other tenant's is never offered
+    expect(keys.sort()).toEqual([`${tag}-alpha`, `other-${suffix}`].sort());
+    expect(found.body.total).toBe(2);
+    const none = await call(
+      maya,
+      'get',
+      `/work-duties/templates?search=${tag}-nomatch`,
+    );
+    expect(none.body).toEqual({ items: [], total: 0 });
+    const tooLong = await call(
+      maya,
+      'get',
+      `/work-duties/templates?search=${'x'.repeat(101)}`,
+    );
+    expect(tooLong.status).toBe(400);
+  });
+
   describe('generation scheduler', () => {
     const monday = new Date('2027-03-01T10:00:00.000Z'); // a Monday
     let templateIds: string[] = [];
@@ -450,6 +503,58 @@ describeWithDatabase()('Duty paging and generation scheduler (e2e)', () => {
         where: { id: { in: only } },
         data: { isActive: false },
       });
+    });
+
+    it("generates each template for its own zone's local today, idempotently", async () => {
+      // 12:00 UTC on Mon 2027-03-01 is already Tue 2027-03-02 in Auckland and
+      // still Mon 2027-03-01 in Los Angeles.
+      const instant = new Date('2027-03-01T12:00:00.000Z');
+      const mk = async (tz: string, tag: string) =>
+        (
+          await prisma.dutyTemplate.create({
+            data: {
+              tenantId,
+              key: `tz-${tag}-${suffix}`,
+              name: `Zone ${tag}`,
+              weekdays: [1, 2, 3, 4, 5, 6, 7],
+              timezone: tz,
+              assigneeEmployeeId: emp.ana,
+            },
+            select: { id: true },
+          })
+        ).id;
+      const auckland = await mk('Pacific/Auckland', 'akl');
+      const la = await mk('America/Los_Angeles', 'la');
+      const datesOf = async (id: string) =>
+        (
+          await prisma.dutyOccurrence.findMany({
+            where: { tenantId, dutyTemplateId: id },
+            select: { forDate: true },
+            orderBy: { forDate: 'asc' },
+          })
+        ).map((o) => o.forDate.toISOString().slice(0, 10));
+      try {
+        await scheduler.tick({
+          now: instant,
+          daysAhead: 2,
+          tenantIds: [tenantId],
+        });
+        expect(await datesOf(auckland)).toEqual(['2027-03-02', '2027-03-03']);
+        expect(await datesOf(la)).toEqual(['2027-03-01', '2027-03-02']);
+        const again = await scheduler.tick({
+          now: instant,
+          daysAhead: 2,
+          tenantIds: [tenantId],
+        });
+        expect(again.failed).toBe(0);
+        expect(await datesOf(auckland)).toHaveLength(2);
+        expect(await datesOf(la)).toHaveLength(2);
+      } finally {
+        await prisma.dutyTemplate.updateMany({
+          where: { id: { in: [auckland, la] } },
+          data: { isActive: false },
+        });
+      }
     });
 
     it('one tenant failing does not stop another, and is counted', async () => {

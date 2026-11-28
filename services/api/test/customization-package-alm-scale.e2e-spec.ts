@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 
 import { PrismaModule } from '../src/common/prisma/prisma.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { TenantEntitlementService } from '../src/common/security/tenant-entitlement.service';
 import { RequestContextModule } from '../src/common/request-context/request-context.module';
 import { TraceContextService } from '../src/common/request-context/trace-context.service';
 import { SecretEncryptionService } from '../src/common/security/secret-encryption.service';
@@ -266,6 +267,7 @@ describeWithDatabase()(
           counting,
           new WorkProfilesService(counting, audit),
           new WorkQueuesService(counting, audit),
+          new TenantEntitlementService(prisma),
         ),
       );
 

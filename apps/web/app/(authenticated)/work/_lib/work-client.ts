@@ -21,6 +21,9 @@ export async function workRequest<T>(
     | "work-items"
     | "work-queues"
     | "work-blockers"
+    | "work-duties"
+    | "work-meetings"
+    | "work-decisions"
     | "contributions"
     | "daily-updates",
   path: string,

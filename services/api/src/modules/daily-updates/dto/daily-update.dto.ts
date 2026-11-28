@@ -117,6 +117,13 @@ export class RunEscalationDto {
   date?: string;
 }
 
+export class EffectivePolicyQueryDto {
+  /** Resolve the policy for this person; defaults to the caller. */
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+}
+
 export class DraftDailyUpdateDto {
   /** The day to report on (YYYY-MM-DD). Defaults to today in the policy zone. */
   @IsOptional()

@@ -92,13 +92,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     requiredAnyPermissions: [PERMISSION_KEYS.PROJECTS_READ],
   },
   /*
-   * WP-06.S1 — work items and queues. Not plan-gated: no feature key sells
-   * work management (tenant-features.ts), the same position Claims takes.
+   * WP-06.S1 — work items and queues. Plan-gated by the `work-management`
+   * feature (Growth and Enterprise; ADR-0032), so Starter sees none of /work.
    */
   {
     href: "/work",
     label: "My Work",
     description: "Your tasks and service jobs, with status and SLA standing.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
   },
   {
@@ -106,29 +107,56 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Work Queues",
     description: "Queues of work, their SLA standing, and who owns what.",
     hiddenForSelfService: true,
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.WORK_QUEUES_READ],
   },
-  /* WP-38.S1 - blockers reuse the work-items permissions; no feature key sells them. */
+  /* WP-38.S1 - blockers reuse the work-items permissions - plan-gated by `work-management` (ADR-0032). */
   {
     href: "/work/blockers",
     label: "Blockers",
     description: "What is holding work up, who must act, and for how long.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
+    requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
+  },
+  /* WP-36.S3 - duties, checklists and handovers reuse the work-items permissions - plan-gated by `work-management`. */
+  {
+    href: "/work/duties",
+    label: "Duties",
+    description: "Recurring duties, their checklists, and handovers between shifts.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
+    requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
+  },
+  /* WP-28.S3 - meetings and the decision register reuse the work-items permissions - plan-gated by `work-management`. */
+  {
+    href: "/work/meetings",
+    label: "Meetings",
+    description: "Meetings, their agenda and attendance, and the decisions taken in them.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
+    requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
+  },
+  {
+    href: "/work/decisions",
+    label: "Decisions",
+    description: "The decision register: what was decided, by whom, and the work that followed.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.WORK_ITEMS_READ],
   },
   /*
-   * WP-30.S1/27 and WP-03.S4 - contribution evidence and daily updates. Not
-   * plan-gated, for the same reason as work items: no feature key sells them.
+   * WP-30.S1/27 and WP-03.S4 - contribution evidence and daily updates. Plan-gated
+   * by `work-management`, like work items (ADR-0032).
    */
   {
     href: "/work/contributions",
     label: "My Evidence",
     description: "Record what you did and see how it has been verified.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.CONTRIBUTIONS_READ],
   },
   {
     href: "/work/daily-update",
     label: "Daily Update",
     description: "Report the day: what was done, what is next, what blocks you.",
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.DAILY_UPDATES_READ],
   },
   {
@@ -136,6 +164,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Team Updates",
     description: "Daily updates from the people in your reach, and who is missing.",
     hiddenForSelfService: true,
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.DAILY_UPDATES_READ],
   },
   {
@@ -143,6 +172,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Evidence Review",
     description: "Verify, reject or dispute the evidence people have recorded.",
     hiddenForSelfService: true,
+    requiredFeatureKey: FEATURE_KEYS.WORK_MANAGEMENT,
     requiredAnyPermissions: [PERMISSION_KEYS.CONTRIBUTIONS_VERIFY],
   },
   {

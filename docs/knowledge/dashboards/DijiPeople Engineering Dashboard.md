@@ -11,9 +11,9 @@
 | Open HIGH | **50** |
 | Open total | 245 |
 | Blocked | 4 |
-| Awaiting a product decision | 18 |
+| Awaiting a product decision | 16 |
 | Deferred | 128 |
-| Completed | 446 |
+| Completed | 448 |
 | Awaiting Architect triage | 3 |
 
 ## Open Critical Bugs
@@ -93,7 +93,6 @@
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
-| [[ITEM-0250-work-routes-have-no-plan-entitlement-gate-no-work-management|ITEM-0250]] | Work routes have no plan entitlement gate; no work-management feature key exists | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | — | PRODUCT_DECISION |
 | [[ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo|ITEM-0237]] | Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers | PERFORMANCE | LOW | PRODUCT_DECISION | outbox, data-management | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
@@ -102,7 +101,6 @@
 | [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
-| [[ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-|ITEM-0248]] | No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles | PRODUCT_DECISION | — | PRODUCT_DECISION | api:customization | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -900,6 +898,7 @@
 - [[ADR-0029-bank-transfer-is-a-payment-channel-settled-only-by-operator-verification|ADR-0029 - Bank transfer is a payment channel settled only by operator verification]]
 - [[ADR-0030-work-profile-and-work-identity-contracts|ADR-0030 - Work profile and work identity contracts]]
 - [[ADR-0031-work-components-in-the-package-engine-and-accountability-rules|ADR-0031 - Work components in the package engine, and accountability rules for blockers]]
+- [[ADR-0032-work-management-entitlement-tiers|ADR-0032 - Work management entitlement tiers]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -917,7 +916,7 @@
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 35 |
+| Decision notes (ADR + generated) | 36 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 3.** A record nobody has

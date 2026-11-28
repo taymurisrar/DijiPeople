@@ -386,6 +386,22 @@ describeWithDatabase()('Daily-update scopes and escalation (e2e)', () => {
       deadlineMinutes: 1080,
     });
 
+    // A manager reads the policy of a chosen person inside their reach; a person
+    // outside it, a stranger's id and another tenant's all read as "not found".
+    const forPerson = (who: HttpActor, id: string) =>
+      call(who, 'get', `/daily-updates/policy/effective?employeeId=${id}`);
+    expect((await forPerson(hana, emp.ana)).body).toMatchObject({
+      source: 'TEAM',
+      deadlineMinutes: 600,
+    });
+    expect((await forPerson(hana, emp.cy)).body).toMatchObject({
+      source: 'TENANT',
+    });
+    expect((await forPerson(ana, emp.ana)).status).toBe(200);
+    expect((await forPerson(ana, emp.bo)).status).toBe(404);
+    expect((await forPerson(hana, randomUUID())).status).toBe(404);
+    expect((await forPerson(hana, 'not-a-uuid')).status).toBe(400);
+
     // "Who owes an update" follows the same resolution, per person.
     const missing = await call(
       hana,

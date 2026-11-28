@@ -4,6 +4,7 @@ import {
   isValidDateOnly,
   isValidTimezone,
   localDateInZone,
+  localDatesFrom,
   recursOn,
   validateMinutes,
   validateWeekdays,
@@ -94,6 +95,26 @@ describe('work duty schedule', () => {
       expect(validateMinutes(-1)).toBe(false);
       expect(validateMinutes(1.5)).toBe(false);
       expect(() => zonedInstant('2026-11-28', 1440, 'UTC')).toThrow(RangeError);
+    });
+
+    it('counts days ahead from each zone own today across the UTC date boundary', () => {
+      // 12:00 UTC on 2027-03-01: already Tuesday 01:00 in Auckland (UTC+13), still
+      // Monday 04:00 in Los Angeles (UTC-8), and Monday in UTC.
+      const same = new Date('2027-03-01T12:00:00.000Z');
+      expect(localDatesFrom(same, 'Pacific/Auckland', 2)).toEqual([
+        '2027-03-02',
+        '2027-03-03',
+      ]);
+      expect(localDatesFrom(same, 'America/Los_Angeles', 2)).toEqual([
+        '2027-03-01',
+        '2027-03-02',
+      ]);
+      expect(localDatesFrom(same, 'UTC', 1)).toEqual(['2027-03-01']);
+      // Month end rolls over by calendar, not by 30 days.
+      expect(
+        localDatesFrom(new Date('2027-02-27T12:00:00.000Z'), 'UTC', 3),
+      ).toEqual(['2027-02-27', '2027-02-28', '2027-03-01']);
+      expect(() => localDatesFrom(same, 'Not/AZone', 1)).toThrow(RangeError);
     });
 
     it('rejects empty, out-of-range, repeated or non-integer weekdays', () => {

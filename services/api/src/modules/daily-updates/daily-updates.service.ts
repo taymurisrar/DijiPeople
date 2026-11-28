@@ -1059,8 +1059,26 @@ export class DailyUpdatesService {
   }
 
   /** The policy that governs the caller, as resolved for them. */
-  async effectivePolicy(user: AuthenticatedUser) {
-    const person = await this.ownEmployeeRow(user);
+  async effectivePolicy(user: AuthenticatedUser, employeeId?: string) {
+    let person: Person;
+    if (employeeId) {
+      // Another person's policy is read only inside the caller's reach; a person
+      // outside it (or another tenant's) is "not found", never a 403.
+      const scope = employeeScopeWhere(user, SecurityPrivilege.READ);
+      const found =
+        scope === null
+          ? null
+          : await this.prisma.employee.findFirst({
+              where: {
+                AND: [{ id: employeeId, tenantId: user.tenantId }, scope],
+              },
+              select: { id: true, teamId: true, businessUnitId: true },
+            });
+      if (!found) throw new NotFoundException('Employee was not found.');
+      person = found;
+    } else {
+      person = await this.ownEmployeeRow(user);
+    }
     const context = await this.policyContext(user.tenantId);
     return resolvePolicy(person, context.scopes, context.tenant);
   }

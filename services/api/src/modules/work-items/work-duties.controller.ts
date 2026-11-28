@@ -17,6 +17,9 @@ import {
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   CheckNoteDto,
@@ -24,6 +27,7 @@ import {
   CreateDutyTemplateDto,
   GenerateDutiesDto,
   ListDutyHandoversDto,
+  ListHandoverRecipientsDto,
   ListDutyOccurrencesDto,
   ListDutyTemplatesDto,
   UpdateDutyTemplateDto,
@@ -37,7 +41,8 @@ import { WorkDutiesService } from './work-duties.service';
  * deactivated and a handover is acknowledged, and both stay in history.
  */
 @Controller('work-duties')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.WORK_MANAGEMENT)
 export class WorkDutiesController {
   constructor(private readonly service: WorkDutiesService) {}
 
@@ -171,6 +176,16 @@ export class WorkDutiesController {
     @Query() query: ListDutyHandoversDto,
   ) {
     return this.service.listHandovers(user, query);
+  }
+
+  @Get('handover-recipients')
+  @Permissions('work-items.write')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  listHandoverRecipients(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListHandoverRecipientsDto,
+  ) {
+    return this.service.listHandoverRecipients(user, query);
   }
 
   @Post('handovers')

@@ -332,3 +332,135 @@ export async function ensureWorkspaceHosts(slugs: string[], rootDomain: string):
     return added;
   });
 }
+
+/* ------------------------------------------------------ a second tenant */
+
+export type ForeignDuties = {
+  tenantId: string;
+  templateId: string;
+  occurrenceId: string;
+  checkId: string;
+  handoverId: string;
+  cleanup: () => Promise<void>;
+};
+
+/**
+ * A second, real tenant row in the throwaway database holding one duty template,
+ * one occurrence (with its work item and a check) and one open handover, so a
+ * cross-tenant journey can prove the API answers 404 for ids it does not own. The
+ * GUI stack provisions one tenant only. The handover's sender is a copy of an
+ * existing employee row re-homed to the new tenant. `cleanup` removes it all.
+ */
+export async function seedForeignDuties(tag: string, copyEmployeeId: string): Promise<ForeignDuties> {
+  const slug = `e2e-x-${tag}`.toLowerCase();
+  const ids = await withGuiDb(async (db) => {
+    const customer = await db.query(`select id from "CustomerAccount" limit 1`);
+    const tenant = await db.query(
+      `insert into "Tenant" (id, "customerAccountId", name, slug, "updatedAt") values (gen_random_uuid()::text, $1, $2, $3, now()) returning id`,
+      [customer.rows[0]?.id, `E2E X ${tag}`, slug],
+    );
+    const tenantId = tenant.rows[0].id as string;
+    const employee = await db.query(
+      `insert into "Employee"
+         select (jsonb_populate_record(null::"Employee", to_jsonb(e)
+           || (select jsonb_object_agg(k, null) from jsonb_object_keys(to_jsonb(e)) k where k like '%Id' and k not in ('id', 'tenantId'))
+           || jsonb_build_object(
+           'id', gen_random_uuid()::text, 'tenantId', $1::text, 'userId', null,
+           'employeeCode', 'X-' || $3::text, 'email', null))).*
+         from "Employee" e where e.id = $2 returning id`,
+      [tenantId, copyEmployeeId, tag],
+    );
+    const template = await db.query(
+      `insert into "DutyTemplate" (id, "tenantId", key, name, weekdays, timezone, "updatedAt")
+       values (gen_random_uuid()::text, $1, $2, 'Foreign duty', '{1,2,3,4,5,6,7}', 'UTC', now()) returning id`,
+      [tenantId, `foreign-${tag}`.toLowerCase()],
+    );
+    const item = await db.query(
+      `insert into "WorkItem" (id, "tenantId", kind, title, "updatedAt")
+       values (gen_random_uuid()::text, $1, 'DUTY_OCCURRENCE', 'Foreign duty occurrence', now()) returning id`,
+      [tenantId],
+    );
+    const occurrence = await db.query(
+      `insert into "DutyOccurrence" (id, "tenantId", "dutyTemplateId", "forDate", "workItemId")
+       values (gen_random_uuid()::text, $1, $2, current_date, $3) returning id`,
+      [tenantId, template.rows[0].id, item.rows[0].id],
+    );
+    const check = await db.query(
+      `insert into "DutyOccurrenceCheck" (id, "tenantId", "occurrenceId", position, label, required)
+       values (gen_random_uuid()::text, $1, $2, 0, 'Foreign check', false) returning id`,
+      [tenantId, occurrence.rows[0].id],
+    );
+    const handover = await db.query(
+      `insert into "DutyHandover" (id, "tenantId", "fromEmployeeId", "toEmployeeId", note)
+       values (gen_random_uuid()::text, $1, $2, $2, 'Foreign handover') returning id`,
+      [tenantId, employee.rows[0].id],
+    );
+    return {
+      tenantId,
+      templateId: template.rows[0].id as string,
+      occurrenceId: occurrence.rows[0].id as string,
+      checkId: check.rows[0].id as string,
+      handoverId: handover.rows[0].id as string,
+    };
+  });
+  return {
+    ...ids,
+    cleanup: () =>
+      withGuiDb(async (db) => {
+        for (const table of ['DutyHandover', 'DutyOccurrenceCheck', 'DutyOccurrence', 'DutyTemplate', 'WorkItem', 'Employee']) {
+          await db.query(`delete from "${table}" where "tenantId" = $1`, [ids.tenantId]);
+        }
+        await db.query(`delete from "Tenant" where id = $1`, [ids.tenantId]);
+      }).then(() => undefined),
+  };
+}
+
+/* ------------------------------------------------- duty test data cleanup */
+
+/**
+ * Remove the duty templates a Flow T run created (their keys start `e2e-`), with
+ * their occurrences, checks, work items and the handovers the journeys sent. A
+ * template has no delete in the product (it is only deactivated, so history
+ * stays); in the throwaway database these would otherwise pile up run after run.
+ * Scoped to the tenant by slug and to the `e2e-` key prefix and the journeys' own
+ * handover notes, so nothing else is touched.
+ */
+export async function removeE2eDuties(slug: string): Promise<{ templates: number }> {
+  return withGuiDb(async (db) => {
+    const tenantId = await tenantIdOf(db, slug);
+    const templates = await db.query(
+      `select id from "DutyTemplate" where "tenantId" = $1 and key like 'e2e-%'`,
+      [tenantId],
+    );
+    const templateIds = templates.rows.map((r) => r.id as string);
+    await db.query('begin');
+    try {
+      if (templateIds.length) {
+        const occurrences = await db.query(
+          `select id, "workItemId" from "DutyOccurrence" where "tenantId" = $1 and "dutyTemplateId" = any($2::text[])`,
+          [tenantId, templateIds],
+        );
+        const occurrenceIds = occurrences.rows.map((r) => r.id as string);
+        const workItemIds = occurrences.rows.map((r) => r.workItemId as string);
+        await db.query(`delete from "DutyHandover" where "tenantId" = $1 and "occurrenceId" = any($2::text[])`, [
+          tenantId,
+          occurrenceIds,
+        ]);
+        await db.query(`delete from "DutyTemplate" where "tenantId" = $1 and id = any($2::text[])`, [
+          tenantId,
+          templateIds,
+        ]);
+        await db.query(`delete from "WorkItem" where "tenantId" = $1 and id = any($2::text[])`, [tenantId, workItemIds]);
+      }
+      await db.query(
+        `delete from "DutyHandover" where "tenantId" = $1 and (note like 'Keys are with security %' or note like 'Team handover %' or note like 'Tenant A handover %')`,
+        [tenantId],
+      );
+      await db.query('commit');
+    } catch (error) {
+      await db.query('rollback');
+      throw error;
+    }
+    return { templates: templateIds.length };
+  });
+}

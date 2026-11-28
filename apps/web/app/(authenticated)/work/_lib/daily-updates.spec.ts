@@ -1,21 +1,30 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
+  CADENCES,
   DAILY_UPDATE_SECTIONS,
+  MAX_ESCALATE_AFTER_MINUTES,
   buildDraftPayload,
   buildPolicyPayload,
   buildSavePayload,
+  buildScopePolicyPayload,
   buildUpdatesQuery,
   dateInputFor,
+  deadlineLabel,
+  escalationLabel,
+  escalationRows,
   flattenSections,
   groupBySection,
   isCorrection,
   isEvidenceBacked,
   minutesToTime,
+  scopeTargetOf,
   statusTone,
   timeToMinutes,
   validatePolicy,
+  validateScopePolicy,
   validateUpdate,
+  workingDaysLabel,
   type DailyUpdateItem,
 } from "./daily-updates";
 
@@ -164,5 +173,129 @@ describe("policy", () => {
       timezone: "Asia/Karachi",
       requireAcknowledgement: false,
     });
+  });
+});
+
+describe("scoped policies and escalation", () => {
+  const base = {
+    targetKind: "TEAM" as const,
+    targetId: "t1",
+    enabled: true,
+    cadence: "WORKING_DAYS" as const,
+    workingDays: [5, 1, 1, 3],
+    deadlineTime: "17:30",
+    deadlineMinutes: "60",
+    timezone: " Asia/Karachi ",
+    requireAcknowledgement: true,
+    escalateAfter: "45",
+  };
+
+  it("names exactly one target and sends only that id", () => {
+    expect(buildScopePolicyPayload(base)).toMatchObject({ teamId: "t1" });
+    expect(buildScopePolicyPayload(base)).not.toHaveProperty("businessUnitId");
+    const unit = buildScopePolicyPayload({
+      ...base,
+      targetKind: "BUSINESS_UNIT",
+      targetId: "b1",
+    });
+    expect(unit).toMatchObject({ businessUnitId: "b1" });
+    expect(unit).not.toHaveProperty("teamId");
+  });
+
+  it("reads the deadline as a time of day for working days and as minutes per shift", () => {
+    expect(buildScopePolicyPayload(base).deadlineMinutes).toBe(17 * 60 + 30);
+    expect(
+      buildScopePolicyPayload({ ...base, cadence: "PER_SHIFT" })
+        .deadlineMinutes,
+    ).toBe(60);
+  });
+
+  it("sorts and dedupes the days, trims the zone, and turns a blank escalation into null", () => {
+    const payload = buildScopePolicyPayload({ ...base, escalateAfter: " " });
+    expect(payload.workingDays).toEqual([1, 3, 5]);
+    expect(payload.timezone).toBe("Asia/Karachi");
+    expect(payload.escalateAfterMinutes).toBeNull();
+    expect(buildScopePolicyPayload(base).escalateAfterMinutes).toBe(45);
+  });
+
+  it("validates the scope, the days, the deadline, the zone and the escalation", () => {
+    expect(validateScopePolicy(base)).toBeNull();
+    expect(validateScopePolicy({ ...base, targetId: "" })).toMatch(/team/i);
+    expect(
+      validateScopePolicy({ ...base, targetKind: "BUSINESS_UNIT", targetId: "" }),
+    ).toMatch(/business unit/i);
+    expect(validateScopePolicy({ ...base, workingDays: [] })).toMatch(
+      /working day/i,
+    );
+    expect(validateScopePolicy({ ...base, deadlineTime: "" })).toMatch(
+      /deadline/i,
+    );
+    expect(
+      validateScopePolicy({
+        ...base,
+        cadence: "PER_SHIFT",
+        deadlineMinutes: "1440",
+      }),
+    ).toMatch(/minutes/i);
+    expect(
+      validateScopePolicy({ ...base, cadence: "PER_SHIFT", workingDays: [] }),
+    ).toBeNull();
+    expect(validateScopePolicy({ ...base, timezone: " " })).toMatch(
+      /time zone/i,
+    );
+    for (const bad of ["-1", "10081", "1.5"]) {
+      expect(validateScopePolicy({ ...base, escalateAfter: bad })).toMatch(
+        /escalation/i,
+      );
+    }
+  });
+
+  it("labels policies", () => {
+    expect(escalationLabel(null)).toBe("No escalation");
+    expect(escalationLabel(0)).toBe("Escalates at the deadline");
+    expect(escalationLabel(30)).toBe("Escalates after 30 min");
+    expect(deadlineLabel({ cadence: "PER_SHIFT", deadlineMinutes: 15 })).toBe(
+      "15 min after the shift",
+    );
+    expect(
+      deadlineLabel({ cadence: "WORKING_DAYS", deadlineMinutes: 1080 }),
+    ).toBe("18:00");
+    expect(workingDaysLabel([3, 1])).toBe("Mon, Wed");
+    expect(scopeTargetOf({ teamId: "t", businessUnitId: null })).toEqual({
+      kind: "TEAM",
+      id: "t",
+    });
+    expect(scopeTargetOf({ teamId: null, businessUnitId: null })).toBeNull();
+  });
+
+  it("reports every count the API returns, in order", () => {
+    expect(
+      escalationRows({
+        evaluated: 4,
+        escalated: 2,
+        alreadyEscalated: 1,
+        noManager: 1,
+        failed: 0,
+      }),
+    ).toEqual([
+      { label: "Evaluated", value: 4 },
+      { label: "Escalated", value: 2 },
+      { label: "Already escalated", value: 1 },
+      { label: "No manager", value: 1 },
+      { label: "Failed", value: 0 },
+    ]);
+  });
+
+  it("keeps the API's cadences and escalation bound", () => {
+    const dto = readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../../services/api/src/modules/daily-updates/dto/daily-update.dto.ts",
+      ),
+      "utf8",
+    );
+    expect(dto).toContain("@IsIn(['WORKING_DAYS', 'PER_SHIFT'])");
+    expect(dto).toContain(`@Max(${MAX_ESCALATE_AFTER_MINUTES})`);
+    expect([...CADENCES]).toEqual(["WORKING_DAYS", "PER_SHIFT"]);
   });
 });

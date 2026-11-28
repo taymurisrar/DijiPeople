@@ -16,8 +16,8 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 245 |
 | Blocked | 4 |
 | Deferred | 128 |
-| Awaiting a product decision | 18 |
-| Completed / closed | 446 |
+| Awaiting a product decision | 16 |
+| Completed / closed | 448 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **50** |
 | **Awaiting Architect triage** | **3** |
@@ -60,14 +60,14 @@ see [`README.md`](README.md) for why.
 | IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 128 |
-| PRODUCT_DECISION | 18 |
+| PRODUCT_DECISION | 16 |
 | FIXED | 175 |
 | VERIFIED | 308 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 3 |
 | READY | 33 |
-| DONE | 124 |
+| DONE | 126 |
 
 ## All records
 
@@ -750,7 +750,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0240](../../docs/backlog/items/ITEM-0240-platform-health-degradation-raises-no-alert-health-is-pull-o.md) | Platform health degradation raises no alert; health is pull-only behind a platform login | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0242](../../docs/backlog/items/ITEM-0242-set-a-measured-statement-timeout-with-tenant-erasure-and-pay.md) | Set a measured statement_timeout with tenant-erasure and payroll exemptions, and report worker lastTickAt in readiness | TECH_DEBT | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [ITEM-0243](../../docs/backlog/items/ITEM-0243-db-backed-e2e-for-the-nine-platform-admin-runtime-lists-and-.md) | DB-backed e2e for the nine platform-admin runtime lists and removal of the in-memory fallback path (BUG-3175 follow-up) | TECH_DEBT | MEDIUM | P2 | DEFERRED | api:platform-runtime | DEFER |
-| [ITEM-0250](../../docs/backlog/items/ITEM-0250-work-routes-have-no-plan-entitlement-gate-no-work-management.md) | Work routes have no plan entitlement gate; no work-management feature key exists | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | — | PRODUCT_DECISION |
+| [ITEM-0250](../../docs/backlog/items/ITEM-0250-work-routes-have-no-plan-entitlement-gate-no-work-management.md) | Work routes have no plan entitlement gate; no work-management feature key exists | PRODUCT_DECISION | MEDIUM | P2 | DONE | — | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -913,7 +913,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0178](../../docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md) | Recruitment job opening edit page is bespoke while its detail page already uses the shared record shell | ARCHITECTURE | — | P3 | DEFERRED | app:web | DEFER |
 | [ITEM-0191](../../docs/backlog/items/ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins.md) | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | P3 | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 | [ITEM-0247](../../docs/backlog/items/ITEM-0247-custom-conflict-codes-work-blocker-daily-update-reach-client.md) | Custom conflict codes (WORK_BLOCKER_*, DAILY_UPDATE_*) reach clients as DATABASE_CONSTRAINT_FAILED because they are not in the error catalog | TECH_DEBT | — | P3 | DEFERRED | services/api/src/common/filters | DEFER |
-| [ITEM-0248](../../docs/backlog/items/ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-.md) | No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles | PRODUCT_DECISION | — | P3 | PRODUCT_DECISION | api:customization | PRODUCT_DECISION |
+| [ITEM-0248](../../docs/backlog/items/ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-.md) | No seeded role holds both customization.packages.manage and work-profiles.manage, so adding work components to a package works only for elevated roles | PRODUCT_DECISION | — | P3 | DONE | api:customization | DONE |
 
 ## Views
 

@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { WorkDutiesService } from './work-duties.service';
+import { isValidTimezone, localDatesFrom } from './work-duty-schedule';
 
 /*
  * DP-MASTER WP-36.S2. Generates duty occurrences on a timer, so a duty exists on
@@ -24,9 +25,10 @@ import { WorkDutiesService } from './work-duties.service';
  *
  * One tenant failing never stops the rest: the failure is logged and counted.
  *
- * "Today" is the UTC calendar date; a duty's own timezone only decides its due
- * time. The tick covers today and the following (daysAhead - 1) days, default 1,
- * bounded to MAX_DAYS_AHEAD.
+ * "Today" is read per template: it is the current calendar date in that template's
+ * own IANA zone (the same instant is Tuesday in Auckland and Monday in Los
+ * Angeles), and daysAhead is counted from there. The tick covers today and the
+ * following (daysAhead - 1) days, default 1, bounded to MAX_DAYS_AHEAD.
  */
 const TICK_INTERVAL_MS = 15 * 60 * 1000;
 const TENANT_BATCH = 100;
@@ -41,15 +43,6 @@ export type DutyGenerationTick = {
   failed: number;
   lockedOut: number;
 };
-
-function utcDate(base: Date, offsetDays: number): string {
-  const t = Date.UTC(
-    base.getUTCFullYear(),
-    base.getUTCMonth(),
-    base.getUTCDate() + offsetDays,
-  );
-  return new Date(t).toISOString().slice(0, 10);
-}
 
 @Injectable()
 export class WorkDutyGenerationScheduler
@@ -101,7 +94,6 @@ export class WorkDutyGenerationScheduler
         Math.max(1, Number.isFinite(requested) ? requested : 1),
       );
       const now = options.now ?? new Date();
-      const dates = Array.from({ length: days }, (_, i) => utcDate(now, i));
 
       let after: string | undefined;
       for (;;) {
@@ -121,7 +113,7 @@ export class WorkDutyGenerationScheduler
         if (batch.length === 0) break;
         for (const { tenantId } of batch) {
           result.tenants += 1;
-          await this.runTenant(tenantId, dates, result);
+          await this.runTenant(tenantId, now, days, result);
         }
         after = batch[batch.length - 1].tenantId;
         if (batch.length < TENANT_BATCH) break;
@@ -134,7 +126,8 @@ export class WorkDutyGenerationScheduler
 
   private async runTenant(
     tenantId: string,
-    dates: string[],
+    now: Date,
+    days: number,
     result: DutyGenerationTick,
   ) {
     try {
@@ -151,13 +144,29 @@ export class WorkDutyGenerationScheduler
             result.lockedOut += 1;
             return;
           }
-          for (const date of dates) {
-            const outcome = await this.duties.generateForTenantAsSystem(
-              tenantId,
-              date,
-            );
-            result.created += outcome.created.length;
-            result.existing += outcome.existing.length;
+          // "Today" is per template zone: one pass per distinct zone, each over
+          // that zone's own local dates.
+          const zones = await tx.dutyTemplate.findMany({
+            where: { tenantId, isActive: true },
+            distinct: ['timezone'],
+            select: { timezone: true },
+          });
+          for (const { timezone } of zones) {
+            if (!isValidTimezone(timezone)) {
+              this.logger.warn(
+                `Duty generation skipped templates with unknown timezone "${String(timezone)}" for tenant ${tenantId}.`,
+              );
+              continue;
+            }
+            for (const date of localDatesFrom(now, timezone, days)) {
+              const outcome = await this.duties.generateForTenantAsSystem(
+                tenantId,
+                date,
+                timezone,
+              );
+              result.created += outcome.created.length;
+              result.existing += outcome.existing.length;
+            }
           }
         },
         { timeout: LOCK_TX_TIMEOUT_MS, maxWait: 10_000 },

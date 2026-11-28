@@ -10,6 +10,7 @@ import { AppModule } from '../src/app.module';
 import { ENTITY_KEYS } from '../src/common/constants/rbac-matrix';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { WorkComponentsService } from '../src/modules/work-profiles/work-components.service';
 import {
   ENTITLEMENT_ENV_VAR,
   ENTITLEMENT_SETTING_KEY,
@@ -40,11 +41,12 @@ import { assertIsolatedUtf8Database } from './helpers/test-database';
  *     setting row are exactly what they were at the start.
  *
  * Which routes are gated (verified by grep, asserted below): `/projects` carries
- * `@RequireEntitlement('projects')`. None of the work-management controllers
+ * `@RequireEntitlement('projects')`; the work-management controllers
  * (`/work-items`, `/work-duties`, `/work-decisions`, `/work-meetings`,
- * `/work-blockers`, `/work-queues`) carries an entitlement at all. Tests of the
- * refusal therefore use `/projects`; the work routes are pinned as UNGATED so a
- * future gate (or its accidental absence) is a visible, deliberate change.
+ * `/work-blockers`, `/work-queues`, `/daily-updates`) carry
+ * `@RequireEntitlement('work-management')` (ADR-0032, Growth and Enterprise).
+ * Packaging work components for ALM needs `work-intelligence` (Enterprise), enforced
+ * in `WorkComponentsService`, which is exercised directly below.
  */
 // Same rule as test/helpers/test-database.ts: a database named as a throwaway
 // (local dp_master_e2e_test / dp_master_utf8, CI dijipeople_e2e_test).
@@ -71,6 +73,8 @@ describeWithDatabase()('Plan entitlement under ENFORCE (e2e)', () => {
   let withPlan: Fixture; // plan sells projects
   let withoutPlan: Fixture; // plan does not sell projects
   let other: Fixture; // a different tenant on a plan without projects
+  let growthLike: Fixture; // plan sells work-management only
+  let enterpriseLike: Fixture; // plan sells work-management and work-intelligence
 
   const get = (actor: HttpActor, path: string) =>
     request(app.getHttpServer())
@@ -122,7 +126,12 @@ describeWithDatabase()('Plan entitlement under ENFORCE (e2e)', () => {
       unit,
       label,
       suffix,
-      keys: ['projects.read', 'work-items.read', 'work-queues.read'],
+      keys: [
+        'projects.read',
+        'work-items.read',
+        'work-queues.read',
+        'daily-updates.read',
+      ],
       grants: [
         {
           entityKey: ENTITY_KEYS.PROJECTS,
@@ -180,6 +189,17 @@ describeWithDatabase()('Plan entitlement under ENFORCE (e2e)', () => {
     withPlan = await tenant('with', sells);
     withoutPlan = await tenant('without', doesNot);
     other = await tenant('other', doesNot);
+    growthLike = await tenant(
+      'growth',
+      await plan('growth', { 'work-management': true, payroll: true }),
+    );
+    enterpriseLike = await tenant(
+      'ent',
+      await plan('ent', {
+        'work-management': true,
+        'work-intelligence': true,
+      }),
+    );
   });
 
   afterAll(async () => {
@@ -235,21 +255,136 @@ describeWithDatabase()('Plan entitlement under ENFORCE (e2e)', () => {
     expect(guardLog('ENTITLEMENT_REFUSED')).toHaveLength(0);
   });
 
-  it('the work-management routes require no entitlement at all (pinned as the code stands)', async () => {
+  const WORK_PATHS = [
+    '/work-items',
+    '/work-duties/templates',
+    '/work-decisions',
+    '/work-meetings',
+    '/work-blockers',
+    '/work-queues',
+    '/daily-updates',
+  ];
+
+  it('ENFORCE refuses a Starter-like tenant on every work route with TENANT_FEATURE_NOT_ENTITLED', async () => {
     setMode('ENFORCE');
-    for (const path of [
-      '/work-items',
-      '/work-duties/templates',
-      '/work-decisions',
-      '/work-blockers',
-      '/work-queues',
-    ]) {
+    for (const path of WORK_PATHS) {
       const res = await get(withoutPlan.actor, path);
-      // A tenant whose plan sells none of this is still served: no plan gate.
+      expect({ path, status: res.status, code: res.body.errorCode }).toEqual({
+        path,
+        status: 403,
+        code: 'TENANT_FEATURE_NOT_ENTITLED',
+      });
+    }
+    expect(
+      guardLog('ENTITLEMENT_REFUSED').some((line) =>
+        line.includes('features=work-management'),
+      ),
+    ).toBe(true);
+  });
+
+  it('ENFORCE serves a Growth-like tenant (work-management) on every work route', async () => {
+    setMode('ENFORCE');
+    for (const path of WORK_PATHS) {
+      const res = await get(growthLike.actor, path);
       expect({ path, status: res.status }).toEqual({ path, status: 200 });
     }
     expect(guardLog('ENTITLEMENT_REFUSED')).toHaveLength(0);
-    expect(guardLog('ENTITLEMENT_WOULD_REFUSE')).toHaveLength(0);
+  });
+
+  it('a CUSTOM override grants work-management to a Starter-like tenant; a MANUAL one cannot', async () => {
+    setMode('ENFORCE');
+    const tenantId = withoutPlan.tenantId;
+    await prisma.tenantFeature.create({
+      data: {
+        tenantId,
+        key: 'work-management',
+        isEnabled: true,
+        source: TenantFeatureSource.MANUAL,
+      },
+    });
+    entitlements.invalidate(tenantId);
+    expect((await get(withoutPlan.actor, '/work-items')).status).toBe(403);
+    await prisma.tenantFeature.update({
+      where: { tenantId_key: { tenantId, key: 'work-management' } },
+      data: { source: TenantFeatureSource.CUSTOM },
+    });
+    entitlements.invalidate(tenantId);
+    expect((await get(withoutPlan.actor, '/work-items')).status).toBe(200);
+    await prisma.tenantFeature.deleteMany({ where: { tenantId } });
+    entitlements.invalidate(tenantId);
+  });
+
+  it('work-intelligence: packaging work components is refused on Growth and allowed on Enterprise; MANUAL cannot exceed the plan', async () => {
+    setMode('ENFORCE');
+    const work = app.get(WorkComponentsService);
+    const component = [{ type: 'workUnit', key: 'x', objectKey: 'x' }] as never;
+
+    await expect(
+      work.assertPackagingEntitled(growthLike.tenantId, 'test'),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+    // The planner itself refuses before reading anything, so import analysis is covered.
+    await expect(
+      work.plan(prisma, growthLike.tenantId, component, {}),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+    await expect(
+      work.assertPackagingEntitled(enterpriseLike.tenantId, 'test'),
+    ).resolves.toBeUndefined();
+
+    await prisma.tenantFeature.create({
+      data: {
+        tenantId: growthLike.tenantId,
+        key: 'work-intelligence',
+        isEnabled: true,
+        source: TenantFeatureSource.MANUAL,
+      },
+    });
+    entitlements.invalidate(growthLike.tenantId);
+    await expect(
+      work.assertPackagingEntitled(growthLike.tenantId, 'test'),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+    await prisma.tenantFeature.update({
+      where: {
+        tenantId_key: {
+          tenantId: growthLike.tenantId,
+          key: 'work-intelligence',
+        },
+      },
+      data: { source: TenantFeatureSource.CUSTOM },
+    });
+    entitlements.invalidate(growthLike.tenantId);
+    await expect(
+      work.assertPackagingEntitled(growthLike.tenantId, 'test'),
+    ).resolves.toBeUndefined();
+    await prisma.tenantFeature.deleteMany({
+      where: { tenantId: growthLike.tenantId },
+    });
+    entitlements.invalidate(growthLike.tenantId);
+  });
+
+  it('work-intelligence under REPORT_ONLY lets packaging through and logs the would-be refusal', async () => {
+    setMode('REPORT_ONLY');
+    const work = app.get(WorkComponentsService);
+    await expect(
+      work.assertPackagingEntitled(growthLike.tenantId, 'report-only-route'),
+    ).resolves.toBeUndefined();
+    expect(
+      guardLog('ENTITLEMENT_WOULD_REFUSE').some(
+        (line) =>
+          line.includes(`tenant=${growthLike.tenantId}`) &&
+          line.includes('features=work-intelligence'),
+      ),
+    ).toBe(true);
+  });
+
+  it('REPORT_ONLY lets a Starter-like tenant through work routes and logs it', async () => {
+    setMode('REPORT_ONLY');
+    const res = await get(withoutPlan.actor, '/work-items');
+    expect(res.status).toBe(200);
+    expect(
+      guardLog('ENTITLEMENT_WOULD_REFUSE').some((line) =>
+        line.includes('features=work-management'),
+      ),
+    ).toBe(true);
   });
 
   /* ------------------------------------------------------------ REPORT_ONLY */
