@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**360 models · 340 enums · 285 tenant-scoped · 13 with an entity note**
+**370 models · 343 enums · 295 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -32,7 +32,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `UserPermission` | yes | `users` | — |
 | `UserRole` | yes | `users` | — |
 
-## People — 29 models
+## People — 38 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -41,9 +41,15 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `DailyUpdate` | yes | `daily-updates` | — |
 | `DailyUpdateItem` | yes | `daily-updates` | — |
 | `DailyUpdatePolicy` | yes | `daily-updates` | — |
+| `DecisionAction` | yes | `work-items` | — |
 | `Department` | yes | `organization` | — |
 | `Designation` | yes | `organization` | — |
 | `DocumentVersion` | yes | `employees` | — |
+| `DutyChecklistItem` | yes | `work-items` | — |
+| `DutyHandover` | yes | `work-items` | — |
+| `DutyOccurrence` | yes | `work-items` | — |
+| `DutyOccurrenceCheck` | yes | `work-items` | — |
+| `DutyTemplate` | yes | `work-items` | — |
 | `Employee` | yes | `employees` | [[entity-employee|documented]] |
 | `EmployeeEducation` | yes | `employees` | — |
 | `EmployeeHistory` | yes | `employees` | — |
@@ -52,10 +58,13 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `EmployeeWorkProfileAssignment` | yes | `work-profiles` | — |
 | `EmploymentType` | yes | `employment-types` | — |
 | `Location` | yes | `organization` | — |
+| `MeetingAttendee` | yes | `work-items` | — |
+| `MeetingRecord` | yes | `work-items` | — |
 | `Organization` | yes | `organization` | — |
 | `Team` | yes | `teams` | — |
 | `TeamMember` | yes | `teams` | — |
 | `TeamRole` | yes | `teams` | — |
+| `WorkDecision` | yes | `work-items` | — |
 | `WorkItem` | yes | `work-items` | — |
 | `WorkItemBlocker` | yes | `work-items` | — |
 | `WorkItemContributor` | yes | `work-items` | — |
@@ -349,13 +358,14 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `WorkSchedule` | yes | `tenant-settings` | — |
 | `WorkScheduleDay` | yes | `tenant-settings` | — |
 
-## Messaging — 9 models
+## Messaging — 10 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
 | `EmailDeliveryLog` | yes | `notifications` | — |
 | `EmailProviderSetting` | yes | `notifications` | — |
 | `EmailTemplate` | yes | `notifications` | — |
+| `EmailTemplateRevision` | yes | `notifications` | — |
 | `Notification` | yes | `notifications` | — |
 | `NotificationEvent` | no | `notifications` | — |
 | `NotificationPreference` | yes | `notifications` | — |

@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **5** |
 | Open HIGH | **50** |
-| Open total | 244 |
+| Open total | 245 |
 | Blocked | 4 |
 | Awaiting a product decision | 17 |
 | Deferred | 128 |
@@ -136,6 +136,7 @@
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
 | [[ITEM-0241-no-restore-has-been-drilled-no-measured-rto-rpo-for-the-prod|ITEM-0241]] | No restore has been drilled; no measured RTO/RPO for the production database | INFRA | HIGH | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0249-api-production-build-needs-more-than-3-gb-v8-heap-render-bui|ITEM-0249]] | API production build needs more than 3 GB V8 heap; Render build headroom unverified | INFRA | MEDIUM | READY | — | PLAN_REQUIRED |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
@@ -678,6 +679,7 @@
 | [[ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p|ITEM-0232]] | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | READY | billing | PLAN_REQUIRED |
 | [[ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic|ITEM-0234]] | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | READY | agent | PLAN_REQUIRED |
 | [[ITEM-0236-reconcile-render-live-config-with-render-yaml-proxy-hops-hea|ITEM-0236]] | Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email | SECURITY | MEDIUM | READY | platform-runtime | BLOCKED_EXTERNAL |
+| [[ITEM-0249-api-production-build-needs-more-than-3-gb-v8-heap-render-bui|ITEM-0249]] | API production build needs more than 3 GB V8 heap; Render build headroom unverified | INFRA | MEDIUM | READY | — | PLAN_REQUIRED |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -907,7 +909,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 591 |
-| Backlog items | 248 |
+| Backlog items | 249 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |

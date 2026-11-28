@@ -1154,6 +1154,24 @@
         "delete": "A blocker is evidence of why work was delayed and feeds blocked-time reporting: it is resolved or cancelled and stays in history, never deleted (WP-38.S1)."
       },
       "classifiedBy": "DP-MASTER WP-38.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-duties.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A duty template is deactivated, never deleted, and an occurrence is a work item that stays in history; a handover stays visible until acknowledged (WP-36.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-36.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-decisions.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A decision is never deleted or rewritten: changing one creates a superseding decision, and a meeting is cancelled, not removed (WP-28.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-28.S1"
     }
   ],
   "baseline": {

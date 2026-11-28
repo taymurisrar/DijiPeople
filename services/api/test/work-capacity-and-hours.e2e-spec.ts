@@ -100,6 +100,12 @@ describeWithDatabase()(
         await prisma.holiday.deleteMany({ where: { tenantId } });
         await prisma.holidayCalendar.deleteMany({ where: { tenantId } });
         await prisma.workItem.deleteMany({ where: { tenantId } });
+        await prisma.employeeScheduleAssignment.deleteMany({
+          where: { tenantId },
+        });
+        await prisma.workScheduleDay.deleteMany({ where: { tenantId } });
+        await prisma.shiftTemplate.deleteMany({ where: { tenantId } });
+        await prisma.workSchedule.deleteMany({ where: { tenantId } });
         await prisma.employee.deleteMany({ where: { tenantId } });
         await actors.cleanup();
         await fixtures.cleanup();
@@ -293,7 +299,7 @@ describeWithDatabase()(
       );
       expect(res.status).toBe(200);
       expect(res.body.basis).toBe('NET_OF_LEAVE_AND_HOLIDAYS');
-      expect(res.body.limits).toBe('WEEKDAYS_ONLY_NO_SHIFTS_NO_HALF_DAYS');
+      expect(res.body.limits).toBe('NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS');
       const person = (employeeId: string) =>
         res.body.people.find(
           (p: { employeeId: string }) => p.employeeId === employeeId,
@@ -344,6 +350,77 @@ describeWithDatabase()(
       );
       expect(ana2.netCapacityMinutes).toBe(0);
       expect(ana2.loadPercent).toBeNull();
+    });
+
+    it("capacity follows the person's own schedule: a Sunday-to-Thursday shift week of 6 hours, not Monday-to-Friday 8", async () => {
+      const shift = await prisma.shiftTemplate.create({
+        data: {
+          tenantId,
+          name: `Short ${suffix}`,
+          code: `SH-${suffix}`,
+          startTime: '08:00',
+          endTime: '14:30',
+          breakMinutes: 30,
+          expectedHours: '6',
+        },
+        select: { id: true },
+      });
+      const schedule = await prisma.workSchedule.create({
+        data: {
+          tenantId,
+          name: `Gulf week ${suffix}`,
+          standardStartTime: '08:00',
+          standardEndTime: '14:30',
+          weeklyWorkDays: [
+            'SUNDAY',
+            'MONDAY',
+            'TUESDAY',
+            'WEDNESDAY',
+            'THURSDAY',
+          ],
+          days: {
+            create: (
+              ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'] as const
+            ).map((dayOfWeek) => ({
+              tenantId,
+              dayOfWeek,
+              isWorkingDay: true,
+              shiftTemplateId: shift.id,
+            })),
+          },
+        },
+        select: { id: true },
+      });
+      await prisma.employeeScheduleAssignment.create({
+        data: {
+          tenantId,
+          employeeId: emp.bo,
+          workScheduleId: schedule.id,
+          effectiveFrom: new Date('2027-01-01'),
+        },
+      });
+
+      const res = await call(
+        maya,
+        'get',
+        '/work-items/workload?from=2027-02-01T00:00:00.000Z&to=2027-02-08T00:00:00.000Z',
+      );
+      const bo2 = res.body.people.find(
+        (p: { employeeId: string }) => p.employeeId === emp.bo,
+      );
+      // Mon-Thu plus the following Sunday = 5 working days of 6 hours; the Wednesday
+      // holiday takes one of them, and the Friday holiday falls on a day not worked.
+      expect(bo2).toMatchObject({
+        capacityBasis: 'SCHEDULE',
+        scheduledMinutes: 5 * 360,
+        holidayDays: 1,
+        netCapacityMinutes: 4 * 360,
+      });
+      // Someone with no schedule of their own is still on the plain week, and says so.
+      const ana3 = res.body.people.find(
+        (p: { employeeId: string }) => p.employeeId === emp.ana,
+      );
+      expect(ana3.capacityBasis).toBe('NO_SCHEDULE');
     });
   },
 );

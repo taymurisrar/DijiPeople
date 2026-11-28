@@ -83,13 +83,15 @@ export type WorkloadPerson = {
   holidayDays: number;
   /** Capacity after leave and holidays; zero means no capacity. */
   netCapacityMinutes: number;
+  scheduledMinutes?: number;
+  capacityBasis?: "SCHEDULE" | "PARTLY_ASSUMED" | "NO_SCHEDULE";
   /** Null when there is no capacity to divide by. */
   loadPercent: number | null;
 };
 
 export type Workload = {
   basis: "NET_OF_LEAVE_AND_HOLIDAYS" | "STANDARD_WEEK";
-  limits?: "WEEKDAYS_ONLY_NO_SHIFTS_NO_HALF_DAYS";
+  limits?: "NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS";
   /** A plain period of weekdays, for reference. */
   capacityMinutes: number;
   people: WorkloadPerson[];
@@ -146,7 +148,7 @@ export function loadTone(
 }
 
 export const WORKLOAD_CAVEAT =
-  "Capacity is net of approved leave and holidays. It counts weekdays only (8 hours a day): shifts and half days are not yet taken into account. Items with no estimate are counted separately, never as zero.";
+  "Capacity follows each person's own schedule, net of approved leave and holidays; someone with no schedule is shown on a plain Monday to Friday, 8 hour week. Half-day holidays and rotating weeks are not yet taken into account. Items with no estimate are counted separately, never as zero.";
 
 /** Today and the next 27 days, as date inputs. */
 export function defaultWorkloadPeriod(now: Date = new Date()): {

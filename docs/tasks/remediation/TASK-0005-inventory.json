@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 839,
+    "total_records": 840,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -36811,6 +36811,40 @@
           "services/api/src/modules/customization"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0248-no-seeded-role-holds-both-customization-packages-manage-and-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0249",
+      "type": "INFRA",
+      "title": "API production build needs more than 3 GB V8 heap; Render build headroom unverified",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0249-api-production-build-needs-more-than-3-gb-v8-heap-render-bui.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-11-28",
+        "updated_at": "2026-11-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [],
+        "verification_scope": "See docs/backlog/items/ITEM-0249-api-production-build-needs-more-than-3-gb-v8-heap-render-bui.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

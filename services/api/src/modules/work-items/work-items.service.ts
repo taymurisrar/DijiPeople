@@ -32,6 +32,7 @@ import {
 } from './dto/work-item.dto';
 import { netWorkingDays } from './work-item-capacity';
 import { loadCalendarFacts } from './work-calendar';
+import { loadScheduleFacts, netCapacity } from './work-schedule-capacity';
 import {
   canTransition,
   MAX_SUBTASK_DEPTH,
@@ -512,34 +513,38 @@ export class WorkItemsService {
       }
     }
 
-    const facts = await loadCalendarFacts(
-      this.prisma,
-      user.tenantId,
-      [...people.keys()],
-      from,
-      to,
-    );
+    const ids = [...people.keys()];
+    const [facts, schedules] = await Promise.all([
+      loadCalendarFacts(this.prisma, user.tenantId, ids, from, to),
+      loadScheduleFacts(this.prisma, user.tenantId, ids, from, to),
+    ]);
 
     return {
       basis: 'NET_OF_LEAVE_AND_HOLIDAYS',
-      // Monday to Friday only: no shifts, part-time or half days until the
-      // scheduling work (WP-09) lands. A holiday on a leave day is removed once.
-      limits: 'WEEKDAYS_ONLY_NO_SHIFTS_NO_HALF_DAYS',
+      // Each person's own schedule decides which days they work and for how long
+      // (WP-09.S1). A holiday on a leave day is removed once. Not modelled yet:
+      // half-day holidays and rotating-week patterns.
+      limits: 'NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS',
       period: { from: from.toISOString(), to: to.toISOString() },
       capacityMinutes: standardCapacityMinutes,
       people: [...people.values()]
         .map((p) => {
-          const net = netWorkingDays({
+          const net = netCapacity({
             from,
             to,
-            leave: facts.leave.get(p.employeeId) ?? [],
-            holidays: facts.holidays.get(p.employeeId) ?? [],
+            employeeId: p.employeeId,
+            schedule: schedules.get(p.employeeId),
+            calendar: facts,
           });
-          const netCapacityMinutes = net.netDays * 8 * 60;
+          const netCapacityMinutes = net.netMinutes;
           return {
             ...p,
             leaveDays: net.leaveDays,
             holidayDays: net.holidayDays,
+            scheduledMinutes: net.scheduledMinutes,
+            // SCHEDULE, PARTLY_ASSUMED (a working day named no hours) or NO_SCHEDULE
+            // (the plain Monday-to-Friday week was used) - never silently one for the other.
+            capacityBasis: net.basis,
             netCapacityMinutes,
             // An unestimated item is not zero minutes: it is unknown, and counted
             // apart. No capacity (all leave) is unavailable, never a divide by zero.
@@ -963,6 +968,24 @@ export class WorkItemsService {
           throw new ConflictException({
             code: 'WORK_ITEM_MILESTONE_OPEN',
             message: `${unfinished} work item(s) in this milestone are not finished.`,
+          });
+        }
+      }
+      if (dto.to === 'DONE' && before.kind === 'DUTY_OCCURRENCE') {
+        // A duty is not done while a required check is open (WP-36.S1). The
+        // duty route enforces it too; this closes the generic route as well.
+        const open = await tx.dutyOccurrenceCheck.count({
+          where: {
+            tenantId: user.tenantId,
+            required: true,
+            completedAt: null,
+            occurrence: { workItemId: id },
+          },
+        });
+        if (open > 0) {
+          throw new ConflictException({
+            code: 'WORK_DUTY_REQUIRED_CHECKS_OPEN',
+            message: `${open} required check(s) of this duty are not complete.`,
           });
         }
       }

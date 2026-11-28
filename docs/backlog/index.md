@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**839 records** — 591 bugs under [`docs/bugs/`](../bugs/), 248 non-bug items under [`items/`](items/).
+**840 records** — 591 bugs under [`docs/bugs/`](../bugs/), 249 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 244 |
+| Open (active work) | 245 |
 | Blocked | 4 |
 | Deferred | 128 |
 | Awaiting a product decision | 17 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 5 |
 | HIGH | 50 |
-| MEDIUM | 154 |
+| MEDIUM | 155 |
 | LOW | 31 |
 
 ## Open by type
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
-| INFRA | 9 |
+| INFRA | 10 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 8 |
 | PRODUCT_DECISION | 3 |
@@ -66,7 +66,7 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 3 |
-| READY | 32 |
+| READY | 33 |
 | DONE | 124 |
 
 ## All records
@@ -380,6 +380,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0232](../../docs/backlog/items/ITEM-0232-malware-scanning-for-bank-transfer-payment-evidence-before-p.md) | Malware scanning for bank-transfer payment evidence before production receipts | SECURITY | MEDIUM | P1 | READY | billing | PLAN_REQUIRED |
 | [ITEM-0234](../../docs/backlog/items/ITEM-0234-upgrade-the-desktop-agent-to-electron-42-x-with-a-real-devic.md) | Upgrade the desktop agent to Electron 42.x with a real-device verification | SECURITY | MEDIUM | P1 | READY | agent | PLAN_REQUIRED |
 | [ITEM-0236](../../docs/backlog/items/ITEM-0236-reconcile-render-live-config-with-render-yaml-proxy-hops-hea.md) | Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email | SECURITY | MEDIUM | P1 | READY | platform-runtime | BLOCKED_EXTERNAL |
+| [ITEM-0249](../../docs/backlog/items/ITEM-0249-api-production-build-needs-more-than-3-gb-v8-heap-render-bui.md) | API production build needs more than 3 GB V8 heap; Render build headroom unverified | INFRA | MEDIUM | P1 | READY | — | PLAN_REQUIRED |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |

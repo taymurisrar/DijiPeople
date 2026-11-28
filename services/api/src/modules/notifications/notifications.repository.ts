@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   EmailDeliveryStatus,
   EmailProviderType,
@@ -382,6 +383,85 @@ export class NotificationsRepository {
   ) {
     return db.emailTemplate.findFirst({
       where: { id: templateId, ...this.visibleTemplateWhere(tenantId) },
+    });
+  }
+
+  /*
+   * DP-MASTER WP-04.S2. Content-addressed: the revision of this exact content, made
+   * if it does not exist yet. Templates are edited in place (and a system template
+   * can change without a version bump), so a revision is found by what it SAYS, not
+   * by the template's version; a retry that holds a revision id renders that
+   * content however the row has changed since. Never updated, only added.
+   */
+  async ensureTemplateRevision(
+    template: {
+      id: string;
+      tenantId: string | null;
+      subjectTemplate: string;
+      htmlTemplate: string;
+      textTemplate: string | null;
+      availableVariables: Prisma.JsonValue;
+    },
+    actorUserId?: string | null,
+  ) {
+    const checksum = createHash('sha256')
+      .update(
+        JSON.stringify([
+          template.subjectTemplate,
+          template.htmlTemplate,
+          template.textTemplate ?? null,
+          template.availableVariables,
+        ]),
+      )
+      .digest('hex');
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const existing = await this.prisma.emailTemplateRevision.findFirst({
+        where: { templateId: template.id, checksum },
+        select: { id: true },
+      });
+      if (existing) return existing;
+      const last = await this.prisma.emailTemplateRevision.findFirst({
+        where: { templateId: template.id },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      try {
+        return await this.prisma.emailTemplateRevision.create({
+          data: {
+            tenantId: template.tenantId,
+            templateId: template.id,
+            version: (last?.version ?? 0) + 1,
+            subjectTemplate: template.subjectTemplate,
+            htmlTemplate: template.htmlTemplate,
+            textTemplate: template.textTemplate,
+            availableVariables:
+              template.availableVariables as Prisma.InputJsonValue,
+            checksum,
+            createdById: actorUserId ?? null,
+          },
+          select: { id: true },
+        });
+      } catch (error) {
+        // Two writers took the same next number: look again, the winner's row
+        // (or ours, with a fresh number) is there on the next pass.
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          error.code !== 'P2002'
+        ) {
+          throw error;
+        }
+      }
+    }
+    throw new Error('Could not record the template revision.');
+  }
+
+  /** A revision a tenant may render: its own, or a platform template's. */
+  findVisibleTemplateRevision(tenantId: string, revisionId: string) {
+    return this.prisma.emailTemplateRevision.findFirst({
+      where: {
+        id: revisionId,
+        OR: [{ tenantId }, { tenantId: null }],
+      },
     });
   }
 

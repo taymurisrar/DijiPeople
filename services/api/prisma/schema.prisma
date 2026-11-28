@@ -2132,6 +2132,9 @@ model Tenant {
   workItems                       WorkItem[]
   workQueues                      WorkQueue[]
   dailyUpdatePolicy               DailyUpdatePolicy?
+  dutyTemplates                   DutyTemplate[]
+  meetings                        MeetingRecord[]
+  workDecisions                   WorkDecision[]
   dailyUpdates                    DailyUpdate[]
   contributionEntries             ContributionEntry[]
   /// Identities whose last-used workspace is this tenant. Advisory only —
@@ -12202,6 +12205,8 @@ model WorkflowRunStep {
   /// retry or a later recipient never switches template, and the version it had.
   templateId    String?
   templateVersion Int?
+  /// The immutable content revision this step rendered (WP-04.S2).
+  templateRevisionId String?
   /// True when the template was edited between the pinned send and this one.
   templateDrift Boolean            @default(false)
   /// The delivery log row the e-mail service wrote, and what that row said last.
@@ -15990,4 +15995,238 @@ enum WorkBlockerStatus {
   OPEN
   RESOLVED
   CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-04.S2. Immutable e-mail template revisions.
+//
+// A template row is edited in place, so a retry used to render whatever the row
+// said NOW. A revision is the exact content of one version, written when that
+// version is created and never changed, so a retry renders the revision the first
+// attempt used.
+// ---------------------------------------------------------------------------
+
+model EmailTemplateRevision {
+  id                 String   @id @default(uuid())
+  /// Null for a platform (system) template, like the template it snapshots.
+  tenantId           String?
+  templateId         String
+  version            Int
+  subjectTemplate    String
+  htmlTemplate       String
+  textTemplate       String?
+  availableVariables Json
+  /// sha256 of the content above, so identical content is recognisable.
+  checksum           String
+  createdById        String?
+  createdAt          DateTime @default(now())
+
+  @@unique([templateId, version])
+  @@index([tenantId, templateId])
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-36.S1. Duties, checklists and handovers.
+//
+// A duty is recurring work with a lifecycle of its own, so each occurrence is a
+// WorkItem of kind DUTY_OCCURRENCE (ADR-0030); these tables hold what a work item
+// does not: the recurrence, the checklist and the handover between people.
+// ---------------------------------------------------------------------------
+
+model DutyTemplate {
+  id                 String               @id @default(uuid())
+  tenantId           String
+  /// Stable lowercase key; what packages and integrations name.
+  key                String
+  name               String
+  description        String?
+  /// ISO weekdays the duty recurs on, 1 = Monday ... 7 = Sunday.
+  weekdays           Int[]
+  /// IANA zone the dates and times are read in.
+  timezone           String               @default("UTC")
+  /// Minutes after local midnight the occurrence starts and is due. Optional.
+  startMinutes       Int?
+  dueMinutes         Int?
+  /// Who normally does it. Either may be null: an unassigned duty waits in a queue.
+  assigneeEmployeeId String?
+  teamId             String?
+  isActive           Boolean              @default(true)
+  createdById        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  checklist          DutyChecklistItem[]
+  occurrences        DutyOccurrence[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+model DutyChecklistItem {
+  id             String       @id @default(uuid())
+  tenantId       String
+  dutyTemplateId String
+  position       Int          @default(0)
+  label          String
+  required       Boolean      @default(true)
+  dutyTemplate   DutyTemplate @relation(fields: [dutyTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, dutyTemplateId])
+}
+
+/// One generated occurrence of a duty on one date. Unique per template and date, so
+/// generating twice (a retried job, two instances) yields one.
+model DutyOccurrence {
+  id             String                 @id @default(uuid())
+  tenantId       String
+  dutyTemplateId String
+  forDate        DateTime               @db.Date
+  workItemId     String                 @unique
+  createdAt      DateTime               @default(now())
+  dutyTemplate   DutyTemplate           @relation(fields: [dutyTemplateId], references: [id], onDelete: Cascade)
+  checks         DutyOccurrenceCheck[]
+  handovers      DutyHandover[]
+
+  @@unique([tenantId, dutyTemplateId, forDate])
+  @@index([tenantId, forDate])
+}
+
+/// The checklist as it stood when the occurrence was generated: editing the template
+/// later never rewrites an occurrence already in progress.
+model DutyOccurrenceCheck {
+  id            String         @id @default(uuid())
+  tenantId      String
+  occurrenceId  String
+  position      Int            @default(0)
+  label         String
+  required      Boolean        @default(true)
+  completedAt   DateTime?
+  completedById String?
+  note          String?
+  occurrence    DutyOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurrenceId])
+}
+
+/// A handover from the person finishing to the person starting. It must be
+/// acknowledged by the receiver; an unacknowledged one stays visible.
+model DutyHandover {
+  id               String                @id @default(uuid())
+  tenantId         String
+  occurrenceId     String?
+  fromEmployeeId   String
+  toEmployeeId     String?
+  teamId           String?
+  note             String
+  status           DutyHandoverStatus    @default(OPEN)
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  createdAt        DateTime              @default(now())
+  occurrence       DutyOccurrence?       @relation(fields: [occurrenceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, toEmployeeId, status])
+}
+
+enum DutyHandoverStatus {
+  OPEN
+  ACKNOWLEDGED
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-28.S1. Meetings, discussions and the decision register.
+// Action items are work items; the link table says which decision they came from.
+// ---------------------------------------------------------------------------
+
+model MeetingRecord {
+  id                    String            @id @default(uuid())
+  tenantId              String
+  title                 String
+  agenda                String?
+  scheduledAt           DateTime
+  heldAt                DateTime?
+  facilitatorEmployeeId String?
+  notes                 String?
+  status                MeetingStatus     @default(PLANNED)
+  /// Optional context: the work or blocker it is about.
+  workItemId            String?
+  blockerId             String?
+  projectId             String?
+  createdById           String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attendees             MeetingAttendee[]
+  decisions             WorkDecision[]
+
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, status])
+}
+
+model MeetingAttendee {
+  id         String        @id @default(uuid())
+  tenantId   String
+  meetingId  String
+  employeeId String
+  attended   Boolean?
+  meeting    MeetingRecord @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, employeeId])
+  @@index([tenantId, employeeId])
+}
+
+enum MeetingStatus {
+  PLANNED
+  HELD
+  CANCELLED
+}
+
+/// A decision, who owns it, and what it superseded. Decisions are never deleted or
+/// rewritten: changing one creates a new decision that supersedes it.
+model WorkDecision {
+  id              String           @id @default(uuid())
+  tenantId        String
+  title           String
+  context         String?
+  decision        String
+  status          DecisionStatus   @default(DECIDED)
+  ownerEmployeeId String?
+  decidedAt       DateTime         @default(now())
+  meetingId       String?
+  workItemId      String?
+  blockerId       String?
+  projectId       String?
+  supersedesId    String?
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  meeting         MeetingRecord?   @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  supersedes      WorkDecision?    @relation("DecisionSupersedes", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy    WorkDecision[]   @relation("DecisionSupersedes")
+  actions         DecisionAction[]
+
+  @@index([tenantId, status, decidedAt])
+  @@index([tenantId, workItemId])
+  @@index([tenantId, blockerId])
+}
+
+/// Which work item (an action) came out of which decision.
+model DecisionAction {
+  id         String       @id @default(uuid())
+  tenantId   String
+  decisionId String
+  workItemId String
+  createdAt  DateTime     @default(now())
+  decision   WorkDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@unique([decisionId, workItemId])
+  @@index([tenantId, workItemId])
+}
+
+enum DecisionStatus {
+  PROPOSED
+  DECIDED
+  SUPERSEDED
+  REVERSED
 }

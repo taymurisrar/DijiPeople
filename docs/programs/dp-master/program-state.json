@@ -1346,13 +1346,13 @@
     {
       "id": "WP-06.S3",
       "wp": "WP-06",
-      "title": "Timesheet entries select a work item (taskId = work item id), approved hours feed progress; project templates, phases/WBS, review and closure",
+      "title": "Timesheet entries select a work item (taskId = work item id), approved hours feed progress; project templates, phases/WBS, review and closure (narrowed 2026-11-28: API reconciliation and net capacity; remainder in WP-06.S4)",
       "release": "R2",
       "deps": [
         "WP-06.S2"
       ],
       "workstream": "A",
-      "status": "IN_PROGRESS",
+      "status": "ACCEPTED",
       "evidence": "API: an entry taskId that IS a work item of the tenant is a link (free text stays free text); the employee must own or share it, it must not be archived and must agree with the entry project (6 unit tests incl. free text not queried); GET /work-items/:id/hours puts self-reported actual beside approved and pending timesheet minutes and names the gap (MATCHES / REPORTED_NOT_YET_APPROVED / APPROVED_EXCEEDS_REPORTED / NO_ACTUAL_REPORTED / NOTHING_BOOKED), scoped like the item; workload capacity is net of approved leave and holidays, each day removed once, limits named, no capacity = unavailable (work-capacity-and-hours.e2e-spec 4 tests + 5 pure tests). Shared calendar facts also drive the daily-update missing list. NOT yet: shifts, part-time and half days (WP-09.S1); the timesheet entry UI choosing a work item; project templates/phases/WBS; review and closure. | BROWSER: hours section shows reported vs approved with the gap in words (\"Not reported\", never 0); workload shows leave days, holiday days, net capacity and \"No capacity\". Remaining in this slice: the timesheet entry UI choosing a work item, project templates/phases/WBS, review and closure.",
       "integratedSha": "34899bfa"
     },
@@ -1408,7 +1408,8 @@
         "WP-38.S1"
       ],
       "workstream": "B",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "work-meetings and work-decisions API: meeting lifecycle with agenda lock once held, decisions never edited or deleted (changing one supersedes it in one compare-and-set transaction: 4 concurrent supersedes -> one 201, three 409, exactly one successor; mutation: dropping the status condition gives 2 successors), reverse requires a reason (stored in the audit row, not on the decision), actions are work items linked through DecisionAction with no orphan on failure, scope rules by reach (SELF sees only own/attended), cross-tenant on every route; work-decisions.e2e-spec 8 tests; mutations: race guard and tenant/scope filter. NOT done: UI; action owners do not see the originating decision unless they attend/own it; reverse reason is not readable from the decision; scheduled digests (WP-29)."
     },
     {
       "id": "WP-29.S1",
@@ -1445,18 +1446,20 @@
         "WP-03.S5"
       ],
       "workstream": "C",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "EmailTemplateRevision (content-addressed, immutable, created lazily the first time a workflow action sends); the first send of an action records the revision it rendered on the step, every retry and later recipient renders THAT revision whatever the row says now (email-template-revisions.e2e-spec 3 tests with the real renderer: row edited v1->v2, retry still renders v1, a send without a revision follows the row; another tenant cannot render the revision; a revision cannot be applied to a different template; mutation: rendering the row instead of the revision fails the test). workflow-durable-execution.e2e-spec 29/29 incl. retry handed the pinned revision and asking for no new one. NOT done: the authoring UI listing revisions / restoring one; system-template revisions are recorded when first sent, not at seed time."
     },
     {
       "id": "WP-09.S1",
       "wp": "WP-09",
-      "title": "Workforce scheduling foundation: roster calendar, shifts and shift templates, effective schedules per person, replacing the plain-week capacity basis",
+      "title": "Workforce scheduling foundation: effective-schedule net capacity from the schedules people actually follow (roster calendar and rotation weeks narrowed to WP-09.S2)",
       "release": "R2",
       "deps": [
         "WP-06.S3"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "work-schedule-capacity.ts reuses attendance work-configuration-hierarchy (dated assignment > employee > team > department > business unit > organisation > tenant default) and the attendance engine day rule (shift expected hours, else schedule-day hours; retired shift = no shift; Sunday-to-Thursday weeks honoured; overnight spans), loading all schedules in 3 queries; workload() capacity is now per person from their own schedule, net of leave and holidays (each day once, at that day's own minutes; leave on a day not worked costs nothing) with capacityBasis SCHEDULE / PARTLY_ASSUMED / NO_SCHEDULE so an assumed figure is never passed off as measured. work-schedule-capacity.spec 8 + work-item-capacity.spec; work-capacity-and-hours.e2e-spec incl. a Sun-Thu 6h shift week assigned to one person (5x360 scheduled, Wednesday holiday removed, Friday holiday on a non-working day ignored) while a person without a schedule reports NO_SCHEDULE. NOT done: roster calendar view and rotation weeks (rotationWeek rows are ignored), half-day holidays, shift swaps -> WP-09.S2."
     },
     {
       "id": "WP-36.S1",
@@ -1468,7 +1471,8 @@
         "WP-02.S1"
       ],
       "workstream": "A",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "work-duties API: templates (deactivate, never delete), idempotent generation (5 concurrent generates -> 1 occurrence + 1 work item; mutation: removing the unique-conflict handling fails it), weekday read in the template zone (Karachi/LA/New York edge cases, pure spec 10), occurrence left UNASSIGNED with the reason when the assignee is on leave or the day is not worked (never assigned to someone off), checklist copied per occurrence so later template edits never rewrite it, required checks block completion on both the duty route and the generic transition route (mutation: removing the guard fails), handovers acknowledged only by the receiver (team handovers by someone with reach over a member), idempotent, cross-tenant 404s; work-duties.e2e-spec 9 tests. NOT done: UI; occurrence list caps at 5000 candidates then filters in memory; unassigned occurrences are visible to the generating user and via queues only (route to a queue if managers need them); a scheduled generator job (generation is an explicit call today)."
     },
     {
       "id": "WP-27.S2",
@@ -1506,6 +1510,28 @@
         "WP-29.S1"
       ],
       "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-06.S4",
+      "wp": "WP-06",
+      "title": "Project completion: timesheet-entry UI choosing a work item, project templates/phases/WBS, review and closure",
+      "release": "R3",
+      "deps": [
+        "WP-06.S3"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-09.S2",
+      "wp": "WP-09",
+      "title": "Roster calendar view, rotation weeks, half-day holidays and shift swaps",
+      "release": "R3",
+      "deps": [
+        "WP-09.S1"
+      ],
+      "workstream": "A",
       "status": "NOT_STARTED"
     }
   ],

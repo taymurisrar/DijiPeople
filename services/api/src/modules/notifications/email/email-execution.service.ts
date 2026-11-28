@@ -47,6 +47,13 @@ export type SendTemplateEmailInput = {
   subjectUserId?: string | null;
   templateKey?: string;
   templateId?: string;
+  /**
+   * Render exactly this revision's content instead of the template row's current
+   * content (WP-04.S2). A retry passes the revision its first attempt used.
+   */
+  templateRevisionId?: string;
+  /** Record and report the revision this send rendered, so a caller can pin it. */
+  pinTemplateRevision?: boolean;
   recipient: string;
   cc?: string | null;
   bcc?: string | null;
@@ -115,6 +122,8 @@ export type SendTemplateEmailResult = {
   providerMessageId?: string | null;
   deliveryLogId: string;
   rendered: EmailTemplateRenderResult;
+  /** The immutable revision rendered, when the caller asked to pin one. */
+  templateRevisionId?: string;
 };
 
 export const AUTH_NOTIFICATION_EVENTS = new Set([
@@ -266,6 +275,17 @@ export class EmailExecutionService {
   async execute(
     input: SendTemplateEmailInput,
   ): Promise<SendTemplateEmailResult> {
+    const pinned: { revisionId?: string } = {};
+    const result = await this.executeCore(input, pinned);
+    return pinned.revisionId
+      ? { ...result, templateRevisionId: pinned.revisionId }
+      : result;
+  }
+
+  private async executeCore(
+    input: SendTemplateEmailInput,
+    pinned: { revisionId?: string },
+  ): Promise<SendTemplateEmailResult> {
     const startedAt = performance.now();
     const templateResolutionStartedAt = performance.now();
     const scope = await this.resolveScope(input);
@@ -290,8 +310,36 @@ export class EmailExecutionService {
       );
     }
 
+    let renderable: typeof template = template;
+    if (input.templateRevisionId) {
+      const revision = await this.repository.findVisibleTemplateRevision(
+        input.tenantId,
+        input.templateRevisionId,
+      );
+      if (!revision || revision.templateId !== template.id) {
+        throw new BadRequestException(
+          'The pinned email template revision was not found.',
+        );
+      }
+      renderable = {
+        ...template,
+        subjectTemplate: revision.subjectTemplate,
+        htmlTemplate: revision.htmlTemplate,
+        textTemplate: revision.textTemplate,
+        availableVariables: revision.availableVariables,
+      };
+      pinned.revisionId = revision.id;
+    } else if (input.pinTemplateRevision) {
+      pinned.revisionId = (
+        await this.repository.ensureTemplateRevision(
+          template,
+          input.requestedByUserId,
+        )
+      ).id;
+    }
+
     const plain = this.renderer.render({
-      template,
+      template: renderable,
       variables: input.variables,
     });
     // Essential tenant branding, every plan. Presentation only: it never

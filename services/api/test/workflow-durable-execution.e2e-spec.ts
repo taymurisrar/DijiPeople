@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { NotificationsRepository } from '../src/modules/notifications/notifications.repository';
 import { EmailService } from '../src/modules/notifications/email/email.service';
 import { OutboxDispatcherService } from '../src/modules/outbox/outbox-dispatcher.service';
 import { OutboxService } from '../src/modules/outbox/outbox.service';
@@ -49,33 +50,59 @@ describeWithDatabase()(
       status: 'SENT',
       ...over,
     });
+    // Every input the runtime handed the e-mail service, in order.
+    const inputs: Array<Record<string, unknown>> = [];
+    // Stands in for the revision the real service records when asked to pin one.
+    const revisionFor = new Map<string, string>();
     const emailStub = {
-      sendTemplateEmail: jest.fn(async (input: { recipient: string }) => {
-        const left = failing.get(input.recipient) ?? 0;
-        if (left !== 0) {
-          if (left > 0) failing.set(input.recipient, left - 1);
-          throw new Error(`smtp down for ${input.recipient}`);
-        }
-        if (gate) await gate;
-        const verdict = verdicts.get(input.recipient);
-        if (verdict === 'sink') return result({ delivered: false });
-        if (verdict === 'skipped') {
-          return result({ sent: false, delivered: false, skipped: true });
-        }
-        if (verdict === 'refused') {
+      sendTemplateEmail: jest.fn(
+        async (input: {
+          recipient: string;
+          templateId?: string;
+          templateRevisionId?: string;
+          pinTemplateRevision?: boolean;
+        }) => {
+          inputs.push({ ...input });
+          const left = failing.get(input.recipient) ?? 0;
+          if (left !== 0) {
+            if (left > 0) failing.set(input.recipient, left - 1);
+            throw new Error(`smtp down for ${input.recipient}`);
+          }
+          if (gate) await gate;
+          const verdict = verdicts.get(input.recipient);
+          if (verdict === 'sink') return result({ delivered: false });
+          if (verdict === 'skipped') {
+            return result({ sent: false, delivered: false, skipped: true });
+          }
+          if (verdict === 'refused') {
+            return result({
+              sent: false,
+              delivered: false,
+              status: 'FAILED',
+            });
+          }
+          sent.push(input.recipient);
           return result({
-            sent: false,
-            delivered: false,
-            status: 'FAILED',
+            deliveryLogId: logQueue.length
+              ? logQueue.shift()
+              : logs.get(input.recipient),
+            ...(input.pinTemplateRevision && input.templateId
+              ? {
+                  templateRevisionId: (await ensureRevision(input.templateId))
+                    .id,
+                }
+              : {}),
           });
-        }
-        sent.push(input.recipient);
-        return result({
-          deliveryLogId: logQueue.length
-            ? logQueue.shift()
-            : logs.get(input.recipient),
-        });
-      }),
+        },
+      ),
+    };
+
+    const ensureRevision = async (templateId: string) => {
+      const row = await prisma.emailTemplate.findUniqueOrThrow({
+        where: { id: templateId },
+      });
+      revisionFor.set(templateId, row.htmlTemplate);
+      return repository.ensureTemplateRevision(row);
     };
 
     let transition = 0;
@@ -96,6 +123,7 @@ describeWithDatabase()(
     let workflows: WorkflowsService;
     let runtime: WorkflowRuntimeService;
     let dispatch: WorkflowDispatchService;
+    let repository: NotificationsRepository;
     let outbox: OutboxService;
     let outboxDispatcher: OutboxDispatcherService;
     let tenantId: string;
@@ -154,6 +182,7 @@ describeWithDatabase()(
       workflows = app.get(WorkflowsService);
       runtime = app.get(WorkflowRuntimeService);
       dispatch = app.get(WorkflowDispatchService);
+      repository = app.get(NotificationsRepository);
       outbox = app.get(OutboxService);
       outboxDispatcher = privateDispatcher();
       fixtures = new DbFixtures(prisma, 'wfdur');
@@ -176,6 +205,8 @@ describeWithDatabase()(
       verdicts.clear();
       logs.clear();
       logQueue.length = 0;
+      inputs.length = 0;
+      revisionFor.clear();
       gate = null;
       process.env.WORKFLOW_EXECUTION_MODE = 'durable';
     });
@@ -879,12 +910,29 @@ describeWithDatabase()(
         templateVersion: template.version,
         templateDrift: true,
       });
+      // WP-04.S2: the first recipient asked for a revision to be recorded; the
+      // retry for the second recipient was handed that same revision to render,
+      // and asked for no new one.
+      expect(steps[0].templateRevisionId).toBeTruthy();
+      expect(steps[1].templateRevisionId).toBe(steps[0].templateRevisionId);
+      const p2 = inputs.filter((i) => i.recipient === 'p2@example.com');
+      expect(p2[p2.length - 1]).toMatchObject({
+        templateRevisionId: steps[0].templateRevisionId,
+        pinTemplateRevision: false,
+      });
       await prisma.emailDeliveryLog.deleteMany({
         where: { tenantId, templateId: template.id },
       });
       await prisma.workflowRunStep.updateMany({
         where: { tenantId },
         data: { deliveryLogId: null },
+      });
+      await prisma.workflowRunStep.updateMany({
+        where: { tenantId },
+        data: { templateRevisionId: null },
+      });
+      await prisma.emailTemplateRevision.deleteMany({
+        where: { templateId: template.id },
       });
       await prisma.emailTemplate.delete({ where: { id: template.id } });
     });

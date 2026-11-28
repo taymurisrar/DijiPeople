@@ -1038,7 +1038,11 @@ export class WorkflowRuntimeService {
         actionIndex,
         templateId: { not: null },
       },
-      select: { templateId: true, templateVersion: true },
+      select: {
+        templateId: true,
+        templateVersion: true,
+        templateRevisionId: true,
+      },
       orderBy: { recipientIndex: 'asc' },
     });
     const pinnedId = pin?.templateId ?? configuration.templateId ?? undefined;
@@ -1048,6 +1052,10 @@ export class WorkflowRuntimeService {
       eventCode: context.eventCode,
       templateId: pin?.templateId ?? configuration.templateId,
       templateKey: pin?.templateId ? undefined : configuration.templateKey,
+      // The first send records the exact content it rendered; every retry and
+      // every later recipient renders that revision, however the row is edited.
+      templateRevisionId: pin?.templateRevisionId ?? undefined,
+      pinTemplateRevision: !pin?.templateRevisionId,
       recipient,
       variables: context.variables ?? {},
       requestedByUserId: context.actorUserId ?? null,
@@ -1071,6 +1079,10 @@ export class WorkflowRuntimeService {
     if (logId) {
       record.deliveryLogId = logId;
       record.deliveryStatus = result.status;
+      const revisionId =
+        (result as { templateRevisionId?: string }).templateRevisionId ??
+        pin?.templateRevisionId;
+      if (revisionId) record.templateRevisionId = revisionId;
       const log = await this.prisma.emailDeliveryLog.findFirst({
         where: { id: logId, tenantId: context.tenantId },
         select: { templateId: true },
