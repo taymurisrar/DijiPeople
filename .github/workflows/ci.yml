@@ -243,7 +243,12 @@ jobs:
         run: npm run prisma:generate
       - name: Validate Prisma schema
         run: npm run prisma:validate
-      - run: npm run typecheck
+      - name: Typecheck
+        # The API program carries the 1.4M-line generated Prisma client; the default
+        # heap ran out (exit 134) as the work modules landed. See ITEM-0249.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npm run typecheck
 
   lint:
     name: Lint (check only)

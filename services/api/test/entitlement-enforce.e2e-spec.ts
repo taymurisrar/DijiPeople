@@ -46,7 +46,9 @@ import { assertIsolatedUtf8Database } from './helpers/test-database';
  * refusal therefore use `/projects`; the work routes are pinned as UNGATED so a
  * future gate (or its accidental absence) is a visible, deliberate change.
  */
-const SAFE_DATABASE = /dp_master_e2e_test|dp_master_utf8/;
+// Same rule as test/helpers/test-database.ts: a database named as a throwaway
+// (local dp_master_e2e_test / dp_master_utf8, CI dijipeople_e2e_test).
+const SAFE_DATABASE = /(_e2e|_gui|_utf8)/;
 
 describeWithDatabase()('Plan entitlement under ENFORCE (e2e)', () => {
   jest.setTimeout(600_000);
@@ -140,7 +142,7 @@ describeWithDatabase()('Plan entitlement under ENFORCE (e2e)', () => {
     const url = process.env.DATABASE_URL ?? '';
     if (!SAFE_DATABASE.test(url)) {
       throw new Error(
-        'entitlement-enforce.e2e-spec refuses to run: DATABASE_URL must contain dp_master_e2e_test or dp_master_utf8.',
+        'entitlement-enforce.e2e-spec refuses to run: DATABASE_URL must name a throwaway database (_e2e, _gui or _utf8).',
       );
     }
     envBefore = process.env[ENTITLEMENT_ENV_VAR];
