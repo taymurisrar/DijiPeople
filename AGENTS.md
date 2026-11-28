@@ -871,6 +871,14 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   This applies to the primary checkout above all: it is the user's interactive
   workspace, not a scratch directory, and `git status --short` being non-empty
   there is something they will see in GitHub Desktop long before you do.
+- **Subagent model choice.** When spawning a subagent, pass `model` explicitly; never
+  inherit the session's model by omission. Use `haiku` for mechanical work: running a
+  named test or browser suite and reporting results, repetitive screens built on
+  existing shared components, and file or log searches. Use `sonnet` for work needing
+  judgment: engine and database changes, security-sensitive code, and anything with
+  mutation or race-condition proofs. Reserve `opus` for the roles that already set it
+  in `.claude/agents/`. Prefer several short, narrowly briefed agents over one
+  multi-hour agent, and say in the brief which model was chosen and why.
 - Do not add dependencies without justification; prefer what is already
   installed.
 - Do not reformat files you are not otherwise changing.
