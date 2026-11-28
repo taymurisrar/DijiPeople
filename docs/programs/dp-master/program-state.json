@@ -1493,8 +1493,9 @@
         "WP-09.S1"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-28: DailyUpdateScopePolicy CRUD, resolution team > business unit > tenant (a disabled team policy stays disabled), PER_SHIFT cadence from the effective schedule (overnight, DST, Auckland specs), escalation inserts DailyUpdateEscalation first so run-twice and 4 concurrent runs notify once, failed notify rolls back, off-duty skipped, in-app to the reporting manager through the orchestrator; daily-update-scopes.e2e 9 tests; mutations: wrong precedence, removed unique claim. NOT done: no scheduler hook for escalation (route only); escalation UI -> WP-27.S3."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: DailyUpdateScopePolicy CRUD, resolution team > business unit > tenant (a disabled team policy stays disabled), PER_SHIFT cadence from the effective schedule (overnight, DST, Auckland specs), escalation inserts DailyUpdateEscalation first so run-twice and 4 concurrent runs notify once, failed notify rolls back, off-duty skipped, in-app to the reporting manager through the orchestrator; daily-update-scopes.e2e 9 tests; mutations: wrong precedence, removed unique claim. NOT done: no scheduler hook for escalation (route only); escalation UI -> WP-27.S3.",
+      "integratedSha": "c37c6600"
     },
     {
       "id": "WP-15.S1",
@@ -1542,8 +1543,9 @@
         "WP-09.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-28: rotation weeks (cycle = max rotationWeek, anchor = schedule start / assignment start / fixed epoch), half-day holidays (half the day removed, 0.5 holiday day; full leave/holiday wins), one pure selectWorkSchedule shared by attendance.repository bulk resolution and capacity (parity spec feeds identical fixtures); limits now NO_SHIFT_SWAPS; mutation: ignoring rotationWeek fails 4 specs. NOT done: shift swaps, roster UI -> WP-09.S3; single-employee attendance resolver still queries per candidate (deliberate)."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: rotation weeks (cycle = max rotationWeek, anchor = schedule start / assignment start / fixed epoch), half-day holidays (half the day removed, 0.5 holiday day; full leave/holiday wins), one pure selectWorkSchedule shared by attendance.repository bulk resolution and capacity (parity spec feeds identical fixtures); limits now NO_SHIFT_SWAPS; mutation: ignoring rotationWeek fails 4 specs. NOT done: shift swaps, roster UI -> WP-09.S3; single-employee attendance resolver still queries per candidate (deliberate).",
+      "integratedSha": "c37c6600"
     },
     {
       "id": "WP-36.S2",
@@ -1555,8 +1557,9 @@
         "WP-09.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-28: occurrence list is ONE database query (DutyOccurrence->WorkItem relation, visibility as a where, skip/take and exact count in SQL; query count constant across pages 0/500/700; 2300-row fixture, mixed visibility, ties, cross-tenant; mutation: dropping the visibility where fails). Automatic generation: scheduler off unless WORK_DUTY_GENERATION_ENABLED=true (render.yaml, env docs), per-tenant advisory lock, per-tenant failure isolation, idempotent (two runs -> one occurrence), null system actor, daysAhead bounded 1..14; mutation: removing idempotency fails 3 tests. NOT done: scheduler uses the UTC date, not each tenant timezone; handover/duty UI -> WP-36.S3."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: occurrence list is ONE database query (DutyOccurrence->WorkItem relation, visibility as a where, skip/take and exact count in SQL; query count constant across pages 0/500/700; 2300-row fixture, mixed visibility, ties, cross-tenant; mutation: dropping the visibility where fails). Automatic generation: scheduler off unless WORK_DUTY_GENERATION_ENABLED=true (render.yaml, env docs), per-tenant advisory lock, per-tenant failure isolation, idempotent (two runs -> one occurrence), null system actor, daysAhead bounded 1..14; mutation: removing idempotency fails 3 tests. NOT done: scheduler uses the UTC date, not each tenant timezone; handover/duty UI -> WP-36.S3.",
+      "integratedSha": "c37c6600"
     },
     {
       "id": "WP-36.S3",
@@ -1600,8 +1603,9 @@
         "WP-28.S1"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-28: reversal reason/at/by stored on the decision and returned; an action owner can read the originating decision (writes stay 403); links the caller cannot see come back null, hidden chain steps surface as HIDDEN_LINK; work-decisions.e2e 11 tests; mutation: dropping the owner filter fails. NOT done: openActions does not list a decision for its action owner; UI -> WP-28.S3."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: reversal reason/at/by stored on the decision and returned; an action owner can read the originating decision (writes stay 403); links the caller cannot see come back null, hidden chain steps surface as HIDDEN_LINK; work-decisions.e2e 11 tests; mutation: dropping the owner filter fails. NOT done: openActions does not list a decision for its action owner; UI -> WP-28.S3.",
+      "integratedSha": "c37c6600"
     },
     {
       "id": "WP-28.S3",
@@ -1663,5 +1667,5 @@
     "bug": "BUG-4774",
     "backlogItem": "ITEM-0245"
   },
-  "integratedSha": "07d866e0"
+  "integratedSha": "c37c6600"
 }
