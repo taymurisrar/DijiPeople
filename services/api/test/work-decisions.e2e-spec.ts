@@ -123,7 +123,11 @@ describeWithDatabase()('Meetings and decision register (e2e)', () => {
         await prisma.workItemBlocker.deleteMany({ where: { tenantId: id } });
         await prisma.workItem.deleteMany({ where: { tenantId: id } });
       }
-      await prisma.employee.deleteMany({});
+      // Scoped to the tenants this suite created: an unscoped deleteMany would
+      // delete every employee in a shared test database.
+      await prisma.employee.deleteMany({
+        where: { tenantId: { in: [tenantId, otherTenantId] } },
+      });
       await actors.cleanup();
       await fixtures.cleanup();
     } finally {
@@ -548,6 +552,209 @@ describeWithDatabase()('Meetings and decision register (e2e)', () => {
       where: { tenantId, entityId: id, action: 'WORK_DECISION_REVERSED' },
     });
     expect(audit.afterSnapshot).toMatchObject({ reason: 'Budget was cut' });
+    // WP-28.S2: the reason is also stored on the decision and read back with it.
+    expect(reversed.body).toMatchObject({
+      reversedReason: 'Budget was cut',
+      reversedById: maya.id,
+    });
+    expect(reversed.body.reversedAt).toBeTruthy();
+    const read = await call(maya, 'get', `/work-decisions/${id}`);
+    expect(read.body).toMatchObject({
+      status: 'REVERSED',
+      reversedReason: 'Budget was cut',
+      reversedById: maya.id,
+    });
+    expect(read.body.reversedAt).toBeTruthy();
+    const stored = await prisma.workDecision.findFirstOrThrow({
+      where: { id },
+    });
+    expect(stored.reversedReason).toBe('Budget was cut');
+    // A decision nobody reversed carries none of it.
+    const live = await decision(maya);
+    expect(
+      (await call(maya, 'get', `/work-decisions/${live}`)).body,
+    ).toMatchObject({
+      reversedReason: null,
+      reversedAt: null,
+      reversedById: null,
+    });
+  });
+
+  it('the owner of an action reads the decision it came from, read-only, without the context they may not see', async () => {
+    const meetingId = await meeting(maya, { title: 'Closed leadership' });
+    await call(maya, 'patch', `/work-meetings/${meetingId}`, {
+      notes: 'SECRET-MEETING-NOTES',
+    });
+    const privateItem = (
+      await call(maya, 'post', '/work-items', {
+        kind: 'TASK',
+        title: 'Maya private task',
+      })
+    ).body.id as string;
+    const d = await decision(maya, {
+      title: 'Leadership call',
+      meetingId,
+      workItemId: privateItem,
+    });
+    // Ana was not in the meeting and has no action yet.
+    expect((await call(ana, 'get', `/work-decisions/${d}`)).status).toBe(404);
+    const action = await call(maya, 'post', `/work-decisions/${d}/actions`, {
+      title: 'Ana follow-up',
+      ownerEmployeeId: emp.ana,
+      dueAt: future(),
+    });
+    expect(action.status).toBe(201);
+
+    const read = await call(ana, 'get', `/work-decisions/${d}`);
+    expect(read.status).toBe(200);
+    expect(read.body).toMatchObject({
+      id: d,
+      title: 'Leadership call',
+      meetingId: null,
+      workItemId: null,
+      meeting: null,
+    });
+    expect(JSON.stringify(read.body)).not.toContain('SECRET-MEETING-NOTES');
+    // Her own action is there; she is not shown anything beyond what she may see.
+    expect(read.body.actions.map((a: { title: string }) => a.title)).toEqual([
+      'Ana follow-up',
+    ]);
+    const listed = await call(ana, 'get', '/work-decisions?take=100');
+    expect(listed.body.items.map((i: { id: string }) => i.id)).toContain(d);
+    expect(JSON.stringify(listed.body)).not.toContain('SECRET-MEETING-NOTES');
+    expect(
+      listed.body.items.find((i: { id: string }) => i.id === d),
+    ).toMatchObject({ meetingId: null, workItemId: null });
+
+    // Read-only: reading it grants no say over it.
+    for (const [path, body] of [
+      [`/work-decisions/${d}/reverse`, { reason: 'not mine' }],
+      [`/work-decisions/${d}/supersede`, { decision: 'not mine' }],
+      [
+        `/work-decisions/${d}/actions`,
+        { title: 'x', ownerEmployeeId: emp.ana, dueAt: future() },
+      ],
+    ] as Array<[string, object]>) {
+      expect([path, (await call(ana, 'post', path, body)).status]).toEqual([
+        path,
+        403,
+      ]);
+    }
+    // Someone who owns no action of it still gets nothing, and neither does an
+    // action owner of a DIFFERENT decision.
+    expect((await call(bo, 'get', `/work-decisions/${d}`)).status).toBe(404);
+    const other = await decision(maya, { title: 'Bo only' });
+    await call(maya, 'post', `/work-decisions/${other}/actions`, {
+      title: 'Bo follow-up',
+      ownerEmployeeId: emp.bo,
+      dueAt: future(),
+    });
+    expect((await call(ana, 'get', `/work-decisions/${other}`)).status).toBe(
+      404,
+    );
+    expect((await call(bo, 'get', `/work-decisions/${other}`)).status).toBe(
+      200,
+    );
+    expect((await call(cy, 'get', `/work-decisions/${other}`)).status).toBe(
+      404,
+    );
+  });
+
+  it('a person who can see a decision sees only the meeting, work item and notes they are authorised for', async () => {
+    const shared = await meeting(maya, {
+      title: 'Team meeting',
+      attendeeEmployeeIds: [emp.ana],
+    });
+    await call(maya, 'patch', `/work-meetings/${shared}`, {
+      notes: 'NOTES-ANA-MAY-READ',
+    });
+    const closed = await meeting(maya, { title: 'Closed door' });
+    await call(maya, 'patch', `/work-meetings/${closed}`, {
+      notes: 'NOTES-ANA-MAY-NOT-READ',
+    });
+    const mayaItem = (
+      await call(maya, 'post', '/work-items', { kind: 'TASK', title: 'M item' })
+    ).body.id as string;
+
+    // Through the meeting she attended: the meeting and its notes are hers to read;
+    // the work item it points at is not.
+    const inShared = await decision(maya, {
+      meetingId: shared,
+      workItemId: mayaItem,
+    });
+    const a = await call(ana, 'get', `/work-decisions/${inShared}`);
+    expect(a.status).toBe(200);
+    expect(a.body).toMatchObject({
+      meetingId: shared,
+      workItemId: null,
+      meeting: { id: shared, notes: 'NOTES-ANA-MAY-READ' },
+    });
+
+    // She owns this decision but never sat in that meeting: no 403 on the whole
+    // decision, only the unauthorised context comes back empty.
+    const owned = await decision(maya, {
+      meetingId: closed,
+      ownerEmployeeId: emp.ana,
+    });
+    const b = await call(ana, 'get', `/work-decisions/${owned}`);
+    expect(b.status).toBe(200);
+    expect(b.body).toMatchObject({ meetingId: null, meeting: null });
+    expect(JSON.stringify(b.body)).not.toContain('NOTES-ANA-MAY-NOT-READ');
+    // The manager sees all of it.
+    const m = await call(maya, 'get', `/work-decisions/${owned}`);
+    expect(m.body).toMatchObject({
+      meetingId: closed,
+      meeting: { notes: 'NOTES-ANA-MAY-NOT-READ' },
+    });
+  });
+
+  it('a decision chain says HIDDEN_LINK for a step the caller cannot see instead of ending silently', async () => {
+    const first = await decision(maya, { decision: 'Plan one' }); // Maya's alone
+    const second = (
+      await call(maya, 'post', `/work-decisions/${first}/supersede`, {
+        decision: 'Plan two',
+        ownerEmployeeId: emp.ana,
+      })
+    ).body.id as string;
+    const third = (
+      await call(maya, 'post', `/work-decisions/${second}/supersede`, {
+        decision: 'Plan three',
+      })
+    ).body.id as string;
+    const fourth = (
+      await call(maya, 'post', `/work-decisions/${third}/supersede`, {
+        decision: 'Plan four',
+      })
+    ).body.id as string;
+    // The last step is Maya's alone, so it is hidden from Ana going forward.
+    const fifth = (
+      await call(maya, 'post', `/work-decisions/${fourth}/supersede`, {
+        decision: 'Plan five',
+        ownerEmployeeId: emp.maya,
+      })
+    ).body.id as string;
+
+    const mid = (await call(ana, 'get', `/work-decisions/${second}`)).body;
+    // Backwards: the first plan is Maya's and invisible to Ana, but it is there.
+    expect(mid.previous).toEqual([{ id: null, link: 'HIDDEN_LINK' }]);
+    expect(mid.next.map((s: { id: string | null }) => s.id)).toEqual([
+      third,
+      fourth,
+      null,
+    ]);
+    expect(mid.next[2]).toEqual({ id: null, link: 'HIDDEN_LINK' });
+    // The manager sees an unbroken chain.
+    const whole = (await call(maya, 'get', `/work-decisions/${third}`)).body;
+    expect(whole.previous.map((s: { id: string }) => s.id)).toEqual([
+      second,
+      first,
+    ]);
+    expect(whole.next.map((s: { id: string }) => s.id)).toEqual([
+      fourth,
+      fifth,
+    ]);
+    expect(JSON.stringify(mid)).not.toContain(first);
+    expect(JSON.stringify(mid)).not.toContain(fifth);
   });
 
   it('only the owner, the creator or a manager can supersede or reverse', async () => {

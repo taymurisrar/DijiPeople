@@ -2,12 +2,15 @@ import type { WorkWeekday } from '@prisma/client';
 
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import {
-  organizationalScopes,
-  scheduleCandidates,
+  selectWorkSchedule,
   type EmployeeHierarchy,
 } from '../attendance/work-configuration-hierarchy';
 import { dayKey } from './work-item-capacity';
-import { isDayOff, type CalendarFacts } from './work-calendar';
+import {
+  isDayOff,
+  isHalfDayHoliday,
+  type CalendarFacts,
+} from './work-calendar';
 
 /*
  * DP-MASTER WP-09.S1. What a person is SCHEDULED to work, day by day, from the
@@ -66,6 +69,11 @@ export type ScheduleView = {
   effectiveStartDate: Date | null;
   effectiveEndDate: Date | null;
   days: ScheduleDayRow[];
+  /**
+   * Set on the copy handed back for a day reached through a dated assignment: the
+   * assignment's start, the rotation anchor when the schedule has no start of its own.
+   */
+  assignmentFrom?: Date | null;
 };
 
 /** How trustworthy one day's minutes are, weakest last. */
@@ -100,13 +108,71 @@ function spanMinutes(
   return net > 0 ? net : null;
 }
 
-/** What one schedule expects of a person on one calendar day (YYYY-MM-DD). */
+/**
+ * Rotation weeks with no better anchor count from this Monday (2000-01-03), so a
+ * schedule that names neither an effective start nor was reached through a dated
+ * assignment still rotates deterministically rather than by whatever day it is run.
+ */
+export const ROTATION_EPOCH = Date.UTC(2000, 0, 3);
+
+/** Length of the rotation: the largest rotationWeek any row names; 1 = no rotation. */
+export function rotationCycleLength(
+  days: ReadonlyArray<{ rotationWeek: number | null }>,
+): number {
+  let max = 1;
+  for (const d of days) {
+    if (d.rotationWeek !== null && d.rotationWeek > max) max = d.rotationWeek;
+  }
+  return max;
+}
+
+/**
+ * Which rotation week (1-based) a calendar day falls in. Weeks are whole 7-day
+ * blocks counted from the anchor day itself - an anchor in mid-week starts a week
+ * on that weekday - so day anchor..anchor+6 is week 1, the next seven week 2, and
+ * the cycle then repeats. Days before the anchor continue the cycle backwards.
+ */
+export function rotationWeekOn(
+  day: string,
+  anchor: Date | null,
+  cycle: number,
+): number {
+  if (cycle <= 1) return 1;
+  const at = new Date(`${day}T00:00:00.000Z`).getTime();
+  const from = anchor
+    ? Date.UTC(
+        anchor.getUTCFullYear(),
+        anchor.getUTCMonth(),
+        anchor.getUTCDate(),
+      )
+    : ROTATION_EPOCH;
+  const weeks = Math.floor((at - from) / (7 * DAY));
+  return (((weeks % cycle) + cycle) % cycle) + 1;
+}
+
+/**
+ * What one schedule expects of a person on one calendar day (YYYY-MM-DD).
+ *
+ * `anchor` is the date the rotation counts from when the schedule has no effective
+ * start of its own: normally the start of the dated assignment that put the person
+ * on it. A row with no rotationWeek applies to every week; a row for another week
+ * does not apply; a weekday with no applicable row falls back to weeklyWorkDays.
+ */
 export function expectationOn(
   schedule: ScheduleView,
   day: string,
+  anchor: Date | null = null,
 ): DayExpectation {
   const weekday = WEEKDAYS[new Date(`${day}T00:00:00.000Z`).getUTCDay()];
-  const row = schedule.days.find((d) => d.dayOfWeek === weekday);
+  const week = rotationWeekOn(
+    day,
+    schedule.effectiveStartDate ?? anchor ?? schedule.assignmentFrom ?? null,
+    rotationCycleLength(schedule.days),
+  );
+  const sameDay = schedule.days.filter((d) => d.dayOfWeek === weekday);
+  const row =
+    sameDay.find((d) => d.rotationWeek === week) ??
+    sameDay.find((d) => d.rotationWeek === null);
   const working = row
     ? row.isWorkingDay
     : schedule.weeklyWorkDays.includes(weekday);
@@ -307,47 +373,67 @@ export async function loadScheduleFacts(
   );
   const list = [...views.values()];
 
+  // The schedules usable on a day, shared by everyone (the window is a property of
+  // the schedule), and the choice made for one combination of pointers, shared by
+  // everyone with the same combination - so cost follows distinct setups, not heads.
+  const usableByDay = new Map<string, ScheduleView[]>();
+  const usableOn = (day: string) => {
+    let usable = usableByDay.get(day);
+    if (!usable) {
+      usable = list.filter((s) => inWindow(s, day));
+      usableByDay.set(day, usable);
+    }
+    return usable;
+  };
+  const chosen = new Map<string, ScheduleView | null>();
+
   for (const employee of employees as EmployeeRow[]) {
     const mine = assignments.filter((a) => a.employeeId === employee.id);
-    const standing = (): ScheduleView | null => {
-      for (const candidate of scheduleCandidates({
-        employeeScheduleId: employee.defaultWorkScheduleId,
-        teamScheduleId: employee.team?.defaultWorkScheduleId,
-        departmentScheduleId: employee.department?.defaultWorkScheduleId,
-      })) {
-        const found = views.get(candidate.id);
-        if (found) return found;
-      }
-      for (const scope of organizationalScopes(employee)) {
-        const scoped = list.find((s) =>
-          scope.businessUnitId
-            ? s.businessUnitId === scope.businessUnitId
-            : s.businessUnitId === null &&
-              s.organizationId === scope.organizationId,
-        );
-        if (scoped) return scoped;
-      }
-      return list.find((s) => s.isDefault) ?? null;
-    };
-    const fallback = standing();
     let any = false;
     const scheduleOn = (day: string): ScheduleView | null => {
       const at = new Date(`${day}T00:00:00.000Z`).getTime();
-      // A dated assignment is a deliberate statement about a period, and wins.
+      // A dated assignment is a deliberate statement about a period, and wins -
+      // when the schedule it names is itself in force that day.
+      let assignment: (typeof mine)[number] | null = null;
       for (const a of mine) {
         if (a.effectiveFrom.getTime() > at) continue;
         if (a.effectiveTo && a.effectiveTo.getTime() < at) continue;
         const view = views.get(a.workScheduleId);
         if (view && inWindow(view, day)) {
-          any = true;
-          return view;
+          assignment = a;
+          break;
         }
       }
-      if (fallback && inWindow(fallback, day)) {
-        any = true;
-        return fallback;
+      // The precedence itself is the attendance module's, not restated here.
+      const key = [
+        day,
+        assignment?.workScheduleId ?? '',
+        employee.defaultWorkScheduleId ?? '',
+        employee.team?.defaultWorkScheduleId ?? '',
+        employee.department?.defaultWorkScheduleId ?? '',
+        employee.businessUnitId ?? '',
+        employee.organizationId ?? '',
+      ].join('|');
+      let schedule = chosen.get(key);
+      if (schedule === undefined) {
+        schedule =
+          selectWorkSchedule({
+            assignmentScheduleId: assignment?.workScheduleId,
+            employeeScheduleId: employee.defaultWorkScheduleId,
+            teamScheduleId: employee.team?.defaultWorkScheduleId,
+            departmentScheduleId: employee.department?.defaultWorkScheduleId,
+            hierarchy: employee,
+            schedules: usableOn(day),
+          })?.schedule ?? null;
+        chosen.set(key, schedule);
       }
-      return null;
+      if (!schedule) return null;
+      any = true;
+      // Reached through an assignment: its start anchors a rotation that has no
+      // start of its own. The copy is made only then, so the shared view is untouched.
+      return assignment && assignment.workScheduleId === schedule.id
+        ? { ...schedule, assignmentFrom: assignment.effectiveFrom }
+        : schedule;
     };
     facts.set(employee.id, {
       scheduleOn,
@@ -441,6 +527,10 @@ export function netCapacity(input: {
     } else if (off.off) {
       out.holidayDays += 1;
       out.holidayMinutes += expectation.minutes;
+    } else if (isHalfDayHoliday(input.calendar, input.employeeId, day)) {
+      // Half of the day's scheduled minutes are gone; the person still works the rest.
+      out.holidayDays += 0.5;
+      out.holidayMinutes += Math.round(expectation.minutes / 2);
     }
   }
   out.netMinutes = Math.max(

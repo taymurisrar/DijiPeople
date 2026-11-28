@@ -57,6 +57,66 @@ export class DailyUpdatePolicyDto {
   requireAcknowledgement?: boolean;
 }
 
+/**
+ * A policy for one team or one business unit (exactly one of the two). Anything
+ * left out keeps its value on an existing policy, or takes the default on a new one.
+ */
+export class DailyUpdateScopePolicyDto {
+  @IsOptional()
+  @IsUUID()
+  teamId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
+  @IsIn(['WORKING_DAYS', 'PER_SHIFT'])
+  cadence?: 'WORKING_DAYS' | 'PER_SHIFT';
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(7)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(7, { each: true })
+  workingDays?: number[];
+
+  /** After local midnight (WORKING_DAYS) or after the shift ends (PER_SHIFT). */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1439)
+  deadlineMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  timezone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  requireAcknowledgement?: boolean;
+
+  /** Minutes after the deadline at which a miss is escalated; null turns it off. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10080)
+  escalateAfterMinutes?: number | null;
+}
+
+export class RunEscalationDto {
+  /** Escalate for this day only (YYYY-MM-DD). Defaults to yesterday through tomorrow (UTC). */
+  @IsOptional()
+  @Matches(DATE)
+  date?: string;
+}
+
 export class DraftDailyUpdateDto {
   /** The day to report on (YYYY-MM-DD). Defaults to today in the policy zone. */
   @IsOptional()

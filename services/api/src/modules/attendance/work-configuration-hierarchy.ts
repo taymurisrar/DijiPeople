@@ -68,6 +68,54 @@ export function scheduleCandidates(input: {
   ]);
 }
 
+/** What the selector needs to know about a schedule; callers pass richer rows. */
+export interface SelectableWorkSchedule {
+  readonly id: string;
+  readonly isDefault: boolean;
+  readonly businessUnitId: string | null;
+  readonly organizationId: string | null;
+}
+
+/**
+ * Chooses the schedule that applies to one employee from candidates the caller has
+ * ALREADY loaded - the one implementation of the precedence, shared by attendance
+ * (`resolveWorkDayForEmployees`) and by work-item capacity, so the two cannot
+ * disagree about who is on which schedule.
+ *
+ * Order: dated assignment, employee, team, department (by pointer), then the first
+ * schedule scoped to the business unit, then to the organisation (businessUnitId
+ * null), then the tenant default. `schedules` must be limited to those usable on
+ * the day in question (active, effective window) and ordered `isDefault` first then
+ * oldest first, which is what makes a tie inside one scope deterministic.
+ */
+export function selectWorkSchedule<S extends SelectableWorkSchedule>(input: {
+  readonly assignmentScheduleId?: string | null;
+  readonly employeeScheduleId?: string | null;
+  readonly teamScheduleId?: string | null;
+  readonly departmentScheduleId?: string | null;
+  readonly hierarchy: EmployeeHierarchy;
+  readonly schedules: readonly S[];
+}): { readonly schedule: S; readonly source: WorkConfigurationSource } | null {
+  const byId = new Map(input.schedules.map((s) => [s.id, s]));
+  for (const candidate of scheduleCandidates(input)) {
+    const found = byId.get(candidate.id);
+    if (found) return { schedule: found, source: candidate.source };
+  }
+  for (const scope of organizationalScopes(input.hierarchy)) {
+    const scoped = input.schedules.find((schedule) =>
+      scope.businessUnitId
+        ? schedule.businessUnitId === scope.businessUnitId
+        : schedule.businessUnitId === null &&
+          schedule.organizationId === scope.organizationId,
+    );
+    if (scoped) return { schedule: scoped, source: scope.source };
+  }
+  const fallback = input.schedules.find((schedule) => schedule.isDefault);
+  return fallback
+    ? { schedule: fallback, source: 'TENANT_DEFAULT' as const }
+    : null;
+}
+
 /**
  * Calendar candidates, most specific first.
  *

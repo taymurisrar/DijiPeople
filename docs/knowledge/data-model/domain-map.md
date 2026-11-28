@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**370 models · 343 enums · 295 tenant-scoped · 13 with an entity note**
+**372 models · 344 enums · 297 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -32,15 +32,17 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `UserPermission` | yes | `users` | — |
 | `UserRole` | yes | `users` | — |
 
-## People — 38 models
+## People — 40 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
 | `BusinessUnit` | yes | `organization` | [[entity-business-unit|documented]] |
 | `ContributionEntry` | yes | `contributions` | — |
 | `DailyUpdate` | yes | `daily-updates` | — |
+| `DailyUpdateEscalation` | yes | `daily-updates` | — |
 | `DailyUpdateItem` | yes | `daily-updates` | — |
 | `DailyUpdatePolicy` | yes | `daily-updates` | — |
+| `DailyUpdateScopePolicy` | yes | `daily-updates` | — |
 | `DecisionAction` | yes | `work-items` | — |
 | `Department` | yes | `organization` | — |
 | `Designation` | yes | `organization` | — |

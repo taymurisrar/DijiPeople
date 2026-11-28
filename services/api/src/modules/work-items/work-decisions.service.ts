@@ -103,10 +103,21 @@ const DECISION_SELECT = {
   blockerId: true,
   projectId: true,
   supersedesId: true,
+  reversedReason: true,
+  reversedAt: true,
+  reversedById: true,
   createdById: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.WorkDecisionSelect;
+
+/**
+ * Stands in for a link in a decision chain that the caller may not see. The chain
+ * keeps going past it, so a reader knows a step exists rather than being shown a
+ * chain that silently ends.
+ */
+export type HiddenLink = { id: null; link: 'HIDDEN_LINK' };
+const HIDDEN_LINK: HiddenLink = { id: null, link: 'HIDDEN_LINK' };
 
 type MeetingRow = Prisma.MeetingRecordGetPayload<{
   select: typeof MEETING_SELECT;
@@ -208,12 +219,49 @@ export class WorkDecisionsService {
     };
   }
 
+  /**
+   * The decisions that came out as work for this person: those with an action
+   * whose work item they OWN. Read-only access - it never lets them change the
+   * decision (the manage checks still ask for owner, creator or write reach).
+   */
+  private async actionOwnerDecisionIds(
+    user: AuthenticatedUser,
+    own: string,
+  ): Promise<string[]> {
+    const items = await this.prisma.workItem.findMany({
+      where: { tenantId: user.tenantId, ownerEmployeeId: own },
+      select: { id: true },
+      take: 5000,
+    });
+    if (!items.length) return [];
+    const links = await this.prisma.decisionAction.findMany({
+      where: {
+        tenantId: user.tenantId,
+        workItemId: { in: items.map((i) => i.id) },
+      },
+      select: { decisionId: true },
+      take: 5000,
+    });
+    return [...new Set(links.map((l) => l.decisionId))];
+  }
+
   private async decisionWhere(
     user: AuthenticatedUser,
+    options: { readOnly?: boolean } = {},
   ): Promise<Prisma.WorkDecisionWhereInput | null> {
     const { where: meeting, reach, own } = await this.meetingWhere(user);
-    if (!reach || !meeting) return null;
-    if (reach.all) return { tenantId: user.tenantId };
+    // The owner of an action reads the decision it came from even when they were
+    // not in the meeting and reach nobody, so that clause stands apart from reach.
+    const viaAction =
+      options.readOnly && own
+        ? await this.actionOwnerDecisionIds(user, own)
+        : [];
+    if (reach?.all) return { tenantId: user.tenantId };
+    if (!reach || !meeting) {
+      return viaAction.length
+        ? { tenantId: user.tenantId, id: { in: viaAction } }
+        : null;
+    }
     return {
       tenantId: user.tenantId,
       OR: [
@@ -221,8 +269,96 @@ export class WorkDecisionsService {
         { ownerEmployeeId: { in: [...reach.ids, ...(own ? [own] : [])] } },
         // A decision taken in a meeting is as visible as the meeting.
         { meeting },
+        ...(viaAction.length ? [{ id: { in: viaAction } }] : []),
       ],
     };
+  }
+
+  private async canSeeWorkItem(user: AuthenticatedUser, id: string) {
+    try {
+      await this.items.findOne(user, id);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async canSeeBlocker(user: AuthenticatedUser, id: string) {
+    const blocker = await this.prisma.workItemBlocker.findFirst({
+      where: { id, tenantId: user.tenantId },
+      select: { workItemId: true, owner: { select: { userId: true } } },
+    });
+    if (!blocker) return false;
+    if (blocker.owner?.userId === user.userId) return true;
+    return this.canSeeWorkItem(user, blocker.workItemId);
+  }
+
+  /**
+   * A decision names the meeting, work item, blocker and project it belongs to.
+   * Seeing the decision does not mean seeing those: a link the caller is not
+   * authorised for comes back null, never as a 403 on the decision as a whole.
+   */
+  private async sanitizeRefs<
+    T extends {
+      meetingId: string | null;
+      workItemId: string | null;
+      blockerId: string | null;
+      projectId: string | null;
+    },
+  >(user: AuthenticatedUser, rows: T[]): Promise<T[]> {
+    const distinct = (pick: (r: T) => string | null) => [
+      ...new Set(rows.map(pick).filter((v): v is string => !!v)),
+    ];
+    const meetingIds = distinct((r) => r.meetingId);
+    const workItemIds = distinct((r) => r.workItemId);
+    const blockerIds = distinct((r) => r.blockerId);
+    const projectIds = distinct((r) => r.projectId);
+    const { where: meetingVisible } = meetingIds.length
+      ? await this.meetingWhere(user)
+      : { where: null };
+    const [meetings, items, blockers, projects] = await Promise.all([
+      meetingIds.length && meetingVisible
+        ? this.prisma.meetingRecord.findMany({
+            where: {
+              AND: [
+                { id: { in: meetingIds }, tenantId: user.tenantId },
+                meetingVisible,
+              ],
+            },
+            select: { id: true },
+          })
+        : [],
+      Promise.all(
+        workItemIds.map(
+          async (id) => [id, await this.canSeeWorkItem(user, id)] as const,
+        ),
+      ),
+      Promise.all(
+        blockerIds.map(
+          async (id) => [id, await this.canSeeBlocker(user, id)] as const,
+        ),
+      ),
+      projectIds.length
+        ? this.prisma.project.findMany({
+            where: { id: { in: projectIds }, tenantId: user.tenantId },
+            select: { id: true },
+          })
+        : [],
+    ]);
+    const okMeeting = new Set(meetings.map((m) => m.id));
+    const okItem = new Set(items.filter(([, ok]) => ok).map(([id]) => id));
+    const okBlocker = new Set(
+      blockers.filter(([, ok]) => ok).map(([id]) => id),
+    );
+    const okProject = new Set(projects.map((p) => p.id));
+    return rows.map((r) => ({
+      ...r,
+      meetingId: r.meetingId && okMeeting.has(r.meetingId) ? r.meetingId : null,
+      workItemId:
+        r.workItemId && okItem.has(r.workItemId) ? r.workItemId : null,
+      blockerId: r.blockerId && okBlocker.has(r.blockerId) ? r.blockerId : null,
+      projectId: r.projectId && okProject.has(r.projectId) ? r.projectId : null,
+    }));
   }
 
   /** Does the caller hold write reach over any of these employees? */
@@ -644,8 +780,14 @@ export class WorkDecisionsService {
 
   // ------------------------------------------------------------ decisions
 
+  /**
+   * The decision as the caller may READ it, including as the owner of one of its
+   * actions. Reading is not managing: every change goes on to assertManageDecision,
+   * which asks for the owner, the creator or write reach - so an action owner who
+   * tries to reverse or supersede is told 403 rather than silently allowed.
+   */
   private async visibleDecision(user: AuthenticatedUser, id: string) {
-    const where = await this.decisionWhere(user);
+    const where = await this.decisionWhere(user, { readOnly: true });
     if (!where) notFound('Decision');
     const row = await this.prisma.workDecision.findFirst({
       where: { AND: [{ id, tenantId: user.tenantId }, where] },
@@ -752,7 +894,7 @@ export class WorkDecisionsService {
   }
 
   async listDecisions(user: AuthenticatedUser, query: ListDecisionsDto) {
-    const visible = await this.decisionWhere(user);
+    const visible = await this.decisionWhere(user, { readOnly: true });
     if (!visible) return { items: [], total: 0 };
     let owner = query.ownerEmployeeId;
     if (query.mine) {
@@ -782,45 +924,101 @@ export class WorkDecisionsService {
       }),
       this.prisma.workDecision.count({ where }),
     ]);
-    return { items: await this.withCounts(user.tenantId, rows), total };
+    const counted = await this.withCounts(user.tenantId, rows);
+    return { items: await this.sanitizeRefs(user, counted), total };
   }
 
-  /** The decision, its actions, and the chain of decisions before and after it. */
+  /**
+   * The decision, its actions, and the chain of decisions before and after it.
+   * Everything around the decision is shown only as far as the caller is
+   * authorised for it: other links come back null, and meeting notes of a meeting
+   * the caller cannot see are never in the response.
+   */
   async getDecision(user: AuthenticatedUser, id: string) {
     const row = await this.visibleDecision(user, id);
-    const visible = await this.decisionWhere(user);
+    const visible = await this.decisionWhere(user, { readOnly: true });
     if (!visible) notFound('Decision');
     const [counted] = await this.withCounts(user.tenantId, [row]);
 
-    const previous: DecisionRow[] = [];
+    // Walk the chain through steps the caller cannot see, marking each, so the
+    // chain says a step exists instead of ending as if it did not.
+    const seen = new Set<string>([row.id]);
+    const previous: Array<DecisionRow | HiddenLink> = [];
     let cursor = row.supersedesId;
-    while (cursor && previous.length < CHAIN_LIMIT) {
+    while (cursor && !seen.has(cursor) && previous.length < CHAIN_LIMIT) {
+      seen.add(cursor);
       const step: DecisionRow | null = await this.prisma.workDecision.findFirst(
         {
           where: { AND: [{ id: cursor, tenantId: user.tenantId }, visible] },
           select: DECISION_SELECT,
         },
       );
-      if (!step) break; // what the caller cannot see ends the chain for them
-      previous.push(step);
-      cursor = step.supersedesId;
+      if (step) {
+        previous.push(step);
+        cursor = step.supersedesId;
+        continue;
+      }
+      const hidden = await this.prisma.workDecision.findFirst({
+        where: { id: cursor, tenantId: user.tenantId },
+        select: { supersedesId: true },
+      });
+      if (!hidden) break;
+      previous.push(HIDDEN_LINK);
+      cursor = hidden.supersedesId;
     }
-    const next: DecisionRow[] = [];
+    const next: Array<DecisionRow | HiddenLink> = [];
     let forward = row.id;
     while (next.length < CHAIN_LIMIT) {
+      const successor = await this.prisma.workDecision.findFirst({
+        where: { supersedesId: forward, tenantId: user.tenantId },
+        select: { id: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+      if (!successor || seen.has(successor.id)) break;
+      seen.add(successor.id);
       const step: DecisionRow | null = await this.prisma.workDecision.findFirst(
         {
           where: {
-            AND: [{ supersedesId: forward, tenantId: user.tenantId }, visible],
+            AND: [{ id: successor.id, tenantId: user.tenantId }, visible],
           },
           select: DECISION_SELECT,
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         },
       );
-      if (!step) break;
-      next.push(step);
-      forward = step.id;
+      next.push(step ?? HIDDEN_LINK);
+      forward = successor.id;
     }
+
+    const visibleSteps = [...previous, ...next].filter(
+      (s): s is DecisionRow => s.id !== null,
+    );
+    const safe = await this.sanitizeRefs(user, [counted, ...visibleSteps]);
+    // A row must not name the id of a neighbour the caller cannot see: that id
+    // is exactly what HIDDEN_LINK stands in for.
+    const shown = new Set<string>(safe.map((s) => s.id));
+    const scrub = <T extends { supersedesId: string | null }>(r: T): T => ({
+      ...r,
+      supersedesId:
+        r.supersedesId && shown.has(r.supersedesId) ? r.supersedesId : null,
+    });
+    const safeCounted = scrub(safe[0]);
+    const safeById = new Map(safe.slice(1).map((s) => [s.id, scrub(s)]));
+    const resolveStep = (s: DecisionRow | HiddenLink) =>
+      s.id === null ? s : (safeById.get(s.id) ?? s);
+
+    // Only a meeting the caller may see contributes its context, notes included.
+    const meeting = safeCounted.meetingId
+      ? await this.prisma.meetingRecord.findFirst({
+          where: { id: safeCounted.meetingId, tenantId: user.tenantId },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            scheduledAt: true,
+            heldAt: true,
+            notes: true,
+          },
+        })
+      : null;
 
     const links = await this.prisma.decisionAction.findMany({
       where: { tenantId: user.tenantId, decisionId: id },
@@ -842,9 +1040,24 @@ export class WorkDecisionsService {
           },
         })
       : [];
-    const byId = new Map(work.map((w) => [w.id, w]));
+    // An action is a work item: its title and owner go only to someone who may see it.
+    const seeable = new Set(
+      (
+        await Promise.all(
+          work.map(
+            async (w) => [w.id, await this.canSeeWorkItem(user, w.id)] as const,
+          ),
+        )
+      )
+        .filter(([, ok]) => ok)
+        .map(([workId]) => workId),
+    );
+    const byId = new Map(
+      work.filter((w) => seeable.has(w.id)).map((w) => [w.id, w]),
+    );
     return {
-      ...counted,
+      ...safeCounted,
+      meeting,
       actions: links.flatMap((l) => {
         const w = byId.get(l.workItemId);
         return w
@@ -860,8 +1073,8 @@ export class WorkDecisionsService {
           : [];
       }),
       // Nearest first. `previous` ends at the original decision.
-      previous,
-      next,
+      previous: previous.map(resolveStep),
+      next: next.map(resolveStep),
     };
   }
 
@@ -985,8 +1198,9 @@ export class WorkDecisionsService {
   }
 
   /**
-   * Marks a decision REVERSED. The reason is a required part of the record: the
-   * schema has no column for it, so it lives in the audit trail beside the move.
+   * Marks a decision REVERSED. The reason is a required part of the record: it is
+   * stored on the decision (reversedReason/At/ById) and read back with it, and the
+   * audit trail keeps it beside the move as well.
    */
   async reverse(user: AuthenticatedUser, id: string, dto: ReverseDecisionDto) {
     const before = await this.visibleDecision(user, id);
@@ -1000,7 +1214,12 @@ export class WorkDecisionsService {
     return this.prisma.$transaction(async (tx) => {
       const moved = await tx.workDecision.updateMany({
         where: { id, tenantId: user.tenantId, status: DecisionStatus.DECIDED },
-        data: { status: DecisionStatus.REVERSED },
+        data: {
+          status: DecisionStatus.REVERSED,
+          reversedReason: dto.reason.trim(),
+          reversedAt: new Date(),
+          reversedById: user.userId,
+        },
       });
       if (moved.count !== 1) {
         conflict(

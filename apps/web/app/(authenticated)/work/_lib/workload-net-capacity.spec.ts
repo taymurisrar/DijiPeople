@@ -25,7 +25,7 @@ describe("net capacity wording", () => {
   it("states the truthful basis: own schedule, net of leave and holidays", () => {
     expect(WORKLOAD_CAVEAT).toContain("own schedule, net of approved leave and holidays");
     expect(WORKLOAD_CAVEAT).toContain("plain Monday to Friday");
-    expect(WORKLOAD_CAVEAT).toContain("rotating weeks are not yet taken into account");
+    expect(WORKLOAD_CAVEAT).toContain("shift swaps are not yet taken into account");
     expect(WORKLOAD_CAVEAT).not.toContain("not reduced for leave");
     expect(WORKLOAD_CAVEAT).not.toContain("standard week");
   });
@@ -39,7 +39,7 @@ describe("net capacity wording", () => {
   it("keeps the client's basis in step with what the API returns", () => {
     const source = readFileSync(API_SERVICE, "utf8").replace(/\r\n/g, "\n");
     const basis = /basis: '(NET_OF_LEAVE_AND_HOLIDAYS)'/.exec(source);
-    const limits = /limits: '(NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS)'/.exec(source);
+    const limits = /limits: '(NO_SHIFT_SWAPS)'/.exec(source);
     // A source scan that matched nothing would pass vacuously.
     expect(basis).not.toBeNull();
     expect(limits).not.toBeNull();
@@ -50,7 +50,7 @@ describe("net capacity wording", () => {
       people: [],
     };
     expect(sample.basis).toBe("NET_OF_LEAVE_AND_HOLIDAYS");
-    expect(sample.limits).toBe("NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS");
+    expect(sample.limits).toBe("NO_SHIFT_SWAPS");
   });
 
   it("keeps the per-person net fields the panel reads", () => {

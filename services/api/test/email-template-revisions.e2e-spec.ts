@@ -120,6 +120,38 @@ describeWithDatabase()('Immutable e-mail template revisions (e2e, DB)', () => {
     expect(fresh.rendered.renderedSubject).toBe('Changed Sam v2');
   });
 
+  it('pinTemplate records the revision before anything is sent, and resolves by key as a send would', async () => {
+    const row = await prisma.emailTemplate.findUniqueOrThrow({
+      where: { id: templateId },
+    });
+    const logsBefore = await prisma.emailDeliveryLog.count({
+      where: { tenantId, templateId },
+    });
+    // Pin by key: the same resolution a workflow action without a template id uses.
+    const pin = await execution.pinTemplate({
+      tenantId,
+      eventCode,
+      templateKey: row.templateKey,
+    });
+    expect(pin?.templateId).toBe(templateId);
+    const revision = await prisma.emailTemplateRevision.findUniqueOrThrow({
+      where: { id: pin!.templateRevisionId },
+    });
+    expect(revision.subjectTemplate).toBe(row.subjectTemplate);
+    // Nothing was sent or logged by pinning.
+    expect(
+      await prisma.emailDeliveryLog.count({ where: { tenantId, templateId } }),
+    ).toBe(logsBefore);
+    // An unknown key pins nothing rather than inventing a template.
+    expect(
+      await execution.pinTemplate({
+        tenantId,
+        eventCode,
+        templateKey: 'no-such-key',
+      }),
+    ).toBeNull();
+  });
+
   it('identical content is one revision; changed content is a new one; revisions are never rewritten', async () => {
     const row = await prisma.emailTemplate.findUniqueOrThrow({
       where: { id: templateId },

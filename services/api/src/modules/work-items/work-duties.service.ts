@@ -71,6 +71,15 @@ const AUDIT = {
 
 /** Bound on the people a scope is expanded to; a scope this wide is tenant-level in practice. */
 const SCOPE_CAP = 5000;
+/** Marks audit rows written by the scheduler, which has no request and no user. */
+const SYSTEM_SOURCE = 'work-duties.scheduler';
+
+/** Who a generation pass runs as: a caller, or (null actor) the system. */
+type GenerationContext = {
+  tenantId: string;
+  actorUserId: string | null;
+  sourceModule: string | null;
+};
 const GENERATE_CAP = 500;
 
 export type UnassignedReason =
@@ -578,7 +587,54 @@ export class WorkDutiesService {
         'date must be a real calendar date, YYYY-MM-DD.',
       );
     }
-    const forDate = dateOnlyToDate(date);
+    // Generating for someone is assigning them work, so it needs the same write
+    // reach as assigning it: a template outside that reach is reported, not made.
+    const writeIds = await this.reachableEmployeeIds(
+      user,
+      SecurityPrivilege.WRITE,
+    );
+    const writeScope = employeeScopeWhere(user, SecurityPrivilege.WRITE);
+    const reaches = (t: TemplateRow) => {
+      if (writeScope === null) return false;
+      if (writeIds === null) return true;
+      if (t.createdById === user.userId) return true;
+      return t.assigneeEmployeeId
+        ? writeIds.includes(t.assigneeEmployeeId)
+        : !this.reachesOnlySelf(user, SecurityPrivilege.WRITE);
+    };
+    return this.generateForDate(
+      { tenantId, actorUserId: user.userId, sourceModule: null },
+      date,
+      reaches,
+    );
+  }
+
+  /**
+   * The tenant-wide pass used by the scheduler: no request, no caller, so every
+   * active template of the tenant is in reach and the audit actor is the system
+   * (a null actor, marked by sourceModule). The tenant id is an argument and is
+   * the only thing that scopes it. Idempotent for the same reason a manual run is.
+   */
+  async generateForTenantAsSystem(tenantId: string, date: string) {
+    if (!isValidDateOnly(date)) {
+      problem(
+        'DUTY_DATE_INVALID',
+        'date must be a real calendar date, YYYY-MM-DD.',
+      );
+    }
+    return this.generateForDate(
+      { tenantId, actorUserId: null, sourceModule: SYSTEM_SOURCE },
+      date,
+      null,
+    );
+  }
+
+  private async generateForDate(
+    ctx: GenerationContext,
+    date: string,
+    reaches: ((template: TemplateRow) => boolean) | null,
+  ) {
+    const tenantId = ctx.tenantId;
     const templates = await this.prisma.dutyTemplate.findMany({
       where: { tenantId, isActive: true },
       select: TEMPLATE_SELECT,
@@ -603,24 +659,10 @@ export class WorkDutiesService {
       }
     }
 
-    // Generating for someone is assigning them work, so it needs the same write
-    // reach as assigning it: a template outside that reach is reported, not made.
-    const writeIds = await this.reachableEmployeeIds(
-      user,
-      SecurityPrivilege.WRITE,
-    );
-    const writeScope = employeeScopeWhere(user, SecurityPrivilege.WRITE);
-    const reaches = (t: TemplateRow) => {
-      if (writeScope === null) return false;
-      if (writeIds === null) return true;
-      if (t.createdById === user.userId) return true;
-      return t.assigneeEmployeeId
-        ? writeIds.includes(t.assigneeEmployeeId)
-        : !this.reachesOnlySelf(user, SecurityPrivilege.WRITE);
-    };
+    const forDate = dateOnlyToDate(date);
     const reachable: TemplateRow[] = [];
     for (const template of due) {
-      if (reaches(template)) {
+      if (reaches === null || reaches(template)) {
         reachable.push(template);
       } else {
         skipped.push({
@@ -677,7 +719,7 @@ export class WorkDutiesService {
         else reason = verdict.reason;
       }
       const outcome = await this.createOccurrence(
-        user,
+        ctx,
         template,
         date,
         ownerId,
@@ -712,13 +754,13 @@ export class WorkDutiesService {
   }
 
   private async createOccurrence(
-    user: AuthenticatedUser,
+    ctx: GenerationContext,
     template: TemplateRow,
     date: string,
     ownerEmployeeId: string | null,
     unassignedReason: UnassignedReason | null,
   ) {
-    const tenantId = user.tenantId;
+    const tenantId = ctx.tenantId;
     const forDate = dateOnlyToDate(date);
     const summarise = (
       occurrenceId: string,
@@ -767,8 +809,8 @@ export class WorkDutiesService {
             ownerEmployeeId,
             teamId: template.teamId,
             dueAt,
-            createdById: user.userId,
-            updatedById: user.userId,
+            createdById: ctx.actorUserId,
+            updatedById: ctx.actorUserId,
           },
           select: {
             id: true,
@@ -797,7 +839,8 @@ export class WorkDutiesService {
         await this.audit.log(
           {
             tenantId,
-            actorUserId: user.userId,
+            actorUserId: ctx.actorUserId,
+            sourceModule: ctx.sourceModule,
             action: AUDIT.WORK_ITEM_CREATED,
             entityType: 'WorkItem',
             entityId: item.id,
@@ -808,7 +851,8 @@ export class WorkDutiesService {
         await this.audit.log(
           {
             tenantId,
-            actorUserId: user.userId,
+            actorUserId: ctx.actorUserId,
+            sourceModule: ctx.sourceModule,
             action: AUDIT.OCCURRENCE_GENERATED,
             entityType: 'DutyOccurrence',
             entityId: occurrence.id,
@@ -896,39 +940,44 @@ export class WorkDutiesService {
       ...(query.date ? { forDate: dateOnlyToDate(query.date) } : {}),
       ...(query.templateId ? { dutyTemplateId: query.templateId } : {}),
     };
-    // DutyOccurrence carries no relation to WorkItem, so visibility is applied to
-    // the linked work items by id, with the same rule that decides which work you see.
-    const candidates = await this.prisma.dutyOccurrence.findMany({
-      where,
-      select: OCCURRENCE_SELECT,
-      orderBy: [{ forDate: 'desc' }, { createdAt: 'desc' }],
-      take: SCOPE_CAP,
-    });
-    const itemRows = await this.prisma.workItem.findMany({
-      where: {
-        AND: [
-          {
-            tenantId: user.tenantId,
-            id: { in: candidates.map((c) => c.workItemId) },
+    const skip = query.skip ?? 0;
+    const take = query.take ?? 50;
+    // One query: the work item is a relation of the occurrence, so the same
+    // visibility rule as every other work list is a where on it, and skip/take and
+    // the exact count run in the database. Order is a stable total order.
+    const pageWhere: Prisma.DutyOccurrenceWhereInput = {
+      ...where,
+      workItem: {
+        AND: [{ tenantId: user.tenantId, kind: 'DUTY_OCCURRENCE' }, visible],
+      },
+    };
+    // Two reads, not a transaction: a page that waits on an interactive-transaction
+    // timeout is worse than a count that is one write behind the rows.
+    const [rows, total] = await Promise.all([
+      this.prisma.dutyOccurrence.findMany({
+        where: pageWhere,
+        select: {
+          ...OCCURRENCE_SELECT,
+          workItem: {
+            select: {
+              status: true,
+              ownerEmployeeId: true,
+              dueAt: true,
+              archivedAt: true,
+            },
           },
-          visible,
-        ],
-      },
-      select: {
-        id: true,
-        status: true,
-        ownerEmployeeId: true,
-        dueAt: true,
-        archivedAt: true,
-      },
-    });
-    const byId = new Map(itemRows.map((i) => [i.id, i]));
-    const seen = candidates.filter((c) => byId.has(c.workItemId));
+        },
+        orderBy: [{ forDate: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take,
+      }),
+      this.prisma.dutyOccurrence.count({ where: pageWhere }),
+    ]);
     return {
-      items: seen
-        .slice(query.skip ?? 0, (query.skip ?? 0) + (query.take ?? 50))
-        .map((row) => presentOccurrence(row, byId.get(row.workItemId))),
-      total: seen.length,
+      items: rows.map(({ workItem, ...row }) =>
+        presentOccurrence(row, workItem),
+      ),
+      total,
     };
   }
 

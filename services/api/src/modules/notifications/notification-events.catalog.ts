@@ -288,6 +288,15 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     availability: 'NOT_YET_AVAILABLE',
   },
   {
+    code: 'work.daily-update.missed',
+    name: 'Daily update missed',
+    description:
+      "Sent to a reporting manager when a team member's daily update is still missing after the escalation window of the policy that governs them.",
+    category: NotificationEventCategory.TASKS,
+    defaultChannels: [NotificationChannel.IN_APP],
+    enabledByDefault: true,
+  },
+  {
     code: 'employee.onboarding.task.assigned',
     name: 'Employee onboarding task assigned',
     description: 'Created when an onboarding task is assigned.',

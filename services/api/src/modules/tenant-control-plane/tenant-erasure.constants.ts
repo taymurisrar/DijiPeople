@@ -482,6 +482,8 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'dailyUpdateItem',
   'dailyUpdate',
   'dailyUpdatePolicy',
+  'dailyUpdateScopePolicy',
+  'dailyUpdateEscalation',
   'contributionEntry',
   'workItemOwnerChange',
   'workItemDependency',

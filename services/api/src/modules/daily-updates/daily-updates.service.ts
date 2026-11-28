@@ -3,12 +3,16 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  DailyUpdateCadence,
   DailyUpdateItemOrigin,
   DailyUpdateSection,
   DailyUpdateStatus,
+  NotificationChannel,
+  NotificationType,
   Prisma,
   SecurityPrivilege,
 } from '@prisma/client';
@@ -16,16 +20,25 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { employeeScopeWhere } from '../../common/security/employee-scope';
 import { AuditService } from '../audit/audit.service';
+import { NotificationOrchestratorService } from '../notifications/notification-orchestrator.service';
 import { isDayOff, loadCalendarFacts } from '../work-items/work-calendar';
 import {
-  buildDraftItems,
-  isLate,
-  isWorkingDay,
-  localDate,
-  zonedInstant,
-} from './daily-update-draft';
+  loadScheduleFacts,
+  type CapacityFacts,
+} from '../work-items/work-schedule-capacity';
+import { buildDraftItems, localDate, zonedInstant } from './daily-update-draft';
+import {
+  dueOn,
+  escalationDue,
+  resolvePolicy,
+  type Due,
+  type EffectivePolicy,
+  type PolicyFields,
+  type ScopePolicyRow,
+} from './daily-update-scope';
 import type {
   DailyUpdatePolicyDto,
+  DailyUpdateScopePolicyDto,
   ListDailyUpdatesDto,
   SaveDailyUpdateDto,
 } from './dto/daily-update.dto';
@@ -46,7 +59,34 @@ const AUDIT = {
   SUBMITTED: 'DAILY_UPDATE_SUBMITTED',
   ACKNOWLEDGED: 'DAILY_UPDATE_ACKNOWLEDGED',
   POLICY: 'DAILY_UPDATE_POLICY_SET',
+  SCOPE_POLICY_SET: 'DAILY_UPDATE_SCOPE_POLICY_SET',
+  SCOPE_POLICY_REMOVED: 'DAILY_UPDATE_SCOPE_POLICY_REMOVED',
+  ESCALATED: 'DAILY_UPDATE_ESCALATED',
 } as const;
+
+/** The event a manager is notified with when a report's update is missed. */
+export const DAILY_UPDATE_MISSED_EVENT = 'work.daily-update.missed';
+
+const SCOPE_SELECT = {
+  id: true,
+  teamId: true,
+  businessUnitId: true,
+  enabled: true,
+  cadence: true,
+  workingDays: true,
+  deadlineMinutes: true,
+  timezone: true,
+  requireAcknowledgement: true,
+  escalateAfterMinutes: true,
+  updatedAt: true,
+} satisfies Prisma.DailyUpdateScopePolicySelect;
+
+type Person = {
+  id: string;
+  teamId: string | null;
+  businessUnitId: string | null;
+};
+type PolicyContext = { tenant: PolicyFields; scopes: ScopePolicyRow[] };
 
 const DEFAULT_POLICY = {
   enabled: false,
@@ -96,9 +136,12 @@ function validZone(zone: string) {
 
 @Injectable()
 export class DailyUpdatesService {
+  private readonly logger = new Logger(DailyUpdatesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationOrchestratorService,
   ) {}
 
   // ---------------------------------------------------------------- policy
@@ -162,12 +205,220 @@ export class DailyUpdatesService {
     });
   }
 
+  // ------------------------------------------------------- scoped policies
+
+  async listScopePolicies(tenantId: string) {
+    return {
+      items: await this.prisma.dailyUpdateScopePolicy.findMany({
+        where: { tenantId },
+        select: SCOPE_SELECT,
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        take: 500,
+      }),
+    };
+  }
+
+  /** Create or change the policy of one team or one business unit. */
+  async setScopePolicy(
+    user: AuthenticatedUser,
+    dto: DailyUpdateScopePolicyDto,
+  ) {
+    if (!!dto.teamId === !!dto.businessUnitId) {
+      problem(
+        'DAILY_UPDATE_SCOPE_INVALID',
+        'Name exactly one of a team or a business unit.',
+      );
+    }
+    if (dto.timezone && !validZone(dto.timezone)) {
+      problem(
+        'DAILY_UPDATE_POLICY_INVALID',
+        'The time zone is not recognised.',
+      );
+    }
+    if (
+      dto.workingDays &&
+      new Set(dto.workingDays).size !== dto.workingDays.length
+    ) {
+      problem('DAILY_UPDATE_POLICY_INVALID', 'A weekday is listed twice.');
+    }
+    // Both must belong to the caller's tenant: a foreign id is "not found".
+    if (dto.teamId) {
+      const team = await this.prisma.team.findFirst({
+        where: { id: dto.teamId, tenantId: user.tenantId },
+        select: { id: true },
+      });
+      if (!team) throw new NotFoundException('Team was not found.');
+    }
+    if (dto.businessUnitId) {
+      const unit = await this.prisma.businessUnit.findFirst({
+        where: { id: dto.businessUnitId, tenantId: user.tenantId },
+        select: { id: true },
+      });
+      if (!unit) throw new NotFoundException('Business unit was not found.');
+    }
+    const key = dto.teamId
+      ? { tenantId: user.tenantId, teamId: dto.teamId }
+      : { tenantId: user.tenantId, businessUnitId: dto.businessUnitId };
+    const before = await this.prisma.dailyUpdateScopePolicy.findFirst({
+      where: key,
+      select: SCOPE_SELECT,
+    });
+    const next = {
+      enabled: dto.enabled ?? before?.enabled ?? true,
+      cadence:
+        dto.cadence ?? before?.cadence ?? DailyUpdateCadence.WORKING_DAYS,
+      workingDays: dto.workingDays ?? before?.workingDays ?? [1, 2, 3, 4, 5],
+      deadlineMinutes:
+        dto.deadlineMinutes ??
+        before?.deadlineMinutes ??
+        DEFAULT_POLICY.deadlineMinutes,
+      timezone: dto.timezone ?? before?.timezone ?? DEFAULT_POLICY.timezone,
+      requireAcknowledgement:
+        dto.requireAcknowledgement ?? before?.requireAcknowledgement ?? false,
+      escalateAfterMinutes:
+        dto.escalateAfterMinutes !== undefined
+          ? dto.escalateAfterMinutes
+          : (before?.escalateAfterMinutes ?? null),
+    };
+    return this.prisma.$transaction(async (tx) => {
+      const saved = before
+        ? await tx.dailyUpdateScopePolicy.update({
+            where: { id: before.id },
+            data: { ...next, updatedById: user.userId },
+            select: SCOPE_SELECT,
+          })
+        : await tx.dailyUpdateScopePolicy.create({
+            data: { ...key, ...next, updatedById: user.userId },
+            select: SCOPE_SELECT,
+          });
+      await this.audit.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: AUDIT.SCOPE_POLICY_SET,
+          entityType: 'DailyUpdateScopePolicy',
+          entityId: saved.id,
+          beforeSnapshot: before ?? undefined,
+          afterSnapshot: saved,
+        },
+        tx,
+      );
+      return saved;
+    });
+  }
+
+  async removeScopePolicy(user: AuthenticatedUser, id: string) {
+    const before = await this.prisma.dailyUpdateScopePolicy.findFirst({
+      where: { id, tenantId: user.tenantId },
+      select: SCOPE_SELECT,
+    });
+    if (!before) throw new NotFoundException('Scoped policy was not found.');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.dailyUpdateScopePolicy.deleteMany({
+        where: { id, tenantId: user.tenantId },
+      });
+      await this.audit.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: AUDIT.SCOPE_POLICY_REMOVED,
+          entityType: 'DailyUpdateScopePolicy',
+          entityId: id,
+          beforeSnapshot: before,
+        },
+        tx,
+      );
+    });
+    return { id, removed: true };
+  }
+
+  // -------------------------------------------------- per-person resolution
+
+  private async policyContext(tenantId: string): Promise<PolicyContext> {
+    const [tenant, scopes] = await Promise.all([
+      this.getPolicy(tenantId),
+      this.prisma.dailyUpdateScopePolicy.findMany({
+        where: { tenantId },
+        select: SCOPE_SELECT,
+        take: 1000,
+      }),
+    ]);
+    return {
+      tenant: {
+        ...tenant,
+        cadence: 'WORKING_DAYS',
+        escalateAfterMinutes: null,
+      },
+      scopes,
+    };
+  }
+
+  /**
+   * For each person: the policy that governs them, whether an update is owed on
+   * `date`, and when it is due. Schedules and their zones are read once for the
+   * people on a per-shift cadence, never per person.
+   */
+  private async dueFor(
+    tenantId: string,
+    people: Person[],
+    date: string,
+    context: PolicyContext,
+  ): Promise<Map<string, { policy: EffectivePolicy; due: Due }>> {
+    const resolved = people.map(
+      (p) => [p, resolvePolicy(p, context.scopes, context.tenant)] as const,
+    );
+    const shiftIds = resolved
+      .filter(([, pol]) => pol.cadence === 'PER_SHIFT' && pol.enabled)
+      .map(([p]) => p.id);
+    let facts: CapacityFacts = new Map();
+    const zones = new Map<string, string>();
+    if (shiftIds.length) {
+      const from = this.dateValue(date);
+      facts = await loadScheduleFacts(
+        this.prisma,
+        tenantId,
+        shiftIds,
+        from,
+        new Date(from.getTime() + 86_400_000),
+      );
+      const scheduleIds = [
+        ...new Set(
+          shiftIds.flatMap((id) => {
+            const s = facts.get(id)?.scheduleOn(date);
+            return s ? [s.id] : [];
+          }),
+        ),
+      ];
+      if (scheduleIds.length) {
+        const rows = await this.prisma.workSchedule.findMany({
+          where: { tenantId, id: { in: scheduleIds } },
+          select: { id: true, timezone: true },
+        });
+        for (const row of rows) zones.set(row.id, row.timezone);
+      }
+    }
+    const out = new Map<string, { policy: EffectivePolicy; due: Due }>();
+    for (const [person, policy] of resolved) {
+      const schedule = facts.get(person.id)?.scheduleOn(date) ?? null;
+      out.set(person.id, {
+        policy,
+        due: dueOn({
+          policy,
+          date,
+          schedule,
+          scheduleTimezone: schedule ? (zones.get(schedule.id) ?? null) : null,
+        }),
+      });
+    }
+    return out;
+  }
+
   // ----------------------------------------------------------------- helpers
 
-  private async ownEmployee(user: AuthenticatedUser) {
+  private async ownEmployeeRow(user: AuthenticatedUser): Promise<Person> {
     const employee = await this.prisma.employee.findFirst({
       where: { tenantId: user.tenantId, userId: user.userId },
-      select: { id: true },
+      select: { id: true, teamId: true, businessUnitId: true },
     });
     if (!employee) {
       problem(
@@ -175,7 +426,11 @@ export class DailyUpdatesService {
         'Your account is not linked to an employee record.',
       );
     }
-    return employee.id;
+    return employee;
+  }
+
+  private async ownEmployee(user: AuthenticatedUser) {
+    return (await this.ownEmployeeRow(user)).id;
   }
 
   private dateValue(date: string) {
@@ -201,8 +456,11 @@ export class DailyUpdatesService {
    * every line the employee wrote or kept, and never duplicates a source.
    */
   async draft(user: AuthenticatedUser, requestedDate?: string) {
-    const employeeId = await this.ownEmployee(user);
-    const policy = await this.getPolicy(user.tenantId);
+    const person = await this.ownEmployeeRow(user);
+    const employeeId = person.id;
+    // The day is the one in the zone of the policy that governs THIS person.
+    const context = await this.policyContext(user.tenantId);
+    const policy = resolvePolicy(person, context.scopes, context.tenant);
     const now = new Date();
     const date = requestedDate ?? localDate(now, policy.timezone);
     if (date > localDate(now, policy.timezone)) {
@@ -531,9 +789,25 @@ export class DailyUpdatesService {
         'Add at least one line or a summary before submitting.',
       );
     }
-    const policy = await this.getPolicy(user.tenantId);
     const submittedAt = new Date();
     const forDate = before.forDate.toISOString().slice(0, 10);
+    // Late against the deadline of the policy (and, per shift, the shift) that
+    // governs the author. No deadline - a day off on a per-shift cadence - is never late.
+    const author = await this.prisma.employee.findFirst({
+      where: { id: before.employeeId, tenantId: user.tenantId },
+      select: { id: true, teamId: true, businessUnitId: true },
+    });
+    const deadline = author
+      ? (
+          await this.dueFor(
+            user.tenantId,
+            [author],
+            forDate,
+            await this.policyContext(user.tenantId),
+          )
+        ).get(author.id)?.due.deadline
+      : null;
+    const late = deadline ? submittedAt > deadline : false;
     return this.prisma.$transaction(async (tx) => {
       // Only a DRAFT at the version we read is submitted, once. A save or another
       // submit landing in between makes this a conflict, not a lost write.
@@ -558,12 +832,7 @@ export class DailyUpdatesService {
         data: {
           status: DailyUpdateStatus.SUBMITTED,
           submittedAt,
-          late: isLate({
-            forDate,
-            deadlineMinutes: policy.deadlineMinutes,
-            timezone: policy.timezone,
-            submittedAt,
-          }),
+          late,
         },
         select: SELECT,
       });
@@ -722,36 +991,52 @@ export class DailyUpdatesService {
    * and for a tenant that has not turned daily updates on.
    */
   async missing(user: AuthenticatedUser, date: string) {
-    const policy = await this.getPolicy(user.tenantId);
     const scope = employeeScopeWhere(user, SecurityPrivilege.READ);
     const empty = {
       date,
       due: false,
       people: [] as Array<{ employeeId: string; name: string }>,
     };
-    if (!policy.enabled || scope === null) return empty;
-    if (!isWorkingDay(date, policy.workingDays)) return empty;
-    if (
-      new Date() <= zonedInstant(date, policy.deadlineMinutes, policy.timezone)
-    ) {
-      return empty;
-    }
-    const people = await this.prisma.employee.findMany({
+    if (scope === null) return empty;
+    // Each person is judged by the policy that governs THEM: the tenant policy
+    // alone no longer decides who owes an update, or when.
+    const everyone = await this.prisma.employee.findMany({
       where: {
         AND: [{ tenantId: user.tenantId, employmentStatus: 'ACTIVE' }, scope],
-        NOT: {
-          dailyUpdates: {
-            some: {
-              forDate: this.dateValue(date),
-              status: { in: ['SUBMITTED', 'ACKNOWLEDGED'] },
-            },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        teamId: true,
+        businessUnitId: true,
+        dailyUpdates: {
+          where: {
+            forDate: this.dateValue(date),
+            status: { in: ['SUBMITTED', 'ACKNOWLEDGED'] },
           },
+          select: { id: true },
+          take: 1,
         },
       },
-      select: { id: true, firstName: true, lastName: true },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-      take: 200,
+      take: 2000,
     });
+    const verdicts = await this.dueFor(
+      user.tenantId,
+      everyone,
+      date,
+      await this.policyContext(user.tenantId),
+    );
+    const now = new Date();
+    const pastDeadline = everyone.filter((p) => {
+      const v = verdicts.get(p.id);
+      return !!v && v.due.owed && !!v.due.deadline && now > v.due.deadline;
+    });
+    if (!pastDeadline.length) return empty;
+    const people = pastDeadline
+      .filter((p) => p.dailyUpdates.length === 0)
+      .slice(0, 200);
     // Nobody is owed an update on a day they are on approved leave or it is their
     // holiday: no off-duty prompts.
     const facts = await loadCalendarFacts(
@@ -771,6 +1056,203 @@ export class DailyUpdatesService {
         name: `${p.firstName} ${p.lastName}`.trim(),
       })),
     };
+  }
+
+  /** The policy that governs the caller, as resolved for them. */
+  async effectivePolicy(user: AuthenticatedUser) {
+    const person = await this.ownEmployeeRow(user);
+    const context = await this.policyContext(user.tenantId);
+    return resolvePolicy(person, context.scopes, context.tenant);
+  }
+
+  // -------------------------------------------------------------- escalation
+
+  /**
+   * Tell each missing person's reporting manager, once. Candidates are active
+   * people whose governing policy escalates, who owed an update on a day, whose
+   * deadline plus `escalateAfterMinutes` has passed, who submitted nothing and
+   * who were not on leave or a holiday.
+   *
+   * Idempotent through DailyUpdateEscalation. The row is INSERTED FIRST and its
+   * unique key (tenant, employee, day) decides who notifies: of two runs - or two
+   * concurrent runs - exactly one inserts, the other sees the duplicate and does
+   * nothing. If the notification then fails the row is removed again, so a retry
+   * can notify; a notification that was merely skipped by the tenant's own
+   * preferences is not a failure and keeps its row.
+   */
+  async escalateMissed(input: {
+    tenantId: string;
+    actorUserId?: string | null;
+    date?: string;
+    now?: Date;
+  }) {
+    const now = input.now ?? new Date();
+    const dates = input.date
+      ? [input.date]
+      : [-1, 0, 1].map((offset) =>
+          new Date(now.getTime() + offset * 86_400_000)
+            .toISOString()
+            .slice(0, 10),
+        );
+    const summary = {
+      evaluated: 0,
+      escalated: 0,
+      alreadyEscalated: 0,
+      noManager: 0,
+      failed: 0,
+    };
+    const context = await this.policyContext(input.tenantId);
+    // Escalation is opt-in per policy: with none escalating there is nothing to scan.
+    if (
+      context.scopes.every((s) => s.escalateAfterMinutes === null || !s.enabled)
+    ) {
+      return summary;
+    }
+    const everyone = await this.prisma.employee.findMany({
+      where: { tenantId: input.tenantId, employmentStatus: 'ACTIVE' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        teamId: true,
+        businessUnitId: true,
+        manager: { select: { userId: true } },
+      },
+      orderBy: { id: 'asc' },
+      take: 5000,
+    });
+    for (const date of dates) {
+      const verdicts = await this.dueFor(
+        input.tenantId,
+        everyone,
+        date,
+        context,
+      );
+      const late = everyone.filter((p) => {
+        const v = verdicts.get(p.id);
+        return (
+          !!v &&
+          v.policy.enabled &&
+          v.due.owed &&
+          escalationDue(v.due.deadline, v.policy.escalateAfterMinutes, now)
+        );
+      });
+      if (!late.length) continue;
+      const [submitted, escalated, calendar] = await Promise.all([
+        this.prisma.dailyUpdate.findMany({
+          where: {
+            tenantId: input.tenantId,
+            forDate: this.dateValue(date),
+            status: { in: ['SUBMITTED', 'ACKNOWLEDGED'] },
+            employeeId: { in: late.map((p) => p.id) },
+          },
+          select: { employeeId: true },
+        }),
+        this.prisma.dailyUpdateEscalation.findMany({
+          where: {
+            tenantId: input.tenantId,
+            forDate: this.dateValue(date),
+            employeeId: { in: late.map((p) => p.id) },
+          },
+          select: { employeeId: true },
+        }),
+        loadCalendarFacts(
+          this.prisma,
+          input.tenantId,
+          late.map((p) => p.id),
+          this.dateValue(date),
+          new Date(this.dateValue(date).getTime() + 86_400_000),
+        ),
+      ]);
+      const done = new Set(submitted.map((s) => s.employeeId));
+      const already = new Set(escalated.map((s) => s.employeeId));
+      for (const person of late) {
+        if (done.has(person.id)) continue;
+        // Off duty is never escalated: leave and holidays are not a missed update.
+        if (isDayOff(calendar, person.id, date).off) continue;
+        summary.evaluated += 1;
+        if (already.has(person.id)) {
+          summary.alreadyEscalated += 1;
+          continue;
+        }
+        const managerUserId = person.manager?.userId ?? null;
+        if (!managerUserId) {
+          summary.noManager += 1;
+          continue;
+        }
+        const claim = await this.claimEscalation(
+          input.tenantId,
+          person.id,
+          date,
+        );
+        if (!claim) {
+          summary.alreadyEscalated += 1;
+          continue;
+        }
+        const name = `${person.firstName} ${person.lastName}`.trim();
+        try {
+          await this.notifications.dispatch({
+            tenantId: input.tenantId,
+            eventCode: DAILY_UPDATE_MISSED_EVENT,
+            channels: [NotificationChannel.IN_APP],
+            sourceModule: 'daily-updates',
+            correlationId: `${person.id}:${date}`,
+            requestedByUserId: input.actorUserId ?? null,
+            scope: { employeeId: person.id },
+            inApp: {
+              title: `${name} has not submitted a daily update`,
+              body: `No update was submitted for ${date}.`,
+              targetUrl: `/daily-updates?employeeId=${person.id}&date=${date}`,
+              recipientUserIds: [managerUserId],
+              type: NotificationType.REMINDER,
+              payload: { employeeId: person.id, date },
+            },
+          });
+          summary.escalated += 1;
+          await this.audit.log({
+            tenantId: input.tenantId,
+            actorUserId: input.actorUserId ?? undefined,
+            action: AUDIT.ESCALATED,
+            entityType: 'DailyUpdateEscalation',
+            entityId: claim,
+            afterSnapshot: { employeeId: person.id, date, managerUserId },
+          });
+        } catch (error) {
+          // Roll the claim back so the next run can try again.
+          summary.failed += 1;
+          await this.prisma.dailyUpdateEscalation.deleteMany({
+            where: { id: claim, tenantId: input.tenantId },
+          });
+          this.logger.warn(
+            `Daily-update escalation for ${person.id} on ${date} failed: ${String(error)}`,
+          );
+        }
+      }
+    }
+    return summary;
+  }
+
+  /** Insert-first claim on one (employee, day). Null when someone else holds it. */
+  private async claimEscalation(
+    tenantId: string,
+    employeeId: string,
+    date: string,
+  ): Promise<string | null> {
+    try {
+      const row = await this.prisma.dailyUpdateEscalation.create({
+        data: { tenantId, employeeId, forDate: this.dateValue(date) },
+        select: { id: true },
+      });
+      return row.id;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 }
 

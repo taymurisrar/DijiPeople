@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -20,9 +21,11 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   DailyUpdatePolicyDto,
+  DailyUpdateScopePolicyDto,
   DraftDailyUpdateDto,
   ListDailyUpdatesDto,
   MissingDailyUpdatesDto,
+  RunEscalationDto,
   SaveDailyUpdateDto,
 } from './dto/daily-update.dto';
 import { DailyUpdatesService } from './daily-updates.service';
@@ -53,6 +56,58 @@ export class DailyUpdatesController {
     @Body() dto: DailyUpdatePolicyDto,
   ) {
     return this.service.setPolicy(user, dto);
+  }
+
+  @Get('policy/effective')
+  @Permissions('daily-updates.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  effectivePolicy(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.effectivePolicy(user);
+  }
+
+  @Get('scope-policies')
+  @Permissions('daily-updates.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  scopePolicies(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.listScopePolicies(user.tenantId);
+  }
+
+  @Put('scope-policies')
+  @Permissions('daily-updates.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  setScopePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DailyUpdateScopePolicyDto,
+  ) {
+    return this.service.setScopePolicy(user, dto);
+  }
+
+  @Delete('scope-policies/:id')
+  @Permissions('daily-updates.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  removeScopePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.removeScopePolicy(user, id);
+  }
+
+  /**
+   * Escalate missed updates to reporting managers. Idempotent: running it again,
+   * or twice at once, notifies each missed day once.
+   */
+  @Post('escalations/run')
+  @Permissions('daily-updates.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
+  runEscalation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RunEscalationDto,
+  ) {
+    return this.service.escalateMissed({
+      tenantId: user.tenantId,
+      actorUserId: user.userId,
+      date: dto.date,
+    });
   }
 
   @Get('missing')

@@ -522,9 +522,9 @@ export class WorkItemsService {
     return {
       basis: 'NET_OF_LEAVE_AND_HOLIDAYS',
       // Each person's own schedule decides which days they work and for how long
-      // (WP-09.S1). A holiday on a leave day is removed once. Not modelled yet:
-      // half-day holidays and rotating-week patterns.
-      limits: 'NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS',
+      // (WP-09.S1), rotating weeks and half-day holidays included (WP-09.S2). A
+      // holiday on a leave day is removed once. Not modelled yet: shift swaps.
+      limits: 'NO_SHIFT_SWAPS',
       period: { from: from.toISOString(), to: to.toISOString() },
       capacityMinutes: standardCapacityMinutes,
       people: [...people.values()]

@@ -3,6 +3,7 @@ import {
   calendarCandidates,
   organizationalScopes,
   scheduleCandidates,
+  selectWorkSchedule,
   type EmployeeHierarchy,
   type WorkConfigurationSource,
 } from './work-configuration-hierarchy';
@@ -532,9 +533,6 @@ export class AttendanceRepository {
       }
     }
 
-    const scheduleById = new Map(
-      schedules.map((schedule) => [schedule.id, schedule]),
-    );
     const calendarById = new Map(
       calendars.map((calendar) => [calendar.id, calendar]),
     );
@@ -553,37 +551,16 @@ export class AttendanceRepository {
         organizationId: employee.organizationId,
       };
 
-      let workSchedule: (typeof schedules)[number] | null = null;
-
-      for (const candidate of scheduleCandidates({
-        assignmentScheduleId: assignmentByEmployee.get(employee.id),
-        employeeScheduleId: employee.defaultWorkScheduleId,
-        teamScheduleId: employee.team?.defaultWorkScheduleId,
-        departmentScheduleId: employee.department?.defaultWorkScheduleId,
-      })) {
-        const found = scheduleById.get(candidate.id);
-        if (found) {
-          workSchedule = found;
-          break;
-        }
-      }
-
-      if (!workSchedule) {
-        for (const scope of organizationalScopes(hierarchy)) {
-          const scoped = schedules.find((schedule) =>
-            scope.businessUnitId
-              ? schedule.businessUnitId === scope.businessUnitId
-              : schedule.businessUnitId === null &&
-                schedule.organizationId === scope.organizationId,
-          );
-          if (scoped) {
-            workSchedule = scoped;
-            break;
-          }
-        }
-      }
-
-      workSchedule ??= schedules.find((schedule) => schedule.isDefault) ?? null;
+      // The precedence lives in one pure function, shared with work-item capacity.
+      const workSchedule: (typeof schedules)[number] | null =
+        selectWorkSchedule({
+          assignmentScheduleId: assignmentByEmployee.get(employee.id),
+          employeeScheduleId: employee.defaultWorkScheduleId,
+          teamScheduleId: employee.team?.defaultWorkScheduleId,
+          departmentScheduleId: employee.department?.defaultWorkScheduleId,
+          hierarchy,
+          schedules,
+        })?.schedule ?? null;
 
       workScheduleByEmployee.set(employee.id, workSchedule);
 

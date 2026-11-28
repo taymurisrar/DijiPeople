@@ -299,7 +299,7 @@ describeWithDatabase()(
       );
       expect(res.status).toBe(200);
       expect(res.body.basis).toBe('NET_OF_LEAVE_AND_HOLIDAYS');
-      expect(res.body.limits).toBe('NO_HALF_DAY_HOLIDAYS_NO_ROTATION_WEEKS');
+      expect(res.body.limits).toBe('NO_SHIFT_SWAPS');
       const person = (employeeId: string) =>
         res.body.people.find(
           (p: { employeeId: string }) => p.employeeId === employeeId,

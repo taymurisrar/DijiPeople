@@ -2133,6 +2133,7 @@ model Tenant {
   workQueues                      WorkQueue[]
   dailyUpdatePolicy               DailyUpdatePolicy?
   dutyTemplates                   DutyTemplate[]
+  dailyUpdateScopes               DailyUpdateScopePolicy[]
   meetings                        MeetingRecord[]
   workDecisions                   WorkDecision[]
   dailyUpdates                    DailyUpdate[]
@@ -15575,6 +15576,7 @@ model WorkItem {
   queue                WorkQueue?       @relation(fields: [queueId], references: [id], onDelete: SetNull)
   milestone            WorkItem?        @relation("WorkItemMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
   milestoneItems       WorkItem[]       @relation("WorkItemMilestone")
+  dutyOccurrence       DutyOccurrence?
   ownerChanges         WorkItemOwnerChange[]
   blockers             WorkItemBlocker[]
   owner                Employee?        @relation("WorkItemOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
@@ -16084,6 +16086,8 @@ model DutyOccurrence {
   workItemId     String                 @unique
   createdAt      DateTime               @default(now())
   dutyTemplate   DutyTemplate           @relation(fields: [dutyTemplateId], references: [id], onDelete: Cascade)
+  /// Lets a list be filtered and paged by the work item's visibility in SQL (WP-36.S2).
+  workItem       WorkItem               @relation(fields: [workItemId], references: [id], onDelete: Cascade)
   checks         DutyOccurrenceCheck[]
   handovers      DutyHandover[]
 
@@ -16197,6 +16201,10 @@ model WorkDecision {
   blockerId       String?
   projectId       String?
   supersedesId    String?
+  /// Why it was reversed, kept on the decision so it can be read back (WP-28.S2).
+  reversedReason  String?
+  reversedAt      DateTime?
+  reversedById    String?
   createdById     String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -16229,4 +16237,52 @@ enum DecisionStatus {
   DECIDED
   SUPERSEDED
   REVERSED
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-27.S2. Daily-update policies scoped below the tenant, and the
+// record that a missed update was escalated (so a retried job never escalates twice).
+// The tenant-wide DailyUpdatePolicy stays the default; the most specific scope wins:
+// team, then business unit, then the tenant policy.
+// ---------------------------------------------------------------------------
+
+model DailyUpdateScopePolicy {
+  id                     String       @id @default(uuid())
+  tenantId               String
+  teamId                 String?
+  businessUnitId         String?
+  enabled                Boolean      @default(true)
+  cadence                DailyUpdateCadence @default(WORKING_DAYS)
+  /// ISO weekdays for the WORKING_DAYS cadence; ignored for PER_SHIFT.
+  workingDays            Int[]
+  /// Minutes after local midnight (WORKING_DAYS) or after the shift ends (PER_SHIFT).
+  deadlineMinutes        Int          @default(1080)
+  timezone               String       @default("UTC")
+  requireAcknowledgement Boolean      @default(false)
+  /// Minutes after the deadline at which a missed update is escalated; null = never.
+  escalateAfterMinutes   Int?
+  updatedById            String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  tenant                 Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, teamId])
+  @@unique([tenantId, businessUnitId])
+  @@index([tenantId, enabled])
+}
+
+enum DailyUpdateCadence {
+  WORKING_DAYS
+  PER_SHIFT
+}
+
+model DailyUpdateEscalation {
+  id         String   @id @default(uuid())
+  tenantId   String
+  employeeId String
+  forDate    DateTime @db.Date
+  notifiedAt DateTime @default(now())
+
+  @@unique([tenantId, employeeId, forDate])
+  @@index([tenantId, forDate])
 }

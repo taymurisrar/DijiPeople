@@ -81,6 +81,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
 - [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing** (MEDIUM)
+- [[ITEM-0250-work-routes-have-no-plan-entitlement-gate-no-work-management|ITEM-0250]] — **Work routes have no plan entitlement gate; no work-management feature key exists** (MEDIUM)
 - [[ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo|ITEM-0237]] — **Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers** (LOW)
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events** (unrated)
 - [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint** (unrated)

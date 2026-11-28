@@ -1045,17 +1045,50 @@ export class WorkflowRuntimeService {
       },
       orderBy: { recipientIndex: 'asc' },
     });
-    const pinnedId = pin?.templateId ?? configuration.templateId ?? undefined;
+    let pinnedId = pin?.templateId ?? configuration.templateId ?? undefined;
+    let revisionId = pin?.templateRevisionId ?? undefined;
+    let pinnedVersion = pin?.templateVersion ?? undefined;
+
+    // WP-04.S2: pin the revision BEFORE the first send, and record it on this step
+    // at once, so a crash between pinning and sending, a retry, and every other
+    // recipient of this action render the same content.
+    if (!revisionId) {
+      const fresh = await this.emailService.pinTemplate({
+        tenantId: context.tenantId,
+        eventCode: context.eventCode,
+        templateId: pin?.templateId ?? configuration.templateId,
+        templateKey: pin?.templateId ? undefined : configuration.templateKey,
+        organizationId: context.organizationId,
+        businessUnitId: context.businessUnitId,
+        departmentId: context.departmentId,
+        teamId: context.teamId,
+        subjectEmployeeId: context.subjectEmployeeId,
+        subjectUserId: context.subjectUserId,
+        requestedByUserId: context.actorUserId ?? null,
+      });
+      if (fresh) {
+        pinnedId = fresh.templateId;
+        revisionId = fresh.templateRevisionId;
+        pinnedVersion = pin?.templateVersion ?? fresh.templateVersion;
+        await this.prisma.workflowRunStep.updateMany({
+          where: { tenantId: context.tenantId, stepKey },
+          data: {
+            templateId: fresh.templateId,
+            templateVersion: pinnedVersion,
+            templateRevisionId: fresh.templateRevisionId,
+          },
+        });
+      }
+    }
 
     const result = await this.emailService.sendTemplateEmail({
       tenantId: context.tenantId,
       eventCode: context.eventCode,
-      templateId: pin?.templateId ?? configuration.templateId,
-      templateKey: pin?.templateId ? undefined : configuration.templateKey,
-      // The first send records the exact content it rendered; every retry and
-      // every later recipient renders that revision, however the row is edited.
-      templateRevisionId: pin?.templateRevisionId ?? undefined,
-      pinTemplateRevision: !pin?.templateRevisionId,
+      templateId: pinnedId,
+      templateKey: pinnedId ? undefined : configuration.templateKey,
+      // Every attempt and every recipient renders the pinned revision, however
+      // the template row is edited afterwards.
+      templateRevisionId: revisionId,
       recipient,
       variables: context.variables ?? {},
       requestedByUserId: context.actorUserId ?? null,
@@ -1079,9 +1112,6 @@ export class WorkflowRuntimeService {
     if (logId) {
       record.deliveryLogId = logId;
       record.deliveryStatus = result.status;
-      const revisionId =
-        (result as { templateRevisionId?: string }).templateRevisionId ??
-        pin?.templateRevisionId;
       if (revisionId) record.templateRevisionId = revisionId;
       const log = await this.prisma.emailDeliveryLog.findFirst({
         where: { id: logId, tenantId: context.tenantId },
@@ -1096,11 +1126,11 @@ export class WorkflowRuntimeService {
         record.templateId = usedId;
         // The version recorded is the one first pinned; later steps that find a
         // newer version are flagged rather than silently re-pinned.
-        record.templateVersion = pin?.templateVersion ?? template?.version;
+        record.templateVersion = pinnedVersion ?? template?.version;
         record.templateDrift =
-          pin?.templateVersion != null &&
+          pinnedVersion != null &&
           template?.version != null &&
-          template.version !== pin.templateVersion;
+          template.version !== pinnedVersion;
       }
     }
     return { result, record };

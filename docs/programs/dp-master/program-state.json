@@ -1241,7 +1241,7 @@
       ],
       "workstream": "C",
       "status": "IN_PROGRESS",
-      "evidence": "Technical evidence executed 2026-11-25 (isolated API :4099 + web :3011 + real Electron 39 agent, throwaway DB dp_master_gui): BROWSER: workflow Run History PARTIALLY FAILED badge renders (after fixing BUG-4775, a server/client boundary crash found by this very pass), workflow builder offers the CANDIDATE recipient, /work and /work/queues create, claim, SLA and owner-history flows work for manager and HR, sidebar highlight bug found and fixed. ELECTRON: real agent logs in, loads config, registers device, starts a work session and heartbeats; tray shows \"Content monitoring: off\" until config loads, \"off until you acknowledge the policy\" before acknowledgement and \"ON (clipboard/screenshots)\" only after the acknowledgement is recorded; the full 6,833-character policy opens in a script-less window BEFORE the acknowledgement dialog (no truncation, JavaScript execution blocked). NOT executed: offline suspension after the 30-minute freshness window (unit-tested, not driven live), a live second sign-in on one device for buffer isolation (unit-tested), the OS-native message box itself (stubbed to answer; its text was recorded). HUMAN APPROVAL (separate, not given): review of the G4 diff by a person, and OD-DLP-POLICY-TEXT. | 2026-11-26 addendum: persisted real-Electron privacy journey e2e/electron/agent-dlp-privacy.cjs (9/9 after fixing BUG-4776: tray stale after acknowledgement); persisted browser suite flow-r (29/29). Still NOT done: offline suspension after the 30-minute window and cross-sign-in buffer isolation live; native OS message box (answered by the harness); axe audits; other browsers; drag and drop. Human G4 review and OD-DLP-POLICY-TEXT remain separate and pending. | 2026-11-26 round 2: Electron journey 13/13 incl. offline pause and resume (synthetic proxy takes the server away; tray says paused, never ON, then resumes from a fresh config without a second acknowledgement); Flow S 20/20 on two consecutive runs (blockers, hours and net capacity, entitlement toggling incl. CUSTOM override and report-only enforcement, cross-tenant isolation in the browser, axe, work-profile settings incl. .djpkg re-import no-op, two-tab concurrency, repeatable fixtures); Flow R 29/29 (one assertion updated to the net-capacity wording).",
+      "evidence": "Technical evidence executed 2026-11-25 (isolated API :4099 + web :3011 + real Electron 39 agent, throwaway DB dp_master_gui): BROWSER: workflow Run History PARTIALLY FAILED badge renders (after fixing BUG-4775, a server/client boundary crash found by this very pass), workflow builder offers the CANDIDATE recipient, /work and /work/queues create, claim, SLA and owner-history flows work for manager and HR, sidebar highlight bug found and fixed. ELECTRON: real agent logs in, loads config, registers device, starts a work session and heartbeats; tray shows \"Content monitoring: off\" until config loads, \"off until you acknowledge the policy\" before acknowledgement and \"ON (clipboard/screenshots)\" only after the acknowledgement is recorded; the full 6,833-character policy opens in a script-less window BEFORE the acknowledgement dialog (no truncation, JavaScript execution blocked). NOT executed: offline suspension after the 30-minute freshness window (unit-tested, not driven live), a live second sign-in on one device for buffer isolation (unit-tested), the OS-native message box itself (stubbed to answer; its text was recorded). HUMAN APPROVAL (separate, not given): review of the G4 diff by a person, and OD-DLP-POLICY-TEXT. | 2026-11-26 addendum: persisted real-Electron privacy journey e2e/electron/agent-dlp-privacy.cjs (9/9 after fixing BUG-4776: tray stale after acknowledgement); persisted browser suite flow-r (29/29). Still NOT done: offline suspension after the 30-minute window and cross-sign-in buffer isolation live; native OS message box (answered by the harness); axe audits; other browsers; drag and drop. Human G4 review and OD-DLP-POLICY-TEXT remain separate and pending. | 2026-11-26 round 2: Electron journey 13/13 incl. offline pause and resume (synthetic proxy takes the server away; tray says paused, never ON, then resumes from a fresh config without a second acknowledgement); Flow S 20/20 on two consecutive runs (blockers, hours and net capacity, entitlement toggling incl. CUSTOM override and report-only enforcement, cross-tenant isolation in the browser, axe, work-profile settings incl. .djpkg re-import no-op, two-tab concurrency, repeatable fixtures); Flow R 29/29 (one assertion updated to the net-capacity wording). | 2026-11-28: ENFORCE entitlement tested in isolation (entitlement-enforce.e2e 11 tests; mode injected, no platform setting written, env and setting row verified unchanged at the end; mutation: ENFORCE no longer refusing fails 6). Finding: work routes have NO plan gate and no feature key exists (ITEM-0250, owner decision).",
       "humanApprovalPending": [
         "G4 diff review by a human",
         "OD-DLP-POLICY-TEXT (legal text)"
@@ -1330,7 +1330,7 @@
       "workstream": "A",
       "status": "INTEGRATED",
       "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine.",
-      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet. | UTF-8 ALM rollback test: the earlier failure was the private cluster being WIN1252; on a UTF-8 database (CREATE DATABASE … ENCODING UTF8 TEMPLATE template0) customization-package-alm.e2e-spec passes 19/19. Decisions recorded in ADR-0031.",
+      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet. | UTF-8 ALM rollback test: the earlier failure was the private cluster being WIN1252; on a UTF-8 database (CREATE DATABASE … ENCODING UTF8 TEMPLATE template0) customization-package-alm.e2e-spec passes 19/19. Decisions recorded in ADR-0031. | 2026-11-28 ALM permissions and success path: work-alm-success.e2e 8 tests (throwaway role with exactly both permission sets, export/import into a second tenant on UTF-8 with Arabic/CJK names, idempotent re-import, uninstall deactivates, adoption of an identical unowned queue, single-permission users refused with a clear error); customization-package-alm 19/19 and work-components-package on dp_master_utf8. ITEM-0248 (which seeded role holds both sets) remains an owner decision.",
       "integratedSha": "c2f8dc2b"
     },
     {
@@ -1406,7 +1406,7 @@
     {
       "id": "WP-28.S1",
       "wp": "WP-28",
-      "title": "Meetings, discussions and decision register linked to work items and blockers",
+      "title": "Meetings and decision register: API (meetings, immutable decision chain, linked actions). UI, discussions/threads and authorized context are WP-28.S2/S3",
       "release": "R4",
       "deps": [
         "WP-27.S1",
@@ -1446,20 +1446,20 @@
     {
       "id": "WP-04.S2",
       "wp": "WP-04",
-      "title": "Immutable e-mail template revisions: a retry renders exactly the content of the revision first used",
+      "title": "Immutable e-mail template revisions: pinned before the first send and recorded on the step (API/runtime). Authoring UI listing revisions: WP-04.S3",
       "release": "R2",
       "deps": [
         "WP-03.S5"
       ],
       "workstream": "C",
       "status": "INTEGRATED",
-      "evidence": "EmailTemplateRevision (content-addressed, immutable, created lazily the first time a workflow action sends); the first send of an action records the revision it rendered on the step, every retry and later recipient renders THAT revision whatever the row says now (email-template-revisions.e2e-spec 3 tests with the real renderer: row edited v1->v2, retry still renders v1, a send without a revision follows the row; another tenant cannot render the revision; a revision cannot be applied to a different template; mutation: rendering the row instead of the revision fails the test). workflow-durable-execution.e2e-spec 29/29 incl. retry handed the pinned revision and asking for no new one. NOT done: the authoring UI listing revisions / restoring one; system-template revisions are recorded when first sent, not at seed time.",
+      "evidence": "EmailTemplateRevision (content-addressed, immutable, created lazily the first time a workflow action sends); the first send of an action records the revision it rendered on the step, every retry and later recipient renders THAT revision whatever the row says now (email-template-revisions.e2e-spec 3 tests with the real renderer: row edited v1->v2, retry still renders v1, a send without a revision follows the row; another tenant cannot render the revision; a revision cannot be applied to a different template; mutation: rendering the row instead of the revision fails the test). workflow-durable-execution.e2e-spec 29/29 incl. retry handed the pinned revision and asking for no new one. NOT done: the authoring UI listing revisions / restoring one; system-template revisions are recorded when first sent, not at seed time. | 2026-11-28: revision is now pinned BEFORE the first send (EmailExecutionService.pinTemplate resolves the template by id or key+scope, records the content-addressed revision, and the step row carries templateId/version/revisionId before anything is sent; every attempt and recipient is handed the revision id). email-template-revisions.e2e 4 tests; workflow-durable-execution.e2e 29 asserts every send input carried the same revision.",
       "integratedSha": "07d866e0"
     },
     {
       "id": "WP-09.S1",
       "wp": "WP-09",
-      "title": "Workforce scheduling foundation: effective-schedule net capacity from the schedules people actually follow (roster calendar and rotation weeks narrowed to WP-09.S2)",
+      "title": "Workforce scheduling foundation: effective-schedule net capacity (API). Rotation weeks, half-day holidays, shared resolver: WP-09.S2; roster UI: WP-09.S3",
       "release": "R2",
       "deps": [
         "WP-06.S3"
@@ -1472,7 +1472,7 @@
     {
       "id": "WP-36.S1",
       "wp": "WP-36",
-      "title": "Duties, checklists and handovers: recurring duty templates generating duty-occurrence work items, checklist completion with evidence, shift handover notes",
+      "title": "Duties, checklists and handovers: API (templates, idempotent generation, checklist, handovers). UI and automatic generation are WP-36.S2/S3",
       "release": "R2",
       "deps": [
         "WP-09.S1",
@@ -1486,14 +1486,15 @@
     {
       "id": "WP-27.S2",
       "wp": "WP-27",
-      "title": "Daily updates: policies scoped by team/business unit, per-shift cadence, missed-update escalation notification",
+      "title": "Daily updates: policies scoped by team/business unit, shift-aware cadence, idempotent missed-update escalation notification (API)",
       "release": "R4",
       "deps": [
         "WP-27.S1",
         "WP-09.S1"
       ],
       "workstream": "B",
-      "status": "NOT_STARTED"
+      "status": "ACCEPTED",
+      "evidence": "2026-11-28: DailyUpdateScopePolicy CRUD, resolution team > business unit > tenant (a disabled team policy stays disabled), PER_SHIFT cadence from the effective schedule (overnight, DST, Auckland specs), escalation inserts DailyUpdateEscalation first so run-twice and 4 concurrent runs notify once, failed notify rolls back, off-duty skipped, in-app to the reporting manager through the orchestrator; daily-update-scopes.e2e 9 tests; mutations: wrong precedence, removed unique claim. NOT done: no scheduler hook for escalation (route only); escalation UI -> WP-27.S3."
     },
     {
       "id": "WP-15.S1",
@@ -1535,12 +1536,104 @@
     {
       "id": "WP-09.S2",
       "wp": "WP-09",
-      "title": "Roster calendar view, rotation weeks, half-day holidays and shift swaps",
+      "title": "Rotation weeks, half-day holidays and one shared schedule resolver for attendance and capacity",
       "release": "R3",
       "deps": [
         "WP-09.S1"
       ],
       "workstream": "A",
+      "status": "ACCEPTED",
+      "evidence": "2026-11-28: rotation weeks (cycle = max rotationWeek, anchor = schedule start / assignment start / fixed epoch), half-day holidays (half the day removed, 0.5 holiday day; full leave/holiday wins), one pure selectWorkSchedule shared by attendance.repository bulk resolution and capacity (parity spec feeds identical fixtures); limits now NO_SHIFT_SWAPS; mutation: ignoring rotationWeek fails 4 specs. NOT done: shift swaps, roster UI -> WP-09.S3; single-employee attendance resolver still queries per candidate (deliberate)."
+    },
+    {
+      "id": "WP-36.S2",
+      "wp": "WP-36",
+      "title": "Duties: DB-level pagination of occurrence and handover lists, automatic (scheduled, idempotent, per-tenant isolated) generation",
+      "release": "R2",
+      "deps": [
+        "WP-36.S1",
+        "WP-09.S1"
+      ],
+      "workstream": "A",
+      "status": "ACCEPTED",
+      "evidence": "2026-11-28: occurrence list is ONE database query (DutyOccurrence->WorkItem relation, visibility as a where, skip/take and exact count in SQL; query count constant across pages 0/500/700; 2300-row fixture, mixed visibility, ties, cross-tenant; mutation: dropping the visibility where fails). Automatic generation: scheduler off unless WORK_DUTY_GENERATION_ENABLED=true (render.yaml, env docs), per-tenant advisory lock, per-tenant failure isolation, idempotent (two runs -> one occurrence), null system actor, daysAhead bounded 1..14; mutation: removing idempotency fails 3 tests. NOT done: scheduler uses the UTC date, not each tenant timezone; handover/duty UI -> WP-36.S3."
+    },
+    {
+      "id": "WP-36.S3",
+      "wp": "WP-36",
+      "title": "Duties UI: templates, today's occurrences, checklist completion, handovers; mandatory Playwright journeys for employee/manager/admin, entitlement toggling, responsive, accessibility",
+      "release": "R2",
+      "deps": [
+        "WP-36.S2"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-09.S3",
+      "wp": "WP-09",
+      "title": "Roster calendar UI and shift swaps",
+      "release": "R3",
+      "deps": [
+        "WP-09.S2"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-06.S5",
+      "wp": "WP-06",
+      "title": "Timesheet entry work-item picker UI",
+      "release": "R3",
+      "deps": [
+        "WP-06.S3"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-28.S2",
+      "wp": "WP-28",
+      "title": "Decision context authorization (action owners, hidden links), readable reversal reason",
+      "release": "R4",
+      "deps": [
+        "WP-28.S1"
+      ],
+      "workstream": "B",
+      "status": "ACCEPTED",
+      "evidence": "2026-11-28: reversal reason/at/by stored on the decision and returned; an action owner can read the originating decision (writes stay 403); links the caller cannot see come back null, hidden chain steps surface as HIDDEN_LINK; work-decisions.e2e 11 tests; mutation: dropping the owner filter fails. NOT done: openActions does not list a decision for its action owner; UI -> WP-28.S3."
+    },
+    {
+      "id": "WP-28.S3",
+      "wp": "WP-28",
+      "title": "Meetings, discussions and decisions UI; threads and child questions; search",
+      "release": "R4",
+      "deps": [
+        "WP-28.S2"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-27.S3",
+      "wp": "WP-27",
+      "title": "Daily updates: scoped-policy and shift cadence settings UI, escalation visibility",
+      "release": "R4",
+      "deps": [
+        "WP-27.S2"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-04.S3",
+      "wp": "WP-04",
+      "title": "Template revision history and restore in the authoring UI",
+      "release": "R2",
+      "deps": [
+        "WP-04.S2"
+      ],
+      "workstream": "C",
       "status": "NOT_STARTED"
     }
   ],

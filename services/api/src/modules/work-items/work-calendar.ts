@@ -9,6 +9,13 @@ import type { PrismaService } from '../../common/prisma/prisma.service';
 export type CalendarFacts = {
   leave: Map<string, Array<{ startDate: Date; endDate: Date }>>;
   holidays: Map<string, Date[]>;
+  /**
+   * Half-day holidays (Holiday.isHalfDay), kept apart on purpose: isDayOff - and so
+   * "who owes a daily update" - treats only a FULL day off as not owed, while
+   * capacity removes half of a half-day's scheduled minutes. Optional so a caller
+   * that builds facts by hand (a spec) need not know about them.
+   */
+  halfDays?: Map<string, Date[]>;
 };
 
 export async function loadCalendarFacts(
@@ -18,7 +25,11 @@ export async function loadCalendarFacts(
   from: Date,
   to: Date,
 ): Promise<CalendarFacts> {
-  const facts: CalendarFacts = { leave: new Map(), holidays: new Map() };
+  const facts: CalendarFacts = {
+    leave: new Map(),
+    holidays: new Map(),
+    halfDays: new Map(),
+  };
   if (!employeeIds.length) return facts;
 
   const [employees, leave, assignments] = await Promise.all([
@@ -66,10 +77,9 @@ export async function loadCalendarFacts(
             holidays: {
               where: {
                 isActive: true,
-                isHalfDay: false,
                 holidayDate: { gte: from, lt: to },
               },
-              select: { holidayDate: true },
+              select: { holidayDate: true, isHalfDay: true },
             },
           },
         },
@@ -100,9 +110,14 @@ export async function loadCalendarFacts(
       assignments.find(
         (a) => a.isDefault && !a.businessUnitId && !a.organizationId,
       );
+    const days = chosen?.holidayCalendar.holidays ?? [];
     facts.holidays.set(
       employee.id,
-      chosen?.holidayCalendar.holidays.map((h) => h.holidayDate) ?? [],
+      days.filter((h) => !h.isHalfDay).map((h) => h.holidayDate),
+    );
+    facts.halfDays?.set(
+      employee.id,
+      days.filter((h) => h.isHalfDay).map((h) => h.holidayDate),
     );
   }
   return facts;
@@ -134,4 +149,19 @@ export function isDayOff(
     }
   }
   return { off: false, reason: null };
+}
+
+/**
+ * Is this calendar day a HALF-day holiday for the person? A full day off (leave or
+ * a full holiday) wins, so a half-day on top of one is not reported twice.
+ */
+export function isHalfDayHoliday(
+  facts: CalendarFacts,
+  employeeId: string,
+  day: string,
+): boolean {
+  if (isDayOff(facts, employeeId, day).off) return false;
+  return (facts.halfDays?.get(employeeId) ?? []).some(
+    (d) => d.toISOString().slice(0, 10) === day,
+  );
 }

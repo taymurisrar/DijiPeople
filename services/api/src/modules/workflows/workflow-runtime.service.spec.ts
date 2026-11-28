@@ -216,6 +216,8 @@ function build(
   };
   const emailService = {
     sendTemplateEmail: jest.fn().mockResolvedValue(DELIVERED),
+    // Pinning resolves nothing here: these tests drive explicit send paths.
+    pinTemplate: jest.fn().mockResolvedValue(null),
   };
   const service = new WorkflowRuntimeService(
     prisma as never,
@@ -349,6 +351,7 @@ describe('CANDIDATE recipient (WP-04.S1)', () => {
     };
     const emailService = {
       sendTemplateEmail: jest.fn().mockResolvedValue(DELIVERED),
+      pinTemplate: jest.fn().mockResolvedValue(null),
     };
     const service = new WorkflowRuntimeService(
       prisma as never,

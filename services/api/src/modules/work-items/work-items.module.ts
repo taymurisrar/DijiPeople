@@ -7,6 +7,7 @@ import { WorkDecisionsController } from './work-decisions.controller';
 import { WorkDecisionsService } from './work-decisions.service';
 import { WorkDutiesController } from './work-duties.controller';
 import { WorkDutiesService } from './work-duties.service';
+import { WorkDutyGenerationScheduler } from './work-duty-generation.scheduler';
 import { WorkItemsController } from './work-items.controller';
 import { WorkItemsService } from './work-items.service';
 import { WorkQueuesController } from './work-queues.controller';
@@ -27,6 +28,8 @@ import { WorkQueuesService } from './work-queues.service';
     WorkBlockersService,
     WorkDutiesService,
     WorkDecisionsService,
+    // Off unless WORK_DUTY_GENERATION_ENABLED=true (WP-36.S2).
+    WorkDutyGenerationScheduler,
   ],
   exports: [
     WorkItemsService,

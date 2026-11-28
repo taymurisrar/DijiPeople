@@ -11,7 +11,7 @@
 | Open HIGH | **50** |
 | Open total | 245 |
 | Blocked | 4 |
-| Awaiting a product decision | 17 |
+| Awaiting a product decision | 18 |
 | Deferred | 128 |
 | Completed | 446 |
 | Awaiting Architect triage | 3 |
@@ -93,6 +93,7 @@
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
+| [[ITEM-0250-work-routes-have-no-plan-entitlement-gate-no-work-management|ITEM-0250]] | Work routes have no plan entitlement gate; no work-management feature key exists | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | — | PRODUCT_DECISION |
 | [[ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo|ITEM-0237]] | Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers | PERFORMANCE | LOW | PRODUCT_DECISION | outbox, data-management | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
@@ -909,7 +910,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 591 |
-| Backlog items | 249 |
+| Backlog items | 250 |
 | Known bug patterns | 35 |
 | QA runs | 40 |
 | Engineering history records | 106 |

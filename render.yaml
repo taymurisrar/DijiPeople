@@ -239,6 +239,10 @@ services:
         value: "false"
       - key: WORKFLOW_RECONCILE_INTERVAL_MS
         value: "300000"
+      # Generates today's duty occurrences for every tenant on a timer. OFF unless
+      # set (WP-36.S2); the same pass exists as POST /work-duties/generate.
+      - key: WORK_DUTY_GENERATION_ENABLED
+        value: "false"
       # Reports & Analytics (TASK-0028). Both workers are OFF unless set here,
       # so a deploy that omits them changes nothing rather than quietly starting
       # background work. The scheduler is what sends scheduled reports by email;

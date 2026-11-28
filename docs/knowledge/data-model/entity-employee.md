@@ -114,7 +114,7 @@ fail without the fix.
 | Prisma accessor | `prisma.employee` |
 | Owning module | `services/api/src/modules/employees` |
 | Domain | People |
-| Also touched by | `onboarding`, `attendance-integrations`, `work-items` (reads), `dashboard` (reads), `users`, `recruitment`, `attendance-engine` (reads), `organization` (reads), and 30 more |
+| Also touched by | `onboarding`, `attendance-integrations`, `work-items` (reads), `dashboard` (reads), `users`, `recruitment`, `attendance-engine` (reads), `daily-updates` (reads), and 30 more |
 
 ### Fields
 

@@ -51,6 +51,10 @@ What must land first.
 
 Wikilinks to related bugs, items, modules and decisions.
 
+## Update 2026-11-28
+
+Measured in `docs/programs/dp-master/evidence/api-build-lint-memory.md`: the generated Prisma client is 1.42M of 1.70M definition lines (84%) and is the floor for compiler memory; type-aware ESLint rules dominate lint time and cannot be disabled; no reduction that keeps identical checking was found, so CI keeps NODE_OPTIONS=6144 for Build and ESLint. Render live plan/memory could NOT be read: the permission layer denied reading the token, and that was not worked around. `render.yaml` says plan standard (documented 2 GB), below the 4 GB heap the build needed here. Someone with Render access must confirm what memory the build step gets.
+
 ## History
 
 - 2026-11-28 — created at `0843dfe2`.

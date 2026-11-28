@@ -272,6 +272,62 @@ export class EmailExecutionService {
     });
   }
 
+  /**
+   * WP-04.S2. Resolve the template a send WOULD use and record its immutable
+   * revision, without sending. A caller that pins first and then sends the revision
+   * id renders the same content on the first attempt, every retry and every other
+   * recipient, whatever happens to the template row in between. Null when no
+   * template resolves (the send itself will then say so).
+   */
+  async pinTemplate(
+    input: Pick<
+      SendTemplateEmailInput,
+      | 'tenantId'
+      | 'eventCode'
+      | 'templateId'
+      | 'templateKey'
+      | 'organizationId'
+      | 'businessUnitId'
+      | 'departmentId'
+      | 'teamId'
+      | 'subjectEmployeeId'
+      | 'subjectUserId'
+      | 'requestedByUserId'
+    >,
+  ): Promise<{
+    templateId: string;
+    templateVersion: number;
+    templateRevisionId: string;
+  } | null> {
+    const full = {
+      ...input,
+      recipient: '',
+      variables: {},
+    } as SendTemplateEmailInput;
+    const scope = await this.resolveScope(full);
+    const template = input.templateId
+      ? await this.repository.findVisibleTemplateById(
+          input.tenantId,
+          input.templateId,
+        )
+      : await this.repository.findTemplateForEvent({
+          tenantId: input.tenantId,
+          eventCode: input.eventCode,
+          templateKey: input.templateKey,
+          ...scope,
+        });
+    if (!template) return null;
+    const revision = await this.repository.ensureTemplateRevision(
+      template,
+      input.requestedByUserId,
+    );
+    return {
+      templateId: template.id,
+      templateVersion: template.version,
+      templateRevisionId: revision.id,
+    };
+  }
+
   async execute(
     input: SendTemplateEmailInput,
   ): Promise<SendTemplateEmailResult> {

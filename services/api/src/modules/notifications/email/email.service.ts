@@ -23,6 +23,10 @@ export class EmailService {
     return this.executionService.previewTemplate(input);
   }
 
+  pinTemplate(input: Parameters<EmailExecutionService['pinTemplate']>[0]) {
+    return this.executionService.pinTemplate(input);
+  }
+
   async sendTemplateEmail(
     input: SendTemplateEmailInput,
   ): Promise<SendTemplateEmailResult> {

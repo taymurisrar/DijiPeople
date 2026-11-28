@@ -52,15 +52,26 @@ describeWithDatabase()(
     });
     // Every input the runtime handed the e-mail service, in order.
     const inputs: Array<Record<string, unknown>> = [];
-    // Stands in for the revision the real service records when asked to pin one.
-    const revisionFor = new Map<string, string>();
     const emailStub = {
+      // The real service resolves the template and records its revision; here only
+      // an explicit template id can be resolved, which is all these tests pin.
+      pinTemplate: jest.fn(async (input: { templateId?: string }) => {
+        if (!input.templateId) return null;
+        const row = await prisma.emailTemplate.findUniqueOrThrow({
+          where: { id: input.templateId },
+        });
+        const revision = await repository.ensureTemplateRevision(row);
+        return {
+          templateId: row.id,
+          templateVersion: row.version,
+          templateRevisionId: revision.id,
+        };
+      }),
       sendTemplateEmail: jest.fn(
         async (input: {
           recipient: string;
           templateId?: string;
           templateRevisionId?: string;
-          pinTemplateRevision?: boolean;
         }) => {
           inputs.push({ ...input });
           const left = failing.get(input.recipient) ?? 0;
@@ -86,23 +97,9 @@ describeWithDatabase()(
             deliveryLogId: logQueue.length
               ? logQueue.shift()
               : logs.get(input.recipient),
-            ...(input.pinTemplateRevision && input.templateId
-              ? {
-                  templateRevisionId: (await ensureRevision(input.templateId))
-                    .id,
-                }
-              : {}),
           });
         },
       ),
-    };
-
-    const ensureRevision = async (templateId: string) => {
-      const row = await prisma.emailTemplate.findUniqueOrThrow({
-        where: { id: templateId },
-      });
-      revisionFor.set(templateId, row.htmlTemplate);
-      return repository.ensureTemplateRevision(row);
     };
 
     let transition = 0;
@@ -206,7 +203,6 @@ describeWithDatabase()(
       logs.clear();
       logQueue.length = 0;
       inputs.length = 0;
-      revisionFor.clear();
       gate = null;
       process.env.WORKFLOW_EXECUTION_MODE = 'durable';
     });
@@ -910,16 +906,16 @@ describeWithDatabase()(
         templateVersion: template.version,
         templateDrift: true,
       });
-      // WP-04.S2: the first recipient asked for a revision to be recorded; the
-      // retry for the second recipient was handed that same revision to render,
-      // and asked for no new one.
+      // WP-04.S2: the revision is pinned BEFORE the first send, so even the
+      // first attempt (which failed for the second recipient) was handed it, and
+      // the retry and the other recipient render exactly the same revision.
       expect(steps[0].templateRevisionId).toBeTruthy();
       expect(steps[1].templateRevisionId).toBe(steps[0].templateRevisionId);
-      const p2 = inputs.filter((i) => i.recipient === 'p2@example.com');
-      expect(p2[p2.length - 1]).toMatchObject({
-        templateRevisionId: steps[0].templateRevisionId,
-        pinTemplateRevision: false,
-      });
+      const pinnedInputs = inputs.filter((i) => i.templateId);
+      expect(pinnedInputs.length).toBeGreaterThanOrEqual(3); // p1, p2 failed, p2 retry
+      for (const input of pinnedInputs) {
+        expect(input.templateRevisionId).toBe(steps[0].templateRevisionId);
+      }
       await prisma.emailDeliveryLog.deleteMany({
         where: { tenantId, templateId: template.id },
       });

@@ -170,6 +170,11 @@ containers are per-job, so the two databases cannot collide.
 Credentials are synthetic (`ci` / `ci`) and deliberately **not** repository
 secrets — storing them as secrets would imply they protect something.
 
+Specs that need an isolated, UTF-8 database declare it
+(`describeWithDatabase({ requireUtf8: true })`); the e2e database name
+`dijipeople_e2e_test` satisfies the `_e2e` convention. See
+[`test-databases.md`](test-databases.md).
+
 **`database-migration` (required)** proves what a developer's machine cannot: a
 developer database already holds the schema, so a broken migration history still
 appears to work locally. Applying the whole history to an *empty* database is
