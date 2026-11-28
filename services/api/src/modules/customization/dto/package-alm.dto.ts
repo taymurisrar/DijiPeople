@@ -82,6 +82,24 @@ export class SetPackagePublisherDto {
   publisherId!: string;
 }
 
+export class WorkComponentRefDto {
+  @IsIn(['workUnit', 'workProfile', 'workQueue'])
+  type!: 'workUnit' | 'workProfile' | 'workQueue';
+
+  /** The component's stable logical key, never a row id. */
+  @IsString()
+  @Matches(/^[a-z0-9][a-z0-9._-]{1,63}$/)
+  key!: string;
+}
+
+export class AddWorkComponentsDto {
+  @IsArray()
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => WorkComponentRefDto)
+  components!: WorkComponentRefDto[];
+}
+
 export class ReleasePackageDto {
   @IsOptional()
   @IsString()

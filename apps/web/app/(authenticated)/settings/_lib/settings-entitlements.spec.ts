@@ -307,6 +307,8 @@ const GROWTH = [
   ...STARTER,
   FEATURE_KEYS.TIMESHEETS,
   FEATURE_KEYS.PROJECTS,
+  /* Work management is Growth and Enterprise (ADR-0032); Starter has neither key. */
+  FEATURE_KEYS.WORK_MANAGEMENT,
   FEATURE_KEYS.RECRUITMENT,
   FEATURE_KEYS.ONBOARDING,
   /* The desktop agent is Enterprise/Custom only; Growth does not sell it. */
@@ -344,13 +346,14 @@ describe("every shipped plan resolves to the right shape", () => {
     const growth = shapeOf(GROWTH);
     const enterprise = shapeOf(ENTERPRISE);
 
+    /* Work Profiles and Daily Updates are work-management pages (ADR-0032), so -2 below Growth. */
     expect(none.items).toBe(35);
     /* +1 each from TASK-0036's Document Types page (Documents entitlement). */
     /* +1: Import & Export (data-import-export) is now on Starter. */
     expect(starter.items).toBe(56);
     /* Growth no longer sells the desktop agent: -2 (agent, app downloads). */
-    expect(growth.items).toBe(65);
-    expect(enterprise.items).toBe(88);
+    expect(growth.items).toBe(67);
+    expect(enterprise.items).toBe(90);
 
     expect(none.categories).toBe(7);
     expect(starter.categories).toBe(8);
@@ -387,8 +390,10 @@ describe("every shipped plan resolves to the right shape", () => {
       "attendance-integrations-overview",
       "attendance-provisioning",
       "attendance-sync-history",
+      "daily-updates",
       "recruitment",
       "timesheets",
+      "work-profiles",
     ]);
   });
 
@@ -551,9 +556,9 @@ describe("countSettingsPages", () => {
       EVERY_CAPABILITY,
     ).filter((category) => category.key === "people");
 
-    /* Starter loses Timesheet Settings from People, and the tile must say so. */
+    /* Starter loses Timesheet Settings, Work Profiles and Daily Updates from People, and the tile must say so. */
     expect(countSettingsPages(starterPeople!)).toBe(
-      countSettingsPages(fullPeople!) - 1,
+      countSettingsPages(fullPeople!) - 3,
     );
   });
 });

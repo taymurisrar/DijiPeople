@@ -9,6 +9,7 @@ import {
 } from '../config/auth.config';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { RequestContextService } from '../request-context/request-context.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationAccessService } from '../../modules/organization/organization-access.service';
 
 type AccessTokenPayload = {
@@ -23,9 +24,20 @@ export class BusinessUnitAccessMiddleware implements NestMiddleware {
     private readonly configService: ConfigService,
     private readonly organizationAccessService: OrganizationAccessService,
     private readonly requestContextService: RequestContextService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async use(req: AuthenticatedRequest, _res: Response, next: NextFunction) {
+    // Nothing reads the context unless the Prisma `$use` hook is registered
+    // (see PrismaService.consumesRequestContext), so resolving it — about a
+    // dozen statements per request — would be pure overhead. Authorization is
+    // decided by JwtAuthGuard from its own freshly loaded access context, which
+    // this middleware never fed.
+    if (!this.prisma.consumesRequestContext) {
+      req.buAccess = null;
+      return this.requestContextService.runWithContext(null, () => next());
+    }
+
     const token = this.extractAccessToken(req);
 
     if (!token) {

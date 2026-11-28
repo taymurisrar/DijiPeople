@@ -2,7 +2,13 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 /**
- * INVARIANT — every unauthenticated write is rate limited.
+ * INVARIANT — every unauthenticated handler is rate limited.
+ *
+ * BUG-3187 widened this from writes to reads. It was written for writes (three
+ * incidents), and its own premise ("the next public handler arrives without a
+ * guard") applies equally to a public GET: every unprotected public surface that
+ * was left turned out to be a read, because the check never looked at one. The
+ * file keeps its name for traceability.
  *
  * This is ITEM-0013, built because the failure it predicted has now happened
  * three times:
@@ -51,7 +57,18 @@ describe('every public write handler is rate limited', () => {
     ],
   ]);
 
-  const WRITE_DECORATOR = /@(Post|Put|Patch|Delete)\s*\(/;
+  /** A handler-level exemption, keyed controller.ts#methodName, with its reason. */
+  const HANDLER_ALLOWLIST = new Map<string, string>([
+    [
+      'auth.controller.ts#me',
+      'A session-cookie probe the web app calls on every page load. It is @Public ' +
+        'only because it authenticates from the cookie itself and answers an empty ' +
+        'session without an error; a per-address limit would break shared-IP offices ' +
+        'on ordinary navigation, and it reveals nothing without a valid cookie.',
+    ],
+  ]);
+
+  const WRITE_DECORATOR = /@(Get|Post|Put|Patch|Delete)\s*\(/;
   const HANDLER_SIGNATURE = /^ {2}(async\s+)?[a-zA-Z]\w*\s*\(/;
   const GUARD = 'PublicRateLimitGuard';
 
@@ -139,6 +156,14 @@ describe('every public write handler is rate limited', () => {
     return offenders;
   }
 
+  /** The handler name of a signature line such as   async me(. */
+  function handlerName(signature: string) {
+    return signature
+      .replace(/^async\s+/, '')
+      .split('(')[0]
+      .trim();
+  }
+
   const controllers = collectControllers(MODULES_DIR).map((filePath) => ({
     path: filePath,
     name: basename(filePath),
@@ -174,10 +199,28 @@ describe('every public write handler is rate limited', () => {
 
       if (hasControllerLevelGuard(source)) return;
 
-      // Not class-guarded, so every public write must carry its own.
-      expect(unguardedPublicWrites(source)).toEqual([]);
+      // Not class-guarded, so every public handler must carry its own, unless the
+      // handler is individually exempt with a stated reason.
+      expect(
+        unguardedPublicWrites(source).filter(
+          (signature) =>
+            !HANDLER_ALLOWLIST.has(`${name}#${handlerName(signature)}`),
+        ),
+      ).toEqual([]);
     },
   );
+
+  it('every handler exemption has a real reason and names a handler that still exists', () => {
+    for (const [key, reason] of HANDLER_ALLOWLIST) {
+      expect(reason.length).toBeGreaterThan(40);
+      const [file, method] = key.split('#');
+      const controller = controllers.find((c) => c.name === file);
+      expect(controller).toBeDefined();
+      expect(controller?.source).toMatch(
+        new RegExp(`^ {2}(async\\s+)?${method}\\s*\\(`, 'm'),
+      );
+    }
+  });
 
   it('does not allowlist a controller that no longer exists', () => {
     // A stale exemption silently protects nothing while looking deliberate.

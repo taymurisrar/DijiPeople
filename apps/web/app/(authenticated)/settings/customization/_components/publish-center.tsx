@@ -500,6 +500,9 @@ function componentTypeLabel(value: string) {
     optionSet: "Choice List",
     lookup: "Relationship",
     actionBar: "Action Bar",
+    workUnit: "Work unit",
+    workProfile: "Work profile",
+    workQueue: "Work queue",
   };
   return labels[value] ?? value.charAt(0).toUpperCase() + value.slice(1);
 }

@@ -580,7 +580,9 @@ export class LeaveService {
         await this.recordApprovedLeaveConsumption(
           created,
           tx,
-          Boolean(leavePolicyRule?.negativeBalanceAllowed),
+          leavePolicyRule?.negativeBalanceAllowed
+            ? (leavePolicyRule.maximumNegativeBalance ?? new Prisma.Decimal(0))
+            : null,
         );
       }
 
@@ -804,6 +806,8 @@ export class LeaveService {
       actorUserId: currentUser.userId,
       relatedEntityType: 'leaveRequest',
       relatedEntityId: leaveRequest.id,
+      // One submission is one transition, however often it is announced.
+      transitionId: `submitted:${new Date(leaveRequest.updatedAt).getTime()}`,
       relatedRecordNumber: leaveRequest.id,
       metadata: {
         employeeName: `${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName}`,
@@ -1799,10 +1803,10 @@ export class LeaveService {
 
     // Resolved outside the transaction: it reads policy tables and the
     // transaction should hold the balance row for as short a time as it can.
-    const negativeBalanceAllowed =
+    const maximumNegativeBalance =
       action === 'approve'
-        ? await this.isNegativeBalanceAllowed(leaveRequest)
-        : false;
+        ? await this.resolveMaximumNegativeBalance(leaveRequest)
+        : null;
 
     await this.prisma.$transaction(async (tx) => {
       await this.leaveRepository.updateLeaveApprovalStep(
@@ -1877,7 +1881,7 @@ export class LeaveService {
           await this.recordApprovedLeaveConsumption(
             { ...leaveRequest, status: LeaveRequestStatus.APPROVED },
             tx,
-            negativeBalanceAllowed,
+            maximumNegativeBalance,
           );
         }
       }
@@ -1928,6 +1932,8 @@ export class LeaveService {
       relatedEntityType: 'leaveRequest',
       relatedEntityId: updated.id,
       relatedRecordNumber: updated.id,
+      // The decision and the instant it was taken identify the transition.
+      transitionId: `${action}:${new Date(updated.updatedAt).getTime()}`,
       metadata: {
         employeeName: `${updated.employee.firstName} ${updated.employee.lastName}`,
         leaveTypeName: updated.leaveType.name,
@@ -2130,15 +2136,18 @@ export class LeaveService {
     });
   }
 
-  /** Whether the policy rule that applies to this request lets the balance go negative. */
-  private async isNegativeBalanceAllowed(
+  /**
+   * The overdraft ceiling of the policy rule that applies to this request, or
+   * null when the rule does not let the balance go negative.
+   */
+  private async resolveMaximumNegativeBalance(
     leaveRequest: LeaveRequestWithRelations,
-  ): Promise<boolean> {
+  ): Promise<Prisma.Decimal | null> {
     const employee = await this.employeesRepository.findByIdAndTenant(
       leaveRequest.tenantId,
       leaveRequest.employeeId,
     );
-    if (!employee) return false;
+    if (!employee) return null;
 
     const policy = await this.resolveApplicableLeavePolicy(
       leaveRequest.tenantId,
@@ -2151,13 +2160,18 @@ export class LeaveService {
       leaveRequest.leaveTypeId,
     );
 
-    return Boolean(rule?.negativeBalanceAllowed);
+    // null means overdraft is not allowed. An allowed rule with no maximum is a
+    // ceiling of zero, exactly as the submission check treats it.
+    return rule?.negativeBalanceAllowed
+      ? (rule.maximumNegativeBalance ?? new Prisma.Decimal(0))
+      : null;
   }
 
   private async recordApprovedLeaveConsumption(
     leaveRequest: LeaveRequestWithRelations,
     db: Prisma.TransactionClient,
-    negativeBalanceAllowed: boolean,
+    /** The overdraft ceiling, or null when the rule does not allow one. */
+    maximumNegativeBalance: Prisma.Decimal | null,
   ) {
     if (leaveRequest.status !== LeaveRequestStatus.APPROVED) {
       return;
@@ -2208,12 +2222,19 @@ export class LeaveService {
      * smaller remainder and matches nothing. The throw rolls the whole decision
      * back, so the step stays pending and nothing is half-applied.
      */
+    /*
+     * The floor is -maximumNegativeBalance (zero when overdraft is not allowed),
+     * so the condition is 	otalRemaining - days >= -max. Before, an allowed
+     * overdraft had NO floor here: the ceiling was checked per request at
+     * submission against a balance that ignores pending requests, so several
+     * pending requests could each pass and their approvals could go arbitrarily
+     * far past the maximum (BUG-3197).
+     */
+    const ceiling = maximumNegativeBalance ?? new Prisma.Decimal(0);
     const deducted = await db.leaveBalance.updateMany({
       where: {
         ...balanceKey,
-        ...(negativeBalanceAllowed
-          ? {}
-          : { totalRemaining: { gte: leaveRequest.totalDays } }),
+        totalRemaining: { gte: leaveRequest.totalDays.minus(ceiling) },
       },
       data: {
         totalUsed: { increment: leaveRequest.totalDays },
@@ -2226,15 +2247,24 @@ export class LeaveService {
       return;
     }
 
-    if (!negativeBalanceAllowed) {
-      throw new ConflictException({
+    const notEnough = () =>
+      new ConflictException({
         code: 'LEAVE_REQUEST_FAILED',
         message:
           'There is not enough leave balance to approve this request. Reject it, or adjust the employee entitlement first.',
       });
+    if (maximumNegativeBalance === null) {
+      throw notEnough();
     }
-
-    // Overdraft is allowed and there is no balance row yet: create it overdrawn.
+    // A balance row exists but the floor refused the deduction: the overdraft
+    // ceiling is reached.
+    if ((await db.leaveBalance.count({ where: balanceKey })) > 0) {
+      throw notEnough();
+    }
+    // No balance row yet: it can be created overdrawn, but only within the ceiling.
+    if (leaveRequest.totalDays.greaterThan(maximumNegativeBalance)) {
+      throw notEnough();
+    }
     await db.leaveBalance.upsert({
       where: { tenantId_employeeId_leaveTypeId: balanceKey },
       create: {

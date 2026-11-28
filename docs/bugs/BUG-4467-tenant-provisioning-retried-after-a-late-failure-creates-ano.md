@@ -2,7 +2,7 @@
 ID: BUG-4467
 aliases: [BUG-4467]
 Title: Tenant provisioning retried after a late failure creates another tenant for the same order
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-11-19
 DetectedInSha: 6c780328
 AffectedModules: []
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-695
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-11-19
-UpdatedAt: 2026-11-20
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-11-20
 ---
 
@@ -145,6 +145,8 @@ Which QA run verified the fix, and the scenario ids.
 
 provisioning-requested.handler.spec.ts (9 cases), platform-onboarding.recovery.spec.ts (4), and the DB-backed services/api/test/provisioning-recovery.e2e-spec.ts (5): invitation step failing 3x, invitation created then throwing, hostname unconfigured 3x (TENANT_BASE_DOMAIN_NOT_CONFIGURED), markTenantReady failing 3x, recordOrderPayment failing 3x; each ends with one tenant, one subscription, one owner, one email, one hostname, order ACTIVATED, tenant READY. Covered by REG-696.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): provisioning-requested.handler.spec.ts 'links the order to the tenant it creates, in the creating call' and 'never creates a second tenant on a retry, and still finishes the order' assert the fix; passes.
+
 ## History
 
 - 2026-11-19 — created from qa run at `6c780328`.
@@ -156,3 +158,4 @@ provisioning-requested.handler.spec.ts (9 cases), platform-onboarding.recovery.s
 - Regression — REG-695 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createReadStream } from 'fs';
@@ -53,6 +54,7 @@ const TENANT_SEARCH_LIMIT = 50;
 
 @Injectable()
 export class PlatformMonitoringService {
+  private readonly logger = new Logger(PlatformMonitoringService.name);
   private readonly logDir = resolveLogDir();
 
   constructor(
@@ -609,14 +611,38 @@ export class PlatformMonitoringService {
 
   private assertSuperAdmin(user: AuthenticatedUser) {
     if (!userHasPlatformPermission(user, 'platform.monitoring.administer')) {
-      void this.auditService.log({
-        tenantId: 'platform',
-        actorUserId: user.platform?.id ?? user.userId ?? null,
-        action: 'PLATFORM_ERROR_LOG_ACCESS_DENIED',
-        entityType: 'PlatformLogFile',
-        entityId: 'logs',
-        sourceModule: 'platform-monitoring',
-      });
+      /*
+       * BUG-4625. This used to be `void this.auditService.log({ tenantId:
+       * 'platform', actorUserId: user.platform?.id ?? user.userId })`. For a
+       * TENANT caller that put a tenant user id into
+       * PlatformAuditLog.platformActorUserId, which is a foreign key to the
+       * platform users table, so the insert failed; the promise was discarded,
+       * so the rejection was unhandled, and Node's default for an unhandled
+       * rejection is to terminate the process. One request from any signed-in
+       * tenant user, whatever their role, therefore took the whole API down.
+       *
+       * A platform caller is recorded against the platform log; a tenant caller
+       * against their own tenant's log with their own user id. Either way the
+       * write cannot reject into the void: a failed audit write is logged and
+       * never changes the 403 the caller gets.
+       */
+      const platformCaller = Boolean(user.platform?.id);
+      void this.auditService
+        .log({
+          tenantId: platformCaller ? 'platform' : user.tenantId,
+          actorUserId: platformCaller ? user.platform?.id : user.userId,
+          action: 'PLATFORM_ERROR_LOG_ACCESS_DENIED',
+          entityType: 'PlatformLogFile',
+          entityId: 'logs',
+          sourceModule: 'platform-monitoring',
+        })
+        .catch((error: unknown) => {
+          this.logger.warn(
+            `Could not record PLATFORM_ERROR_LOG_ACCESS_DENIED: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        });
       throw new ForbiddenException({
         code: 'PLATFORM_SUPER_ADMIN_REQUIRED',
         message: 'Only Platform Super Admin can access platform monitoring.',

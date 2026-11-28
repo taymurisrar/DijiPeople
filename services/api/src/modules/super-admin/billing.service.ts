@@ -327,6 +327,28 @@ export class BillingService {
       input.dueDate ?? new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     const datePart = issueDate.toISOString().slice(0, 10).replace(/-/g, '');
 
+    /*
+     * BUG-3201. Pick a number nobody holds BEFORE inserting, instead of inserting
+     * and recovering from a unique violation. The recovery cannot work where it
+     * matters: two callers run this inside an interactive transaction, in which a
+     * failed statement aborts the whole transaction, so the "retry on the same
+     * client" never ran. It also swallowed the wrong error: a duplicate
+     * `stripeInvoiceId` is a unique violation too, was retried five times with
+     * the same value, and was then reported as "unable to generate a unique
+     * invoice number".
+     *
+     * The pre-insert lookup only avoids the common collision; it is NOT what
+     * guarantees uniqueness. The unique index stays authoritative: if two
+     * callers draw the same number between the check and the insert, the second
+     * insert is refused. Inside a transaction the insert runs under a SAVEPOINT
+     * so that refusal can be rolled back locally and the loop can draw again;
+     * outside one a failed statement poisons nothing. A refusal is retried ONLY
+     * when the number is now held by another row; any other unique violation
+     * (a duplicate `stripeInvoiceId`) is rethrown untouched.
+     */
+    // A Prisma transaction client has no $connect (it DOES expose $transaction,
+    // so that is not a usable test); the root client has both.
+    const txClient = '$connect' in db ? null : db;
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const entropy = String(Math.floor(Math.random() * 10_000)).padStart(
         4,
@@ -334,8 +356,15 @@ export class BillingService {
       );
       const invoiceNumber = `INV-${datePart}-${entropy}`;
 
+      const taken = await db.invoice.findFirst({
+        where: { tenantId: input.tenantId, invoiceNumber },
+        select: { id: true },
+      });
+      if (taken) continue;
+
+      if (txClient) await txClient.$executeRaw`SAVEPOINT invoice_number_insert`;
       try {
-        return await db.invoice.create({
+        const created = await db.invoice.create({
           data: {
             tenantId: input.tenantId,
             subscriptionId: input.subscriptionId,
@@ -350,13 +379,23 @@ export class BillingService {
             updatedById: input.actorUserId,
           },
         });
+        if (txClient) {
+          await txClient.$executeRaw`RELEASE SAVEPOINT invoice_number_insert`;
+        }
+        return created;
       } catch (error) {
-        const isUniqueViolation =
+        const isUnique =
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === 'P2002';
-        if (!isUniqueViolation) {
-          throw error;
+        if (!isUnique) throw error;
+        if (txClient) {
+          await txClient.$executeRaw`ROLLBACK TO SAVEPOINT invoice_number_insert`;
         }
+        const nowTaken = await db.invoice.findFirst({
+          where: { tenantId: input.tenantId, invoiceNumber },
+          select: { id: true },
+        });
+        if (!nowTaken) throw error;
       }
     }
 

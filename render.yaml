@@ -2,7 +2,11 @@ services:
   - type: web
     name: dijipeople-api
     env: node
-    plan: starter
+    # Live service is STANDARD (2 GB), verified read-only against the Render API
+    # on 2026-11-21. This file said starter (512 MB) while observed memory was
+    # 585-749 MB, so applying it as a blueprint would have downgraded production
+    # below its own working set. Do not lower this without peak-memory evidence.
+    plan: standard
     # BUG-0767 — THIS FILE WAS NOT WHAT PRODUCTION RAN.
     #
     # Until 2026-08-23 the live service was configured by hand in the Render
@@ -101,6 +105,24 @@ services:
       # Optional everywhere there is no pooler: unset, migrations fall back to
       # DATABASE_URL.
       - key: DIRECT_DATABASE_URL
+        sync: false
+      # Connection-pool bounds (RES-01). Only the connect timeout has a code default
+      # (15000 ms; the driver's own default waits forever). The rest are unset on
+      # purpose: set DATABASE_STATEMENT_TIMEOUT_MS only after measuring, because a
+      # default would kill long payroll/import work that has never had a limit.
+      - key: DATABASE_POOL_CONNECTION_TIMEOUT_MS
+        sync: false
+      - key: DATABASE_POOL_MAX
+        sync: false
+      - key: DATABASE_POOL_IDLE_TIMEOUT_MS
+        sync: false
+      - key: DATABASE_STATEMENT_TIMEOUT_MS
+        sync: false
+      # Data-job worker. ON by default (unlike the outbox); set false only on a
+      # process that must not drain the import/export queue.
+      - key: DATA_JOB_WORKER_ENABLED
+        sync: false
+      - key: DATA_JOB_WORKER_POLL_INTERVAL_MS
         sync: false
       - key: JWT_ACCESS_SECRET
         sync: false
@@ -206,6 +228,25 @@ services:
         value: "5000"
       - key: OUTBOX_WORKER_BATCH_SIZE
         value: "25"
+      # Workflow actions: "inline" runs them in the request (the long-standing
+      # behaviour); "durable" runs them from the outbox worker above, with retries.
+      # Switch only after OUTBOX_WORKER_ENABLED is confirmed live (WP-03.S3).
+      - key: WORKFLOW_EXECUTION_MODE
+        value: "inline"
+      # Reads provider delivery results back onto workflow steps. OFF unless set
+      # (WP-03.S4); the same pass exists as POST /workflows/reconcile-deliveries.
+      - key: WORKFLOW_RECONCILE_ENABLED
+        value: "false"
+      - key: WORKFLOW_RECONCILE_INTERVAL_MS
+        value: "300000"
+      # Generates today's duty occurrences for every tenant on a timer. OFF unless
+      # set (WP-36.S2); the same pass exists as POST /work-duties/generate.
+      - key: WORK_DUTY_GENERATION_ENABLED
+        value: "false"
+      # Escalates missed daily updates to reporting managers on a timer. OFF unless
+      # set (WP-27.S3); the same pass exists as POST /daily-updates/escalations/run.
+      - key: WORK_DAILY_UPDATE_ESCALATION_ENABLED
+        value: "false"
       # Reports & Analytics (TASK-0028). Both workers are OFF unless set here,
       # so a deploy that omits them changes nothing rather than quietly starting
       # background work. The scheduler is what sends scheduled reports by email;

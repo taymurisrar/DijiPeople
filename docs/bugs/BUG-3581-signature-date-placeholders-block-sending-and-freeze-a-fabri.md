@@ -2,7 +2,7 @@
 ID: BUG-3581
 aliases: [BUG-3581]
 Title: Signature-date placeholders block sending and freeze a fabricated date into signed agreements
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -156,6 +156,8 @@ the fix — see `docs/tasks/TASK-0032-streams/QA-summary.md` ("Agreements … Tw
 signer sequential signing …": Pass) and the passing
 `contracts.agreement-rendering.spec.ts`.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): contracts.agreement-rendering.spec.ts DEFECT-2 asserts a template with unresolved signature date lines sends, never freezes a stored signature.* value, and refuses a manual value with 400; passes.
+
 ## History
 
 - 2026-09-25 — created by the TASK-0032 records clerk pass, from WP-09 live
@@ -172,3 +174,4 @@ signer sequential signing …": Pass) and the passing
 - Regression — REG-611 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

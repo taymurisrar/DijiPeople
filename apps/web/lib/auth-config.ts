@@ -67,6 +67,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/manager",
   "/my-preferences",
   "/profile",
+  "/work",
 ] as const;
 export const PUBLIC_ROUTE_PREFIXES = [
   "/login",

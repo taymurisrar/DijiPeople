@@ -9,6 +9,7 @@ import { EmployeesModule } from '../employees/employees.module';
 import { ImportAnalysisService } from './import-analysis.service';
 import { AuthModule } from '../auth/auth.module';
 import { AttendanceModule } from '../attendance/attendance.module';
+import { DataJobRecoveryService } from './data-job-recovery.service';
 import { DataJobWorkerService } from './data-job-worker.service';
 import { ExportExecutionService } from './export-execution.service';
 import { ImportExecutionService } from './import-execution.service';
@@ -30,6 +31,7 @@ import { DataTemplateService } from './template.service';
     DataTemplateService,
     ImportAnalysisService,
     ImportExecutionService,
+    DataJobRecoveryService,
     DataJobWorkerService,
     ExportExecutionService,
     JwtAuthGuard,

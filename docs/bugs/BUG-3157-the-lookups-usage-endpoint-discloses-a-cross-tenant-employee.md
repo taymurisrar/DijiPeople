@@ -2,7 +2,7 @@
 ID: BUG-3157
 aliases: [BUG-3157]
 Title: The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: TENANT_ISOLATION
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/lookups]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-700
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-21
+ResolvedAt: 2026-11-21
 ---
 
 # BUG-3157 — The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete
@@ -96,7 +96,7 @@ Full finding text: TEN-01 in `docs/engineering/audits/2026-09-10-full-technical-
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The lookups usage endpoints counted `Employee` rows (a tenant-owned model) with no `tenantId` filter, so a tenant administrator saw every tenant's headcount for a country, state or city.
 
 ## Impact
 
@@ -121,7 +121,7 @@ services/api/src/modules/lookups
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: TEN-01=LOW, ARCH-03=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+REG-700 — see `docs/qa/regressions/index.md`.
 
 ## Dependencies
 
@@ -134,7 +134,7 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Fixed on `agent/security-timesheet-datajob-followup`: `getCountryUsage`, `getStateUsage` and `getCityUsage` take the caller's `tenantId` and count only that tenant's employees. The delete guard stays platform-wide on purpose (deleting a shared row hides it from every tenant) and reveals only that a row is in use, never a count; the remaining exposure is BUG-3156, which waits on QUESTION-3931. The isolation e2e fails on the old code (received 5 where the tenant has 2) and passes now.
 
 ## QA Retest
 
@@ -148,8 +148,7 @@ Not yet retested.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-700 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-21 — fixed on `agent/security-timesheet-datajob-followup`.

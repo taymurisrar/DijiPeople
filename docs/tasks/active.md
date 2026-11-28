@@ -11,3 +11,4 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 | [TASK-0038](TASK-0038-complete-multi-payment-billing-end-to-end.md) | Complete multi-payment billing end-to-end | FEATURE | LARGE | P0 | IN_PROGRESS | 0/8 | WP-01 |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | IN_PROGRESS | 11/11 | — |
 | [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |
+| [TASK-0039](TASK-0039-dp-master-program-workforce-operating-platform-master-plan-v.md) | DP-MASTER program - workforce operating platform (master plan v1.0) | FEATURE | LARGE | P1 | NOT_STARTED | 0/1 | — |

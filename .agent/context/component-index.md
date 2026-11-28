@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-11-12
-> **Verified against commit:** 2f3c8851
+> **Last verified:** 2026-11-28
+> **Verified against commit:** e3d3b0b9
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 935 of
-1327 exports across these kits carry no
+1328 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -215,7 +215,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-231 documented export(s); 624 undocumented export(s) omitted.
+232 documented export(s); 624 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -304,7 +304,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `donutArcs` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:1119 | Arc paths for a donut, in input order. |
 | `employeeCustomFieldsPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:84 | Form values → the `customFields` part of a create or update payload. |
 | `employeeCustomFieldValues` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:73 | Record → form values: the API returns them under `customFields`. |
-| `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
+| `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:278 | Which empty state is true. |
 | `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
 | `filterToFormFields` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:76 | Drop anything the child form does not declare, which is what gets posted. |
 | `funnelStages` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:980 | Per-stage width and step-to-step conversion for a funnel. |
@@ -329,6 +329,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `resolveSectionColumnClass` | function | 1 | `apps/web/lib/runtime/form-layout-grid.ts`:58 | ITEM-0184 (H10) — how many columns a record's sections sit in, per breakpoint. |
 | `resolveVisibleSelectedOption` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:107 | Which option should render as "selected" this render. |
 | `seedDraftFromEntry` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:454 | A draft that opens showing what the record already says. |
+| `serverSearchHref` | function | 1 | `apps/web/app/components/data-table/utils.ts`:293 | BUG-3176. In server mode the search box has to reach the backend: the rows on screen are one page of a larger result, so filtering them locally can only ever find matches that happen to be on the current page. |
 | `serverViewKey` | function | 1 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:192 | The key to send the API for the active view, or undefined when the view is not one the tenant published (the synthetic "all" list of a module published with no views). |
 | `stackedExtent` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:759 | The `[min, max]` a stacked chart's value axis must cover. |
 | `stackSeries` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:686 | Turn parallel series into cumulative segments, one column per point key. |

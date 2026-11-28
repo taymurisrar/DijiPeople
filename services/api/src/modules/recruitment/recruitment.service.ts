@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import { AuthenticatedUser } from '../../common/interfaces/authenticated-request
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { normalizeEmail } from '../../common/utils/email.util';
+import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { ApplicationQueryDto } from './dto/application-query.dto';
 import {
@@ -58,6 +60,8 @@ type UploadedResumeFile = {
 
 @Injectable()
 export class RecruitmentService {
+  private readonly logger = new Logger(RecruitmentService.name);
+
   constructor(
     private readonly recruitmentRepository: RecruitmentRepository,
     private readonly documentParsingService: DocumentParsingService,
@@ -66,6 +70,7 @@ export class RecruitmentService {
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
     private readonly storageService: StorageService,
     private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findJobOpenings(tenantId: string, query: JobOpeningQueryDto) {
@@ -1397,6 +1402,35 @@ export class RecruitmentService {
       }
     });
 
+    // DP-MASTER/WP-04.S1 (A01). Announced only after the transaction commits, so
+    // a delivery problem can never undo or block the stage move. No candidate
+    // contact details travel in the event: recipients resolve inside the tenant.
+    try {
+      await this.notificationsService.emit({
+        tenantId: currentUser.tenantId,
+        eventKey: 'recruitment.application.stage.changed',
+        moduleKey: 'recruitment',
+        actorUserId: currentUser.userId,
+        relatedEntityType: 'application',
+        relatedEntityId: applicationId,
+        metadata: {
+          applicationId,
+          candidateId: application.candidateId,
+          jobOpeningId: application.jobOpeningId ?? null,
+          fromStage: application.stage,
+          toStage: dto.stage,
+          eventAtUtc: new Date().toISOString(),
+          targetUrl: `/recruitment/applications/${applicationId}`,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not announce stage change for application ${applicationId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
     return this.findApplicationById(currentUser.tenantId, applicationId);
   }
 
@@ -1864,6 +1898,16 @@ export class RecruitmentService {
         sequenceNumber,
       ).padStart(sequenceLength, '0')}`;
 
+      /*
+       * BUG-3201. This runs inside the caller's interactive transaction, where a
+       * failed statement aborts the WHOLE transaction in Postgres: the recovery
+       * reads below used to fail with "current transaction is aborted". A
+       * savepoint makes the failed insert local: ROLLBACK TO leaves the
+       * transaction usable. (The old code also branched on `error.meta.target`,
+       * which Prisma 7 does not populate, so those branches never ran and every
+       * unique violation here simply threw.)
+       */
+      await params.tx.$executeRaw`SAVEPOINT draft_employee_create`;
       try {
         const draft = await params.tx.employee.create({
           data: {
@@ -1893,35 +1937,36 @@ export class RecruitmentService {
           select: { id: true },
         });
 
+        await params.tx.$executeRaw`RELEASE SAVEPOINT draft_employee_create`;
         return draft.id;
       } catch (error) {
-        if (
+        const uniqueViolation =
           error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
-          const target = Array.isArray(error.meta?.target)
-            ? error.meta.target.join(',')
-            : '';
-
-          if (target.includes('sourceApplicationId')) {
-            const winner = await params.tx.employee.findFirst({
-              where: {
-                tenantId: params.tenantId,
-                sourceApplicationId: params.application.id,
-              },
-              select: { id: true },
-            });
-
-            if (winner) {
-              return winner.id;
-            }
-          }
-
-          if (autoGenerateEmployeeId && target.includes('employeeCode')) {
-            continue;
-          }
+          error.code === 'P2002';
+        if (!uniqueViolation) {
+          throw error;
         }
 
+        // Undo only the failed insert; the transaction itself stays usable.
+        await params.tx
+          .$executeRaw`ROLLBACK TO SAVEPOINT draft_employee_create`;
+
+        // Decide by looking at the data, not at the error's shape: either another
+        // request already created this application's draft (take it), or the
+        // generated employee code collided (try the next one).
+        const winner = await params.tx.employee.findFirst({
+          where: {
+            tenantId: params.tenantId,
+            sourceApplicationId: params.application.id,
+          },
+          select: { id: true },
+        });
+        if (winner) {
+          return winner.id;
+        }
+        if (autoGenerateEmployeeId) {
+          continue;
+        }
         throw error;
       }
     }

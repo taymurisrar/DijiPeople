@@ -89,6 +89,38 @@ describe('plan entitlement matrix', () => {
     expect(decision.allowed).toBe(expected);
   });
 
+  it.each([
+    ['starter', false, false],
+    ['growth', true, false],
+    ['enterprise', true, true],
+  ])(
+    '%s work-management = %s, work-intelligence = %s (ADR-0032)',
+    async (key, management, intelligence) => {
+      const svc = service(plan(key));
+      expect(
+        (await svc.decide('t', [TENANT_FEATURE_KEYS.WORK_MANAGEMENT])).allowed,
+      ).toBe(management);
+      expect(
+        (await svc.decide('t', [TENANT_FEATURE_KEYS.WORK_INTELLIGENCE]))
+          .allowed,
+      ).toBe(intelligence);
+    },
+  );
+
+  it('lets a MANUAL override restrict but never exceed the plan for work-intelligence; CUSTOM can grant it', async () => {
+    const WI = TENANT_FEATURE_KEYS.WORK_INTELLIGENCE;
+    await expect(
+      service(plan('growth'), [
+        { key: WI, isEnabled: true, source: 'MANUAL' },
+      ]).assertEntitled('t', [WI], 'POST /work-profiles/import'),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+    await expect(
+      service(plan('growth'), [
+        { key: WI, isEnabled: true, source: 'CUSTOM' },
+      ]).assertEntitled('t', [WI], 'POST /work-profiles/import'),
+    ).resolves.toBeUndefined();
+  });
+
   it('lets a Starter tenant use basic import/export but not advanced', async () => {
     const svc = service(plan('starter'));
     expect((await svc.decide('t', [BASIC])).allowed).toBe(true);

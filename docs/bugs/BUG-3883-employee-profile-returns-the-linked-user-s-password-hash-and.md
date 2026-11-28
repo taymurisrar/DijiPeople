@@ -2,7 +2,7 @@
 ID: BUG-3883
 aliases: [BUG-3883]
 Title: Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: 94f65fa4
 AffectedModules: [employees, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-647
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [services/api/src/modules/employees/employee-user-summary.ts, services/api/src/modules/employees/employees.repository.ts, services/api/src/modules/employees/employee-profiles.service.ts, services/api/src/modules/employees/employees.service.ts]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-07
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-07
 ---
 
@@ -143,6 +143,8 @@ QA-TENANT-068. The spec passes 4 of 4 cases, and each fix fails it when
 reverted. The API suite passes 409 of 409 suites (7,615 tests), and API tsc
 reports 0 errors.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): employee-user-summary.spec.ts asserts EMPLOYEE_USER_SELECT selects no secret column, the summary drops secrets from a full User row, and the repository loads user through the safe select; repository line 55-57 uses the select and no raw employee.user pass-through remains; passes.
+
 ## History
 
 - 2026-10-07 — created from the owner's report that My Profile failed in
@@ -157,3 +159,4 @@ reports 0 errors.
 - Regression — REG-647 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

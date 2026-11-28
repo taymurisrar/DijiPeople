@@ -2,7 +2,7 @@
 ID: BUG-3187
 aliases: [BUG-3187]
 Title: The rate-limit invariant covers writes only; every unprotected public surface is a read
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-721
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-23
 ---
 
 # BUG-3187 — The rate-limit invariant covers writes only; every unprotected public surface is a read
@@ -77,7 +77,7 @@ Full finding text: RATE-02 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The rate-limit invariant was written for public writes and looked only at Post, Put, Patch and Delete, so every unprotected public surface that was left turned out to be a read. Five public GET handlers had no guard.
 
 ## Impact
 
@@ -109,7 +109,7 @@ Widen `WRITE_DECORATOR` in
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: RATE-02=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts; services/api/test/public-read-rate-limit.e2e-spec.ts. REG-721, QA-AUTH-029. Removing a guard from workspace.controller.ts fails the invariant and names the handler; the HTTP test serves 600 requests and refuses the 601st.
 
 ## Dependencies
 
@@ -121,11 +121,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+The invariant now covers Get as well, with a per-handler allowlist that carries a reason (auth.controller.ts#me, a session-cookie probe). The five handlers (public tenant resolve and asset routes, workspace resolve, tenant-branding resolved, tenant-settings public-branding) carry PublicRateLimitGuard with an explicit budget of 600 per window and route, because the default read budget of 120 would break login for a 50-person office behind one address. The key uses the path without the query string, so rotating a query value buys no new bucket. Rate limiting is per address only; any edge or platform limit was not examined.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code first: the record listed seven handlers, one (invitation-status) was already guarded, five are fixed here, and auth/me is exempt by a stated reason.
 
 ## QA Retest
 
-Not yet retested.
+QA-AUTH-029 on the isolated database, 2026-11-23: passing with the fix and failing with a guard removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-write-rate-limit.invariant.spec (now covering @Get) passes and public-read-rate-limit e2e asserts 600 served then 601st refused, and query-string variation does not buy a fresh bucket; 2/2 pass.
 
 ## History
 
@@ -136,5 +140,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[api-architecture]]
+- Regression — REG-721 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

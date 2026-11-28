@@ -47,10 +47,36 @@ function planPriceFixture(overrides: Partial<Record<string, unknown>> = {}) {
 function buildService(options: {
   planPrice: Record<string, unknown> | null;
   tenantMarketId: string | null;
+  /** The plan the price belongs to; defaults to an unreserved catalogue plan. */
+  plan?: Record<string, unknown>;
+  currentPlanId?: string | null;
 }) {
   const prisma = {
     planPrice: {
       findFirst: jest.fn().mockResolvedValue(options.planPrice),
+    },
+    // Plan eligibility (the same rule as a plan change) is checked on a quote.
+    tenant: {
+      findUnique: jest.fn().mockResolvedValue({ customerAccountId: 'cust-1' }),
+    },
+    subscription: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue(
+          options.currentPlanId ? { planId: options.currentPlanId } : null,
+        ),
+    },
+    plan: {
+      findUnique: jest.fn().mockResolvedValue(
+        options.plan ?? {
+          name: 'Catalogue',
+          kind: 'CATALOGUE',
+          salesModel: 'SELF_SERVICE',
+          eligibleCustomerAccountId: null,
+          effectiveFrom: null,
+          effectiveUntil: null,
+        },
+      ),
     },
   };
   const commercialConfigService = {
@@ -134,6 +160,133 @@ describe('BillingService.getSeatQuote', () => {
     ).rejects.toThrow(/exceed 20/);
   });
 
+  it('refuses a price on a plan reserved for another customer, with the generic code', async () => {
+    const service = buildService({
+      planPrice: planPriceFixture(),
+      tenantMarketId: MARKET_ID,
+      plan: {
+        name: 'Reserved',
+        kind: 'CUSTOM',
+        salesModel: 'SALES_ASSISTED',
+        eligibleCustomerAccountId: 'cust-other',
+        effectiveFrom: null,
+        effectiveUntil: null,
+      },
+    });
+
+    await expect(
+      service.getSeatQuote('tenant-1', 'price-1', 5),
+    ).rejects.toMatchObject({ errorCode: 'BILLING_PLAN_PRICE_UNAVAILABLE' });
+  });
+
+  it("still quotes the tenant's own reserved plan", async () => {
+    const service = buildService({
+      planPrice: planPriceFixture(),
+      tenantMarketId: MARKET_ID,
+      plan: {
+        name: 'Mine',
+        kind: 'CUSTOM',
+        salesModel: 'SALES_ASSISTED',
+        eligibleCustomerAccountId: 'cust-1',
+        effectiveFrom: null,
+        effectiveUntil: null,
+      },
+    });
+
+    await expect(
+      service.getSeatQuote('tenant-1', 'price-1', 25),
+    ).resolves.toMatchObject({ seats: 25 });
+  });
+
+  it('still quotes a grandfathered plan the tenant is already on, even if reserved for another customer', async () => {
+    const service = buildService({
+      planPrice: planPriceFixture(),
+      tenantMarketId: MARKET_ID,
+      currentPlanId: 'plan-1',
+      plan: {
+        name: 'Legacy',
+        kind: 'CUSTOM',
+        salesModel: 'SALES_ASSISTED',
+        eligibleCustomerAccountId: 'cust-other',
+        effectiveFrom: null,
+        effectiveUntil: null,
+      },
+    });
+
+    await expect(
+      service.getSeatQuote('tenant-1', 'price-1', 25),
+    ).resolves.toMatchObject({ seats: 25 });
+  });
+
+  describe('a tenant cannot start a NEW purchase it is not entitled to (BUG-4652)', () => {
+    const unavailable = { errorCode: 'BILLING_PLAN_PRICE_UNAVAILABLE' };
+    const quote = (service: ReturnType<typeof buildService>) =>
+      service.getSeatQuote('tenant-1', 'price-1', 5);
+
+    it('refuses an expired price', async () => {
+      const service = buildService({
+        planPrice: planPriceFixture({
+          effectiveFrom: new Date('2020-01-01'),
+          effectiveTo: new Date('2021-01-01'),
+        }),
+        tenantMarketId: MARKET_ID,
+      });
+      await expect(quote(service)).rejects.toMatchObject(unavailable);
+    });
+
+    it('refuses a price that is not yet effective', async () => {
+      const service = buildService({
+        planPrice: planPriceFixture({
+          effectiveFrom: new Date('2099-01-01'),
+          effectiveTo: null,
+        }),
+        tenantMarketId: MARKET_ID,
+      });
+      await expect(quote(service)).rejects.toMatchObject(unavailable);
+    });
+
+    it('refuses an expired price EVEN on the plan the tenant is already on (existing entitlement is not a right to a new purchase at an old price)', async () => {
+      const service = buildService({
+        planPrice: planPriceFixture({ effectiveTo: new Date('2021-01-01') }),
+        tenantMarketId: MARKET_ID,
+        currentPlanId: 'plan-1',
+      });
+      await expect(quote(service)).rejects.toMatchObject(unavailable);
+    });
+
+    it('refuses a sales-assisted price on a plan the tenant is NOT on', async () => {
+      const service = buildService({
+        planPrice: planPriceFixture({
+          salesModel: CommercialSalesModel.SALES_ASSISTED,
+        }),
+        tenantMarketId: MARKET_ID,
+        currentPlanId: 'some-other-plan',
+      });
+      await expect(quote(service)).rejects.toMatchObject(unavailable);
+    });
+
+    it('still quotes a sales-assisted price on the plan the tenant is already on (grandfathered contract)', async () => {
+      const service = buildService({
+        planPrice: planPriceFixture({
+          salesModel: CommercialSalesModel.SALES_ASSISTED,
+        }),
+        tenantMarketId: MARKET_ID,
+        currentPlanId: 'plan-1',
+      });
+      await expect(quote(service)).resolves.toMatchObject({ seats: 5 });
+    });
+
+    it('control: a current, self-service price on an unreserved plan is quoted', async () => {
+      const service = buildService({
+        planPrice: planPriceFixture({
+          effectiveFrom: new Date('2020-01-01'),
+          effectiveTo: new Date('2099-01-01'),
+        }),
+        tenantMarketId: MARKET_ID,
+      });
+      await expect(quote(service)).resolves.toMatchObject({ seats: 5 });
+    });
+  });
   it('refuses a DRAFT price', async () => {
     const service = buildService({
       planPrice: planPriceFixture({

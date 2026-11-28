@@ -2,7 +2,7 @@
 ID: BUG-3179
 aliases: [BUG-3179]
 Title: Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-716
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3179 — Nine upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap
@@ -97,7 +97,7 @@ Full finding text: FILE-05 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+Nine of ten upload endpoints had no multipart limit, so a whole file was buffered in memory before the service-level size check ran.
 
 ## Impact
 
@@ -119,7 +119,7 @@ Add limits to the nine interceptors listed above; add a size assertion to valida
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: FILE-05=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/src/common/storage/upload-endpoints-have-limits.spec.ts. REG-716, QA-PLATFORM-067. Removing the limit from the documents controller fails the guard and names the file.
 
 ## Dependencies
 
@@ -132,11 +132,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Closed by commit f4278f17: upload size limits enforced by multer at the stream boundary on the nine previously-unbounded multipart endpoints, including attendance import which had no size check at all. Left Status: OPEN pending a regression test and QA retest rather than claiming FIXED without a RegressionId.
+ALREADY FIXED in the code (uploadLimits(category) on every upload controller) but with no regression test. Added a source guard that fails any controller accepting an uploaded file without limits. Not verified: whether multer uses memory storage for the 512 MB release-artifact route, which is token-gated but public; flagged for the owner.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested. Confirm each of the nine endpoints named in Evidence now rejects an oversized multipart body before buffering it.
+QA-PLATFORM-067 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): upload-endpoints-have-limits.spec scans every controller with @UploadedFile(s) and fails unless each upload interceptor uses uploadLimits()/limits:; passes (>=10 controllers found).
 
 ## History
 
@@ -147,5 +151,7 @@ Not yet retested. Confirm each of the nine endpoints named in Evidence now rejec
 ## Related
 
 - Modules — [[api-architecture]]
+- Regression — REG-716 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-2718
 aliases: [BUG-2718]
 Title: The approvals record page reads the detail response envelope, so every field is blank
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-31
 DetectedInSha: 2b001494
 AffectedModules: [approvals, leave, attendance]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: QA-RUNTIME-039
 RegressionId: REG-390
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-31
-UpdatedAt: 2026-08-31
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-31
 ---
 
@@ -205,6 +205,8 @@ delegate class; the registry exists for exactly that.
 
 `QA-RUNTIME-039`.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): approvals.decision.spec.ts asserts detail() derives currentStep/permissions and decide() dispatches to owning module; web approval-decision-commands.spec.ts passes; page unwraps item via ApprovalDetailResponse type (envelope read itself is type-enforced, not runtime-tested).
+
 ## History
 
 - 2026-08-31 — created from qa run at `2b001494`.
@@ -219,3 +221,4 @@ delegate class; the registry exists for exactly that.
 - Regression — REG-390 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

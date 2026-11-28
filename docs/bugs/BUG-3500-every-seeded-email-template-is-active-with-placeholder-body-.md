@@ -2,7 +2,7 @@
 ID: BUG-3500
 aliases: [BUG-3500]
 Title: Every seeded email template is active with placeholder body text
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-13
 DetectedInSha: df0f84f1
 AffectedModules: [notifications, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-505
 RelatedBacklogItem: [ITEM-0194]
 RelatedDecision: docs/decisions/ADR-0015-production-retires-sink-email-providers.md
 RelatedImplementation: [docs/plans/EXECPLAN-0048-email-template-default-copy-and-visual-editor.md, services/api/src/modules/notifications/system-email-templates.copy.ts, services/api/src/modules/notifications/notification-events.catalog.ts, services/api/prisma/seed-config.ts, services/api/src/modules/notifications/notifications.repository.ts]
 CreatedAt: 2026-09-13
-UpdatedAt: 2026-09-13
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3500 — Every seeded email template is active with placeholder body text
@@ -238,6 +238,8 @@ defaults, with no placeholder copy. CI runs 34732185363, 34732682935 and
 4. On the demo tenant after release, "Password reset email" shows the new copy
    and the scheduled report email arrives with the new copy.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): system-email-templates.spec.ts asserts one template per catalog event, recognises placeholder wording, every seed has authored copy, and ACTIVE only for events actually sent; passes.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
@@ -255,3 +257,4 @@ defaults, with no placeholder copy. CI runs 34732185363, 34732682935 and
 - Regression — REG-505 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

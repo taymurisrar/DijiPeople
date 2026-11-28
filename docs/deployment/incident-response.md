@@ -38,10 +38,11 @@ rather than continuing to deploy.
 
 Be aware of what you cannot see:
 
-- The health endpoint returns a **hardcoded `ok`** and tests no dependency — it
-  cannot tell you the database is down.
-- **No deployed SHA is exposed**, so the running system cannot confirm which
-  commit is live. Use `release-history/`.
+- `/api/health` returns `status: ok` and tests no dependency — it cannot tell
+  you the database is down. It does expose the deployed `commit` and
+  `outboxWorker.enabled`. The database is probed only by the authenticated
+  `GET /api/platform/monitoring/health`. See
+  [`../engineering/observability-inventory.md`](../engineering/observability-inventory.md).
 - There is **no error-tracking platform**; `ErrorLog` in the database is the
   primary signal, and reading it requires database access.
 - CI exists and the required aggregate covers eleven listed jobs, but relevant

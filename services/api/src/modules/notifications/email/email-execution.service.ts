@@ -47,6 +47,13 @@ export type SendTemplateEmailInput = {
   subjectUserId?: string | null;
   templateKey?: string;
   templateId?: string;
+  /**
+   * Render exactly this revision's content instead of the template row's current
+   * content (WP-04.S2). A retry passes the revision its first attempt used.
+   */
+  templateRevisionId?: string;
+  /** Record and report the revision this send rendered, so a caller can pin it. */
+  pinTemplateRevision?: boolean;
   recipient: string;
   cc?: string | null;
   bcc?: string | null;
@@ -115,6 +122,8 @@ export type SendTemplateEmailResult = {
   providerMessageId?: string | null;
   deliveryLogId: string;
   rendered: EmailTemplateRenderResult;
+  /** The immutable revision rendered, when the caller asked to pin one. */
+  templateRevisionId?: string;
 };
 
 export const AUTH_NOTIFICATION_EVENTS = new Set([
@@ -263,8 +272,75 @@ export class EmailExecutionService {
     });
   }
 
+  /**
+   * WP-04.S2. Resolve the template a send WOULD use and record its immutable
+   * revision, without sending. A caller that pins first and then sends the revision
+   * id renders the same content on the first attempt, every retry and every other
+   * recipient, whatever happens to the template row in between. Null when no
+   * template resolves (the send itself will then say so).
+   */
+  async pinTemplate(
+    input: Pick<
+      SendTemplateEmailInput,
+      | 'tenantId'
+      | 'eventCode'
+      | 'templateId'
+      | 'templateKey'
+      | 'organizationId'
+      | 'businessUnitId'
+      | 'departmentId'
+      | 'teamId'
+      | 'subjectEmployeeId'
+      | 'subjectUserId'
+      | 'requestedByUserId'
+    >,
+  ): Promise<{
+    templateId: string;
+    templateVersion: number;
+    templateRevisionId: string;
+  } | null> {
+    const full = {
+      ...input,
+      recipient: '',
+      variables: {},
+    } as SendTemplateEmailInput;
+    const scope = await this.resolveScope(full);
+    const template = input.templateId
+      ? await this.repository.findVisibleTemplateById(
+          input.tenantId,
+          input.templateId,
+        )
+      : await this.repository.findTemplateForEvent({
+          tenantId: input.tenantId,
+          eventCode: input.eventCode,
+          templateKey: input.templateKey,
+          ...scope,
+        });
+    if (!template) return null;
+    const revision = await this.repository.ensureTemplateRevision(
+      template,
+      input.requestedByUserId,
+    );
+    return {
+      templateId: template.id,
+      templateVersion: template.version,
+      templateRevisionId: revision.id,
+    };
+  }
+
   async execute(
     input: SendTemplateEmailInput,
+  ): Promise<SendTemplateEmailResult> {
+    const pinned: { revisionId?: string } = {};
+    const result = await this.executeCore(input, pinned);
+    return pinned.revisionId
+      ? { ...result, templateRevisionId: pinned.revisionId }
+      : result;
+  }
+
+  private async executeCore(
+    input: SendTemplateEmailInput,
+    pinned: { revisionId?: string },
   ): Promise<SendTemplateEmailResult> {
     const startedAt = performance.now();
     const templateResolutionStartedAt = performance.now();
@@ -290,8 +366,36 @@ export class EmailExecutionService {
       );
     }
 
+    let renderable: typeof template = template;
+    if (input.templateRevisionId) {
+      const revision = await this.repository.findVisibleTemplateRevision(
+        input.tenantId,
+        input.templateRevisionId,
+      );
+      if (!revision || revision.templateId !== template.id) {
+        throw new BadRequestException(
+          'The pinned email template revision was not found.',
+        );
+      }
+      renderable = {
+        ...template,
+        subjectTemplate: revision.subjectTemplate,
+        htmlTemplate: revision.htmlTemplate,
+        textTemplate: revision.textTemplate,
+        availableVariables: revision.availableVariables,
+      };
+      pinned.revisionId = revision.id;
+    } else if (input.pinTemplateRevision) {
+      pinned.revisionId = (
+        await this.repository.ensureTemplateRevision(
+          template,
+          input.requestedByUserId,
+        )
+      ).id;
+    }
+
     const plain = this.renderer.render({
-      template,
+      template: renderable,
       variables: input.variables,
     });
     // Essential tenant branding, every plan. Presentation only: it never
@@ -642,8 +746,21 @@ export class EmailExecutionService {
     input: SendTemplateEmailInput,
     diagnostics: Record<string, unknown>,
   ) {
+    /*
+     * BUG-3137. For the auth events a link or token in caller-supplied metadata
+     * is a bearer credential, and this row is readable through the tenant
+     * delivery-log API. The two known callers were fixed to stop passing one;
+     * this makes the next caller unable to reintroduce it.
+     */
+    const callerMetadata = AUTH_NOTIFICATION_EVENTS.has(input.eventCode)
+      ? Object.fromEntries(
+          Object.entries(input.metadata ?? {}).filter(
+            ([key]) => !/(url|link|token)/i.test(key),
+          ),
+        )
+      : (input.metadata ?? {});
     return {
-      ...(input.metadata ?? {}),
+      ...callerMetadata,
       requestedByUserId: input.requestedByUserId ?? null,
       sourceModule:
         typeof input.metadata?.sourceModule === 'string'

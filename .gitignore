@@ -161,3 +161,6 @@ uat-out-prod/
 # path is personal to each developer. Never commit it.
 # =========================================================
 .obsidian-sync.local.json
+
+# program stop-hook activation (local, never committed)
+.claude/program-session.local.json

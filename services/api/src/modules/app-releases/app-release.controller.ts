@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
@@ -109,6 +110,23 @@ class PublishReleaseDto {
  * applied inside the query — see AppReleaseService. `appDownloads.read` gates
  * the catalogue; individual artefacts may require more.
  */
+/**
+ * Releases are global: STABLE is what every assigned tenant's agent updates
+ * from. `appDownloads.manage` is not enough to change them, because a tenant
+ * Global Administrator passes PermissionsGuard for every key through the
+ * elevated-role bypass, and a tenant must never be able to publish, disable or
+ * promote an artefact that every other tenant installs. Only a platform subject
+ * may; tenants keep read access to the catalogue they download from.
+ */
+function assertPlatformSubject(user: AuthenticatedUser): void {
+  if (!user.platform?.id) {
+    throw new ForbiddenException({
+      code: 'PLATFORM_ACCESS_REQUIRED',
+      message: 'Managing application releases is a platform action.',
+    });
+  }
+}
+
 @Controller('app-releases')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AppReleaseController {
@@ -140,7 +158,8 @@ export class AppReleaseController {
   @Get('manage')
   @Permissions('appDownloads.manage')
   @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
-  manage() {
+  manage(@CurrentUser() user: AuthenticatedUser) {
+    assertPlatformSubject(user);
     return this.service.listForManagement();
   }
 
@@ -194,6 +213,7 @@ export class AppReleaseController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: PublishReleaseDto,
   ) {
+    assertPlatformSubject(user);
     return this.service.publish(user, dto);
   }
 
@@ -204,6 +224,7 @@ export class AppReleaseController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertPlatformSubject(user);
     return this.service.setActive(user, id, false);
   }
 
@@ -214,6 +235,7 @@ export class AppReleaseController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
+    assertPlatformSubject(user);
     return this.service.setActive(user, id, true);
   }
 
@@ -231,6 +253,7 @@ export class AppReleaseController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: PromoteReleaseChannelDto,
   ) {
+    assertPlatformSubject(user);
     return this.service.promote(user, id, dto.channel);
   }
 }

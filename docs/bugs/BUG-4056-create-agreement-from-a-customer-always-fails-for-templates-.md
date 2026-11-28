@@ -2,7 +2,7 @@
 ID: BUG-4056
 aliases: [BUG-4056]
 Title: Create Agreement from a customer always fails for templates that need a primary signer
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-11
 DetectedInSha: 4489a3c6
 AffectedModules: [contracts, super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-671
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-10-11
-UpdatedAt: 2026-10-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-11
 ---
 
@@ -95,6 +95,8 @@ Known edge: if agreement creation fails after the signer is saved, the signer st
 
 Scenario: Create Agreement from a customer fills the primary signer (see the QA scenario linked from REG-671).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): source-fills-template.spec.ts asserts a customer without a signer is reported collectable-missing and the refusal names each field, and lead-signer spec asserts the authorized signer is copied to the customer; admin contract-source-eligibility spec passes.
+
 ## History
 
 - 2026-10-11 — created from user report at `51c80beb`.
@@ -108,3 +110,4 @@ Scenario: Create Agreement from a customer fills the primary signer (see the QA 
 - Regression — REG-671 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

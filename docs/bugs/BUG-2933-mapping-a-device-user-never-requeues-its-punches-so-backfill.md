@@ -2,7 +2,7 @@
 ID: BUG-2933
 aliases: [BUG-2933]
 Title: Mapping a device user never requeues its punches, so backfilled attendance is silently never built
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-09
 DetectedInSha: 233c6e1f
 AffectedModules: [services/api/src/modules/attendance-integrations]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-395
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-09
 ---
 
@@ -179,6 +179,8 @@ Verified locally against the real database: 42/42 isolation e2e, 146 unit tests
 in the module. Reproduced end to end on the production demo tenant before the
 fix, and the engine proved correct there by an explicit reconcile.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): employee-mapping-requeue.service.spec.ts asserts confirmMapping requeues affected days, queues nothing when no punches attributed, and survives queue failure; employee-mapping.service.ts calls reconciliationQueue.requeueForMapping; passes.
+
 ## History
 
 - 2026-09-09 — found on production while validating the ZKTeco K50 setup, at the
@@ -192,3 +194,4 @@ fix, and the engine proved correct there by an explicit reconcile.
 - Regression — REG-395 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

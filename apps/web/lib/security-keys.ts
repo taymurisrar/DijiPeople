@@ -171,6 +171,23 @@ export const PERMISSION_KEYS = {
   AGENT_SETTINGS_READ: "agent.settings.read",
   AGENT_SETTINGS_MANAGE: "agent.settings.manage",
 
+  WORK_PROFILES_READ: "work-profiles.read",
+  WORK_PROFILES_MANAGE: "work-profiles.manage",
+
+  WORK_ITEMS_READ: "work-items.read",
+  WORK_ITEMS_WRITE: "work-items.write",
+  WORK_QUEUES_READ: "work-queues.read",
+  WORK_QUEUES_MANAGE: "work-queues.manage",
+
+  CONTRIBUTIONS_READ: "contributions.read",
+  CONTRIBUTIONS_WRITE: "contributions.write",
+  CONTRIBUTIONS_VERIFY: "contributions.verify",
+
+  DAILY_UPDATES_READ: "daily-updates.read",
+  DAILY_UPDATES_WRITE: "daily-updates.write",
+  DAILY_UPDATES_ACKNOWLEDGE: "daily-updates.acknowledge",
+  DAILY_UPDATES_MANAGE: "daily-updates.manage",
+
   TIMESHEETS_READ: "timesheets.read",
   TIMESHEETS_CREATE: "timesheets.create",
   TIMESHEETS_WRITE: "timesheets.write",
@@ -361,6 +378,8 @@ export const FEATURE_KEYS = {
   ATTENDANCE: "attendance",
   TIMESHEETS: "timesheets",
   PROJECTS: "projects",
+  WORK_MANAGEMENT: "work-management",
+  WORK_INTELLIGENCE: "work-intelligence",
   PAYROLL: "payroll",
   RECRUITMENT: "recruitment",
   ONBOARDING: "onboarding",

@@ -27,6 +27,7 @@ import { uploadLimits } from '../../common/storage/upload-limits';
 import { CustomizationAccessGuard } from './customization-access.guard';
 import { PackageAlmService } from './package-alm.service';
 import {
+  AddWorkComponentsDto,
   CreateCustomizationPublisherDto,
   CreateEnvironmentVariableDto,
   ExecutePackageImportDto,
@@ -88,6 +89,17 @@ export class PackageAlmController {
     @Body() dto: SetPackageDependenciesDto,
   ) {
     return this.packages.setDependencies(user, packageId, dto);
+  }
+
+  @Post('packages/:packageId/work-components')
+  @Permissions('customization.packages.manage')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
+  addWorkComponents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+    @Body() dto: AddWorkComponentsDto,
+  ) {
+    return this.packages.addWorkComponents(user, packageId, dto);
   }
 
   @Get('packages/:packageId/release-readiness')

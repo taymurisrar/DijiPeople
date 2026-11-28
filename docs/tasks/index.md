@@ -8,13 +8,15 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 5 |
+| [Active](active.md) | 6 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 32 |
 
 ## Next ready work package
 
-Nothing ready.
+| Task | WP | Title |
+|---|---|---|
+| [TASK-0039](TASK-0039-dp-master-program-workforce-operating-platform-master-plan-v.md) | WP-01 | <first package> |
 
 ## Needs a human
 
@@ -74,3 +76,4 @@ Nothing ready.
 | [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | Custom fields follow-up: lookups, list columns, export, other system modules | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0036](TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b.md) | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0037](TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-.md) | Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
+| [TASK-0039](TASK-0039-dp-master-program-workforce-operating-platform-master-plan-v.md) | DP-MASTER program - workforce operating platform (master plan v1.0) | FEATURE | LARGE | P1 | NOT_STARTED | 0/1 | — |

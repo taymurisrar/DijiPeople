@@ -2,7 +2,7 @@
 ID: BUG-3177
 aliases: [BUG-3177]
 Title: Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/recruitment, services/api/src/modules/app-releases]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-720
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3177 — Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check
@@ -107,7 +107,7 @@ Full finding text: FILE-03 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check.
 
 ## Impact
 
@@ -129,7 +129,7 @@ Remove storageKey from RegisterCandidateDocumentDto and from the app-release pub
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: FILE-03=MEDIUM. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/src/common/storage/storage.service.spec.ts. REG-720, QA-PLATFORM-068. The existing spec asserts a foreign tenant object is refused; no DB-backed HTTP test registers a candidate document with a foreign id yet.
 
 ## Dependencies
 
@@ -141,11 +141,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Closed by commit f4278f17 ("feat(storage): durable object storage on Cloudflare R2 (FILE-01/INF-05)"): storageKey was removed from the recruitment and app-release request bodies so a key is always read from a row already fetched under a tenant filter. Left Status: OPEN pending a regression test and QA retest rather than claiming FIXED without a RegressionId.
+STALE: Already fixed before this session. Verified by an independent read of the current code (develop 23335bdc, 2026-11-22); closed with its existing regression test rather than a new one. The DTOs no longer take storageKey (a client that sends it gets 400), and openFile requires a scope and rejects keys outside it.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested. Confirm the recruitment candidate-document and app-release download endpoints reject a client-supplied storageKey and only ever resolve one from a tenant-scoped row.
+QA-PLATFORM-068 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): register-candidate-document DTO and app-release controller no longer accept storageKey; openFile requires a scope and storage.service.spec 'refuses to read another tenant's object and never calls the provider' passes (404, provider.getObject not called).
 
 ## History
 
@@ -155,8 +159,7 @@ Not yet retested. Confirm the recruitment candidate-document and app-release dow
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-720 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

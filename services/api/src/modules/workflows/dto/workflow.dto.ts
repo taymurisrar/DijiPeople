@@ -1,6 +1,7 @@
 import { WorkflowActionType, WorkflowStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -23,7 +24,11 @@ import {
   EmailTemplateScopeLevel,
 } from '../../notifications/notifications.constants';
 import { WORKFLOW_CONDITION_OPERATORS } from '../workflow-conditions';
-import { WORKFLOW_RECIPIENT_MODES } from '../workflow-runtime.service';
+import {
+  MAX_RECIPIENTS_PER_ACTION,
+  WORKFLOW_LIST_RECIPIENT_MODES,
+  WORKFLOW_RECIPIENT_MODES,
+} from '../workflow-runtime.service';
 
 export class WorkflowConditionDto {
   @IsString()
@@ -72,6 +77,31 @@ export class WorkflowActionDto {
   @IsString()
   @MaxLength(320)
   recipientAddress?: string | null;
+
+  /** Several recipients for one action. When present it replaces recipientMode. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_RECIPIENTS_PER_ACTION)
+  @ValidateNested({ each: true })
+  @Type(() => WorkflowRecipientEntryDto)
+  recipients?: WorkflowRecipientEntryDto[];
+}
+
+export class WorkflowRecipientEntryDto {
+  @IsIn(WORKFLOW_LIST_RECIPIENT_MODES as unknown as string[])
+  mode!: (typeof WORKFLOW_LIST_RECIPIENT_MODES)[number];
+
+  /** FIXED: the address to send to. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  address?: string;
+
+  /** ROLE: every active user of the tenant holding this role key. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  roleKey?: string;
 }
 
 class WorkflowPlacementDto {

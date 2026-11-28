@@ -27,6 +27,39 @@ describe("ConfigManager", () => {
     return { manager, getConfig };
   }
 
+  describe("DLP consent (WP-17)", () => {
+    const capture = {
+      privacy: { allowClipboardTracking: true, allowScreenshots: true },
+      dlp: { clipboardCaptureEnabled: true, screenshotCaptureEnabled: true },
+    };
+
+    it("turns content capture off locally when consent is required and not granted", async () => {
+      const { manager } = build({
+        ...capture,
+        dlpConsent: { required: true, granted: false },
+      });
+      const config = await manager.refresh();
+      expect(config.privacy.allowClipboardTracking).toBe(false);
+      expect(config.privacy.allowScreenshots).toBe(false);
+      expect(config.dlp.clipboardCaptureEnabled).toBe(false);
+      expect(config.dlp.screenshotCaptureEnabled).toBe(false);
+    });
+
+    it("allows capture once consent is granted", async () => {
+      const { manager } = build({
+        ...capture,
+        dlpConsent: { required: true, granted: true },
+      });
+      const config = await manager.refresh();
+      expect(config.dlp.clipboardCaptureEnabled).toBe(true);
+    });
+
+    it("never defaults window-title capture on before the server has spoken", () => {
+      expect(DEFAULT_CONFIG.tracking.captureWindowTitle).toBe(false);
+      expect(DEFAULT_CONFIG.dlpConsent).toEqual({ required: false, granted: false });
+    });
+  });
+
   describe("a partial config from the server", () => {
     it("fills every unsent field from the defaults", async () => {
       const { manager } = build({ tracking: { enabled: true } });
@@ -286,5 +319,23 @@ describe("ConfigManager", () => {
 
       expect(getConfig).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe("ConfigManager.isFresh (offline fail-closed for content capture)", () => {
+  it("is false before any sync, true shortly after one, false once the answer is too old", async () => {
+    const getConfig = jest.fn().mockResolvedValue({});
+    const manager = new ConfigManager({ getConfig } as unknown as ApiClient);
+    expect(manager.isFresh(60_000)).toBe(false);
+    await manager.refresh();
+    expect(manager.isFresh(60_000)).toBe(true);
+    expect(manager.isFresh(60_000, Date.now() + 61_000)).toBe(false);
+  });
+
+  it("does not become fresh from a refresh that failed", async () => {
+    const getConfig = jest.fn().mockRejectedValue(new Error("offline"));
+    const manager = new ConfigManager({ getConfig } as unknown as ApiClient);
+    await manager.refresh();
+    expect(manager.isFresh(60_000)).toBe(false);
   });
 });

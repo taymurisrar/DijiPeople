@@ -120,6 +120,20 @@ changes. Setting either variable to a pooled url when it is the one migrations
 would use is refused at config load with a message naming the fix, rather than
 being discovered ten seconds into a deploy.
 
+### Connection-pool bounds (API)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DATABASE_POOL_CONNECTION_TIMEOUT_MS` | 15000 | How long a request waits for a pooled connection before failing. Without it the driver waits forever and a saturated pool looks like a hung API (RES-01). |
+| `DATABASE_POOL_MAX` | driver default (10) | Maximum pooled connections for this process. Size it against the Neon endpoint's connection limit divided by instance count. |
+| `DATABASE_POOL_IDLE_TIMEOUT_MS` | driver default | How long an idle connection is kept. |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | unset (off) | Server-side statement timeout. Deliberately off: payroll runs, imports and package-ALM have never had one. Set only after measuring the longest legitimate statement. |
+
+Unusable values (zero, negative, non-numeric) fall back to the default.
+`GET /api/health/ready` is the dependency-aware readiness probe (200/503 on a
+`SELECT 1`); `/api/health` stays the liveness check. Do not point Render's
+`healthCheckPath` at the readiness route.
+
 Required production values:
 
 ```env
@@ -305,12 +319,21 @@ process* also drains the resulting queue.
 | `OUTBOX_WORKER_ENABLED` | API | no — defaults off | `true` starts the poll loop in this process. Off by default so tests, seeds and CLI invocations that boot the Nest container do not silently start a background worker. At least one deployed instance must set it, or events are written and never delivered. |
 | `OUTBOX_WORKER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 5000, floored at 1000. |
 | `OUTBOX_WORKER_BATCH_SIZE` | API | optional | Events claimed per poll. Defaults to 25, capped at 200. |
+| `WORKFLOW_EXECUTION_MODE` | API | no — defaults `inline` | `durable` writes each workflow-triggering business event to the transactional outbox and runs its actions from the outbox worker, with per-step retries, an idempotent step ledger and a visible failure queue (DP-MASTER WP-03.S3). Anything else (or unset) runs the actions inline in the request, as before. **`durable` needs `OUTBOX_WORKER_ENABLED=true` on at least one deployed instance, or workflow actions are queued and never run.** If writing the outbox event fails, the event is NOT run inline: the producer is told it was not queued (`ENQUEUE_FAILED`) and a retry with the same transition id is safe. |
+| `WORKFLOW_RECONCILE_ENABLED` | API | no — defaults off | `true` starts a timer that reads provider delivery results back onto workflow steps (a message that failed after hand-off turns its step and run into failures). Off means nothing runs in the background; the same pass is available as `POST /workflows/reconcile-deliveries` (DP-MASTER WP-03.S4). |
+| `WORKFLOW_RECONCILE_INTERVAL_MS` | API | no — defaults `300000` | Milliseconds between reconciliation passes; never below `30000`. |
+| `WORK_DUTY_GENERATION_ENABLED` | API | no — defaults off | `true` starts a 15-minute timer that generates today's duty occurrences for every tenant with an active duty template (idempotent; a per-tenant advisory lock stops two instances doing the same tenant; one tenant failing does not stop the others; audit actor is the system). Off means nothing runs in the background; the same pass for one tenant is `POST /work-duties/generate` (DP-MASTER WP-36.S2). |
+| `WORK_DAILY_UPDATE_ESCALATION_ENABLED` | API | no — defaults off | `true` starts a 15-minute timer that tells each missing person's reporting manager once, for every tenant with an enabled scoped daily-update policy that escalates (idempotent through `DailyUpdateEscalation`; a per-tenant advisory lock stops two instances doing the same tenant; one tenant failing does not stop the others; each person is judged by the time zone and deadline of the policy that governs them). Off means nothing runs in the background; the same pass for one tenant is `POST /daily-updates/escalations/run` (DP-MASTER WP-27.S3). |
+| `DATA_JOB_WORKER_ENABLED` | API | no — defaults **on** | Runs the import/export queue in this process. Unlike the workers above it is ON unless set to exactly `false`, because it has always started everywhere and a default-off flag would silently stop imports at deploy. Set `false` for tests, CLI seeds, one-off scripts or an extra instance that should not drain the queue. |
+| `DATA_JOB_WORKER_POLL_INTERVAL_MS` | API | optional | Data-job poll interval. Defaults to 5000, floored at 1000. |
 | `REPORTS_SCHEDULER_ENABLED` | optional | Runs the scheduled-report worker in this process. Default off. With it off, schedules are editable but nothing is delivered. |
 | `REPORTS_SCHEDULER_POLL_INTERVAL_MS` | optional | How often the scheduler looks for due schedules. Default 60000, minimum 15000. |
 | `REPORTS_WORKFORCE_SNAPSHOT_ENABLED` | optional | Runs the daily workforce snapshot, which is what makes headcount history true going forward. Default off. |
 | `REPORTS_ARTIFACT_RETENTION_DAYS` | optional | How long a generated report export stays downloadable before it is swept. Default 7. |
 | `SUBSCRIPTION_ORDER_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-2618) that ages `PENDING_PAYMENT` orders past their 24-hour TTL to `ABANDONED` and releases their `submissionHash`/`requestedSlug` holds. Off by default for the same reason `OUTBOX_WORKER_ENABLED` is. At least one deployed instance must set it, or an abandoned checkout's workspace address is unpurchasable forever. |
 | `SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
+| `ACCESS_REVOCATION_SWEEPER_ENABLED` | API | no - defaults ON | A security control, so it runs unless set to the exact string `false`. Each tick disables the linked user and revokes web and agent refresh tokens for employees whose status is `TERMINATED`, whose `terminationDate` has passed and whose user is still enabled (BUG-4774, DP-MASTER WP-08.S0b). Level-triggered and idempotent, so a missed tick or restart is recovered by the next one. Never disables the tenant owner. Setting `false` is logged as a warning on every start and means future-dated terminations do NOT revoke access. |
+| `ACCESS_REVOCATION_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 60000 (1 minute), floored at 30000. This is also the longest an access token that was already issued can keep working on ordinary endpoints after a future-dated termination takes effect (login, token refresh and `/auth/me` refuse on the date itself). |
 | `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-3331, EXECPLAN-0037) that applies `PlanChangeRequest` rows scheduled for a past `effectiveAt` — the scheduled-downgrade half of a plan change, which otherwise never runs (`PlanChangeService.applyDueChanges()` had no caller). Deliberately does not also call `SeatChangeService.applyDueChanges()`: that method reduces `purchasedSeats` locally with no matching Stripe quantity update, so wiring it here would start under-billing a tenant whose seat count was scheduled to decrease — a separate, pre-existing gap this plan does not fix. At least one deployed instance must set this, or a scheduled plan downgrade never takes effect at renewal. |
 | `SUBSCRIPTION_CHANGE_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
 | `MANAGED_BILLING_WORKER_ENABLED` | API | no — defaults off; **required once Safepay is on** | `true` starts the loop that runs DijiPeople-billed (Safepay) subscriptions: re-verifies unconfirmed payments with the provider (the recovery for a lost webhook or a buyer who never returned), issues renewal invoices ahead of the period end, and moves subscriptions to `PAST_DUE` (grace), `EXPIRED` or `CANCELED` at their boundaries. A no-op while no subscription is Safepay-billed. Without it Safepay renewals are never invoiced and a lapsed subscription never expires. Plan changes on Safepay subscriptions take effect at renewal, so `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` must be on too. |

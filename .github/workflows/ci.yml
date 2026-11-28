@@ -243,7 +243,12 @@ jobs:
         run: npm run prisma:generate
       - name: Validate Prisma schema
         run: npm run prisma:validate
-      - run: npm run typecheck
+      - name: Typecheck
+        # The API program carries the 1.4M-line generated Prisma client; the default
+        # heap ran out (exit 134) as the work modules landed. See ITEM-0249.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npm run typecheck
 
   lint:
     name: Lint (check only)
@@ -340,6 +345,10 @@ jobs:
       # including a .filter(Boolean) that never narrowed.
       - name: ESLint — services/api
         working-directory: services/api
+        # The type-aware rules load the whole program; the default heap ran out
+        # (exit 134) once the work modules landed, as the Build job did.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npx eslint "{src,test}/**/*.ts" --max-warnings=787
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
@@ -928,6 +937,10 @@ jobs:
             echo "::error title=Database e2e failed::jest exited $code. See the job summary for the RESULT line and the failing suites."
             exit "$code"
           fi
+          # BUG-3168. Exit 0 is not proof anything ran: with DATABASE_URL unset every
+          # suite becomes describe.skip and jest still exits 0. Refuse a report with
+          # zero passed tests or any skipped suite or test.
+          node scripts/assert-jest-executed.mjs e2e-report.txt
           echo "Database e2e passed."
 
   build:
@@ -973,6 +986,11 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-
       - name: Monorepo build
+        # The API type-check inside `nest build` outgrew the default Node heap (exit 134,
+        # "JavaScript heap out of memory") as the Prisma client and module count grew.
+        # The runner has 16 GB; this only lifts the V8 cap, it relaxes no check.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npm run build
 
   # lint-api-report was PROMOTED on 2026-08-17 and no longer exists.
@@ -1218,7 +1236,9 @@ jobs:
           for url in http://localhost:4000/api/health http://localhost:3000 http://localhost:3002/login http://localhost:3001/login; do
             for i in $(seq 1 60); do
               if curl -sf -o /dev/null "$url"; then echo "ready: $url"; break; fi
-              if [ "$i" = "60" ]; then echo "::warning::$url never became ready"; fi
+              # BUG-3168. This used to only warn, so an unreachable server let the job
+              # run its tests against nothing and skip the ones that need it.
+              if [ "$i" = "60" ]; then echo "::error::$url never became ready"; exit 1; fi
               sleep 5
             done
           done

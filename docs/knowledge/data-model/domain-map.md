@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**344 models · 322 enums · 269 tenant-scoped · 13 with an entity note**
+**372 models · 344 enums · 297 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -32,25 +32,50 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `UserPermission` | yes | `users` | — |
 | `UserRole` | yes | `users` | — |
 
-## People — 15 models
+## People — 40 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
 | `BusinessUnit` | yes | `organization` | [[entity-business-unit|documented]] |
+| `ContributionEntry` | yes | `contributions` | — |
+| `DailyUpdate` | yes | `daily-updates` | — |
+| `DailyUpdateEscalation` | yes | `daily-updates` | — |
+| `DailyUpdateItem` | yes | `daily-updates` | — |
+| `DailyUpdatePolicy` | yes | `daily-updates` | — |
+| `DailyUpdateScopePolicy` | yes | `daily-updates` | — |
+| `DecisionAction` | yes | `work-items` | — |
 | `Department` | yes | `organization` | — |
 | `Designation` | yes | `organization` | — |
 | `DocumentVersion` | yes | `employees` | — |
+| `DutyChecklistItem` | yes | `work-items` | — |
+| `DutyHandover` | yes | `work-items` | — |
+| `DutyOccurrence` | yes | `work-items` | — |
+| `DutyOccurrenceCheck` | yes | `work-items` | — |
+| `DutyTemplate` | yes | `work-items` | — |
 | `Employee` | yes | `employees` | [[entity-employee|documented]] |
 | `EmployeeEducation` | yes | `employees` | — |
 | `EmployeeHistory` | yes | `employees` | — |
 | `EmployeeLevel` | yes | `employee-levels` | — |
 | `EmployeePreviousEmployment` | yes | `employees` | — |
+| `EmployeeWorkProfileAssignment` | yes | `work-profiles` | — |
 | `EmploymentType` | yes | `employment-types` | — |
 | `Location` | yes | `organization` | — |
+| `MeetingAttendee` | yes | `work-items` | — |
+| `MeetingRecord` | yes | `work-items` | — |
 | `Organization` | yes | `organization` | — |
 | `Team` | yes | `teams` | — |
 | `TeamMember` | yes | `teams` | — |
 | `TeamRole` | yes | `teams` | — |
+| `WorkDecision` | yes | `work-items` | — |
+| `WorkItem` | yes | `work-items` | — |
+| `WorkItemBlocker` | yes | `work-items` | — |
+| `WorkItemContributor` | yes | `work-items` | — |
+| `WorkItemDependency` | yes | `work-items` | — |
+| `WorkItemOwnerChange` | yes | `work-items` | — |
+| `WorkProfile` | yes | `work-profiles` | — |
+| `WorkProfileVersion` | yes | `work-profiles` | — |
+| `WorkQueue` | yes | `work-items` | — |
+| `WorkUnit` | yes | `work-profiles` | — |
 
 ## Time — 43 models
 
@@ -189,7 +214,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `RecruitmentPipeline` | yes | `recruitment` | — |
 | `RecruitmentPipelineStage` | yes | `recruitment` | — |
 
-## Governance — 12 models
+## Governance — 14 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -205,8 +230,10 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `Workflow` | yes | `workflows` | — |
 | `WorkflowAction` | no | `workflows` | — |
 | `WorkflowRun` | yes | `workflows` | — |
+| `WorkflowRunStep` | yes | `workflows` | — |
+| `WorkflowVersion` | yes | `workflows` | — |
 
-## Commercial — 78 models
+## Commercial — 77 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -233,7 +260,6 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `Lead` | no | `leads` | — |
 | `LeadAttributionCorrection` | no | `leads` | — |
 | `LegalDocument` | no | **none** | — |
-| `LegalDocumentAcknowledgement` | yes | `legal` | — |
 | `LegalDocumentVersion` | no | `legal` | — |
 | `Market` | no | `super-admin` | — |
 | `MarketCountry` | no | `super-admin` | — |
@@ -334,13 +360,14 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `WorkSchedule` | yes | `tenant-settings` | — |
 | `WorkScheduleDay` | yes | `tenant-settings` | — |
 
-## Messaging — 9 models
+## Messaging — 10 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
 | `EmailDeliveryLog` | yes | `notifications` | — |
 | `EmailProviderSetting` | yes | `notifications` | — |
 | `EmailTemplate` | yes | `notifications` | — |
+| `EmailTemplateRevision` | yes | `notifications` | — |
 | `Notification` | yes | `notifications` | — |
 | `NotificationEvent` | no | `notifications` | — |
 | `NotificationPreference` | yes | `notifications` | — |
@@ -348,7 +375,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationRule` | yes | `notifications` | — |
 | `NotificationTemplate` | yes | **none** | — |
 
-## Platform ops — 38 models
+## Platform ops — 39 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -366,6 +393,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `DlpRule` | yes | `agent` | — |
 | `EmployeeDevice` | yes | `agent` | — |
 | `EmployeeDocumentReference` | yes | **none** | — |
+| `LegalDocumentAcknowledgement` | yes | `agent` | — |
 | `NotificationInteractionLog` | yes | `inbox` | — |
 | `OutboxEvent` | yes | `outbox` | — |
 | `OutboxEventConsumption` | no | `outbox` | — |

@@ -22,6 +22,7 @@ describe('RecruitmentService', () => {
       {} as never,
       {} as never,
       {} as never,
+      { emit: jest.fn() } as never,
     );
   });
 

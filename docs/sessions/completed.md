@@ -6,6 +6,8 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0136](../../docs/sessions/SESSION-0136-security-validation-of-auth-middleware-skip-timesheet-restri.md) | — | Security validation of auth middleware skip, timesheet-restriction 403 (BUG-4518/3164), DataJob recovery, perf follow-up | COMPLETE | `agent/security-timesheet-datajob-followup` | `develop` | — | 2026-11-21T14:03:32.371Z |
+| [SESSION-0135](../../docs/sessions/SESSION-0135-performance-reliability-and-cost-hardening-audit-111-concept.md) | — | Performance, reliability and cost hardening audit (111 concepts, readiness, DB pool bounds) | COMPLETE | `agent/perf-reliability-hardening` | `develop` | — | 2026-11-21T09:28:08.156Z |
 | [SESSION-0134](../../docs/sessions/SESSION-0134-growth-demo-readiness-qa-and-monitoring-remediation.md) | — | Growth demo readiness QA and monitoring remediation | COMPLETE | `agent/growth-demo-monitoring` | `develop` | — | 2026-11-19T08:51:26.492Z |
 | [SESSION-0133](../../docs/sessions/SESSION-0133-complete-multi-payment-billing-end-to-end.md) | — | Complete multi-payment billing end-to-end | COMPLETE | `feature/pk-payment-methods-bank-first` | `develop` | — | 2026-11-05T06:52:59.136Z |
 | [SESSION-0132](../../docs/sessions/SESSION-0132-security-advisory-remediation-production-dependencies.md) | — | Security advisory remediation (production dependencies) | COMPLETE | `agent/security-advisory-remediation` | `develop` | — | 2026-11-03T06:35:59.286Z |

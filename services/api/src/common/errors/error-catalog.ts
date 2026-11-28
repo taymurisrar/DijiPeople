@@ -131,6 +131,16 @@ export const ERROR_CATALOG = {
     'warning',
     'access',
   ),
+  // BUG-3155 — a write, filter or sort named a field the caller may not read in
+  // clear (or may not change). Refused rather than silently dropped, so a real
+  // change is never reported as saved.
+  FIELD_ACCESS_FORBIDDEN: entry(
+    403,
+    'Field access denied',
+    'You do not have permission to use or change one or more of these fields.',
+    'warning',
+    'access',
+  ),
   RBAC_PERMISSION_MISSING: entry(
     403,
     'Permission missing',
@@ -738,6 +748,37 @@ export const ERROR_CATALOG = {
     'Payroll processing failed',
     'Payroll processing could not be completed.',
     'error',
+    'payroll',
+  ),
+  /*
+   * BUG-4518. A timesheet restriction refuses the request on purpose. It is a
+   * 403 with its own code so a client can tell "you are restricted until you
+   * submit your timesheets" from "you lack permission" (ACCESS_DENIED) and from
+   * "your session is gone" (401) — the last of which the guard used to send.
+   */
+  TIMESHEET_ACCESS_RESTRICTED: entry(
+    403,
+    'Timesheet access restricted',
+    'Access is limited until outstanding timesheets are submitted.',
+    'warning',
+    'payroll',
+    'Submit your outstanding timesheets to restore access.',
+  ),
+  // WP-06.S3 work-item links on a timesheet entry. Thrown by assertWorkItemLinks
+  // with a specific message; the entries exist so the code reaches the browser
+  // (which shows it beside the work item) instead of collapsing to VALIDATION_FAILED.
+  TIMESHEET_WORK_ITEM_NOT_YOURS: entry(
+    400,
+    'Work item cannot be booked',
+    'Time can only be booked to a work item you own or share, and that is not archived.',
+    'warning',
+    'payroll',
+  ),
+  TIMESHEET_WORK_ITEM_PROJECT: entry(
+    400,
+    'Work item is on another project',
+    'The work item belongs to a different project than the entry.',
+    'warning',
     'payroll',
   ),
   TIMESHEET_SUBMISSION_FAILED: entry(

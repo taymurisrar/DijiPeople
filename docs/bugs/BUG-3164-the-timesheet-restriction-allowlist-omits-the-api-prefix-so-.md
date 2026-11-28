@@ -2,7 +2,7 @@
 ID: BUG-3164
 aliases: [BUG-3164]
 Title: The timesheet-restriction allowlist omits the /api prefix, so it never matches
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,13 +13,13 @@ AffectedModules: [services/api/src/modules/timesheets]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-699
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-21
+ResolvedAt: 2026-11-21
 ---
 
 # BUG-3164 — The timesheet-restriction allowlist omits the /api prefix, so it never matches
@@ -69,7 +69,7 @@ Full finding text: ORCH-03 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The allow-list was matched against `request.path` verbatim, but in production that path carries the global `/api` prefix and every entry was written without it, so nothing could match. The e2e app does not set the prefix, which is why no test saw it.
 
 ## Impact
 
@@ -91,7 +91,7 @@ Match the same way the rate-limit guard does — compare against a path with the
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: ORCH-03=LOW — the fix widens access to the intended set. Note the restriction becomes genuinely enforcing for the first time, so confirm the intended allowlist with the feature owner before shipping.. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+REG-699 — see `docs/qa/regressions/index.md`.
 
 ## Dependencies
 
@@ -103,7 +103,7 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Fixed with BUG-4518 on `agent/security-timesheet-datajob-followup`. `timesheet-restriction-routes.ts` strips the `/api` prefix and matches on a path-segment boundary (so `/support` no longer admits `/support-cases`), and the 403 now returns the real allow-list. The e2e suite runs with the production prefix.
 
 ## QA Retest
 
@@ -117,8 +117,7 @@ Not yet retested.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-699 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-21 — fixed on `agent/security-timesheet-datajob-followup` (BUG-4518 + BUG-3164).

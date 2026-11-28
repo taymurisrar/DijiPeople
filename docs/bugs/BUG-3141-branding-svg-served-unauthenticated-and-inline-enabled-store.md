@@ -2,7 +2,7 @@
 ID: BUG-3141
 aliases: [BUG-3141]
 Title: Branding SVG served unauthenticated and inline enabled stored XSS on the API origin
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-724
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-23
 ---
 
 # BUG-3141 — Branding SVG served unauthenticated and inline enabled stored XSS on the API origin
@@ -169,11 +169,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-SVG removed from the accepted branding-asset MIME types and the branding pipeline hardened as part of the durable-storage rework (commit f4278f17, "feat(storage): durable object storage on Cloudflare R2 (FILE-01/INF-05)", which lists FILE-02 explicitly, plus the follow-up commit 8631a133, "chore(storage): close the SVG branding hole at both ends"). Not yet independently QA-retested against the live branding upload path from the AUTH-06 angle (crafted logo link served from the API origin on the shared cookie domain) — only re-verify before moving this to VERIFIED.
+Upload refuses SVG (earlier commit 8631a133), the serving route refuses any non-raster type and sends nosniff plus a sandbox CSP; this change adds the missing serving-side regression test (mutation-proved).
 
 ## QA Retest
 
-Not yet retested against production. Confirm: (1) uploading an SVG as a branding asset is refused, (2) any pre-existing SVG branding asset no longer serves inline / with an executable content type on the API origin.
+QA-AUTHZ-022 (automated; independent QA/security review of the batch recorded in the SESSION-0137 handoff).
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-branding-asset-raster.spec.ts it.each refuses image/svg+xml, text/html, octet-stream and null, serves raster only inside tenant; public-tenants.controller.ts sets nosniff and CSP sandbox; passes.
 
 ## History
 
@@ -184,5 +186,7 @@ Not yet retested against production. Confirm: (1) uploading an SVG as a branding
 ## Related
 
 - Modules — [[customization]]
+- Regression — REG-724 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

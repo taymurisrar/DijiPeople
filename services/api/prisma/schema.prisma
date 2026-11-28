@@ -2125,6 +2125,19 @@ model Tenant {
   demoBatchId                     String?
   seedSource                      String?
   users                           User[]
+  workUnits                       WorkUnit[]
+  workProfiles                    WorkProfile[]
+  workProfileVersions             WorkProfileVersion[]
+  employeeWorkProfileAssignments  EmployeeWorkProfileAssignment[]
+  workItems                       WorkItem[]
+  workQueues                      WorkQueue[]
+  dailyUpdatePolicy               DailyUpdatePolicy?
+  dutyTemplates                   DutyTemplate[]
+  dailyUpdateScopes               DailyUpdateScopePolicy[]
+  meetings                        MeetingRecord[]
+  workDecisions                   WorkDecision[]
+  dailyUpdates                    DailyUpdate[]
+  contributionEntries             ContributionEntry[]
   /// Identities whose last-used workspace is this tenant. Advisory only —
   /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
   /// preference rather than orphaning or blocking the identity.
@@ -5307,6 +5320,12 @@ model Employee {
   @@index([tenantId, sourceCandidateId])
   @@index([tenantId, sourceApplicationId])
   @@index([tenantId, sourceJobOpeningId])
+  workProfileAssignments         EmployeeWorkProfileAssignment[]
+  ownedWorkItems                 WorkItem[]                    @relation("WorkItemOwner")
+  workItemContributions          WorkItemContributor[]
+  ownedWorkBlockers              WorkItemBlocker[]
+  contributionEntries            ContributionEntry[]
+  dailyUpdates                   DailyUpdate[]
 }
 
 model EmploymentType {
@@ -6943,6 +6962,7 @@ model Project {
   scopedWorkSchedules        WorkSchedule[]              @relation("ScopedProjectWorkSchedules")
   holidayAssignments         HolidayCalendarAssignment[]
   assignments                ProjectAssignment[]
+  workItems                  WorkItem[]
   timesheetEntries           TimesheetEntry[]
   payrollCostAllocationLines PayrollCostAllocationLine[]
 
@@ -11125,7 +11145,7 @@ model AgentTrackingSettings {
   idleThresholdSeconds     Int       @default(120)
   awayThresholdSeconds     Int       @default(600)
   captureActiveApp         Boolean   @default(true)
-  captureWindowTitle       Boolean   @default(true)
+  captureWindowTitle       Boolean   @default(false)
   allowCameraAccess        Boolean   @default(false)
   allowMicrophoneAccess    Boolean   @default(false)
   allowLocationAccess      Boolean   @default(false)
@@ -11148,7 +11168,7 @@ model AgentTrackingSettings {
   allowClipboardCapture    Boolean   @default(false)
   allowScreenshotCapture   Boolean   @default(false)
   clipboardFullContent     Boolean   @default(false)
-  dlpConsentRequired       Boolean   @default(false)
+  dlpConsentRequired       Boolean   @default(true)
   screenshotRetentionDays  Int       @default(30)
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
@@ -11368,6 +11388,10 @@ enum CustomizationSolutionComponentType {
   actionBar
   widget
   environmentVariable
+  /// Work components (DP-MASTER WP-21.S1): carried by the one package engine.
+  workUnit
+  workProfile
+  workQueue
 }
 
 /// Where a package's content came from in THIS workspace. A LOCAL package is
@@ -11937,6 +11961,10 @@ enum DataImportMode {
 enum DataRowStatus {
   PENDING
   VALID
+  /// An import row whose apply is under way. Set per chunk BEFORE any row of the
+  /// chunk is applied, so after a crash the lowest-numbered IN_PROGRESS row is the
+  /// only one whose outcome is unknown (rows are applied strictly in order).
+  IN_PROGRESS
   INVALID
   CREATED
   UPDATED
@@ -11989,6 +12017,11 @@ model DataJob {
   completedAt       DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  /// Which worker process owns the job while it is PROCESSING.
+  claimedBy         String?
+  /// Ownership lapses at this time unless the owner renews it. A PROCESSING job
+  /// past its lease belongs to a dead process and is eligible for recovery.
+  leaseExpiresAt    DateTime?
   submittedByUserId String?
   tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   submittedByUser   User?           @relation("DataJobSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
@@ -11997,6 +12030,9 @@ model DataJob {
 
   @@unique([tenantId, kind, idempotencyKey])
   @@index([tenantId, kind, status, createdAt])
+  /// The worker poll (`WHERE status = QUEUED AND cancelledAt IS NULL ORDER BY createdAt`) names no tenant, so no index above can serve it.
+  @@index([status, createdAt])
+  @@index([status, leaseExpiresAt])
   @@index([tenantId, moduleKey, createdAt])
   @@index([tenantId, submittedByUserId])
 }
@@ -12071,6 +12107,9 @@ model DataMappingProfile {
 model Workflow {
   id          String            @id @default(uuid())
   tenantId    String
+  /// Stable logical key (DP-MASTER WP-03.S2). Never changes on rename; packages
+  /// and reports refer to it, not to the row id or the display name.
+  workflowKey String?
   scopeKey    String
   /// Null means the workflow applies to every module.
   moduleKey   String?
@@ -12088,8 +12127,10 @@ model Workflow {
   event       NotificationEvent @relation(fields: [eventCode], references: [code], onDelete: Restrict)
   actions     WorkflowAction[]
   runs        WorkflowRun[]
+  versions    WorkflowVersion[]
 
   @@unique([tenantId, name])
+  @@unique([tenantId, workflowKey])
   @@index([tenantId, eventCode, status])
   @@index([tenantId, moduleKey])
   @@index([scopeKey])
@@ -12124,10 +12165,69 @@ model WorkflowRun {
   error         String?
   correlationId String?
   context       Json?
+  /// The published version that executed. Null for runs recorded before versioning.
+  workflowVersionId String?
+  /// The event this run answers (the outbox event id, or a generated id for an
+  /// inline run). One workflow runs once per event: a redelivered event finds this
+  /// run and resumes it instead of starting a second one. Null for earlier runs.
+  eventId       String?
   workflow      Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflowVersion WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: SetNull)
+  steps         WorkflowRunStep[]
 
+  @@unique([workflowId, eventId])
   @@index([tenantId, workflowId, startedAt])
   @@index([tenantId, status])
+}
+
+/// One action for one recipient inside a workflow run: the ledger that makes
+/// retries safe. A retry re-runs only steps that failed and may still succeed;
+/// a step that already succeeded is never run again. `stepKey` is
+/// `eventId:workflowVersionId:actionIndex:recipientMode`.
+model WorkflowRunStep {
+  id            String             @id @default(uuid())
+  tenantId      String
+  runId         String
+  stepKey       String
+  actionIndex   Int
+  actionType    WorkflowActionType
+  /// SUBJECT / ACTOR / FIXED / CANDIDATE: the mode, never the address.
+  recipientMode String
+  status        WorkflowStepStatus
+  /// True when no retry can help (no recipient could be resolved).
+  permanent     Boolean            @default(false)
+  attempts      Int                @default(0)
+  lastError     String?
+  startedAt     DateTime           @default(now())
+  finishedAt    DateTime?
+  /// Position of the recipient inside the action (0 for the first or only one).
+  recipientIndex Int               @default(0)
+  /// The template this step rendered, pinned by the first send of the action so a
+  /// retry or a later recipient never switches template, and the version it had.
+  templateId    String?
+  templateVersion Int?
+  /// The immutable content revision this step rendered (WP-04.S2).
+  templateRevisionId String?
+  /// True when the template was edited between the pinned send and this one.
+  templateDrift Boolean            @default(false)
+  /// The delivery log row the e-mail service wrote, and what that row said last.
+  deliveryLogId String?
+  deliveryStatus EmailDeliveryStatus?
+  reconciledAt  DateTime?
+  run           WorkflowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, stepKey])
+  @@index([tenantId, deliveryStatus])
+  @@index([runId])
+  @@index([tenantId, status])
+}
+
+enum WorkflowStepStatus {
+  /// Claimed before the send, so a crash mid-send is visible and is retried.
+  IN_PROGRESS
+  SUCCEEDED
+  FAILED
+  SKIPPED
 }
 
 enum WorkflowStatus {
@@ -12140,10 +12240,33 @@ enum WorkflowActionType {
   SEND_EMAIL
 }
 
+/// An immutable snapshot of what an ACTIVE workflow does, minted on every save
+/// that changes its behaviour. Runs record the version that executed.
+model WorkflowVersion {
+  id          String        @id @default(uuid())
+  tenantId    String
+  workflowId  String
+  version     Int
+  definition  Json
+  checksum    String
+  publishedAt DateTime      @default(now())
+  publishedBy String?
+  workflow    Workflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  runs        WorkflowRun[]
+
+  @@unique([workflowId, version])
+  @@index([tenantId, workflowId])
+}
+
 enum WorkflowRunStatus {
+  /// Not finished: steps are waiting for a retry.
+  RUNNING
   SUCCEEDED
   FAILED
   SKIPPED
+  /// Some actions ran and others failed. Not SUCCEEDED: a half-delivered
+  /// rule must be visible and retryable, never reported as a clean run.
+  PARTIALLY_FAILED
 }
 
 /// Previous password hashes, so a user cannot cycle back to a recent one.
@@ -13460,6 +13583,10 @@ enum DomainEventType {
   TENANT_DELETION_REQUESTED
   TENANT_ERASURE_REQUESTED
   TENANT_ERASED
+  /// A tenant business event that workflows may react to (DP-MASTER WP-03.S3).
+  /// Written to the outbox so the actions run durably, with retries, instead of
+  /// inline in the request that caused the event.
+  WORKFLOW_EVENT_RECEIVED
 }
 
 model OutboxEvent {
@@ -15311,4 +15438,851 @@ model BankTransferEvidence {
 
   @@index([claimId, scanStatus])
   @@index([checksumSha256])
+}
+
+// ---------------------------------------------------------------------------
+// Work profiles (DP-MASTER WP-35.S1, ADR-0030)
+//
+// What a role, site or person does and how it is measured, configured rather
+// than coded. A profile's behaviour lives in immutable published VERSIONS;
+// records produced under a profile pin the version they were created under, so
+// editing a definition never rewrites history. Keys are stable, tenant-unique
+// and portable (never the row id).
+// ---------------------------------------------------------------------------
+
+enum WorkUnitKind {
+  DURATION
+  COUNT
+  DUTY_COMPLETION
+  CURRENCY
+}
+
+enum WorkProfileVersionStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model WorkUnit {
+  id          String       @id @default(uuid())
+  tenantId    String
+  /// Stable portable key; immutable after creation.
+  key         String
+  name        String
+  /// Immutable after creation: changing it would change what published versions mean.
+  kind        WorkUnitKind
+  isActive    Boolean      @default(true)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+model WorkProfile {
+  id          String                          @id @default(uuid())
+  tenantId    String
+  key         String
+  name        String
+  description String?
+  isActive    Boolean                         @default(true)
+  createdById String?
+  updatedById String?
+  createdAt   DateTime                        @default(now())
+  updatedAt   DateTime                        @updatedAt
+  tenant      Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions    WorkProfileVersion[]
+  assignments EmployeeWorkProfileAssignment[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+model WorkProfileVersion {
+  id          String                   @id @default(uuid())
+  tenantId    String
+  profileId   String
+  /// Monotonic per profile.
+  version     Int
+  status      WorkProfileVersionStatus @default(DRAFT)
+  /// { workTypes: [...] } - validated by work-profile-definition.ts. Immutable once PUBLISHED.
+  definition  Json
+  checksum    String?
+  /// The window in which this version is the one in force.
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  publishedAt   DateTime?
+  publishedById String?
+  createdById   String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  tenant        Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile       WorkProfile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, version])
+  @@index([tenantId, profileId, status])
+}
+
+/// DP-MASTER WP-02.S1 (ADR-0030). A thin record for work that has a lifecycle of
+/// its own: a task, a service job, one occurrence of a duty. Transactions,
+/// outputs, events and contributions are NOT work items; they are ledger entries
+/// that point at a work reference (WP-30). A project is optional context, never a
+/// required parent. Archived, never deleted.
+model WorkItem {
+  id                   String           @id @default(uuid())
+  tenantId             String
+  kind                 WorkItemKind
+  title                String
+  description          String?
+  status               WorkItemStatus   @default(OPEN)
+  priority             WorkItemPriority @default(NORMAL)
+  /// The one accountable person. Effort lives on contributors, never here.
+  ownerEmployeeId      String?
+  projectId            String?
+  /// Subtasks. Set at creation only, so a parent chain cannot form a cycle.
+  parentId             String?
+  /// The work type key inside the profile version below (WP-35), if any.
+  workTypeKey          String?
+  /// The profile version this item was created under; history never recalculates.
+  workProfileVersionId String?
+  /// Optional context, not required parents.
+  businessUnitId       String?
+  teamId               String?
+  departmentId         String?
+  dueAt                DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  archivedAt           DateTime?
+  /// A pointer to the same work in another system. Never trusted as an identity.
+  externalSystem       String?
+  externalRef          String?
+  /// The milestone this item rolls up into (WP-06.S2); another WorkItem of kind MILESTONE.
+  milestoneId          String?
+  /// The queue this item waits in (WP-06.S1). Optional: most work is not queued.
+  queueId              String?
+  /// When someone first picked it up or answered. Null until then.
+  respondedAt          DateTime?
+  /// Fixed when the item is queued, from the queue's SLA at that moment, so a
+  /// later change to the queue never rewrites what an item was promised.
+  responseDueAt        DateTime?
+  resolutionDueAt      DateTime?
+  createdById          String?
+  updatedById          String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  tenant               Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  queue                WorkQueue?       @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  milestone            WorkItem?        @relation("WorkItemMilestone", fields: [milestoneId], references: [id], onDelete: SetNull)
+  milestoneItems       WorkItem[]       @relation("WorkItemMilestone")
+  dutyOccurrence       DutyOccurrence?
+  ownerChanges         WorkItemOwnerChange[]
+  blockers             WorkItemBlocker[]
+  owner                Employee?        @relation("WorkItemOwner", fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+  project              Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parent               WorkItem?        @relation("WorkItemSubtasks", fields: [parentId], references: [id], onDelete: SetNull)
+  children             WorkItem[]       @relation("WorkItemSubtasks")
+  contributors         WorkItemContributor[]
+  contributions        ContributionEntry[]
+  dependsOn            WorkItemDependency[]  @relation("WorkItemDependent")
+  blocks               WorkItemDependency[]  @relation("WorkItemPrerequisite")
+
+  @@index([tenantId, status])
+  @@index([tenantId, ownerEmployeeId, status])
+  @@index([tenantId, projectId])
+  @@index([tenantId, parentId])
+  @@index([tenantId, kind, status])
+  @@index([tenantId, archivedAt])
+  @@index([tenantId, externalSystem, externalRef])
+  @@index([tenantId, queueId, status])
+  @@index([tenantId, resolutionDueAt])
+  @@index([tenantId, projectId, kind])
+  @@index([tenantId, milestoneId])
+}
+
+/// One person's share of a work item, with their own estimate and actual. Totals
+/// sum these rows, one per person, so shared work is never double counted.
+model WorkItemContributor {
+  id              String   @id @default(uuid())
+  tenantId        String
+  workItemId      String
+  employeeId      String
+  estimateMinutes Int?
+  actualMinutes   Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  workItem        WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([workItemId, employeeId])
+  @@index([tenantId, employeeId])
+}
+
+/// `workItemId` cannot finish before `dependsOnId` does. Cycles are refused by
+/// the service inside the write transaction.
+model WorkItemDependency {
+  id          String   @id @default(uuid())
+  tenantId    String
+  workItemId  String
+  dependsOnId String
+  createdById String?
+  createdAt   DateTime @default(now())
+  workItem    WorkItem @relation("WorkItemDependent", fields: [workItemId], references: [id], onDelete: Cascade)
+  dependsOn   WorkItem @relation("WorkItemPrerequisite", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([workItemId, dependsOnId])
+  @@index([tenantId, dependsOnId])
+}
+
+enum WorkItemKind {
+  TASK
+  SERVICE_JOB
+  DUTY_OCCURRENCE
+  /// A dated checkpoint of a project that tasks roll up into (WP-06.S2).
+  MILESTONE
+}
+
+enum WorkItemStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum WorkItemPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model EmployeeWorkProfileAssignment {
+  id            String      @id @default(uuid())
+  tenantId      String
+  employeeId    String
+  profileId     String
+  effectiveFrom DateTime
+  /// Null = open-ended. Windows for one employee and one profile never overlap.
+  effectiveTo   DateTime?
+  createdById   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  profile       WorkProfile @relation(fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, employeeId, effectiveFrom])
+  @@index([tenantId, profileId])
+}
+
+/// DP-MASTER WP-30.S1 (M01, M02). One piece of evidence that work happened:
+/// planned or unplanned, in any of the seven work types, from any source. It is
+/// not a timesheet and not a performance score. Entries are immutable facts; a
+/// correction appends a revision that supersedes the entry, so history is never
+/// rewritten. Time (an interval) and output (a quantity) are different things and
+/// are never converted into one another here: a quantity keeps its own unit.
+model ContributionEntry {
+  id                   String                     @id @default(uuid())
+  tenantId             String
+  /// Whose contribution this is.
+  employeeId           String
+  workKind             ContributionWorkKind
+  /// The work type key inside the profile version (WP-35), if any.
+  workTypeKey          String?
+  /// The profile version in force when the entry was recorded; never recalculated.
+  workProfileVersionId String?
+  /// Optional link to work that has a lifecycle. Not required: a mentoring hour
+  /// or a counted transaction has no work item.
+  workItemId           String?
+  category             ContributionCategory       @default(PLANNED)
+  measure              ContributionMeasure
+  /// Event time. For an INTERVAL it equals startsAt.
+  occurredAt           DateTime
+  startsAt             DateTime?
+  endsAt               DateTime?
+  /// IANA zone the entry was captured in; needed to read a shift or an overnight
+  /// interval the way the person experienced it.
+  timezone             String
+  /// Aggregate count for QUANTITY entries, in the unit below. Never converted.
+  quantity             Decimal?                   @db.Decimal(18, 4)
+  unitKey              String?
+  source               ContributionSource
+  sourceSystem         String?
+  sourceRef            String?
+  /// Tenant-unique identity of the real-world event, so the same event arriving
+  /// twice (a retried upload, two integrations) is one entry. Moves to the newest
+  /// revision when an entry is corrected.
+  dedupeKey            String?
+  verification         ContributionVerification   @default(UNVERIFIED)
+  reviewedById         String?
+  reviewedAt           DateTime?
+  reviewNote           String?
+  /// Captured without a connection and synced later; first-class, not an error.
+  capturedOffline      Boolean                    @default(false)
+  /// The device clock when it was captured, for offline entries.
+  capturedAt           DateTime?
+  /// Recorded after the allowed window; always needs a reason.
+  retrospective        Boolean                    @default(false)
+  note                 String?
+  state                ContributionState          @default(ACTIVE)
+  /// 1 for the original; each correction is the previous revision + 1.
+  revision             Int                        @default(1)
+  supersedesId         String?
+  correctionReason     String?
+  createdById          String?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  tenant               Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workItem             WorkItem?                  @relation(fields: [workItemId], references: [id], onDelete: SetNull)
+  supersedes           ContributionEntry?         @relation("ContributionRevisions", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy         ContributionEntry[]        @relation("ContributionRevisions")
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, employeeId, occurredAt])
+  @@index([tenantId, employeeId, state, verification])
+  @@index([tenantId, workItemId])
+  @@index([tenantId, workKind, occurredAt])
+}
+
+/// The seven approved work types (U01).
+enum ContributionWorkKind {
+  TASK
+  TRANSACTION
+  DUTY
+  OUTPUT
+  SERVICE
+  EVENT
+  CONTRIBUTION
+}
+
+enum ContributionCategory {
+  PLANNED
+  UNPLANNED
+  SUPPORT
+  MENTORING
+  KNOWLEDGE
+  QUALITY
+  SALES
+  ADMIN
+  TRAINING
+  COVER
+  /// Time the worker could not work for a reason outside their control.
+  DOWNTIME
+  /// Time waiting on a dependency; distinct from downtime and from idle.
+  BLOCKED
+}
+
+enum ContributionMeasure {
+  /// A start and an end: elapsed time.
+  INTERVAL
+  /// A count of units. Not time.
+  QUANTITY
+  /// It happened (a duty performed, an event attended); no duration or count.
+  OCCURRENCE
+}
+
+enum ContributionSource {
+  SELF_REPORT
+  SUPERVISOR
+  MANUAL_IMPORT
+  INTEGRATION
+  WORK_RECORD
+  TIME_RECORD
+}
+
+enum ContributionVerification {
+  /// Recorded, not yet reviewed. Different from "no evidence", which is the
+  /// absence of an entry.
+  UNVERIFIED
+  VERIFIED
+  /// The employee or a reviewer says it is wrong.
+  DISPUTED
+  REJECTED
+}
+
+enum ContributionState {
+  ACTIVE
+  /// Replaced by a later revision; kept as history.
+  SUPERSEDED
+  WITHDRAWN
+}
+
+/// DP-MASTER WP-06.S1. A place work waits before and while someone does it: a
+/// service desk, a clinic's request list, a production line's job board. It
+/// needs no Project. The SLA minutes are defaults stamped onto each item when it
+/// is queued.
+model WorkQueue {
+  id                   String     @id @default(uuid())
+  tenantId             String
+  /// Stable lowercase key; what packages and integrations name.
+  key                  String
+  name                 String
+  description          String?
+  teamId               String?
+  businessUnitId       String?
+  responseSlaMinutes   Int?
+  resolutionSlaMinutes Int?
+  isActive             Boolean    @default(true)
+  createdById          String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  tenant               Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items                WorkItem[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+/// Who held a work item and who it went to, so a reassignment view can show the
+/// chain without reading the audit log. Append-only.
+model WorkItemOwnerChange {
+  id             String   @id @default(uuid())
+  tenantId       String
+  workItemId     String
+  fromEmployeeId String?
+  toEmployeeId   String?
+  reason         String?
+  changedById    String?
+  createdAt      DateTime @default(now())
+  workItem       WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workItemId, createdAt])
+  @@index([tenantId, toEmployeeId])
+}
+
+/// DP-MASTER WP-27. How a tenant runs daily updates: which days, by when. Off until
+/// a tenant turns it on, so nobody is prompted by default.
+model DailyUpdatePolicy {
+  id                     String   @id @default(uuid())
+  tenantId               String   @unique
+  enabled                Boolean  @default(false)
+  /// ISO weekdays, 1 = Monday ... 7 = Sunday. An update is expected only on these.
+  workingDays            Int[]
+  /// Minutes after local midnight by which the update is due.
+  deadlineMinutes        Int      @default(1080)
+  /// IANA zone the deadline is read in.
+  timezone               String   @default("UTC")
+  requireAcknowledgement Boolean  @default(false)
+  updatedById            String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+/// One employee's update for one calendar day. At most one per employee and day,
+/// so an update is never duplicated; edits after submission are audited.
+model DailyUpdate {
+  id               String            @id @default(uuid())
+  tenantId         String
+  employeeId       String
+  forDate          DateTime          @db.Date
+  status           DailyUpdateStatus @default(DRAFT)
+  summary          String?
+  /// Submitted after the policy deadline for that day.
+  late             Boolean           @default(false)
+  submittedAt      DateTime?
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  /// Bumped on every edit after the first save; the before/after is in the audit log.
+  version          Int               @default(1)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  items            DailyUpdateItem[]
+
+  @@unique([tenantId, employeeId, forDate])
+  @@index([tenantId, forDate, status])
+}
+
+/// A line of an update. Lines drafted from evidence keep the id of what they came
+/// from, so the same work is never logged twice.
+model DailyUpdateItem {
+  id                  String                @id @default(uuid())
+  tenantId            String
+  dailyUpdateId       String
+  section             DailyUpdateSection
+  text                String
+  origin              DailyUpdateItemOrigin @default(MANUAL)
+  contributionEntryId String?
+  workItemId          String?
+  position            Int                   @default(0)
+  dailyUpdate         DailyUpdate           @relation(fields: [dailyUpdateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, dailyUpdateId])
+}
+
+enum DailyUpdateStatus {
+  DRAFT
+  SUBMITTED
+  ACKNOWLEDGED
+}
+
+enum DailyUpdateSection {
+  COMPLETED
+  IN_PROGRESS
+  NEXT
+  BLOCKER
+  UNPLANNED
+  ACHIEVEMENT
+}
+
+enum DailyUpdateItemOrigin {
+  /// Proposed from recorded evidence; the employee can edit or remove it.
+  DRAFTED
+  MANUAL
+}
+
+/// DP-MASTER WP-38.S1. Why a piece of work cannot move, who must act, and by when.
+/// A blocker is about the WORK, not the person: the cause is recorded by people
+/// and may be reclassified by a reviewer, but it is never inferred, and it
+/// starts UNDETERMINED so nobody is blamed by default. The time a blocker was
+/// open is reported beside effort, never subtracted from it.
+model WorkItemBlocker {
+  id               String                @id @default(uuid())
+  tenantId         String
+  workItemId       String
+  category         WorkBlockerCategory
+  /// Who or what is responsible for the delay. Never set by the system.
+  cause            WorkBlockerCause      @default(UNDETERMINED)
+  causeSetById     String?
+  reason           String
+  status           WorkBlockerStatus     @default(OPEN)
+  /// The person who must act to clear it. Optional until someone is named.
+  ownerEmployeeId  String?
+  dueAt            DateTime?
+  raisedById       String?
+  raisedAt         DateTime              @default(now())
+  /// 0 = not escalated. Each escalation is a deliberate act, audited.
+  escalationLevel  Int                   @default(0)
+  escalatedAt      DateTime?
+  resolvedAt       DateTime?
+  resolvedById     String?
+  resolution       String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  workItem         WorkItem              @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  owner            Employee?             @relation(fields: [ownerEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, workItemId, status])
+  @@index([tenantId, status, dueAt])
+  @@index([tenantId, ownerEmployeeId, status])
+}
+
+enum WorkBlockerCategory {
+  WAITING_ON_PERSON
+  WAITING_ON_APPROVAL
+  EQUIPMENT_OR_SYSTEM_DOWNTIME
+  EXTERNAL_PARTY
+  MATERIAL_OR_STOCK
+  DECISION_NEEDED
+  ACCESS_OR_TOOLING
+  OTHER
+}
+
+enum WorkBlockerCause {
+  /// Not yet judged. The default; the system never assigns another value.
+  UNDETERMINED
+  WORKER_CONTROLLABLE
+  TEAM_CONTROLLABLE
+  MANAGEMENT
+  EXTERNAL
+}
+
+enum WorkBlockerStatus {
+  OPEN
+  RESOLVED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-04.S2. Immutable e-mail template revisions.
+//
+// A template row is edited in place, so a retry used to render whatever the row
+// said NOW. A revision is the exact content of one version, written when that
+// version is created and never changed, so a retry renders the revision the first
+// attempt used.
+// ---------------------------------------------------------------------------
+
+model EmailTemplateRevision {
+  id                 String   @id @default(uuid())
+  /// Null for a platform (system) template, like the template it snapshots.
+  tenantId           String?
+  templateId         String
+  version            Int
+  subjectTemplate    String
+  htmlTemplate       String
+  textTemplate       String?
+  availableVariables Json
+  /// sha256 of the content above, so identical content is recognisable.
+  checksum           String
+  createdById        String?
+  createdAt          DateTime @default(now())
+
+  @@unique([templateId, version])
+  @@index([tenantId, templateId])
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-36.S1. Duties, checklists and handovers.
+//
+// A duty is recurring work with a lifecycle of its own, so each occurrence is a
+// WorkItem of kind DUTY_OCCURRENCE (ADR-0030); these tables hold what a work item
+// does not: the recurrence, the checklist and the handover between people.
+// ---------------------------------------------------------------------------
+
+model DutyTemplate {
+  id                 String               @id @default(uuid())
+  tenantId           String
+  /// Stable lowercase key; what packages and integrations name.
+  key                String
+  name               String
+  description        String?
+  /// ISO weekdays the duty recurs on, 1 = Monday ... 7 = Sunday.
+  weekdays           Int[]
+  /// IANA zone the dates and times are read in.
+  timezone           String               @default("UTC")
+  /// Minutes after local midnight the occurrence starts and is due. Optional.
+  startMinutes       Int?
+  dueMinutes         Int?
+  /// Who normally does it. Either may be null: an unassigned duty waits in a queue.
+  assigneeEmployeeId String?
+  teamId             String?
+  isActive           Boolean              @default(true)
+  createdById        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  checklist          DutyChecklistItem[]
+  occurrences        DutyOccurrence[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, isActive])
+}
+
+model DutyChecklistItem {
+  id             String       @id @default(uuid())
+  tenantId       String
+  dutyTemplateId String
+  position       Int          @default(0)
+  label          String
+  required       Boolean      @default(true)
+  dutyTemplate   DutyTemplate @relation(fields: [dutyTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, dutyTemplateId])
+}
+
+/// One generated occurrence of a duty on one date. Unique per template and date, so
+/// generating twice (a retried job, two instances) yields one.
+model DutyOccurrence {
+  id             String                 @id @default(uuid())
+  tenantId       String
+  dutyTemplateId String
+  forDate        DateTime               @db.Date
+  workItemId     String                 @unique
+  createdAt      DateTime               @default(now())
+  dutyTemplate   DutyTemplate           @relation(fields: [dutyTemplateId], references: [id], onDelete: Cascade)
+  /// Lets a list be filtered and paged by the work item's visibility in SQL (WP-36.S2).
+  workItem       WorkItem               @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  checks         DutyOccurrenceCheck[]
+  handovers      DutyHandover[]
+
+  @@unique([tenantId, dutyTemplateId, forDate])
+  @@index([tenantId, forDate])
+}
+
+/// The checklist as it stood when the occurrence was generated: editing the template
+/// later never rewrites an occurrence already in progress.
+model DutyOccurrenceCheck {
+  id            String         @id @default(uuid())
+  tenantId      String
+  occurrenceId  String
+  position      Int            @default(0)
+  label         String
+  required      Boolean        @default(true)
+  completedAt   DateTime?
+  completedById String?
+  note          String?
+  occurrence    DutyOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurrenceId])
+}
+
+/// A handover from the person finishing to the person starting. It must be
+/// acknowledged by the receiver; an unacknowledged one stays visible.
+model DutyHandover {
+  id               String                @id @default(uuid())
+  tenantId         String
+  occurrenceId     String?
+  fromEmployeeId   String
+  toEmployeeId     String?
+  teamId           String?
+  note             String
+  status           DutyHandoverStatus    @default(OPEN)
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  createdAt        DateTime              @default(now())
+  occurrence       DutyOccurrence?       @relation(fields: [occurrenceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, toEmployeeId, status])
+}
+
+enum DutyHandoverStatus {
+  OPEN
+  ACKNOWLEDGED
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-28.S1. Meetings, discussions and the decision register.
+// Action items are work items; the link table says which decision they came from.
+// ---------------------------------------------------------------------------
+
+model MeetingRecord {
+  id                    String            @id @default(uuid())
+  tenantId              String
+  title                 String
+  agenda                String?
+  scheduledAt           DateTime
+  heldAt                DateTime?
+  facilitatorEmployeeId String?
+  notes                 String?
+  status                MeetingStatus     @default(PLANNED)
+  /// Optional context: the work or blocker it is about.
+  workItemId            String?
+  blockerId             String?
+  projectId             String?
+  createdById           String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attendees             MeetingAttendee[]
+  decisions             WorkDecision[]
+
+  @@index([tenantId, scheduledAt])
+  @@index([tenantId, status])
+}
+
+model MeetingAttendee {
+  id         String        @id @default(uuid())
+  tenantId   String
+  meetingId  String
+  employeeId String
+  attended   Boolean?
+  meeting    MeetingRecord @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, employeeId])
+  @@index([tenantId, employeeId])
+}
+
+enum MeetingStatus {
+  PLANNED
+  HELD
+  CANCELLED
+}
+
+/// A decision, who owns it, and what it superseded. Decisions are never deleted or
+/// rewritten: changing one creates a new decision that supersedes it.
+model WorkDecision {
+  id              String           @id @default(uuid())
+  tenantId        String
+  title           String
+  context         String?
+  decision        String
+  status          DecisionStatus   @default(DECIDED)
+  ownerEmployeeId String?
+  decidedAt       DateTime         @default(now())
+  meetingId       String?
+  workItemId      String?
+  blockerId       String?
+  projectId       String?
+  supersedesId    String?
+  /// Why it was reversed, kept on the decision so it can be read back (WP-28.S2).
+  reversedReason  String?
+  reversedAt      DateTime?
+  reversedById    String?
+  createdById     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  meeting         MeetingRecord?   @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  supersedes      WorkDecision?    @relation("DecisionSupersedes", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy    WorkDecision[]   @relation("DecisionSupersedes")
+  actions         DecisionAction[]
+
+  @@index([tenantId, status, decidedAt])
+  @@index([tenantId, workItemId])
+  @@index([tenantId, blockerId])
+}
+
+/// Which work item (an action) came out of which decision.
+model DecisionAction {
+  id         String       @id @default(uuid())
+  tenantId   String
+  decisionId String
+  workItemId String
+  createdAt  DateTime     @default(now())
+  decision   WorkDecision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@unique([decisionId, workItemId])
+  @@index([tenantId, workItemId])
+}
+
+enum DecisionStatus {
+  PROPOSED
+  DECIDED
+  SUPERSEDED
+  REVERSED
+}
+
+// ---------------------------------------------------------------------------
+// DP-MASTER WP-27.S2. Daily-update policies scoped below the tenant, and the
+// record that a missed update was escalated (so a retried job never escalates twice).
+// The tenant-wide DailyUpdatePolicy stays the default; the most specific scope wins:
+// team, then business unit, then the tenant policy.
+// ---------------------------------------------------------------------------
+
+model DailyUpdateScopePolicy {
+  id                     String       @id @default(uuid())
+  tenantId               String
+  teamId                 String?
+  businessUnitId         String?
+  enabled                Boolean      @default(true)
+  cadence                DailyUpdateCadence @default(WORKING_DAYS)
+  /// ISO weekdays for the WORKING_DAYS cadence; ignored for PER_SHIFT.
+  workingDays            Int[]
+  /// Minutes after local midnight (WORKING_DAYS) or after the shift ends (PER_SHIFT).
+  deadlineMinutes        Int          @default(1080)
+  timezone               String       @default("UTC")
+  requireAcknowledgement Boolean      @default(false)
+  /// Minutes after the deadline at which a missed update is escalated; null = never.
+  escalateAfterMinutes   Int?
+  updatedById            String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  tenant                 Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, teamId])
+  @@unique([tenantId, businessUnitId])
+  @@index([tenantId, enabled])
+}
+
+enum DailyUpdateCadence {
+  WORKING_DAYS
+  PER_SHIFT
+}
+
+model DailyUpdateEscalation {
+  id         String   @id @default(uuid())
+  tenantId   String
+  employeeId String
+  forDate    DateTime @db.Date
+  notifiedAt DateTime @default(now())
+
+  @@unique([tenantId, employeeId, forDate])
+  @@index([tenantId, forDate])
 }

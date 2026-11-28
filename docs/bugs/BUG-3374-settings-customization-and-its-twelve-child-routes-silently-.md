@@ -2,7 +2,7 @@
 ID: BUG-3374
 aliases: [BUG-3374]
 Title: Settings Customization and its twelve child routes silently redirect to Roles
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-11
 DetectedInSha: cbd9b812
 AffectedModules: [apps/web, customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-420
 RelatedBacklogItem: ITEM-0104
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-12
 ---
 
@@ -227,12 +227,7 @@ and replacing the redirect with an in-place refusal.
 
 ## QA Retest
 
-Pending — no QA agent run in this session; `apps/web`'s automated suite
-(`npm --workspace web run test`, `check-types`) is green, including a new
-unit-level regression test of `requireCustomizationAccess` covering the exact
-workspace-owner fixture this bug was reproduced with. See REG-420 in
-`docs/qa/regressions/index.md` for the scenario a future QA pass should
-re-run end to end against a live workspace.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): require-settings-permission.spec asserts requireCustomizationAccess returns {allowed} (admits keys-holders, denies no session/empty keys) rather than redirecting; passes. customization/layout.tsx renders CustomizationAccessDenied in place with no redirect (later refined by BUG-3491 to a permission-only gate, still consistent).
 
 ## History
 
@@ -256,3 +251,4 @@ re-run end to end against a live workspace.
 - Regression — REG-420 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

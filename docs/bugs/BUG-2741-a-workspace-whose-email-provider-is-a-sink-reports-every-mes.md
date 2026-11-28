@@ -2,7 +2,7 @@
 ID: BUG-2741
 aliases: [BUG-2741]
 Title: A workspace whose email provider is a sink reports every message as SENT
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-31
 DetectedInSha: 2b001494
 AffectedModules: [notifications, reporting]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: QA-REPORTING-011
 RegressionId: REG-391
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-31
-UpdatedAt: 2026-08-31
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-31
 ---
 
@@ -205,6 +205,8 @@ the demo tenant.
 
 `QA-REPORTING-011`.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): email-sink-delivery-status.spec.ts asserts NOT_DELIVERED for CONSOLE/DEV and SENT for real transport with warn-level log; email-delivery-capability.spec.ts and src/log-level-resolution.spec.ts cover capability and LOG_LEVEL unknown-value warning; all pass.
+
 ## History
 
 - 2026-08-31 — created from qa run at `2b001494`.
@@ -219,3 +221,4 @@ the demo tenant.
 - Regression — REG-391 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

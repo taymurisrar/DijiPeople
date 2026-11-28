@@ -2,7 +2,7 @@
 ID: BUG-2008
 aliases: [BUG-2008]
 Title: Every employee is counted absent on a non-working day and raised as an exception
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -243,8 +243,7 @@ counts entries rather than deriving absence.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet. Retesting requires either a Friday or a
-Saturday on this tenant's schedule, or a temporary schedule change.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): dashboard.service.spec.ts asserts absent 0 / nonWorking 11 and exception value 0 on a non-working day, and absent 2 on a working day; attendance-work-day-resolution.spec.ts covers schedule/holiday resolution; dashboard.service.ts and attendance.repository.resolveWorkDayForEmployees contain the fix; pass.
 
 ## History
 
@@ -259,3 +258,4 @@ Saturday on this tenant's schedule, or a temporary schedule change.
 - Regression — REG-318 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

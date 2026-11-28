@@ -208,7 +208,7 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-**68 modules** under `services/api/src/modules/`, verified at commit 11b31412 (checked against the directory by `scripts/validate-framework.mjs`).
+**72 modules** under `services/api/src/modules/`, verified at commit 11b31412 (checked against the directory by `scripts/validate-framework.mjs`).
 
 | Area | Modules |
 |---|---|
@@ -219,7 +219,7 @@ Three authenticated surfaces plus one public one:
 | Talent | `recruitment`, `onboarding`, `projects`, `documents`, `policies` |
 | Governance | `approvals`, `workflows`, `sla`, `audit`, `error-logs`, `permissions`, `roles` |
 | Commercial | `legal` (versioned legal documents, publication, acknowledgements), `leads`, `partners`, `partner-experience`, `contracts`, `support-cases`, `billing`, `super-admin` (customers, plans, subscriptions, invoices, payments, tenant provisioning) |
-| Configuration | `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
+| Configuration | `work-profiles` (configurable work units, versioned work profiles, employee assignments), `work-items` (tasks, service jobs and duty occurrences with a lifecycle, contributors and dependencies), `contributions` (the contribution/evidence ledger: provenance, verification, overlap counted once, revisions), `daily-updates` (evidence-backed daily updates, policy, review), `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
 | Messaging | `notifications` — the only route for tenant notification and email; catalog → orchestrator → queue → processor |
 | Platform ops | `platform-auth`, `platform-users`, `platform-events`, `outbox` (transactional outbox — the delivery half `platform-events` deliberately is not), `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `tenant-control-plane`, `tenant-domains`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` (the four legacy summary endpoints), `reporting` (the Reports & Analytics platform: semantic layer, metric registry, query engine, exports, schedules) |
 
@@ -364,8 +364,8 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **<!--fact:schemaLines-->15,314<!--/fact--> lines, <!--fact:prismaModels-->344<!--/fact--> models, <!--fact:prismaEnums-->322<!--/fact--> enums**,
-with **<!--fact:migrations-->240<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
+`services/api/prisma/schema.prisma` — **<!--fact:schemaLines-->16,288<!--/fact--> lines, <!--fact:prismaModels-->372<!--/fact--> models, <!--fact:prismaEnums-->344<!--/fact--> enums**,
+with **<!--fact:migrations-->259<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
 derived by `scripts/derive-doc-facts.mjs` and checked on every push; they drifted
 before that existed (this file said 312 models and 210 migrations when the tree had 340 and 235). Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
@@ -428,7 +428,7 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
   `@Public()` marks a genuinely unauthenticated route. At this baseline there
-  are **<!--fact:publicHandlers-->64<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->17<!--/fact--> controllers**, including partially
+  are **<!--fact:publicHandlers-->66<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->17<!--/fact--> controllers**, including partially
   public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
   where most handlers are guarded and a few are not. Count them on your branch;
   never assume a controller is uniformly public or uniformly guarded.
@@ -871,6 +871,14 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   This applies to the primary checkout above all: it is the user's interactive
   workspace, not a scratch directory, and `git status --short` being non-empty
   there is something they will see in GitHub Desktop long before you do.
+- **Subagent model choice.** When spawning a subagent, pass `model` explicitly; never
+  inherit the session's model by omission. Use `haiku` for mechanical work: running a
+  named test or browser suite and reporting results, repetitive screens built on
+  existing shared components, and file or log searches. Use `sonnet` for work needing
+  judgment: engine and database changes, security-sensitive code, and anything with
+  mutation or race-condition proofs. Reserve `opus` for the roles that already set it
+  in `.claude/agents/`. Prefer several short, narrowly briefed agents over one
+  multi-hour agent, and say in the brief which model was chosen and why.
 - Do not add dependencies without justification; prefer what is already
   installed.
 - Do not reformat files you are not otherwise changing.

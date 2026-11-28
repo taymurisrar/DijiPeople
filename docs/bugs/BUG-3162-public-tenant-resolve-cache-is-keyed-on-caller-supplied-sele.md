@@ -2,7 +2,7 @@
 ID: BUG-3162
 aliases: [BUG-3162]
 Title: Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation)
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-710
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3162 — Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation)
@@ -145,7 +145,7 @@ Full finding text: CACHE-01 in `docs/engineering/audits/2026-09-10-full-technica
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+The cache was keyed on the first selector present while the resolver reads several, so slug=victim with host=<attacker domain> cached the attacker tenant under the victim slug.
 
 ## Impact
 
@@ -170,7 +170,7 @@ In `PublicTenantsService.resolve`, compute the cache key *after* resolution from
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: CACHE-01=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/src/modules/tenants/public-tenants-cache-key.spec.ts. REG-710, QA-AUTH-027. Reverting to a first-selector key fails 3 of 5 unit cases.
 
 ## Dependencies
 
@@ -182,11 +182,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+The key now carries domain, host, slug and code, and keeps the tenant:resolve: prefix that invalidation deletes by.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-AUTH-027 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-tenants-cache-key.spec.ts asserts key differs when a second selector is added, per variant, keeps tenant:resolve: prefix, and separator-safe; passes.
 
 ## History
 
@@ -197,5 +201,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[tenant-control-plane]]
+- Regression — REG-710 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

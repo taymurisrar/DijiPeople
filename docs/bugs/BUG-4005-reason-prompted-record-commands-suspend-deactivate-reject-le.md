@@ -2,7 +2,7 @@
 ID: BUG-4005
 aliases: [BUG-4005]
 Title: Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: 952b7b58
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-657
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [apps/admin/app/_components/runtime/module-action-bar.tsx, apps/admin/lib/runtime/action-bar-no-transition.spec.ts]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-08
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-08
 ---
 
@@ -97,6 +97,8 @@ QA-PLATFORM-055:
 - Admin unit tests: 787 of 787 pass.
 - Mutation check: restoring the old file makes the guard spec fail.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): action-bar-no-transition.spec.ts asserts module-action-bar.tsx contains no startTransition/useTransition and still awaits onAction with pendingKey busy state; passes, and grep confirms the source.
+
 ## History
 
 - 2026-10-07 — created from qa run at `952b7b58`.
@@ -110,3 +112,4 @@ QA-PLATFORM-055:
 - Regression — REG-657 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

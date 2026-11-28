@@ -51,7 +51,9 @@ export const DEFAULT_CONFIG: AgentConfig = {
     idleThresholdSeconds: agentEnv.idleThresholdSeconds,
     awayThresholdSeconds: agentEnv.awayThresholdSeconds,
     captureActiveApp: agentEnv.activeAppTrackingEnabled,
-    captureWindowTitle: agentEnv.windowTitleTrackingEnabled,
+    // Privacy-first (D16): never collected from a local default or an environment
+    // variable. Only the tenant's synced policy can turn window titles on.
+    captureWindowTitle: false,
   },
 
   privacy: {
@@ -70,7 +72,7 @@ export const DEFAULT_CONFIG: AgentConfig = {
 
   features: {
     activeAppTracking: agentEnv.activeAppTrackingEnabled,
-    windowTitleTracking: agentEnv.windowTitleTrackingEnabled,
+    windowTitleTracking: false,
     offlineQueue: agentEnv.offlineQueueEnabled,
     autoUpdate: agentEnv.autoUpdateEnabled,
     trayStatus: agentEnv.trayStatusEnabled,
@@ -80,6 +82,8 @@ export const DEFAULT_CONFIG: AgentConfig = {
   },
 
   dlp: DEFAULT_DLP_CONFIG,
+
+  dlpConsent: { required: false, granted: false },
 };
 
 export class ConfigManager {
@@ -87,6 +91,19 @@ export class ConfigManager {
   lastConfigSync: Date | null = null;
 
   private isRefreshing = false;
+
+  /**
+   * True when the server's answer is recent enough to act on. Content capture is
+   * only lawful while the employee's acknowledgement of the CURRENT policy is
+   * known to stand, and a laptop that has been offline cannot know that: it must
+   * fail closed rather than keep capturing under a consent it cannot re-check.
+   */
+  isFresh(maxAgeMs: number, now: number = Date.now()): boolean {
+    return (
+      this.lastConfigSync !== null &&
+      now - this.lastConfigSync.getTime() <= maxAgeMs
+    );
+  }
 
   constructor(private readonly apiClient: ApiClient) {}
 
@@ -123,12 +140,22 @@ export class ConfigManager {
     // `dlp` block below carries only the detail and mirrors these two, so there
     // is one source of truth for "may we capture at all" and no way for the two
     // to disagree.
+    // Consent is enforced here as well as on the server: if the policy is
+    // required and not acknowledged, content capture is off whatever else the
+    // payload says, so a server bug can never turn it on locally.
+    const dlpConsent = {
+      required: config.dlpConsent?.required === true,
+      granted: config.dlpConsent?.granted === true,
+    };
+    const consentBlocksCapture = dlpConsent.required && !dlpConsent.granted;
     const allowClipboardTracking =
-      config.privacy?.allowClipboardTracking ??
-      DEFAULT_CONFIG.privacy.allowClipboardTracking;
+      !consentBlocksCapture &&
+      (config.privacy?.allowClipboardTracking ??
+        DEFAULT_CONFIG.privacy.allowClipboardTracking);
     const allowScreenshots =
-      config.privacy?.allowScreenshots ??
-      DEFAULT_CONFIG.privacy.allowScreenshots;
+      !consentBlocksCapture &&
+      (config.privacy?.allowScreenshots ??
+        DEFAULT_CONFIG.privacy.allowScreenshots);
 
     return {
       agentVersionPolicy: {
@@ -198,6 +225,8 @@ export class ConfigManager {
           config.privacy?.allowLocationAccess ??
           DEFAULT_CONFIG.privacy.allowLocationAccess,
       },
+
+      dlpConsent,
 
       api: {
         heartbeatBatchSize: this.clampNumber(

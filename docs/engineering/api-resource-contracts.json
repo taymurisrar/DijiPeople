@@ -1100,6 +1100,78 @@
       ],
       "notApplicable": {},
       "classifiedBy": "init-heuristic (review me)"
+    },
+    {
+      "controller": "services/api/src/modules/work-profiles/work-profiles.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "Units and profiles are deactivated, published versions are immutable and assignments are ended: they are the historical record that work records pin to (ADR-0030). A delete would orphan or rewrite history."
+      },
+      "classifiedBy": "DP-MASTER WP-35.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-items.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A work item may carry evidence, time and history that other records point at: it is archived (finished items only), never deleted (ADR-0030). Contributor and dependency edges can be removed."
+      },
+      "classifiedBy": "DP-MASTER WP-02.S1"
+    },
+    {
+      "controller": "services/api/src/modules/contributions/contributions.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "Evidence is never deleted: a correction appends a revision that supersedes the entry, and an author can only withdraw one, which keeps it in history (WP-30.S1, M02)."
+      },
+      "classifiedBy": "DP-MASTER WP-30.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-queues.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A queue holds work that points at it: it is deactivated (isActive=false), never deleted, so items keep their queue and history (WP-06.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-06.S1"
+    },
+    {
+      "controller": "services/api/src/modules/daily-updates/daily-updates.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A daily update is a record of what a person reported on a day: it is corrected (version bump, audited before/after) and acknowledged, never deleted (WP-27)."
+      },
+      "classifiedBy": "DP-MASTER WP-27"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-blockers.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A blocker is evidence of why work was delayed and feeds blocked-time reporting: it is resolved or cancelled and stays in history, never deleted (WP-38.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-38.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-duties.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A duty template is deactivated, never deleted, and an occurrence is a work item that stays in history; a handover stays visible until acknowledged (WP-36.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-36.S1"
+    },
+    {
+      "controller": "services/api/src/modules/work-items/work-decisions.controller.ts",
+      "type": "action",
+      "requires": [],
+      "notApplicable": {
+        "delete": "A decision is never deleted or rewritten: changing one creates a superseding decision, and a meeting is cancelled, not removed (WP-28.S1)."
+      },
+      "classifiedBy": "DP-MASTER WP-28.S1"
     }
   ],
   "baseline": {

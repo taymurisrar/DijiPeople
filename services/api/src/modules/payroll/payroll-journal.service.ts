@@ -608,35 +608,46 @@ export class PayrollJournalService {
       );
     }
 
-    const existing = await this.prisma.payrollJournalEntry.findFirst({
-      where: {
-        tenantId: input.tenantId,
-        payrollRunId: input.payrollRunId,
-        journalType: PayrollJournalEntryType.ORIGINAL,
-        originalJournalId: null,
-      },
-      include: { lines: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    if (
-      existing?.status === PayrollJournalEntryStatus.EXPORTED ||
-      existing?.status === PayrollJournalEntryStatus.POSTED
-    ) {
-      throw new ConflictException(
-        'Exported or posted payroll journals cannot be regenerated.',
-      );
-    }
-
-    const journal =
-      existing ??
-      (await this.prisma.payrollJournalEntry.create({
-        data: {
+    /*
+     * BUG-4639 follow-up. The one-ORIGINAL-per-run rule used to be backstopped by
+     * a unique index on (tenantId, payrollRunId); that index had to go so a
+     * reversal or adjustment journal can share the run. A plain find-then-create
+     * would let two concurrent generates both see "none" and both create an
+     * ORIGINAL, so the check and the create are one transaction that first takes
+     * a row lock on the run. The second caller waits, then sees the first's row.
+     */
+    const { existing, journal } = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "PayrollRun" WHERE "id" = ${input.payrollRunId} AND "tenantId" = ${input.tenantId} FOR UPDATE`;
+      const found = await tx.payrollJournalEntry.findFirst({
+        where: {
           tenantId: input.tenantId,
           payrollRunId: input.payrollRunId,
           journalType: PayrollJournalEntryType.ORIGINAL,
-          status: PayrollJournalEntryStatus.DRAFT,
+          originalJournalId: null,
         },
-      }));
+        include: { lines: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (
+        found?.status === PayrollJournalEntryStatus.EXPORTED ||
+        found?.status === PayrollJournalEntryStatus.POSTED
+      ) {
+        throw new ConflictException(
+          'Exported or posted payroll journals cannot be regenerated.',
+        );
+      }
+      const row =
+        found ??
+        (await tx.payrollJournalEntry.create({
+          data: {
+            tenantId: input.tenantId,
+            payrollRunId: input.payrollRunId,
+            journalType: PayrollJournalEntryType.ORIGINAL,
+            status: PayrollJournalEntryStatus.DRAFT,
+          },
+        }));
+      return { existing: found, journal: row };
+    });
 
     await this.prisma.payrollJournalEntryLine.deleteMany({
       where: { tenantId: input.tenantId, journalEntryId: journal.id },
@@ -914,6 +925,30 @@ export class PayrollJournalService {
     }
     const reversalDate = parseOptionalDate(input.reversalDate) ?? new Date();
     const reversal = await this.prisma.$transaction(async (tx) => {
+      /*
+       * BUG-4639 follow-up. The reversal checks above run outside this
+       * transaction, so two concurrent requests can both pass them. Locking the
+       * original journal row and re-checking under the lock makes the second
+       * request wait and then see the first's reversal, instead of double-
+       * reversing the general ledger now that no unique index forbids it.
+       */
+      await tx.$queryRaw`SELECT 1 FROM "PayrollJournalEntry" WHERE "id" = ${journal.id} AND "tenantId" = ${user.tenantId} FOR UPDATE`;
+      const alreadyReversed = await tx.payrollJournalEntry.findFirst({
+        where: {
+          tenantId: user.tenantId,
+          OR: [
+            { id: journal.id, reversalJournalId: { not: null } },
+            {
+              originalJournalId: journal.id,
+              journalType: PayrollJournalEntryType.REVERSAL,
+            },
+          ],
+        },
+        select: { id: true },
+      });
+      if (alreadyReversed) {
+        throw new ConflictException('This journal already has a reversal.');
+      }
       const created = await tx.payrollJournalEntry.create({
         data: {
           tenantId: user.tenantId,

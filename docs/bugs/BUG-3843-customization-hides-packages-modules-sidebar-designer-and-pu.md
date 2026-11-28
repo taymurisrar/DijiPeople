@@ -2,7 +2,7 @@
 ID: BUG-3843
 aliases: [BUG-3843]
 Title: Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-07
 DetectedInSha: 9714f85b
 AffectedModules: [apps/web, customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-644
 RelatedBacklogItem:
 RelatedDecision: ADR-0013
 RelatedImplementation: [apps/web/app/(authenticated)/settings/_lib/settings-navigation.ts, apps/web/app/(authenticated)/settings/_lib/customization-navigation-access.spec.ts]
 CreatedAt: 2026-10-07
-UpdatedAt: 2026-10-07
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-07
 ---
 
@@ -133,6 +133,8 @@ Branch `agent/crm-plugin-alm-mfa-claims`.
 QA-SETTINGS-038. Spec PASS, 10 cases. It is mutation-checked: 9 of the 10 cases
 fail against the original file.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): customization-navigation-access.spec asserts each Customization item (modules, sidebar, packages, publish-center) is shown to a system-admin role holding exactly its page's keys, hidden when a key is missing, and that no item is role-gated; passes.
+
 ## History
 
 - 2026-10-07 — created from the owner's report that there was no way to import,
@@ -146,3 +148,4 @@ fail against the original file.
 - Regression — REG-644 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

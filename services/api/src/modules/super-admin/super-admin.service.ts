@@ -92,6 +92,7 @@ import { PlatformFxService } from './platform-fx.service';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';
+import type { RuntimeDbPageArgs } from '../platform-runtime/runtime-db-query';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import {
@@ -1012,6 +1013,28 @@ export class SuperAdminService {
     return Promise.all(
       tenants.map(async (tenant) => this.mapTenantSummary(tenant)),
     );
+  }
+
+  /**
+   * One page of the platform tenant list, filtered and ordered by the
+   * database. Same row shape as listTenants(); the runtime list endpoint used
+   * to call that and slice the whole table in Node (BUG-3175).
+   */
+  async listTenantsPage(args: RuntimeDbPageArgs) {
+    const { items, total } = await this.tenantsRepository.findPageForSuperAdmin(
+      {
+        where: args.where as Prisma.TenantWhereInput,
+        orderBy: args.orderBy as Prisma.TenantOrderByWithRelationInput[],
+        skip: args.skip,
+        take: args.take,
+      },
+    );
+    return {
+      items: await Promise.all(
+        items.map(async (tenant) => this.mapTenantSummary(tenant)),
+      ),
+      total,
+    };
   }
 
   // ------------------------------------------- desktop agent rollout (TASK-0027)
@@ -2040,6 +2063,17 @@ export class SuperAdminService {
     const mapped = plans.map((plan) => this.mapPlan(plan));
     if (!sellable) return mapped;
     return mapped.filter((plan) => plan.isActive && plan.priceCount > 0);
+  }
+
+  /** One database-filtered page of plans, mapped as listPlans() maps them. */
+  async listPlansPage(args: RuntimeDbPageArgs) {
+    const { items, total } = await this.plansRepository.findPage({
+      where: args.where as Prisma.PlanWhereInput,
+      orderBy: args.orderBy as Prisma.PlanOrderByWithRelationInput[],
+      skip: args.skip,
+      take: args.take,
+    });
+    return { items: items.map((plan) => this.mapPlan(plan)), total };
   }
 
   getFeatureCatalog() {
@@ -3261,6 +3295,25 @@ export class SuperAdminService {
     );
   }
 
+  /** One database-filtered page of subscriptions, projected as the list does. */
+  async listSubscriptionsPage(args: RuntimeDbPageArgs) {
+    const where = args.where as Prisma.SubscriptionWhereInput;
+    const [rows, total] = await Promise.all([
+      this.prisma.subscription.findMany({
+        where,
+        include: SuperAdminService.SUBSCRIPTION_INCLUDE,
+        orderBy: args.orderBy as Prisma.SubscriptionOrderByWithRelationInput[],
+        skip: args.skip,
+        take: args.take,
+      }),
+      this.prisma.subscription.count({ where }),
+    ]);
+    return {
+      items: rows.map((subscription) => this.projectSubscription(subscription)),
+      total,
+    };
+  }
+
   /** One subscription, in the shape the list uses. */
   async getSubscription(id: string) {
     const subscription = await this.prisma.subscription.findUnique({
@@ -3271,55 +3324,81 @@ export class SuperAdminService {
     return this.projectSubscription(subscription);
   }
 
-  async listInvoices() {
-    const invoices = await this.prisma.invoice.findMany({
-      include: {
-        tenant: {
+  /** One database-filtered page of invoices, mapped as listInvoices() does. */
+  async listInvoicesPage(args: RuntimeDbPageArgs) {
+    const where = args.where as Prisma.InvoiceWhereInput;
+    const [rows, total] = await Promise.all([
+      this.prisma.invoice.findMany({
+        where,
+        include: SuperAdminService.INVOICE_LIST_INCLUDE,
+        orderBy: args.orderBy as Prisma.InvoiceOrderByWithRelationInput[],
+        skip: args.skip,
+        take: args.take,
+      }),
+      this.prisma.invoice.count({ where }),
+    ]);
+    return {
+      items: rows.map((invoice) => this.mapInvoice(invoice)),
+      total,
+    };
+  }
+
+  /** One database-filtered page of payments. */
+  listPaymentsPage(args: RuntimeDbPageArgs) {
+    return this.paymentsService.listPaymentsPage(args);
+  }
+
+  private static readonly INVOICE_LIST_INCLUDE = {
+    tenant: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        customerAccount: {
           select: {
             id: true,
-            name: true,
-            slug: true,
-            customerAccount: {
-              select: {
-                id: true,
-                companyName: true,
-                legalCompanyName: true,
-                contactEmail: true,
-                billingContactEmail: true,
-                financeContactEmail: true,
-                country: true,
-                stateProvince: true,
-                city: true,
-                addressLine1: true,
-                addressLine2: true,
-                website: true,
-              },
-            },
-            tenantBranding: {
-              select: {
-                brandName: true,
-                shortBrandName: true,
-                logoUrl: true,
-                primaryColor: true,
-                accentColor: true,
-                supportEmail: true,
-                supportPhone: true,
-                termsOfUseUrl: true,
-              },
-            },
+            companyName: true,
+            legalCompanyName: true,
+            contactEmail: true,
+            billingContactEmail: true,
+            financeContactEmail: true,
+            country: true,
+            stateProvince: true,
+            city: true,
+            addressLine1: true,
+            addressLine2: true,
+            website: true,
           },
         },
-        subscription: {
-          include: {
-            plan: {
-              select: { id: true, key: true, name: true },
-            },
+        tenantBranding: {
+          select: {
+            brandName: true,
+            shortBrandName: true,
+            logoUrl: true,
+            primaryColor: true,
+            accentColor: true,
+            supportEmail: true,
+            supportPhone: true,
+            termsOfUseUrl: true,
           },
-        },
-        payments: {
-          orderBy: { createdAt: 'desc' },
         },
       },
+    },
+    subscription: {
+      include: {
+        plan: {
+          select: { id: true, key: true, name: true },
+        },
+      },
+    },
+    payments: {
+      orderBy: { createdAt: 'desc' },
+    },
+  } satisfies Prisma.InvoiceInclude;
+
+  async listInvoices() {
+    const invoices = await this.prisma.invoice.findMany({
+      include: SuperAdminService.INVOICE_LIST_INCLUDE,
       orderBy: [{ createdAt: 'desc' }],
     });
 

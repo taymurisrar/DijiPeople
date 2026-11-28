@@ -158,6 +158,52 @@ describe("apiRequest — never sends an unauthenticatable request (BUG-3356)", (
   });
 });
 
+describe("apiRequest — a timesheet-restriction 403 is not a lost session (BUG-4518)", () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    jest.restoreAllMocks();
+  });
+
+  it("returns the 403 as-is: one request, no /auth/refresh, cookies untouched", async () => {
+    // Both tokens present, so a refresh WOULD be possible if the client took
+    // the 403 for an expired session — which is what the 401 the guard used to
+    // send made it do.
+    const store = cookieStore({
+      [ACCESS_TOKEN_COOKIE]: "a-valid-access-token",
+      [REFRESH_TOKEN_COOKIE]: "a-perfectly-good-refresh-token",
+    });
+    (cookies as jest.Mock).mockResolvedValue(store);
+
+    const fetchedUrls: string[] = [];
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => {
+      fetchedUrls.push(typeof input === "string" ? input : input.toString());
+      return jsonResponse(
+        {
+          statusCode: 403,
+          errorCode: "TIMESHEET_ACCESS_RESTRICTED",
+          message: "Overdue timesheets",
+        },
+        403,
+      );
+    }) as unknown as typeof fetch;
+
+    const response = await apiRequest("/employees");
+
+    expect(response.status).toBe(403);
+    expect(fetchedUrls).toHaveLength(1);
+    expect(fetchedUrls[0]).toContain("/employees");
+    expect(fetchedUrls.some((url) => url.includes("/auth/refresh"))).toBe(
+      false,
+    );
+    expect(store.get(ACCESS_TOKEN_COOKIE)?.value).toBe("a-valid-access-token");
+    expect(store.get(REFRESH_TOKEN_COOKIE)?.value).toBe(
+      "a-perfectly-good-refresh-token",
+    );
+  });
+});
+
 describe("apiRequest — an unwritable cookie store skips refresh entirely (BUG-3358)", () => {
   const originalFetch = global.fetch;
 

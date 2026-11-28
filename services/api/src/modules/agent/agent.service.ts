@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -50,6 +51,11 @@ import {
 } from './dto/agent-session.dto';
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
+import { AcknowledgeMonitoringPolicyDto } from './dto/monitoring-policy.dto';
+import {
+  findCurrentMonitoringPolicy,
+  hasCurrentMonitoringConsent,
+} from './dlp/dlp-consent';
 import { AuditService } from '../audit/audit.service';
 import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
@@ -81,7 +87,11 @@ const DEFAULT_AGENT_SETTINGS = {
   idleThresholdSeconds: 120,
   awayThresholdSeconds: 600,
   captureActiveApp: true,
-  captureWindowTitle: true,
+  // DP-MASTER/WP-17.S2 (OD-DLP-DEFAULTS, D16): window titles can name documents,
+  // people and accounts, so they are collected only when a tenant opts in.
+  captureWindowTitle: false,
+  // Content capture refuses to record without a recorded acknowledgement.
+  dlpConsentRequired: true,
   allowCameraAccess: false,
   allowMicrophoneAccess: false,
   allowLocationAccess: false,
@@ -302,12 +312,21 @@ export class AgentService {
       throw new UnauthorizedException('Agent device is not registered.');
     }
 
+    /*
+     * BUG-3140. `startNewSession` is client-supplied on a public route, so it
+     * may only relax the IDLE timeout (the desktop resumes a saved session after
+     * the app was closed for a while). It must never extend the ABSOLUTE session
+     * lifetime: that is fixed when the user signs in with credentials, and is
+     * carried forward unchanged below. Previously the flag skipped both checks
+     * and minted a fresh 30-day lifetime, so a refresh-token holder could stay
+     * signed in indefinitely.
+     */
     const startsNewSession = dto.startNewSession === true;
     const tokenRecord = await this.findMatchingRefreshToken(
       user.id,
       device.id,
       dto.refreshToken,
-      { allowExpiredActiveSession: startsNewSession },
+      { ignoreIdleTimeout: startsNewSession },
     );
 
     if (!tokenRecord) {
@@ -338,9 +357,8 @@ export class AgentService {
       email: user.email,
       deviceId: device.id,
       sessionId: startsNewSession ? undefined : payload.sessionId,
-      absoluteExpiresAt: startsNewSession
-        ? undefined
-        : tokenRecord.absoluteExpiresAt,
+      // Always the original lifetime, never a fresh one (BUG-3140).
+      absoluteExpiresAt: tokenRecord.absoluteExpiresAt,
     });
 
     return {
@@ -851,7 +869,7 @@ export class AgentService {
     };
   }
 
-  async getConfig(tenantId: string) {
+  async getConfig(tenantId: string, userId?: string) {
     const settings = (await this.getOrCreateSettings(
       tenantId,
     )) as ExtendedAgentSettings & {
@@ -879,7 +897,101 @@ export class AgentService {
           })
         : [];
 
-    return toConfigResponse(settings, dlpRules);
+    /*
+     * Content capture is offered to the agent only for an employee who has
+     * acknowledged the CURRENT monitoring policy. Without it the agent is told
+     * capture is off, so nothing is sampled, buffered or sent locally; ingestion
+     * checks the same thing again server-side. The agent is also told why, so it
+     * can show the employee the status truthfully.
+     */
+    const captureOn =
+      settings.allowClipboardCapture || settings.allowScreenshotCapture;
+    // Mandatory whenever capture is on. `dlpConsentRequired` is kept for
+    // compatibility but can no longer waive the gate (D16: consent is enforced).
+    const consentRequired = captureOn;
+    const consentGranted =
+      !consentRequired ||
+      (userId
+        ? await hasCurrentMonitoringConsent(this.prisma, tenantId, userId)
+        : false);
+
+    const effective = consentGranted
+      ? settings
+      : {
+          ...settings,
+          allowClipboardCapture: false,
+          allowScreenshotCapture: false,
+        };
+
+    return {
+      ...toConfigResponse(effective, consentGranted ? dlpRules : []),
+      dlpConsent: { required: consentRequired, granted: consentGranted },
+    };
+  }
+
+  /** The policy in force and whether this employee has acknowledged it. */
+  async getMonitoringPolicy(user: AuthenticatedUser) {
+    const policy = await findCurrentMonitoringPolicy(this.prisma);
+    if (!policy) return { available: false as const };
+    const acknowledged = await hasCurrentMonitoringConsent(
+      this.prisma,
+      user.tenantId,
+      user.userId,
+    );
+    return { available: true as const, ...policy, acknowledged };
+  }
+
+  /**
+   * Records the employee's own acknowledgement of the policy in force. Only the
+   * current version can be acknowledged, so a stale prompt cannot record consent
+   * to text that has been replaced. Idempotent.
+   */
+  async acknowledgeMonitoringPolicy(
+    user: AuthenticatedUser,
+    dto: AcknowledgeMonitoringPolicyDto,
+  ) {
+    const policy = await findCurrentMonitoringPolicy(this.prisma);
+    if (!policy || policy.versionId !== dto.versionId) {
+      throw new ConflictException({
+        code: 'MONITORING_POLICY_NOT_CURRENT',
+        message:
+          'That version of the monitoring policy is no longer in force. Review the current one.',
+      });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.legalDocumentAcknowledgement.findFirst({
+        where: {
+          tenantId: user.tenantId,
+          userId: user.userId,
+          legalDocumentVersionId: policy.versionId,
+        },
+        select: { id: true },
+      });
+      if (existing) return { acknowledged: true, versionId: policy.versionId };
+
+      // The acknowledgement and its audit row commit together: a consent that has
+      // no audit trail must not exist, and a retry must not skip the audit.
+      await tx.legalDocumentAcknowledgement.create({
+        data: {
+          legalDocumentVersionId: policy.versionId,
+          tenantId: user.tenantId,
+          userId: user.userId,
+          source: 'agent-desktop:monitoring-policy',
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: 'DLP_MONITORING_POLICY_ACKNOWLEDGED',
+          entityType: 'LegalDocumentVersion',
+          entityId: policy.versionId,
+          sourceModule: 'agent-dlp',
+        },
+        tx,
+      );
+      return { acknowledged: true, versionId: policy.versionId };
+    });
   }
 
   async getSettings(currentUser: AuthenticatedUser) {
@@ -1497,7 +1609,7 @@ export class AgentService {
     userId: string,
     deviceId: string,
     refreshToken: string,
-    options: { allowExpiredActiveSession?: boolean } = {},
+    options: { ignoreIdleTimeout?: boolean } = {},
   ) {
     const records = await this.prisma.agentRefreshToken.findMany({
       where: {
@@ -1511,9 +1623,10 @@ export class AgentService {
 
     for (const record of records) {
       if (await bcrypt.compare(refreshToken, record.tokenHash)) {
-        if (!options.allowExpiredActiveSession) {
-          this.assertAgentRefreshSessionActive(record);
-        }
+        // The absolute expiry is always enforced.
+        this.assertAgentRefreshSessionActive(record, {
+          ignoreIdleTimeout: options.ignoreIdleTimeout,
+        });
         return record;
       }
     }
@@ -1544,20 +1657,10 @@ export class AgentService {
     const existing = await this.prisma.agentTrackingSettings.findUnique({
       where: { tenantId },
     });
-    if (existing) {
-      if (
-        existing.enabled &&
-        existing.captureActiveApp &&
-        !existing.captureWindowTitle
-      ) {
-        return this.prisma.agentTrackingSettings.update({
-          where: { tenantId },
-          data: { captureWindowTitle: true },
-        });
-      }
-
-      return existing;
-    }
+    // A tenant's saved choice is returned as-is. This used to silently turn
+    // window-title capture back ON whenever app capture was on and titles were
+    // off, which overrode an explicit opt-out on every config read.
+    if (existing) return existing;
 
     try {
       return await this.prisma.agentTrackingSettings.create({
@@ -1578,10 +1681,13 @@ export class AgentService {
     }
   }
 
-  private assertAgentRefreshSessionActive(tokenRecord: {
-    absoluteExpiresAt: Date | null;
-    lastActivityAt: Date | null;
-  }) {
+  private assertAgentRefreshSessionActive(
+    tokenRecord: {
+      absoluteExpiresAt: Date | null;
+      lastActivityAt: Date | null;
+    },
+    options: { ignoreIdleTimeout?: boolean } = {},
+  ) {
     const now = Date.now();
 
     if (
@@ -1592,6 +1698,7 @@ export class AgentService {
     }
 
     if (
+      !options.ignoreIdleTimeout &&
       tokenRecord.lastActivityAt &&
       now - tokenRecord.lastActivityAt.getTime() >
         getAgentSessionIdleTimeoutMs(this.configService)

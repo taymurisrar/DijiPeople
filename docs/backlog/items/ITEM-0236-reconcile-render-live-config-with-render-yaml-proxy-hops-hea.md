@@ -1,0 +1,72 @@
+---
+ID: ITEM-0236
+aliases: [ITEM-0236]
+Title: Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email
+Type: SECURITY
+Status: READY
+Priority: P1
+Severity: MEDIUM
+AffectedModules: [platform-runtime]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: BLOCKED_EXTERNAL
+CreatedAt: 2026-11-22
+UpdatedAt: 2026-11-22
+RelatedBug: 
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: next Render dashboard change window
+BlockedBy: 
+---
+
+# ITEM-0236 — Reconcile Render live config with render.yaml: proxy hops, health check, order sweeper, ops email
+
+## Summary
+
+`npm run check:render-config` reports 39 differing fields between `render.yaml` and the live API service (4 scalar, 35 environment variables; read-only run, 2026-11-22). Most are harmless: the code default equals the declared value, or the variable is a dashboard-owned secret. Five are not, and need an owner action in the Render dashboard because `render.yaml` is not synced to the service. The full classification is in `docs/engineering/enterprise-hardening-register.md`, section 2c.
+
+## Why It Matters
+
+- **TRUST_PROXY_HEADERS** is declared `2` and absent live, so the API falls back to inferring one hop on Render. If two hops really sit in front of the service, per-IP rate limiting keys on a shared edge address instead of the caller. That throttles unrelated users together and weakens per-client limits. The live header shape has not been verified, and `render.yaml` itself says not to change this without re-verifying it.
+- **healthCheckPath** is declared `/api` and unset live, so Render does not gate a deploy or replace an unhealthy instance on health.
+- **SUBSCRIPTION_ORDER_SWEEPER_ENABLED** is declared `true` and absent live. The worker starts only when it is exactly `true`, so expired PENDING_PAYMENT orders accumulate and keep their workspace address and submission hash held.
+- **PLATFORM_OPS_NOTIFICATION_EMAILS** is absent live, so platform operations notifications have no configured recipient.
+- **PLATFORM_ENVIRONMENT** is absent live, so the resolver relies on its fallback instead of a stated value.
+
+## Evidence
+
+Verified 2026-11-22 by plain GET against production: `/api` and `/api/health` both answer 200 JSON from the running service (commit 53517ab, outbox worker enabled, entitlement enforcement ENFORCE). `/api` is registered before Nest, but it is NOT free of the database: its payload calls `entitlements.describeEnforcement()`, which reads `PlatformSetting` whenever its 30 second cache has expired. The earlier statement in this record that `/api` has no database access was wrong and is corrected here. Measured on 2026-11-22 against a locally booted API with the database stopped: `/api` still answered 200 in 61 ms (the read is wrapped, so a refused connection cannot fail it), `/api/health/live` 200 in 37 ms, `/api/health/ready` 503 in 32 ms. What was NOT measured is a database that hangs instead of refusing, where the read would wait for the 15 s pool connection timeout; that could exceed a platform health-check timeout. So `/api` is database-tolerant, not database-independent. A dedicated `/api/health/live` (no imports, no database) now exists in source (`common/health/liveness.ts`, 5 unit tests) and ships with the next release; `render.yaml` still says `/api` and was deliberately not changed, because pointing the file at a route the deployed commit lacks would 404 a blueprint sync. After the release, set the health check to `/api/health/live`. `/api/health/ready` answers 404 on the deployed commit, so readiness has not shipped yet; it must not be used as the health check anyway (see `main.ts`). The proxy topology is NOT verified: no endpoint reports the client address the API derives, so it needs a log line or a diagnostic that echoes it.
+
+Read-only run of `scripts/check-render-config.mjs --json` against the live service on 2026-11-22. Code defaults read in `services/api/src` (outbox, data-job, billing workers, `pool-config.ts`, `proxy-trust.ts`) and `packages/config/forwarded-host.js`. No values were read or recorded.
+
+## Proposed Approach
+
+Owner action, not code. Set the five values in the Render dashboard after re-verifying the forwarded-header shape for TRUST_PROXY_HEADERS. Nothing here changes live configuration. Afterwards re-run the checker and expect the five entries to disappear.
+
+## Acceptance Criteria
+
+- `npm run check:render-config` no longer lists TRUST_PROXY_HEADERS, healthCheckPath, SUBSCRIPTION_ORDER_SWEEPER_ENABLED, PLATFORM_OPS_NOTIFICATION_EMAILS or PLATFORM_ENVIRONMENT.
+- The client IP the API records for a request through the real edge equals the caller's address, shown from a log line or the health endpoint rather than asserted.
+
+## Dependencies
+
+Owner access to the Render dashboard.
+
+## Related Items
+
+[[ITEM-0237]]
+
+## History
+
+- 2026-11-22 — created and triaged BLOCKED_EXTERNAL (needs the dashboard).
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- No related record, module or decision is declared in this record's
+  frontmatter. Declare one rather than adding a link here by hand — this
+  block is regenerated and a hand-written link inside it is lost.
+
+<!-- GRAPH:END -->

@@ -157,4 +157,99 @@ describe("DlpManager", () => {
     expect(screenshots.capture).not.toHaveBeenCalled();
     expect(api.sendScreenshotEvents).not.toHaveBeenCalled();
   });
+
+  it("drops events buffered while offline once capture is switched off, and never sends them", async () => {
+    const { manager, api, setClipboard } = build(config());
+    (api.sendClipboardEvents as jest.Mock).mockRejectedValueOnce(new Error("offline"));
+
+    setClipboard("salary data");
+    await manager.tickOnce(); // send fails -> the event is buffered
+
+    // The employee has not acknowledged the (new) policy: the synced config now
+    // says capture is off.
+    manager.configure(
+      config({ clipboardCaptureEnabled: false, screenshotCaptureEnabled: false }),
+      () => SESSION,
+    );
+    (api.sendClipboardEvents as jest.Mock).mockClear();
+    await manager.tickOnce();
+
+    expect(api.sendClipboardEvents).not.toHaveBeenCalled();
+    expect(api.sendScreenshotEvents).not.toHaveBeenCalled();
+  });
+});
+
+describe("DlpManager: the server's refusal wins over a stale local config", () => {
+  it("stops, purges and asks for a fresh config when the server says consent is missing", async () => {
+    const { manager, api, setClipboard } = build(config());
+    const refused = jest.fn();
+    manager.setOnCaptureRefused(refused);
+    (api.sendClipboardEvents as jest.Mock).mockResolvedValueOnce({
+      accepted: 0,
+      captureEnabled: true,
+      consentMissing: true,
+    });
+
+    setClipboard("salary data");
+    await manager.tickOnce();
+    expect(refused).toHaveBeenCalledTimes(1);
+
+    // Still holding the stale "capture on" config, but sampling has stopped: a
+    // further copy is neither read nor sent.
+    (api.sendClipboardEvents as jest.Mock).mockClear();
+    setClipboard("more salary data");
+    await manager.tickOnce();
+    expect(api.sendClipboardEvents).not.toHaveBeenCalled();
+  });
+});
+
+describe("DlpManager: offline fail-closed", () => {
+  it("captures nothing and drops its buffer while the last server answer is stale, then resumes on a fresh one", async () => {
+    const { manager, api, setClipboard } = build(config());
+    let fresh = true;
+    manager.setFreshnessCheck(() => fresh);
+
+    (api.sendClipboardEvents as jest.Mock).mockRejectedValueOnce(
+      new Error("offline"),
+    );
+    setClipboard("first copy");
+    await manager.tickOnce(); // send fails -> buffered while still fresh
+
+    fresh = false; // the laptop has been offline too long to trust the consent
+    (api.sendClipboardEvents as jest.Mock).mockClear();
+    setClipboard("second copy");
+    await manager.tickOnce();
+    expect(api.sendClipboardEvents).not.toHaveBeenCalled();
+
+    fresh = true; // a fresh config arrived
+    setClipboard("third copy");
+    await manager.tickOnce();
+    const sent = (api.sendClipboardEvents as jest.Mock).mock.calls.flatMap(
+      ([events]) => events as { text: string }[],
+    );
+    // The buffered first copy was dropped while stale and the second was never
+    // read; only the copy made under a fresh consent goes out.
+    expect(sent.map((e) => e.text)).toEqual(["third copy"]);
+  });
+});
+
+describe("DlpManager: buffer isolation between sign-ins", () => {
+  it("never sends one session's buffered events under another session", async () => {
+    const { manager, api, setClipboard } = build(config());
+    (api.sendClipboardEvents as jest.Mock).mockRejectedValueOnce(
+      new Error("offline"),
+    );
+    setClipboard("person A's copy");
+    await manager.tickOnce(); // buffered under session-1
+
+    const other: DlpSessionContext = { ...SESSION, sessionId: "session-2" };
+    manager.configure(config(), () => other);
+    (api.sendClipboardEvents as jest.Mock).mockClear();
+    await manager.tickOnce();
+
+    const sent = (api.sendClipboardEvents as jest.Mock).mock.calls.flatMap(
+      ([events]) => events as { sessionId: string }[],
+    );
+    expect(sent.filter((e) => e.sessionId === "session-1")).toEqual([]);
+  });
 });

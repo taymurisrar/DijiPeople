@@ -2,7 +2,7 @@
 ID: BUG-3544
 aliases: [BUG-3544]
 Title: A Platform Admin can open and edit a tenant but every save is refused as not System Admin
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -231,6 +231,8 @@ the admin UI as PLATFORM_ADMIN and PLATFORM_OPERATIONS": "Tenant saved.", no
 permission dialog) and the passing `super-admin.service.spec.ts` /
 `platform-permissions.spec.ts`.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): super-admin.service.spec.ts 'BUG-3544 tenant profile edit is authorized by platform permission' exercises PLATFORM_ADMIN; super-admin.service.ts:1654 now gates on userHasPlatformPermission(actor,'tenants.update') instead of a System Admin role check; passes.
+
 ## History
 
 - 2026-09-25 — created from qa run at `75fec5b9`; discovery stream D1.
@@ -247,3 +249,4 @@ permission dialog) and the passing `super-admin.service.spec.ts` /
 - Regression — REG-525 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

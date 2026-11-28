@@ -119,6 +119,12 @@ export type AgentConfig = {
   api: ApiConfig;
   features: FeatureConfig;
   dlp: DlpConfig;
+  /**
+   * Whether content capture needs the employee's acknowledgement of the current
+   * monitoring policy, and whether they have given it. When required and not
+   * granted the agent must not sample, buffer or send any content.
+   */
+  dlpConsent: { required: boolean; granted: boolean };
 };
 
 /**

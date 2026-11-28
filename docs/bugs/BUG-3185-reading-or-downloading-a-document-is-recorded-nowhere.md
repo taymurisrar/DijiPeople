@@ -2,7 +2,7 @@
 ID: BUG-3185
 aliases: [BUG-3185]
 Title: Reading or downloading a document is recorded nowhere
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/documents]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-712
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3185 — Reading or downloading a document is recorded nowhere
@@ -69,7 +69,7 @@ Full finding text: OBS-16 in `docs/engineering/audits/2026-09-10-full-technical-
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+openForView and openForDownload audited nothing.
 
 ## Impact
 
@@ -91,7 +91,7 @@ Add `AuditService.log({ action: 'DOCUMENT_VIEWED' | 'DOCUMENT_DOWNLOADED', entit
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: OBS-16=LOW (audit volume — index already exists on (tenantId, action, createdAt)). Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/audit-trail-reads.e2e-spec.ts. REG-712, QA-AUDIT-002. Disabling the audit fails 2 tests.
 
 ## Dependencies
 
@@ -103,11 +103,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+After access is granted and the bytes opened, DOCUMENT_VIEWED or DOCUMENT_DOWNLOADED is recorded with the document id and no content. The published branding asset bypass is excluded so page renders do not write rows. An audit failure is logged and never blocks the read. Other read paths (employee documents, recruitment, support cases) are not yet covered and stay on the record.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-AUDIT-002 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): documents.service.ts logs DOCUMENT_VIEWED/DOWNLOADED; e2e asserts exactly one row per view/download with actor, no content, and no row on refused cross-tenant read; pass.
 
 ## History
 
@@ -117,8 +121,7 @@ Not yet retested.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-712 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

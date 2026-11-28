@@ -2,7 +2,7 @@
 ID: BUG-3491
 aliases: [BUG-3491]
 Title: Customization pages crash for a user who holds customization permissions but no customizer role
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-13
 DetectedInSha: df0f84f1
 AffectedModules: [apps/web, customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-481
 RelatedBacklogItem:
 RelatedDecision: docs/decisions/ADR-0013-customization-access-is-granted-by-permission.md
 RelatedImplementation: [docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md, services/api/src/modules/customization/customization-access.guard.ts, services/api/src/modules/customization/customization.controller.ts, apps/web/app/(authenticated)/settings/_lib/require-settings-permission.ts, apps/web/app/(authenticated)/settings/customization/_lib/customization-page-permissions.json]
 CreatedAt: 2026-09-13
-UpdatedAt: 2026-09-13
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3491 — Customization pages crash for a user who holds customization permissions but no customizer role
@@ -270,6 +270,8 @@ QA-SETTINGS-021:
 5. After release, remove the temporary System Customizer role from the demo
    workspace owner and repeat step 1.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): customization-access.guard.spec.ts (admits permission holder with no customizer role, refuses role without keys, fails closed) and the web-gate seam spec pass; CustomizationAccessGuard is applied at customization.controller.ts:46; web require-settings-permission spec passes.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
@@ -285,3 +287,4 @@ QA-SETTINGS-021:
 - Regression — REG-481 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

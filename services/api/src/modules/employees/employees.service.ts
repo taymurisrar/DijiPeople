@@ -46,6 +46,11 @@ import { TerminateEmployeeDto } from './dto/terminate-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { DuplicateRuleEngine } from '../../common/validation/duplicate-rule-engine';
 import {
+  applyUserAccessRevocation,
+  lockEmployee,
+  type AccessRevocationResult,
+} from './employee-access-revocation';
+import {
   customSortField,
   EmployeeHierarchyNode,
   EmployeesRepository,
@@ -64,6 +69,7 @@ import {
   EmployeeSettingsResolved,
   TenantSettingsResolverService,
 } from '../tenant-settings/tenant-settings-resolver.service';
+import { FieldAccessService } from '../tenant-settings/field-access.service';
 import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
 import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
 import { BenefitsService } from '../benefits/benefits.service';
@@ -311,6 +317,19 @@ function csvCell(value: unknown) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+/* BUG-3155 — CSV export columns that carry each restricted employee column. */
+/* BUG-3155 — DTO keys whose policy column has another name. */
+export const EMPLOYEE_DTO_COLUMN_ALIASES: Readonly<Record<string, string>> = {
+  workEmail: 'email',
+};
+
+const EXPORT_FIELD_ALIASES: Record<string, readonly string[]> = {
+  email: ['workEmail', 'ownerEmail'],
+  personalEmail: ['personalEmail'],
+  phone: ['phone'],
+  emergencyContactPhone: ['emergencyContactPhone'],
+};
+
 @Injectable()
 export class EmployeesService {
   constructor(
@@ -332,6 +351,8 @@ export class EmployeesService {
      * service by hand keep compiling; Nest always injects it.
      */
     private readonly customFieldValues?: CustomFieldValuesService,
+    /* BUG-3155 — write-back screen; optional for the same hand-built specs. */
+    private readonly fieldAccess?: FieldAccessService,
   ) {}
 
   /* TASK-0036 / ADR-0025 — the custom-field part of a list query. */
@@ -339,11 +360,13 @@ export class EmployeesService {
     currentUser: AuthenticatedUser,
     query: EmployeeQueryDto,
   ): Promise<EmployeeCustomListQuery> {
+    const excludeSearchFields = await this.screenListQuery(currentUser, query);
     const values = this.customFieldValues;
     const filters = parseCustomFieldFilters(query.customFilters);
     const sort = customSortField(query.orderBy);
-    if (!values || (!filters.length && !sort)) return {};
+    if (!values || (!filters.length && !sort)) return { excludeSearchFields };
     return {
+      excludeSearchFields,
       idConstraints: await values.recordIdConstraints(
         currentUser,
         'employees',
@@ -360,6 +383,36 @@ export class EmployeesService {
             )
         : undefined,
     };
+  }
+
+  /*
+   * BUG-3155 — a column the caller may not read in clear may not drive a filter
+   * or a sort (the result order or membership would reveal it), and is left out
+   * of free-text search. Refused before any query runs, so counts cannot leak.
+   * Returns the columns to leave out of free-text search.
+   */
+  private async screenListQuery(
+    currentUser: AuthenticatedUser,
+    query: EmployeeQueryDto,
+  ): Promise<string[]> {
+    if (!this.fieldAccess) return [];
+    const used: string[] = [];
+    if (query.contactFilter) used.push('email', 'phone');
+    if (query.hireDateFilter || query.hireDateFilterTo) used.push('hireDate');
+    const sortColumn = query.orderBy?.match(
+      /^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/,
+    )?.[1];
+    if (sortColumn === 'email' || sortColumn === 'workEmail')
+      used.push('email');
+    if (sortColumn === 'hireDate') used.push('hireDate');
+    await this.fieldAccess.assertQueryable(currentUser, 'employees', used);
+    return this.fieldAccess.restrictedAmong(currentUser, 'employees', [
+      'employeeCode',
+      'firstName',
+      'lastName',
+      'preferredName',
+      'email',
+    ]);
   }
 
   /* Custom field values the user may see on one employee (BUG-3697). */
@@ -1102,6 +1155,15 @@ export class EmployeesService {
     const employeeSettings =
       await this.tenantSettingsResolverService.getEmployeeSettings(tenantId);
 
+    // BUG-3155 — nothing was shown on create, so any restricted value is a change.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employees',
+      dto,
+      {},
+      EMPLOYEE_DTO_COLUMN_ALIASES,
+    );
+
     this.assertEmployeeSettingsRulesForCreate(dto, employeeSettings);
     await this.assertEmployeeDuplicateRules(tenantId, dto, employeeSettings);
 
@@ -1343,6 +1405,16 @@ export class EmployeesService {
     if (!employee) {
       throw new NotFoundException('Employee was not found for this tenant.');
     }
+
+    // BUG-3155 — an echoed mask/null is dropped so the stored value survives;
+    // a genuine change to a field this caller cannot change is a 403.
+    await this.fieldAccess?.screenWrite(
+      currentUser,
+      'employees',
+      dto,
+      employee as unknown as object,
+      EMPLOYEE_DTO_COLUMN_ALIASES,
+    );
 
     const beforeSnapshot = {
       ...this.mapEmployee(employee),
@@ -2147,6 +2219,17 @@ export class EmployeesService {
         : '',
       ownerName: employee.ownerUser?.fullName ?? '',
     }));
+    // BUG-3155 — a file download is a response path too: restricted columns are
+    // masked or emptied exactly as the JSON list shows them.
+    const exportDecision = await this.fieldAccess?.forRequest(
+      currentUser,
+      'employees',
+    );
+    if (exportDecision) {
+      for (const row of rows) {
+        exportDecision.applyAliased(row, EXPORT_FIELD_ALIASES);
+      }
+    }
     const projectedRows = rows.map((row) =>
       Object.fromEntries(
         selectedColumns.map((column) => [
@@ -2238,7 +2321,7 @@ export class EmployeesService {
       });
     }
 
-    const rows = [
+    const rows: Array<{ section: string; field: string; value: unknown }> = [
       {
         section: 'Profile',
         field: 'Employee code',
@@ -2278,6 +2361,26 @@ export class EmployeesService {
       },
       ...(await this.exportCustomFieldRows(currentUser, employee.id)),
     ];
+    // BUG-3155 — same restrictions as the JSON profile.
+    const profileDecision = await this.fieldAccess?.forRequest(
+      currentUser,
+      'employees',
+    );
+    if (profileDecision) {
+      const byLabel: Record<string, string> = {
+        'Work email': 'email',
+        Phone: 'phone',
+        'Owner email': 'ownerEmail',
+      };
+      for (const row of rows) {
+        const column = byLabel[row.field];
+        if (column) {
+          const cell: Record<string, unknown> = { [column]: row.value };
+          profileDecision.applyAliased(cell);
+          row.value = cell[column];
+        }
+      }
+    }
 
     return {
       filename: `employee-${sanitizeFilename(employee.employeeCode || employee.id)}-export-${formatDateForFilename(new Date())}.csv`,
@@ -2321,23 +2424,71 @@ export class EmployeesService {
     dto: TerminateEmployeeDto,
     actorId: string,
   ) {
-    const employee = await this.employeesRepository.findByIdAndTenant(
-      tenantId,
-      employeeId,
-    );
-
-    if (!employee) {
-      throw new NotFoundException('Employee was not found for this tenant.');
-    }
-
-    const terminationDate = dto.terminationDate
+    const requestedDate = dto.terminationDate
       ? new Date(dto.terminationDate)
       : new Date();
 
-    await this.employeesRepository.update(tenantId, employeeId, {
-      employmentStatus: EmployeeEmploymentStatus.TERMINATED,
-      terminationDate,
-      updatedById: actorId,
+    /*
+     * One transaction, under a row lock on the employee: status and date, the
+     * linked user's DISABLED state, every web and agent token, and the audit row
+     * commit together or not at all (BUG-4774, BUG-3184). A future-dated exit
+     * commits the status and audit now and keeps access until the date; the
+     * AccessRevocationSweeperWorker, and AuthAccessService on every request, end
+     * access when it arrives.
+     */
+    await this.prisma.$transaction(async (tx) => {
+      const employee = await lockEmployee(tx, tenantId, employeeId);
+      if (!employee) {
+        throw new NotFoundException('Employee was not found for this tenant.');
+      }
+
+      // An exit that has already taken effect keeps its date: terminating again
+      // is a retry, not a way to push a past date into the future.
+      const terminationDate =
+        employee.employmentStatus === EmployeeEmploymentStatus.TERMINATED &&
+        employee.terminationDate &&
+        employee.terminationDate.getTime() <= Date.now()
+          ? employee.terminationDate
+          : requestedDate;
+
+      await this.employeesRepository.update(
+        tenantId,
+        employeeId,
+        {
+          employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+          terminationDate,
+          updatedById: actorId,
+        },
+        tx,
+      );
+
+      const access: AccessRevocationResult =
+        employee.userId && terminationDate.getTime() > Date.now()
+          ? { revoked: false, note: 'FUTURE_DATED_REVOCATION_SCHEDULED' }
+          : await applyUserAccessRevocation(tx, tenantId, employee.userId);
+
+      // BUG-3184. Termination is among the most consequential employee changes
+      // (it ends payroll eligibility) and used to leave no audit row at all.
+      await this.auditService.log(
+        {
+          tenantId,
+          actorUserId: actorId,
+          action: AUDIT_ACTIONS.EMPLOYEE_TERMINATED,
+          entityType: AUDIT_ENTITY_TYPES.EMPLOYEE,
+          entityId: employeeId,
+          beforeSnapshot: {
+            employmentStatus: employee.employmentStatus,
+            terminationDate: employee.terminationDate ?? null,
+          },
+          afterSnapshot: {
+            employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+            terminationDate,
+            accessRevoked: access.revoked,
+            accessRevocationNote: access.note,
+          },
+        },
+        tx,
+      );
     });
 
     return this.findById(tenantId, employeeId);

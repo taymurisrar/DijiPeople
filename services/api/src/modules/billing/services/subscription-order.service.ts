@@ -28,6 +28,7 @@ import {
 } from '../../partner-experience/partner-referral-resolver.service';
 import { buildIdempotencyKey } from '../../outbox/outbox.types';
 import { resolveBillableSeats } from '../billing-seat-pricing';
+import { assertPubliclyPurchasable } from '../public-purchase-eligibility';
 import { CustomerIdentityService } from './customer-identity.service';
 import { TaxBasisService } from './tax-basis.service';
 
@@ -270,6 +271,11 @@ export class SubscriptionOrderService {
       where: { id: input.planPriceId },
       include: { plan: true, market: true },
     });
+    // BUG-4652. openOrder is reachable from inside the service, not only through
+    // a controller that already checked, so it enforces the public-purchase policy
+    // itself: no order is created for a reserved, expired, unpublished or
+    // sales-assisted price, whatever called it.
+    assertPubliclyPurchasable(planPrice);
 
     const seats = Math.max(input.seatQuantity, planPrice.minimumSeats);
     /*

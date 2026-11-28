@@ -2,7 +2,7 @@
 ID: BUG-2458
 aliases: [BUG-2458]
 Title: Token refresh is throttled by the public login rate limiter, signing users out
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-30
 DetectedInSha: 39d8ddc4
 AffectedModules: [api:auth, api:common]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-367
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-30
 ---
 
@@ -172,7 +172,7 @@ quietly.
 
 ## QA Retest
 
-Pending.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): public-rate-limit.guard.ts now has { suffix: '/auth/refresh', limit: 600 }; spec 'BUG-2458 refresh is budgeted as machine traffic' (sustained refresh allowed, login still 20) passes.
 
 ## History
 
@@ -186,3 +186,4 @@ Pending.
 - Regression — REG-367 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

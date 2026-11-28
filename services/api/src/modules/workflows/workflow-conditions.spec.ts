@@ -1,9 +1,13 @@
-import { evaluateWorkflowConditions } from './workflow-conditions';
+import {
+  evaluateWorkflowConditions,
+  findMalformedWorkflowCondition,
+  validateWorkflowConditionList,
+} from './workflow-conditions';
 
 /*
  * Conditions decide whether a tenant's workflow acts. The important property is
- * that a badly written one fails open rather than throwing inside the business
- * action that triggered it.
+ * that a badly written one fails CLOSED (the rule does not fire) rather than
+ * throwing inside the business action that triggered it.
  */
 
 const CONTEXT = {
@@ -82,18 +86,40 @@ describe('workflow conditions', () => {
     ).toBe(false);
   });
 
-  it('ignores malformed entries instead of failing the event', () => {
+  it('fails closed on malformed entries and says why', () => {
+    const bad = [
+      null,
+      'not an object',
+      { field: 'leaveTypeName' },
+      { field: 'leaveTypeName', operator: 'notAnOperator', value: 'x' },
+      { field: '', operator: 'equals', value: 'x' },
+    ];
+    for (const entry of bad) {
+      expect(evaluateWorkflowConditions([entry], CONTEXT)).toBe(false);
+      expect(findMalformedWorkflowCondition([entry])).not.toBeNull();
+    }
+    // One bad entry poisons the list even when the others would match.
     expect(
       evaluateWorkflowConditions(
-        [
-          null,
-          'not an object',
-          { field: 'leaveTypeName' },
-          { field: 'leaveTypeName', operator: 'notAnOperator', value: 'x' },
-        ],
+        [{ field: 'leaveTypeName', operator: 'isNotEmpty' }, null],
         CONTEXT,
       ),
-    ).toBe(true);
+    ).toBe(false);
+    expect(evaluateWorkflowConditions('x', CONTEXT)).toBe(false);
+    expect(findMalformedWorkflowCondition('x')).toBe(
+      'Conditions are not a list.',
+    );
+    expect(findMalformedWorkflowCondition([])).toBeNull();
+    expect(findMalformedWorkflowCondition(null)).toBeNull();
+  });
+
+  it('does not read through the prototype chain', () => {
+    expect(
+      evaluateWorkflowConditions(
+        [{ field: 'constructor.name', operator: 'isNotEmpty' }],
+        CONTEXT,
+      ),
+    ).toBe(false);
   });
 
   it('negated operators do not match when the value is absent', () => {
@@ -116,5 +142,60 @@ describe('workflow conditions', () => {
         CONTEXT,
       ),
     ).toBe(true);
+  });
+});
+
+describe('authoring-time validation (WP-03, A03)', () => {
+  const ok = {
+    field: 'employee.department',
+    operator: 'equals',
+    value: 'Sales',
+  };
+
+  it('accepts well typed conditions', () => {
+    expect(
+      validateWorkflowConditionList([
+        ok,
+        { field: 'totalDays', operator: 'greaterThan', value: '3.5' },
+        { field: 'reason', operator: 'isEmpty' },
+      ]),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['a path with a space', { ...ok, field: 'a b' }, /not a valid field path/],
+    [
+      'a path with a bracket',
+      { ...ok, field: 'a[0]' },
+      /not a valid field path/,
+    ],
+    [
+      'a prototype segment',
+      { ...ok, field: 'employee.constructor.name' },
+      /not an allowed field path/,
+    ],
+    ['__proto__', { ...ok, field: '__proto__' }, /not an allowed field path/],
+    ['a comparison with no value', { ...ok, value: '' }, /needs a value/],
+    [
+      'a numeric comparison against text',
+      { field: 'x', operator: 'lessThan', value: 'abc' },
+      /needs a number/,
+    ],
+    [
+      'a presence test carrying a value',
+      { field: 'x', operator: 'isEmpty', value: 'oops' },
+      /takes no value/,
+    ],
+  ])('rejects %s', (_name, condition, message) => {
+    const problems = validateWorkflowConditionList([condition]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(message);
+  });
+
+  it('reports a structurally broken list as one problem', () => {
+    expect(validateWorkflowConditionList('nope')).toEqual([
+      'Conditions are not a list.',
+    ]);
+    expect(validateWorkflowConditionList([null])).toHaveLength(1);
   });
 });

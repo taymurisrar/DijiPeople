@@ -3089,6 +3089,42 @@ export class ContractsService {
     };
   }
 
+  /**
+   * One database-filtered page of templates, shaped as listTemplates() shapes
+   * them. The platform runtime list used to take the whole table and slice it
+   * in Node (BUG-3175).
+   */
+  async listTemplatesPage(
+    user: AuthenticatedUser,
+    args: {
+      where: Record<string, unknown>;
+      orderBy: Array<Record<string, unknown>>;
+      skip: number;
+      take: number;
+    },
+  ) {
+    this.assertPlatform(user);
+    const where = args.where as Prisma.ContractTemplateWhereInput;
+    const [rows, total] = await Promise.all([
+      this.prisma.contractTemplate.findMany({
+        where,
+        include: { versions: { orderBy: { version: 'desc' }, take: 5 } },
+        orderBy:
+          args.orderBy as Prisma.ContractTemplateOrderByWithRelationInput[],
+        skip: args.skip,
+        take: args.take,
+      }),
+      this.prisma.contractTemplate.count({ where }),
+    ]);
+    return {
+      items: rows.map((item) => ({
+        ...normalizeContractTemplate(item),
+        contextIssues: this.templateContextIssues(item),
+      })),
+      total,
+    };
+  }
+
   async getTemplate(user: AuthenticatedUser, id: string) {
     this.assertPlatform(user);
     const item = await this.prisma.contractTemplate.findUnique({

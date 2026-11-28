@@ -2,7 +2,7 @@
 ID: BUG-1970
 aliases: [BUG-1970]
 Title: The elevated-role bypass precedes the self-requester check on leave approval steps
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -226,6 +226,8 @@ action and that `POST /api/leave-requests/{id}/approve` answers 403 with
 `You cannot approve or reject your own leave request.` The dependencies listed
 below shaped the original blockage, not the fix.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): leave-self-approval.spec.ts asserts canCurrentUserApprove/Reject false for a GLOBAL_ADMIN on own request, with negative controls for others' requests; leave.service.ts canUserActOnStep has the self-requester check first (BUG-1970 comment); passes.
+
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`, from code analysis only. Filed `BLOCKED`: no live reproduction exists and the tenant state needed to obtain one is itself blocked by BUG-1961, BUG-1965, BUG-1967 and BUG-1969.
@@ -240,3 +242,4 @@ below shaped the original blockage, not the fix.
 - Regression — REG-329 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

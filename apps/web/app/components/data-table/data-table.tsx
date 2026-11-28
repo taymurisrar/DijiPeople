@@ -25,6 +25,7 @@ import {
   emptyStateMessage,
   filterRows,
   searchRows,
+  serverSearchHref,
   sortRows,
 } from "./utils";
 
@@ -95,7 +96,11 @@ export function DataTable<T>({
   );
   const [filters, setFilters] =
     useState<DataTableFilterState[]>(initialFilters);
-  const [search, setSearch] = useState("");
+  // In server mode the text starts from the URL, so a reload or a shared link
+  // keeps the search (BUG-3176).
+  const [search, setSearch] = useState(
+    mode === "server" ? (searchParams.get("search") ?? "") : "",
+  );
   const [clientPage, setClientPage] = useState(pagination?.page ?? 1);
   const [clientPageSize, setClientPageSize] = useState(
     pagination?.pageSize ?? 10,
@@ -126,7 +131,7 @@ export function DataTable<T>({
   }
 
   /* DataTable synchronizes controlled inputs and persisted external state into its local interaction model. */
-   
+
   useEffect(() => {
     setSort(effectiveInitialSort);
   }, [effectiveInitialSort]);
@@ -180,6 +185,18 @@ export function DataTable<T>({
     stickyStateKey,
   ]);
 
+  // Server mode: send the typed text to the backend after a short pause. The
+  // local current-page filter below stays as instant feedback and as the
+  // fallback for a list whose API does not take a search parameter.
+  useEffect(() => {
+    if (mode !== "server") return;
+    const timer = setTimeout(() => {
+      const href = serverSearchHref(pathname, searchParams, search);
+      if (href) router.push(href);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [mode, pathname, router, search, searchParams]);
+
   const processedRows = useMemo(() => {
     const searchedRows = searchRows(rows, columns, search);
 
@@ -200,7 +217,6 @@ export function DataTable<T>({
   useEffect(() => {
     setClientPage(1);
   }, [search, filters, sort, clientPageSize]);
-   
 
   const effectivePageSize =
     pagination && mode === "client"
@@ -374,6 +390,7 @@ export function DataTable<T>({
 
     if (mode === "server") {
       const params = new URLSearchParams(searchParams.toString());
+      params.delete("search");
 
       columns.forEach((column) => {
         const key = getFilterParamKey(column);
@@ -461,11 +478,7 @@ export function DataTable<T>({
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder={
-                  mode === "server"
-                    ? "Quick filter current page"
-                    : searchPlaceholder
-                }
+                placeholder={searchPlaceholder}
                 className="w-full bg-transparent text-xs outline-none"
               />
             </div>

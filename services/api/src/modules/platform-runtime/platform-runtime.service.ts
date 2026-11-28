@@ -68,6 +68,17 @@ import {
 } from '../platform-auth/platform-permissions';
 import { resolveRuntimeField, resolveRuntimeViewRule } from '@repo/config';
 import { runtimeViewWhere } from './runtime-view-where';
+import { Prisma } from '@prisma/client';
+import {
+  buildRuntimeDbQuery,
+  RUNTIME_LIST_SPECS,
+  runtimePageEnvelope,
+  toPageArgs,
+  type DbListedModule,
+  type RuntimeFilterItem,
+  type RuntimeSortItem,
+  type RuntimeDbPageArgs,
+} from './runtime-db-query';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
 import { toDisplayString } from '../../common/utils/display-string';
@@ -156,22 +167,32 @@ export class PlatformRuntimeService {
           }),
           { filters: filter, sort },
         );
-      case 'partner-inquiries': {
-        const items = await this.prisma.partnerInquiry.findMany({
-          include: { partner: true },
-          orderBy: { createdAt: 'desc' },
-        });
-        return paginateRuntimeRecords(
-          items,
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+      case 'partner-inquiries':
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          async (args) => {
+            const where = args.where as Prisma.PartnerInquiryWhereInput;
+            const [items, total] = await Promise.all([
+              this.prisma.partnerInquiry.findMany({
+                where,
+                include: { partner: true },
+                orderBy:
+                  args.orderBy as Prisma.PartnerInquiryOrderByWithRelationInput[],
+                skip: args.skip,
+                take: args.take,
+              }),
+              this.prisma.partnerInquiry.count({ where }),
+            ]);
+            return { items, total };
+          },
+          () =>
+            this.prisma.partnerInquiry.findMany({
+              include: { partner: true },
+              orderBy: { createdAt: 'desc' },
+            }),
         );
-      }
       case 'customers':
         return this.superAdmin.listCustomers(
           user,
@@ -222,15 +243,12 @@ export class PlatformRuntimeService {
           { filters: filter, sort },
         );
       case 'contract-templates':
-        return paginateRuntimeRecords(
-          (await this.contracts.listTemplates(user)).items,
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          (args) => this.contracts.listTemplatesPage(user, args),
+          async () => (await this.contracts.listTemplates(user)).items,
         );
       case 'signature-requests':
         return this.listSignatureRequests(
@@ -253,96 +271,157 @@ export class PlatformRuntimeService {
           { filters: filter, sort },
         );
       case 'partner-onboarding': {
-        const items = await this.prisma.partnerOnboardingApplication.findMany({
-          include: {
-            partner: true,
-            submissions: { orderBy: { version: 'desc' }, take: 1 },
+        const include = {
+          partner: true,
+          submissions: { orderBy: { version: 'desc' }, take: 1 },
+        } satisfies Prisma.PartnerOnboardingApplicationInclude;
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          async (args) => {
+            const where =
+              args.where as Prisma.PartnerOnboardingApplicationWhereInput;
+            const [items, total] = await Promise.all([
+              this.prisma.partnerOnboardingApplication.findMany({
+                where,
+                include,
+                orderBy:
+                  args.orderBy as Prisma.PartnerOnboardingApplicationOrderByWithRelationInput[],
+                skip: args.skip,
+                take: args.take,
+              }),
+              this.prisma.partnerOnboardingApplication.count({ where }),
+            ]);
+            return { items, total };
           },
-          orderBy: { updatedAt: 'desc' },
-        });
-        return paginateRuntimeRecords(
-          items,
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+          () =>
+            this.prisma.partnerOnboardingApplication.findMany({
+              include,
+              orderBy: { updatedAt: 'desc' },
+            }),
         );
       }
-      case 'commissions': {
-        const items = await this.prisma.partnerCommission.findMany({
-          include: { partner: true },
-          orderBy: { createdAt: 'desc' },
-        });
-        return paginateRuntimeRecords(
-          await this.partners.describeCommissions(items),
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+      case 'commissions':
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          async (args) => {
+            const where = args.where as Prisma.PartnerCommissionWhereInput;
+            const [items, total] = await Promise.all([
+              this.prisma.partnerCommission.findMany({
+                where,
+                include: { partner: true },
+                orderBy:
+                  args.orderBy as Prisma.PartnerCommissionOrderByWithRelationInput[],
+                skip: args.skip,
+                take: args.take,
+              }),
+              this.prisma.partnerCommission.count({ where }),
+            ]);
+            // Described after the page is cut, so only one page is resolved.
+            return {
+              items: await this.partners.describeCommissions(items),
+              total,
+            };
+          },
+          async () =>
+            this.partners.describeCommissions(
+              await this.prisma.partnerCommission.findMany({
+                include: { partner: true },
+                orderBy: { createdAt: 'desc' },
+              }),
+            ),
         );
-      }
       case 'tenants':
-        return paginateRuntimeRecords(
-          await this.superAdmin.listTenants(),
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          (args) => this.superAdmin.listTenantsPage(args),
+          () => this.superAdmin.listTenants(),
         );
       case 'subscriptions':
-        return paginateRuntimeRecords(
-          await this.superAdmin.listSubscriptions(),
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          (args) => this.superAdmin.listSubscriptionsPage(args),
+          () => this.superAdmin.listSubscriptions(),
         );
       case 'plans':
-        return paginateRuntimeRecords(
-          await this.superAdmin.listPlans(),
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          (args) => this.superAdmin.listPlansPage(args),
+          () => this.superAdmin.listPlans(),
         );
       case 'invoices':
-        return paginateRuntimeRecords(
-          await this.superAdmin.listInvoices(),
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          (args) => this.superAdmin.listInvoicesPage(args),
+          () => this.superAdmin.listInvoices(),
         );
       case 'payments':
-        return paginateRuntimeRecords(
-          await this.superAdmin.listPayments(),
-          page,
-          pageSize,
-          query.search,
-          query.viewKey,
-          sort,
-          filter,
-          { moduleKey: key, platformUserId: user.platform?.id },
+        return this.listViaDatabase(
+          key,
+          user,
+          { page, pageSize, query, sort, filter },
+          (args) => this.superAdmin.listPaymentsPage(args),
+          () => this.superAdmin.listPayments(),
         );
     }
+  }
+
+  /*
+   * BUG-3175. Search, view tab, filters, sort and the page cut all happen in
+   * the database; only the rows of the requested page come back, plus a
+   * count() for the total. `fallback` is the previous whole-table read and runs
+   * only when a requested filter cannot be expressed in SQL (see
+   * runtime-db-query.ts), so such a filter still filters instead of vanishing.
+   */
+  private async listViaDatabase(
+    key: DbListedModule,
+    user: AuthenticatedUser,
+    request: {
+      page: number;
+      pageSize: number;
+      query: PlatformRuntimeQuery;
+      sort: ReturnType<typeof readRuntimeSort>;
+      filter: ReturnType<typeof readRuntimeFilters>;
+    },
+    fetchPage: (
+      args: RuntimeDbPageArgs,
+    ) => Promise<{ items: unknown[]; total: number }>,
+    fetchAll: () => Promise<unknown[]>,
+  ) {
+    const { page, pageSize, query, sort, filter } = request;
+    const dbQuery = buildRuntimeDbQuery(RUNTIME_LIST_SPECS[key], {
+      search: query.search,
+      viewKey: query.viewKey,
+      platformUserId: user.platform?.id,
+      sort,
+      filters: filter,
+    });
+    if (!dbQuery)
+      return paginateRuntimeRecords(
+        await fetchAll(),
+        page,
+        pageSize,
+        query.search,
+        query.viewKey,
+        sort,
+        filter,
+        { moduleKey: key, platformUserId: user.platform?.id },
+      );
+    const { items, total } = await fetchPage(
+      toPageArgs(dbQuery, page, pageSize),
+    );
+    return runtimePageEnvelope(items, total, page, pageSize);
   }
 
   private validateRuntimeQuery(
@@ -1726,16 +1805,10 @@ function positive(value: string | undefined, fallback: number) {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : fallback;
 }
-export function readRuntimeFilters(value?: string) {
-  if (!value)
-    return [] as Array<{
-      field: string;
-      operator: string;
-      value?: unknown;
-      values?: unknown[];
-    }>;
+export function readRuntimeFilters(value?: string): RuntimeFilterItem[] {
+  if (!value) return [];
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     if (!Array.isArray(parsed)) return [];
     const operators = new Set([
       'eq',
@@ -1751,11 +1824,11 @@ export function readRuntimeFilters(value?: string) {
       'isNull',
       'isNotNull',
     ]);
-    return parsed
+    return (parsed as Array<Partial<RuntimeFilterItem> | null>)
       .slice(0, 25)
       .filter(
-        (item) =>
-          item &&
+        (item): item is RuntimeFilterItem =>
+          !!item &&
           typeof item.field === 'string' &&
           /^[A-Za-z][A-Za-z0-9_.]{0,119}$/.test(item.field) &&
           typeof item.operator === 'string' &&
@@ -1765,16 +1838,16 @@ export function readRuntimeFilters(value?: string) {
     throw new BadRequestException('Invalid filters.');
   }
 }
-export function readRuntimeSort(value?: string) {
-  if (!value) return [] as Array<{ field: string; direction: 'asc' | 'desc' }>;
+export function readRuntimeSort(value?: string): RuntimeSortItem[] {
+  if (!value) return [];
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return Array.isArray(parsed)
-      ? parsed
+      ? (parsed as Array<Partial<RuntimeSortItem> | null>)
           .slice(0, 3)
           .filter(
-            (item) =>
-              item &&
+            (item): item is RuntimeSortItem =>
+              !!item &&
               typeof item.field === 'string' &&
               /^[A-Za-z][A-Za-z0-9_.]{0,119}$/.test(item.field) &&
               (item.direction === 'asc' || item.direction === 'desc'),

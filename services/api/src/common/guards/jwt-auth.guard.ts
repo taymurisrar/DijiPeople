@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -20,7 +21,10 @@ import {
   type AuthClientId,
 } from '../config/auth.config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { AuthAccessService } from '../../modules/auth/auth-access.service';
+import {
+  AuthAccessService,
+  isPastEffectiveTermination,
+} from '../../modules/auth/auth-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantAuthPolicyService } from '../security/tenant-auth-policy.service';
 import {
@@ -28,6 +32,10 @@ import {
   AuthTokenPayload,
 } from '../interfaces/authenticated-request.interface';
 import { TimesheetRestrictionMode } from '@prisma/client';
+import {
+  isRouteAllowedUnderTimesheetRestriction,
+  timesheetRestrictionAllowedRoutesForClient,
+} from './timesheet-restriction-routes';
 import { toErrorMessage } from '../utils/display-string';
 
 @Injectable()
@@ -105,6 +113,7 @@ export class JwtAuthGuard implements CanActivate {
           : await this.authAccessService.loadAccessContext(
               payload.sub,
               payload.tenantId,
+              { includeEmployee: false },
             );
 
       if (!authUser) {
@@ -138,6 +147,14 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      // BUG-4518: a deliberate refusal (the timesheet restriction's 403) is an
+      // answer, not a token failure. Falling through to the generic branch
+      // below rewrote it into 401 INVALID_TOKEN, which a client reads as
+      // "session expired" and answers with a pointless refresh-and-retry.
+      if (error instanceof HttpException) {
         throw error;
       }
 
@@ -197,19 +214,21 @@ export class JwtAuthGuard implements CanActivate {
       request.user.roleKeys.includes('system-scheduler')
     )
       return;
-    const employee = await this.prisma.employee.findFirst({
-      where: {
-        tenantId: request.user.tenantId,
-        userId: request.user.userId,
-        isDeleted: false,
-      },
-      select: { id: true },
-    });
-    if (!employee) return;
+    // One query, not two: the restriction is found through its employee
+    // relation instead of resolving the employee id first. The overwhelmingly
+    // common case — an employee with no active restriction — used to cost two
+    // round trips on every authenticated request and now costs one. Nothing is
+    // cached, so a restriction added or lifted still applies to the very next
+    // request. Same predicates as before: the employee must be this tenant's,
+    // this user's and not deleted, and the restriction must be this tenant's.
     const restriction = await this.prisma.timesheetAccessRestriction.findFirst({
       where: {
         tenantId: request.user.tenantId,
-        employeeId: employee.id,
+        employee: {
+          tenantId: request.user.tenantId,
+          userId: request.user.userId,
+          isDeleted: false,
+        },
         isActive: true,
         overriddenAt: null,
         OR: [{ expiryAt: null }, { expiryAt: { gt: new Date() } }],
@@ -221,37 +240,24 @@ export class JwtAuthGuard implements CanActivate {
       restriction.restrictionMode === TimesheetRestrictionMode.WARNING_ONLY
     )
       return;
+    // BUG-3164: matched against the path as served, `/api` prefix included.
     const path = request.path || request.url.split('?')[0] || '/';
-    const alwaysAllowed = [
-      '/timesheets',
-      '/timesheet-exports',
-      '/approvals',
-      '/notifications',
-      '/in-app-notifications',
-      '/my-profile',
-      '/employees/me',
-      '/auth',
-      '/help',
-      '/support',
-      '/tenant-settings/resolved',
-      '/tenant-settings/features/availability',
-      '/runtime-metadata',
-      '/settings-runtime',
-      '/projects/assigned/me',
-      '/audit-logs',
-    ];
-    if (alwaysAllowed.some((prefix) => path.startsWith(prefix))) return;
+    if (isRouteAllowedUnderTimesheetRestriction(path)) return;
     if (
       restriction.restrictionMode === TimesheetRestrictionMode.LIMITED_ACCESS &&
       request.method.toUpperCase() === 'GET'
     )
       return;
+    // `details` is the one place the exception filter passes structured data
+    // through to the client; top-level extras are dropped by it.
     throw new ForbiddenException({
       code: 'TIMESHEET_ACCESS_RESTRICTED',
       message: restriction.reason,
-      restrictionMode: restriction.restrictionMode,
-      restrictionId: restriction.id,
-      allowedRoutes: ['/timesheets', '/notifications', '/my-profile', '/help'],
+      details: {
+        restrictionMode: restriction.restrictionMode,
+        restrictionId: restriction.id,
+        allowedRoutes: timesheetRestrictionAllowedRoutesForClient(),
+      },
     });
   }
 
@@ -269,6 +275,71 @@ export class JwtAuthGuard implements CanActivate {
   private extractTokenFromHeader(request: AuthenticatedRequest) {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
+  }
+
+  /**
+   * The tenant session lookup, plus the employee's exit state in the SAME
+   * statement. A scheduled termination must take effect on its effective date for
+   * an access token issued earlier, and the guard must not pay a round trip for
+   * it: the auth query budget is a measured ceiling (auth-query-budget.e2e-spec).
+   * Prisma's relationLoadStrategy 'join' is not enabled in this repository
+   * (decision D7), so the join is written out. Every column is bound, and the
+   * tenant id scopes the employee row as well as the session.
+   */
+  private async findTenantSession(
+    payload: AuthTokenPayload,
+    clientId: AuthClientId,
+  ): Promise<{
+    absoluteExpiresAt: Date | null;
+    lastActivityAt: Date | null;
+  } | null> {
+    const rows = await this.prisma.$queryRaw<
+      {
+        absoluteExpiresAt: Date | null;
+        lastActivityAt: Date | null;
+        isTenantOwner: boolean;
+        employmentStatus: string | null;
+        terminationDate: Date | null;
+      }[]
+    >`
+      SELECT rt."absoluteExpiresAt", rt."lastActivityAt",
+             (t."ownerUserId" = rt."userId") AS "isTenantOwner",
+             e."employmentStatus"::text AS "employmentStatus",
+             e."terminationDate"
+      FROM "RefreshToken" rt
+      LEFT JOIN "Tenant" t ON t."id" = rt."tenantId"
+      LEFT JOIN "Employee" e
+        ON e."userId" = rt."userId" AND e."tenantId" = rt."tenantId"
+      WHERE rt."sessionId" = ${payload.sessionId}
+        AND rt."userId" = ${payload.sub}
+        AND rt."tenantId" = ${payload.tenantId}
+        AND rt."appClientId" = ${clientId}
+        AND rt."revokedAt" IS NULL
+        AND rt."expiresAt" > ${new Date()}
+      ORDER BY rt."createdAt" DESC
+      LIMIT 1
+    `;
+    const row = rows[0];
+    if (!row) return null;
+    if (
+      isPastEffectiveTermination({
+        id: payload.sub,
+        tenant: { ownerUserId: row.isTenantOwner ? payload.sub : null },
+        employee: row.employmentStatus
+          ? {
+              employmentStatus: row.employmentStatus,
+              terminationDate: row.terminationDate,
+            }
+          : null,
+      })
+    ) {
+      // Same outcome as a revoked session: the caller reports SESSION_REVOKED.
+      return null;
+    }
+    return {
+      absoluteExpiresAt: row.absoluteExpiresAt,
+      lastActivityAt: row.lastActivityAt,
+    };
   }
 
   private async assertSessionIsActive(
@@ -300,21 +371,7 @@ export class JwtAuthGuard implements CanActivate {
               lastActivityAt: true,
             },
           })
-        : await this.prisma.refreshToken.findFirst({
-            where: {
-              sessionId: payload.sessionId,
-              userId: payload.sub,
-              tenantId: payload.tenantId,
-              appClientId: clientId,
-              revokedAt: null,
-              expiresAt: { gt: new Date() },
-            },
-            orderBy: { createdAt: 'desc' },
-            select: {
-              absoluteExpiresAt: true,
-              lastActivityAt: true,
-            },
-          });
+        : await this.findTenantSession(payload, clientId);
 
     if (!tokenRecord) {
       throw new UnauthorizedException({
@@ -376,21 +433,51 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private async assertAgentSessionIsActive(payload: AuthTokenPayload) {
-    const tokenRecord = await this.prisma.agentRefreshToken.findFirst({
-      where: {
-        sessionId: payload.sessionId,
-        userId: payload.sub,
-        tenantId: payload.tenantId,
-        ...(payload.deviceId ? { deviceId: payload.deviceId } : {}),
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        absoluteExpiresAt: true,
-        lastActivityAt: true,
-      },
-    });
+    // One statement, like the web path: the employee's exit state rides on the
+    // session lookup, so a scheduled termination ends the agent's access on its
+    // effective date even before the sweeper has revoked the token.
+    const rows = await this.prisma.$queryRaw<
+      {
+        absoluteExpiresAt: Date | null;
+        lastActivityAt: Date | null;
+        isTenantOwner: boolean;
+        employmentStatus: string | null;
+        terminationDate: Date | null;
+      }[]
+    >`
+      SELECT rt."absoluteExpiresAt", rt."lastActivityAt",
+             (t."ownerUserId" = rt."userId") AS "isTenantOwner",
+             e."employmentStatus"::text AS "employmentStatus",
+             e."terminationDate"
+      FROM "AgentRefreshToken" rt
+      LEFT JOIN "Tenant" t ON t."id" = rt."tenantId"
+      LEFT JOIN "Employee" e
+        ON e."id" = rt."employeeId" AND e."tenantId" = rt."tenantId"
+      WHERE rt."sessionId" = ${payload.sessionId}
+        AND rt."userId" = ${payload.sub}
+        AND rt."tenantId" = ${payload.tenantId}
+        AND (${payload.deviceId ?? null}::text IS NULL
+             OR rt."deviceId" = ${payload.deviceId ?? null})
+        AND rt."revokedAt" IS NULL
+        AND rt."expiresAt" > ${new Date()}
+      ORDER BY rt."createdAt" DESC
+      LIMIT 1
+    `;
+    const row = rows[0];
+    const tokenRecord =
+      row &&
+      !isPastEffectiveTermination({
+        id: payload.sub,
+        tenant: { ownerUserId: row.isTenantOwner ? payload.sub : null },
+        employee: row.employmentStatus
+          ? {
+              employmentStatus: row.employmentStatus,
+              terminationDate: row.terminationDate,
+            }
+          : null,
+      })
+        ? row
+        : null;
 
     if (!tokenRecord) {
       throw new UnauthorizedException({

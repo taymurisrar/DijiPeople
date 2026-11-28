@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { ApplicationsController } from './applications.controller';
 import { CandidateIdentityResolutionService } from './candidate-identity-resolution.service';
@@ -14,7 +15,7 @@ import { RecruitmentScoringService } from './recruitment-scoring.service';
 import { RecruitmentService } from './recruitment.service';
 
 @Module({
-  imports: [JwtModule.register({}), TenantSettingsModule],
+  imports: [JwtModule.register({}), TenantSettingsModule, NotificationsModule],
   controllers: [
     JobOpeningsController,
     RecruitmentPipelinesController,

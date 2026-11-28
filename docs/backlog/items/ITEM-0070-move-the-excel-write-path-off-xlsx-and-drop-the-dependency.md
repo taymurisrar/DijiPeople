@@ -121,3 +121,5 @@ rejecting a file has one candidate cause rather than two.
 - Modules — [[payroll]]
 
 <!-- GRAPH:END -->
+
+- 2026-11-21 — `services/api/src/common/excel/xlsx-write-only.invariant.spec.ts` now enforces that no source file calls a SheetJS read function and that only the export service imports `xlsx` (SESSION-0137). The reachability claim above is no longer only prose.

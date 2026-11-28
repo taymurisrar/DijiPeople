@@ -23,6 +23,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SYSTEM_CUSTOMIZATION_TABLES } from '../customization/customization.registry';
+import { FieldAccessService } from './field-access.service';
 
 const READ = 'field-security.read';
 const MANAGE = 'field-security.manage';
@@ -44,7 +45,10 @@ const ALLOWED_MASKING_PATTERNS = new Set([
 @Controller('field-security-policies')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class FieldSecurityController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fieldAccess: FieldAccessService,
+  ) {}
 
   @Get()
   @Permissions(READ)
@@ -132,43 +136,23 @@ export class FieldSecurityController {
       throw new BadRequestException('Protected module is not available.');
     }
 
-    const policies = await this.prisma.fieldSecurityPolicy.findMany({
-      where: {
-        tenantId: user.tenantId,
-        entityKey: table.tableKey,
-        isActive: true,
-      },
-      include: {
-        rules: true,
-        roles: { include: { role: { select: { key: true } } } },
-        teams: true,
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
-    const teamIds = new Set(user.accessContext?.teamIds ?? []);
-    const roleKeys = new Set(user.roleKeys ?? []);
+    // The one compiler of tenant policies (BUG-3155): the same call the
+    // response interceptor enforces with.
+    const policies = await this.fieldAccess.applicablePolicies(
+      user,
+      table.tableKey,
+    );
     const runtimeEntityLogicalName = runtimeEntityLogicalNameForTable(table);
 
-    return policies
-      .filter((policy) => {
-        const roleScoped = policy.roles.length > 0;
-        const teamScoped = policy.teams.length > 0;
-        if (!roleScoped && !teamScoped) return true;
-        return (
-          policy.roles.some((assignment) =>
-            roleKeys.has(assignment.role.key),
-          ) || policy.teams.some((assignment) => teamIds.has(assignment.teamId))
-        );
-      })
-      .flatMap((policy) =>
-        policy.rules.flatMap((rule) =>
-          runtimeRulesFromFieldSecurityRule(
-            policy.id,
-            runtimeEntityLogicalName,
-            rule,
-          ),
+    return policies.flatMap((policy) =>
+      policy.rules.flatMap((rule) =>
+        runtimeRulesFromFieldSecurityRule(
+          policy.id,
+          runtimeEntityLogicalName,
+          rule,
         ),
-      );
+      ),
+    );
   }
 
   @Get(':policyId')

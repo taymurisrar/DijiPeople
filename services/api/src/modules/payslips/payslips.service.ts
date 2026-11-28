@@ -31,6 +31,9 @@ import {
   type InvoicePdfModel,
 } from '../super-admin/invoice-pdf.template';
 
+/** BUG-3172 — default and ceiling of one list response. */
+export const LIST_PAGE_SIZE_DEFAULT = 200;
+
 const payslipInclude = {
   employee: {
     select: {
@@ -312,7 +315,10 @@ export class PayslipsService {
     employeeId?: string;
     payrollRunId?: string;
     status?: PayslipStatus;
+    page?: number;
+    pageSize?: number;
   }) {
+    const pageSize = params.pageSize ?? LIST_PAGE_SIZE_DEFAULT;
     const payslips = await this.prisma.payslip.findMany({
       where: {
         tenantId: params.tenantId,
@@ -321,7 +327,10 @@ export class PayslipsService {
         ...(params.status ? { status: params.status } : {}),
       },
       include: payslipInclude,
-      orderBy: [{ createdAt: 'desc' }],
+      // id as a tiebreaker keeps pages stable when createdAt collides.
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: ((params.page ?? 1) - 1) * pageSize,
+      take: pageSize,
     });
 
     return payslips.map(mapPayslip);

@@ -66,6 +66,8 @@ export class DlpManager {
   private ticking = false;
   private readonly pendingClipboard: ClipboardCaptureEvent[] = [];
   private readonly pendingScreenshots: ScreenCaptureEvent[] = [];
+  private isConfigFresh: () => boolean = () => true;
+  private pausedForStaleConfig = false;
 
   constructor(
     private readonly reader: ClipboardReader,
@@ -89,6 +91,9 @@ export class DlpManager {
     const wasRunning = this.timer !== null;
     const previousInterval = this.config?.clipboardPollIntervalSeconds;
 
+    // A freshly synced config is the server speaking again; it supersedes any
+    // earlier refusal (if consent is still missing it will say so itself).
+    this.refusedByServer = false;
     this.config = config;
     this.getSession = getSession;
     this.evaluator.configure(config.rules, config.triggerWindowSeconds);
@@ -97,7 +102,11 @@ export class DlpManager {
       config.clipboardCaptureEnabled || config.screenshotCaptureEnabled;
 
     if (!shouldRun) {
+      // Capture is off (tenant setting, or the employee has not acknowledged the
+      // current policy): stop sampling and drop anything already buffered, so
+      // nothing captured earlier can be sent later.
       this.stop();
+      this.purgePending();
       return;
     }
 
@@ -113,6 +122,47 @@ export class DlpManager {
     if (previousInterval !== config.clipboardPollIntervalSeconds) {
       this.startTimer(config.clipboardPollIntervalSeconds);
     }
+  }
+
+  /**
+   * Supplies "is the last server answer recent enough to rely on". While it
+   * returns false the manager captures nothing and drops what it holds, then
+   * resumes by itself once a fresh config arrives (offline fail-closed).
+   */
+  setFreshnessCheck(check: () => boolean): void {
+    this.isConfigFresh = check;
+  }
+
+  private onCaptureRefused: (() => void) | null = null;
+  /** Latched when the server refuses capture; cleared by the next config. */
+  private refusedByServer = false;
+
+  /** Called when the server says capture is not allowed (consent withdrawn, tenant off). */
+  setOnCaptureRefused(handler: () => void): void {
+    this.onCaptureRefused = handler;
+  }
+
+  /**
+   * The server is the authority on whether capture is allowed. If it says no
+   * (`consentMissing`, or `captureEnabled: false`), stop sampling at once, drop
+   * everything buffered, and ask for a fresh config; a stale local config must not
+   * keep capturing until the next scheduled sync.
+   */
+  private observe(result: unknown): void {
+    const answer = (result ?? {}) as { consentMissing?: boolean; captureEnabled?: boolean };
+    if (answer.consentMissing === true || answer.captureEnabled === false) {
+      this.refusedByServer = true;
+      this.stop();
+      this.purgePending();
+      this.logger.warn("agent.dlp.capture.refused_by_server");
+      this.onCaptureRefused?.();
+    }
+  }
+
+  /** Drops every buffered, unsent capture event. */
+  purgePending(): void {
+    this.pendingClipboard.length = 0;
+    this.pendingScreenshots.length = 0;
   }
 
   stop(): void {
@@ -137,10 +187,20 @@ export class DlpManager {
 
   /** One sampling cycle. Public for tests; the timer calls it. */
   async tickOnce(): Promise<void> {
-    if (this.ticking) return;
+    if (this.ticking || this.refusedByServer) return;
     const config = this.config;
     const session = this.getSession?.() ?? null;
     if (!config || !session) return;
+
+    if (!this.isConfigFresh()) {
+      if (!this.pausedForStaleConfig) {
+        this.pausedForStaleConfig = true;
+        this.logger.warn("agent.dlp.capture.paused_stale_config");
+      }
+      this.purgePending();
+      return;
+    }
+    this.pausedForStaleConfig = false;
 
     this.ticking = true;
     try {
@@ -201,7 +261,7 @@ export class DlpManager {
       agentVersion: session.agentVersion,
     };
     try {
-      await this.api.sendClipboardEvents([event]);
+      this.observe(await this.api.sendClipboardEvents([event]));
       // Log the event, never the content (agent AGENTS.md rule 2).
       this.logger.info("agent.dlp.clipboard.sent");
     } catch {
@@ -228,7 +288,7 @@ export class DlpManager {
       agentVersion: session.agentVersion,
     };
     try {
-      await this.api.sendScreenshotEvents([event]);
+      this.observe(await this.api.sendScreenshotEvents([event]));
       this.logger.info(`agent.dlp.screenshot.sent rule=${trigger.ruleId}`);
     } catch {
       this.buffer(this.pendingScreenshots, event);
@@ -236,14 +296,36 @@ export class DlpManager {
   }
 
   private async flushPending(session: DlpSessionContext): Promise<void> {
-    void session;
+    // Buffer isolation: an event is evidence about ONE signed-in session. If the
+    // agent has signed another person in since, the old events must not ride the
+    // new person's credentials to the server.
+    this.pendingClipboard.splice(
+      0,
+      this.pendingClipboard.length,
+      ...this.pendingClipboard.filter((e) => e.sessionId === session.sessionId),
+    );
+    this.pendingScreenshots.splice(
+      0,
+      this.pendingScreenshots.length,
+      ...this.pendingScreenshots.filter(
+        (e) => e.sessionId === session.sessionId,
+      ),
+    );
+    if (
+      !this.config ||
+      (!this.config.clipboardCaptureEnabled &&
+        !this.config.screenshotCaptureEnabled)
+    ) {
+      this.purgePending();
+      return;
+    }
     if (this.pendingClipboard.length > 0) {
       const batch = this.pendingClipboard.splice(
         0,
         this.pendingClipboard.length,
       );
       try {
-        await this.api.sendClipboardEvents(batch);
+        this.observe(await this.api.sendClipboardEvents(batch));
       } catch {
         // Put them back at the front, bounded.
         this.pendingClipboard.unshift(...batch.slice(-MAX_PENDING));
@@ -254,7 +336,7 @@ export class DlpManager {
     while (this.pendingScreenshots.length > 0) {
       const batch = this.pendingScreenshots.splice(0, SCREENSHOT_FLUSH_CHUNK);
       try {
-        await this.api.sendScreenshotEvents(batch);
+        this.observe(await this.api.sendScreenshotEvents(batch));
       } catch {
         this.pendingScreenshots.unshift(...batch);
         break;

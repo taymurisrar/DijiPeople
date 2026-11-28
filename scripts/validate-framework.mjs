@@ -5803,14 +5803,15 @@ if (trackedFiles) {
    * renumber colliding records, both times because an id was chosen by scanning
    * a directory rather than reserved through the allocator.
    */
-  const { allocateId } = await import('./lib/id-allocator.mjs');
+  const { allocateId, releaseReservationsByNote } = await import('./lib/id-allocator.mjs');
+  const PROBE_NOTE = 'validate-framework allocation probe';
 
   for (const kind of ['regression', 'bug', 'question']) {
     const ids = new Set();
     let failed = '';
     try {
       for (let index = 0; index < 4; index += 1) {
-        ids.add(allocateId(ROOT, kind, { note: 'validate-framework allocation probe' }));
+        ids.add(allocateId(ROOT, kind, { note: PROBE_NOTE }));
       }
     } catch (error) {
       failed = String(error.message).split('\n')[0];
@@ -5822,6 +5823,10 @@ if (trackedFiles) {
       failed || 'got ' + JSON.stringify([...ids]),
     );
   }
+
+  // The probe ids never become records. Release them so a validation run leaves
+  // the ledger as it found it (ITEM-0246).
+  releaseReservationsByNote(ROOT, PROBE_NOTE);
 }
 
 {
@@ -6273,6 +6278,27 @@ if (trackedFiles) {
   }
 
   rmSync(sandbox, { recursive: true, force: true });
+}
+
+// ------------------------------------------------------- context budget (SESSION-0136)
+//
+// Every session pays for the root instruction files before any work starts, so
+// their size is a standing cost that should change only on purpose. The ratchet
+// itself lives in scripts/check-context-budget.mjs; this makes it a gate that
+// already runs in CI. It fails on GROWTH only, and shrinking never fails.
+{
+  const { measure, verdict } = await import('./check-context-budget.mjs');
+  const baselinePath = join(ROOT, 'docs', 'engineering', 'context-budget-baseline.json');
+  check('context-budget baseline is recorded', existsSync(baselinePath), baselinePath);
+  if (existsSync(baselinePath)) {
+    const current = measure();
+    const result = verdict(current, JSON.parse(readFileSync(baselinePath, 'utf8')));
+    check(
+      'always-loaded instruction files are within the context budget',
+      result.ok,
+      `${current.alwaysLoaded.bytes} bytes against a limit of ${result.limit}. Move new material into .agent/context/ and link to it, or re-baseline deliberately: node scripts/check-context-budget.mjs --update`,
+    );
+  }
 }
 
 // ------------------------------------------------------------------- reporting

@@ -151,7 +151,7 @@ describe('NotificationsService.emit in-app preference gate (ITEM-0180)', () => {
     ) as NotificationsService;
     Object.assign(service, {
       logger: { warn: jest.fn(), log: jest.fn(), error: jest.fn() },
-      workflowRuntime: { handleEvent },
+      workflowDispatch: { dispatch: handleEvent },
       notificationsRepository: {
         listEnabledRules: jest.fn(async () => [RULE]),
         findPreference,

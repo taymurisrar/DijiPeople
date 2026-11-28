@@ -50,6 +50,17 @@ export const CLIENT_ERROR_CATALOG: Record<
     description:
       "This module is not part of your current subscription plan. Ask your administrator to upgrade the plan to use it.",
   },
+  /*
+   * BUG-4518. A timesheet restriction is a deliberate 403, not a permissions
+   * problem and not a lost session: the employee can still reach their
+   * timesheets and is told what to do. Mirrors the API catalog entry.
+   */
+  TIMESHEET_ACCESS_RESTRICTED: {
+    statusCode: 403,
+    message: "Timesheet access restricted",
+    description:
+      "Access is limited until outstanding timesheets are submitted. Submit your outstanding timesheets to restore access.",
+  },
   TENANT_ENTITLEMENT_UNAVAILABLE: {
     statusCode: 503,
     message: "Plan check unavailable",

@@ -1359,10 +1359,11 @@ export class AuthService {
           this.configService.get<string>('SUPPORT_EMAIL') ??
           'support@dijipeople.com',
       },
+      // BUG-3137: not the reset URL. It carries a live token, and this metadata
+      // is returned by the tenant-readable email delivery log.
       metadata: {
         userId: user.id,
         employeeId: user.employee?.id ?? null,
-        resetUrl,
         source: 'forgot-password',
       },
       requestedByUserId: user.id,
@@ -1447,10 +1448,20 @@ export class AuthService {
     );
     const account = await this.prisma.user.findFirst({
       where: { id: payload.sub, tenantId: payload.tenantId },
-      select: { passwordChangedAt: true },
+      select: {
+        passwordChangedAt: true,
+        status: true,
+        tenant: { select: { status: true } },
+      },
     });
 
     if (!account || !this.resetTokenMatchesCredential(payload, account)) {
+      throw expired;
+    }
+    // BUG-3138: a reset must never reactivate a disabled account, or undo a
+    // tenant suspension. The same generic answer as an invalid link, so the
+    // refusal does not confirm the account exists or why it is refused.
+    if (account.status === 'DISABLED' || account.tenant.status !== 'ACTIVE') {
       throw expired;
     }
 
@@ -1477,6 +1488,9 @@ export class AuthService {
           id: payload.sub,
           tenantId: payload.tenantId,
           passwordChangedAt: account.passwordChangedAt,
+          // Atomic against a disable that lands between the read above and this
+          // write (BUG-3138).
+          status: { not: 'DISABLED' },
         },
         data: {
           passwordHash,

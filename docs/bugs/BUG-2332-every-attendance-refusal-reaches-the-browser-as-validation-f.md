@@ -2,7 +2,7 @@
 ID: BUG-2332
 aliases: [BUG-2332]
 Title: Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-30
 DetectedInSha: f77c0abb
 AffectedModules: [services/api/src/common/errors, services/api/src/modules/attendance, apps/web]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-361
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-30
 ---
 
@@ -190,6 +190,8 @@ Retest after deploy: refuse a check-in for a work-mode reason and confirm the
 response carries `WORK_MODE_DISALLOWS_REMOTE` and that the technical dialog does
 not appear. 593 API tests across 49 suites pass locally.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): attendance-reason-codes.spec passes; it derives reason codes from engine source and asserts each is in ERROR_CATALOG/isErrorCode so the filter no longer erases them to VALIDATION_FAILED.
+
 ## History
 
 - 2026-08-30 — found while verifying the fix for [[BUG-2331]]: with capture
@@ -205,3 +207,4 @@ not appear. 593 API tests across 49 suites pass locally.
 - Regression — REG-361 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -2,7 +2,7 @@
 ID: BUG-3697
 aliases: [BUG-3697]
 Title: A custom field added to a system module has nowhere to store its values
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-26
 DetectedInSha: cb202b99
 AffectedModules: [customization, employees]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-638
 RelatedBacklogItem: ITEM-0221
 RelatedDecision:
 RelatedImplementation: [docs/plans/EXECPLAN-0052-package-alm.md, docs/plans/EXECPLAN-0053-custom-field-values-and-package-import-at-scale.md]
 CreatedAt: 2026-09-26
-UpdatedAt: 2026-09-26
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-26
 ---
 
@@ -110,6 +110,8 @@ Retested 2026-09-26:
 - Steps 1–6 and step 8 of QA-EMPLOYEES-001 were driven over HTTP against a booted API on a seeded throwaway database.
 - In a real browser (scripted Playwright), Employee Grade was set on the edit form, saved, and shown on the detail page after reload.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): custom-field-values e2e (6), custom-field-values.spec and employee-custom-fields web spec pass; CustomRecordExtension storage plus validation counting only published fields is exercised through the employees service.
+
 ## History
 
 - 2026-09-26 — created from reviewer at `cb202b99`.
@@ -126,3 +128,4 @@ Retested 2026-09-26:
 - Regression — REG-638 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

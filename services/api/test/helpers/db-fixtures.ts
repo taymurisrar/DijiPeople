@@ -27,6 +27,8 @@
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient, TenantEnvironmentType } from '@prisma/client';
 
+import { assertIsolatedUtf8Database } from './test-database';
+
 export interface FixtureTenant {
   id: string;
   name: string;
@@ -318,6 +320,44 @@ export function definedIds(ids: (string | undefined | null)[]): string[] {
  * A skipped suite is recorded as `DB_E2E = BLOCKED_INFRASTRUCTURE`, never as a
  * pass — see .agent/context/testing-architecture.md.
  */
-export function describeWithDatabase(): jest.Describe {
-  return process.env.DATABASE_URL ? describe : describe.skip;
+export function describeWithDatabase(
+  options: DescribeWithDatabaseOptions = {},
+): jest.Describe {
+  if (!process.env.DATABASE_URL) return describe.skip;
+  if (!options.requireUtf8 && !options.requireIsolated) return describe;
+
+  /*
+   * Opt-in guard (docs/development/test-databases.md). Registered as the FIRST
+   * beforeAll of the suite, so it runs before the spec's own setup creates a
+   * single row: a spec that needs UTF-8 fails here, once, with the fix in the
+   * message, instead of 40 tests later with an unrenderable encoding error.
+   */
+  const guarded = ((name: string, fn?: () => void) =>
+    describe(name, () => {
+      beforeAll(async () => {
+        const { PrismaClient } = await import('@prisma/client');
+        const { PrismaPg } = await import('@prisma/adapter-pg');
+        const probe = new PrismaClient({
+          adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+        });
+        try {
+          await assertIsolatedUtf8Database(probe, {
+            requireUtf8: options.requireUtf8,
+          });
+        } finally {
+          await probe.$disconnect();
+        }
+      });
+      fn?.();
+    })) as unknown as jest.Describe;
+  guarded.skip = describe.skip;
+  guarded.only = describe.only;
+  return guarded;
+}
+
+export interface DescribeWithDatabaseOptions {
+  /** Fail fast unless the database is UTF-8 and has an isolated-test name. */
+  requireUtf8?: boolean;
+  /** Fail fast unless the database name marks it as an isolated test database. */
+  requireIsolated?: boolean;
 }

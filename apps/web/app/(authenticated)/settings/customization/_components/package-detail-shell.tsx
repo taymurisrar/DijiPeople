@@ -45,6 +45,12 @@ import type {
   PackageLifecycle,
   PackageReleaseReadiness,
 } from "../types";
+import { AddWorkComponentsDialog } from "./add-work-components-dialog";
+import {
+  describeWorkComponentKey,
+  retainedWorkComponentsMessage,
+  workComponentTypeLabel,
+} from "../_lib/work-components";
 import {
   DependenciesPanel,
   DeploymentsTable,
@@ -150,6 +156,7 @@ export function PackageDetailShell({
     kind: "package",
   });
   const [addExisting, setAddExisting] = useState<AddExistingState | null>(null);
+  const [addWorkOpen, setAddWorkOpen] = useState(false);
   const [candidates, setCandidates] = useState<CustomizationPackageCandidate[]>(
     [],
   );
@@ -571,15 +578,19 @@ export function PackageDetailShell({
     if (!uninstallState) return;
     setIsSaving(true);
     try {
-      await requestJson(
-        `/api/customization/packages/${packageDetail.id}/${uninstallState.mode}`,
-        { method: "POST" },
-      );
+      const outcome = await requestJson<{
+        result?: { retainedWorkComponents?: string[] } | null;
+      }>(`/api/customization/packages/${packageDetail.id}/${uninstallState.mode}`, {
+        method: "POST",
+      });
       setUninstallState(null);
       if (uninstallState.mode === "uninstall") {
+        const retained = retainedWorkComponentsMessage(
+          outcome?.result?.retainedWorkComponents,
+        );
         router.push(
           `/settings/customization/packages?message=${encodeURIComponent(
-            `${packageDetail.displayName} was uninstalled.`,
+            `${packageDetail.displayName} was uninstalled.${retained ? ` ${retained}` : ""}`,
           )}`,
         );
       } else {
@@ -733,6 +744,22 @@ export function PackageDetailShell({
           >
             Add Existing
           </Button>
+          <PermissionGate anyOf={["customization.packages.manage"]}>
+            <Button
+              disabled={packageDetail.isReadOnly}
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => setAddWorkOpen(true)}
+              size="xs"
+              title={
+                packageDetail.isReadOnly
+                  ? readOnlyReason(packageDetail)
+                  : "Add work components"
+              }
+              variant="ghost"
+            >
+              Add work components
+            </Button>
+          </PermissionGate>
           {newComponentHref ? (
             <Button
               href={newComponentHref}
@@ -1015,6 +1042,24 @@ export function PackageDetailShell({
       </>
       ) : null}
 
+      {addWorkOpen ? (
+        <AddWorkComponentsDialog
+          onAdded={async (added) => {
+            setAddWorkOpen(false);
+            setMessage({
+              title: "Work components added",
+              description: added.length
+                ? `Added: ${added.map(describeWorkComponentKey).join(", ")}.`
+                : "Nothing new was added.",
+              variant: "success",
+            });
+            await refreshPackageDiagnostics();
+            router.refresh();
+          }}
+          onClose={() => setAddWorkOpen(false)}
+          packageId={packageDetail.id}
+        />
+      ) : null}
       {addExisting ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
@@ -1600,6 +1645,8 @@ function normalizeComponentType(value: string) {
 }
 
 function componentTypeLabel(value: string) {
+  const workLabel = workComponentTypeLabel(value);
+  if (workLabel) return workLabel;
   return (
     componentTypeOptions.find(
       (option) => option.value === normalizeComponentType(value),

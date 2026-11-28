@@ -12,6 +12,9 @@ it was load-bearing: every UI finding this repository has produced was read from
 code, never observed in a browser, so no UI defect could be *proven* fixed.
 Tracked as [`ITEM-0001`](../backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md).
 
+A one-command local stack for the work journeys (Flow R / S), with no MCP
+server, is described in [`work-gui-stack.md`](work-gui-stack.md).
+
 **This document covers the scripted suite.** For an agent driving a browser
 interactively — navigating, clicking and judging a screen a step at a time —
 see [`browser-control.md`](browser-control.md). Same engine, same Chromium

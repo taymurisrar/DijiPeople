@@ -2,7 +2,7 @@
 
 import { Edit3, ExternalLink, PauseCircle, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
 import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
@@ -23,6 +23,19 @@ import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type TablesListProps = {
   tables: CustomizationTable[];
+};
+
+type TableDeleteImpact = {
+  columns: number;
+  forms: number;
+  views: number;
+  records: number;
+  packageComponents: number;
+  canDelete: boolean;
+  externalReferences: {
+    tableDisplayName: string;
+    columnDisplayName: string;
+  }[];
 };
 
 type EditState = {
@@ -58,6 +71,10 @@ export function TablesList({ tables }: TablesListProps) {
   );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [impact, setImpact] = useState<TableDeleteImpact | null>(null);
+  const [impactError, setImpactError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const columns = useMemo<DataTableColumn<CustomizationTable>[]>(
     () => [
@@ -289,23 +306,63 @@ export function TablesList({ tables }: TablesListProps) {
     router.refresh();
   }
 
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    setError(null);
-    const response = await fetch(
-      `/api/customization/tables/${deleteTarget.tableKey}`,
-      { method: "DELETE" },
-    );
-    const data = (await response.json().catch(() => ({}))) as {
-      message?: string;
-    };
-    if (!response.ok) {
-      setError(data.message ?? "Unable to delete the module.");
+  // The impact is read when the dialog opens so the confirmation states what
+  // will actually be removed, and blocks when another module depends on it.
+  useEffect(() => {
+    if (!deleteTarget) {
+      setImpact(null);
+      setImpactError(null);
+      setDeleteError(null);
       return;
     }
-    notifySuccess(`${deleteTarget.displayName} deleted`);
-    setDeleteTarget(null);
-    router.refresh();
+    let cancelled = false;
+    setImpact(null);
+    setImpactError(null);
+    fetch(`/api/customization/tables/${deleteTarget.tableKey}/dependencies`)
+      .then(async (response) => {
+        const data = (await response.json().catch(() => ({}))) as
+          | TableDeleteImpact
+          | { message?: string };
+        if (cancelled) return;
+        if (!response.ok) {
+          setImpactError(
+            (data as { message?: string }).message ??
+              "Unable to load the deletion impact.",
+          );
+          return;
+        }
+        setImpact(data as TableDeleteImpact);
+      })
+      .catch(() => {
+        if (!cancelled) setImpactError("Unable to load the deletion impact.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteTarget]);
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `/api/customization/tables/${deleteTarget.tableKey}`,
+        { method: "DELETE" },
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      if (!response.ok) {
+        setDeleteError(data.message ?? "Unable to delete the module.");
+        return;
+      }
+      notifySuccess(`${deleteTarget.displayName} deleted`);
+      setDeleteTarget(null);
+      router.refresh();
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   // BUG-0043: kept its own layout, gained the guarantees it never had -
@@ -515,6 +572,46 @@ export function TablesList({ tables }: TablesListProps) {
             >
               Delete {deleteTarget.displayName}?
             </h3>
+            {impactError ? (
+              <p className="text-sm text-red-700" role="alert">
+                {impactError}
+              </p>
+            ) : !impact ? (
+              <p className="text-sm text-muted">Checking what this affects…</p>
+            ) : (
+              <div className="grid gap-2 text-sm text-foreground">
+                <p>This permanently deletes the module and everything in it:</p>
+                <ul className="list-disc pl-5">
+                  <li>{impact.columns} fields</li>
+                  <li>{impact.forms} forms</li>
+                  <li>{impact.views} views</li>
+                  <li>{impact.records} records</li>
+                  <li>{impact.packageComponents} package components</li>
+                </ul>
+                {impact.externalReferences.length ? (
+                  <div role="alert" className="text-red-700">
+                    <p>Other modules still depend on it:</p>
+                    <ul className="list-disc pl-5">
+                      {impact.externalReferences.map((ref) => (
+                        <li
+                          key={`${ref.tableDisplayName}.${ref.columnDisplayName}`}
+                        >
+                          {ref.tableDisplayName} — {ref.columnDisplayName}
+                        </li>
+                      ))}
+                    </ul>
+                    <p>Remove those references first.</p>
+                  </div>
+                ) : (
+                  <p>This cannot be undone.</p>
+                )}
+              </div>
+            )}
+            {deleteError ? (
+              <p className="text-sm text-red-700" role="alert">
+                {deleteError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-3">
               <Button
                 onClick={() => setDeleteTarget(null)}
@@ -523,7 +620,12 @@ export function TablesList({ tables }: TablesListProps) {
               >
                 Cancel
               </Button>
-              <Button onClick={handleDelete} type="button" variant="danger">
+              <Button
+                disabled={!impact || !impact.canDelete || isDeleting}
+                onClick={handleDelete}
+                type="button"
+                variant="danger"
+              >
                 Delete module
               </Button>
             </div>

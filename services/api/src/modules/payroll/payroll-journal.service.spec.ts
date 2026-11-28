@@ -60,7 +60,15 @@ describe('PayrollJournalService', () => {
       },
       payComponent: { findFirst: jest.fn() },
       taxRule: { findFirst: jest.fn() },
+      // Generate takes a row lock on the run inside a transaction (BUG-4639
+      // follow-up); the callback receives this same mock as its client.
+      $queryRaw: jest.fn().mockResolvedValue([]),
     };
+    Object.assign(prisma as object, {
+      $transaction: jest.fn(async (callback: (tx: unknown) => unknown) =>
+        callback(prisma as unknown),
+      ),
+    });
     resolver = { resolveRule: jest.fn().mockResolvedValue(postingRule()) };
     service = new PayrollJournalService(
       prisma,
@@ -245,7 +253,11 @@ describe('PayrollJournalService', () => {
     const createMany = jest.fn().mockResolvedValue({ count: 2 });
     prisma.$transaction = jest.fn(async (callback) =>
       callback({
+        // The reversal locks the original row, then re-checks for an existing
+        // reversal under the lock (BUG-4639 follow-up): none here.
+        $queryRaw: jest.fn().mockResolvedValue([]),
         payrollJournalEntry: {
+          findFirst: jest.fn().mockResolvedValue(null),
           create: jest.fn().mockResolvedValue({
             id: 'reversal-1',
             journalNumber: 'GL-202604-1-REV',

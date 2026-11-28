@@ -5,6 +5,8 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
 describe('AppController (e2e)', () => {
+  // Compiling the whole AppModule outgrew jest's 5 s hook default on a cold CI runner.
+  jest.setTimeout(120_000);
   let app: INestApplication<App>;
 
   beforeEach(async () => {

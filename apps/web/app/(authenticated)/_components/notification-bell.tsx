@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { startVisibilityAwarePolling } from "@/lib/visibility-polling";
 import { Archive, Bell, Check, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -75,18 +76,16 @@ export function NotificationBell({
 
   useEffect(() => {
     const initialRefreshId = window.setTimeout(() => void refresh(false), 0);
-    const intervalId = window.setInterval(() => {
-      // Clearing here as well as in the teardown: the effect runs once, so
-      // there is no re-render that would otherwise stop the timer.
-      if (sessionEndedRef.current) {
-        window.clearInterval(intervalId);
-        return;
-      }
-      void refresh(false);
-    }, 60_000);
+    // Not in a hidden tab; catches up the moment the tab is visible again.
+    // `shouldStop` ends polling for good once the session has ended.
+    const stopPolling = startVisibilityAwarePolling({
+      intervalMs: 60_000,
+      run: () => void refresh(false),
+      shouldStop: () => sessionEndedRef.current,
+    });
     return () => {
       window.clearTimeout(initialRefreshId);
-      window.clearInterval(intervalId);
+      stopPolling();
     };
   }, []);
 
@@ -220,7 +219,7 @@ export function NotificationBell({
                     <p className="truncate text-sm font-semibold text-foreground">
                       {item.notification.title}
                     </p>
-                    {item.notification.summary ?? item.notification.body ? (
+                    {(item.notification.summary ?? item.notification.body) ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted">
                         {item.notification.summary ?? item.notification.body}
                       </p>

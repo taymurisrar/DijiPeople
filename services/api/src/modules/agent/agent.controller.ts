@@ -41,6 +41,7 @@ import {
   HeartbeatDto,
   StartAgentSessionDto,
 } from './dto/agent-session.dto';
+import { AcknowledgeMonitoringPolicyDto } from './dto/monitoring-policy.dto';
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
@@ -148,7 +149,24 @@ export class AgentController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() _query: AgentVersionQueryDto,
   ) {
-    return this.agentService.getConfig(user.tenantId);
+    return this.agentService.getConfig(user.tenantId, user.userId);
+  }
+
+  @Get('monitoring-policy')
+  @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
+  monitoringPolicy(@CurrentUser() user: AuthenticatedUser) {
+    return this.agentService.getMonitoringPolicy(user);
+  }
+
+  @Post('monitoring-policy/acknowledge')
+  @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
+  acknowledgeMonitoringPolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AcknowledgeMonitoringPolicyDto,
+  ) {
+    return this.agentService.acknowledgeMonitoringPolicy(user, dto);
   }
 
   @Post('devices/register')

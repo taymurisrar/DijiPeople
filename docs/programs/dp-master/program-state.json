@@ -1,0 +1,1701 @@
+{
+  "programId": "DP-MASTER",
+  "namespace": "DP-MASTER/WP-xx",
+  "masterVersion": "1.0",
+  "masterSha256": "68e4089017132c40fe71a43b6f2c98461f85493bbb22d71edf50551619e0661c",
+  "masterPath": "docs/programs/dp-master/MASTER-PLAN.md",
+  "baselineSha": "47eadf74",
+  "integrationBranch": "develop",
+  "parentTask": "TASK-0039",
+  "session": "SESSION-0138",
+  "baselineDate": "2026-11-24",
+  "r1": {
+    "window": "2026-12-01..2026-12-07",
+    "verdict": "IN_PROGRESS",
+    "included": [
+      "WP-01.S1",
+      "WP-03.S1",
+      "WP-04.S1",
+      "WP-08.S0",
+      "WP-05.S1",
+      "WP-17.S1 (assessment)",
+      "WP-35.S0",
+      "WP-02.S0",
+      "WP-26.S1",
+      "WP-26.S2",
+      "WP-17.S2",
+      "WP-08.S0b"
+    ],
+    "excluded": [
+      "All schema/runtime work for WP-02/35/06/09 (R2)",
+      "WP-17 remediation until OD-DLP-DEFAULTS",
+      "Everything in R3-R7"
+    ],
+    "notes": "R1 is a release candidate only if release-scoped tests pass (G4). Not a deployment authorization."
+  },
+  "throughputObserved": {
+    "commitsOnDevelopLast14d": 146,
+    "mergedPrsLast14d": 14,
+    "ciMinutes": "17-21",
+    "source": "git log origin/develop, gh run list at 2026-11-24",
+    "caveat": "multi-agent; not a single-stream rate"
+  },
+  "estimateUnit": "agent-sessions (one focused Claude Code session ~ one slice); ranges are assumption-based, to be reforecast after R1",
+  "workstreams": {
+    "A": "Platform/Architecture (schema, API, events/workflows) - single migration writer",
+    "B": "Product/UX + security fixes",
+    "C": "Quality/Integration (QA, docs)"
+  },
+  "decisions": [
+    {
+      "id": "D01",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D02",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D03",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D04",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D05",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D06",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D07",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D08",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D09",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D10",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D11",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D12",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D13",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D14",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D15",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D16",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D17",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D18",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D19",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    },
+    {
+      "id": "D20",
+      "status": "APPROVED",
+      "source": "MASTER-PLAN §2"
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "OD-DLP-DEFAULTS",
+      "status": "APPROVED",
+      "title": "Change agent defaults: window-title capture off by default, DLP consent required by default, add employee-visible disclosure (material privacy policy change, D16/S02)",
+      "recommendation": "Approve: captureWindowTitle default false for new tenants, dlpConsentRequired true, add visible agent status. No change to existing tenants without notice.",
+      "blocks": [
+        "WP-17.S1 remediation"
+      ],
+      "approvedOption": "All tenants (owner chose over recommendation: new tenants only)",
+      "approvedOn": "2026-11-24",
+      "note": "Existing-tenant change is a data update on AgentTrackingSettings; do it as an audited, reversible migration and keep per-tenant override."
+    },
+    {
+      "id": "OD-TERMINATE-ACCESS",
+      "status": "APPROVED",
+      "title": "Terminate semantic: disable the linked user and revoke sessions at terminationDate (immediate when dated now/past)",
+      "recommendation": "Approve; future-dated exits revoke at effective date via scheduled job.",
+      "blocks": [
+        "WP-08.S0"
+      ],
+      "approvedOption": "Approve (recommended)",
+      "approvedOn": "2026-11-24"
+    },
+    {
+      "id": "OD-DLP-POLICY-TEXT",
+      "status": "OPEN",
+      "title": "Who authors and publishes the dlp-monitoring-policy legal document (needs legal review)? Until published, content capture stays off for every tenant that enabled it.",
+      "recommendation": "Owner/legal drafts the text; publish via the platform legal console; tenants then acknowledge per employee in the agent.",
+      "blocks": [
+        "WP-17 rollout"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-01",
+      "sev": "HIGH",
+      "text": "Terminated employees keep login (terminate does not revoke access).",
+      "mitigation": "WP-08.S0",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-02",
+      "sev": "HIGH",
+      "text": "Full program 38 WPs vs R1 window of 13 days: R1 can only be a stabilization + contracts + one tested foundation increment.",
+      "mitigation": "R1 scope below; reforecast R2+ from observed throughput.",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-03",
+      "sev": "MED",
+      "text": "5 ACTIVE stale sessions and a parallel hardening program (SESSION-0137) share schema/permission resources.",
+      "mitigation": "Single-writer leases; session.mjs check before each slice.",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-04",
+      "sev": "MED",
+      "text": "CI exact-SHA gate 17-21 min; each push cancels the in-flight run.",
+      "mitigation": "Batch commits; one push per gate.",
+      "status": "OPEN"
+    },
+    {
+      "id": "RISK-05",
+      "sev": "MED",
+      "text": "Local primary checkout is 78 commits behind origin/develop and dirty (user-owned).",
+      "mitigation": "All work in dedicated worktree.",
+      "status": "OPEN"
+    }
+  ],
+  "wps": [
+    {
+      "id": "WP-01",
+      "title": "Product/repository baseline",
+      "wave": "Wave 0",
+      "planDeps": "none",
+      "hardDeps": [],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "This baseline (docs/programs/dp-master).",
+      "targetRelease": "R1",
+      "status": "IN_PROGRESS",
+      "estimateSessions": {
+        "low": 2,
+        "high": 3
+      }
+    },
+    {
+      "id": "WP-02",
+      "title": "Universal work engine",
+      "wave": "Wave 1",
+      "planDeps": "WP-35 contracts, WP-04, WP-01",
+      "hardDeps": [
+        "WP-35",
+        "WP-04",
+        "WP-01"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No work-item/task model: only Project, ProjectAssignment, OnboardingTask (schema.prisma).",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-03",
+      "title": "Workflow runtime foundation",
+      "wave": "Wave 1",
+      "planDeps": "WP-01, WP-04 initial security contracts",
+      "hardDeps": [
+        "WP-01",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "Workflow/WorkflowAction/WorkflowRun exist; WorkflowActionType only SEND_EMAIL; workflow-conditions.ts evaluateWorkflowConditions treats malformed entries as a match (fail-open); workflow-runtime.service.ts runActions records SUCCEEDED when some actions failed; WorkflowRunStatus has no partial value; Workflow has no stable key (unique tenantId+name).",
+      "targetRelease": "R1 (S1) / R2",
+      "status": "IN_PROGRESS",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-04",
+      "title": "Shared communications/security/events",
+      "wave": "Wave 1",
+      "planDeps": "WP-01; coordinate WP-03",
+      "hardDeps": [
+        "WP-01"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "notifications module exists. Catalogue has NO recruitment, projects or offboarding codes; only employee.onboarding.task.assigned (emitted onboarding.service.ts:569). recruitment.service.ts emits nothing on stage change/hire.",
+      "targetRelease": "R1 (S1) / R2",
+      "status": "IN_PROGRESS",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    },
+    {
+      "id": "WP-05",
+      "title": "Platform stabilization/runtime/data management",
+      "wave": "Wave 0",
+      "planDeps": "WP-01 slices",
+      "hardDeps": [
+        "WP-01"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "tenant-settings-dispositions.ts:233-265 marks ~28 recruitment settings NOT_IMPLEMENTED (defaultOnboardingPlanId, template ids, requireOfferApprovalBeforeHiring, notifyHiringManagerWhenCandidateHired ...); no readers found. tenant-modules.ts lacks projects (PROJECTS exists in tenant-features.ts).",
+      "targetRelease": "R1 (S1 audit)",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-06",
+      "title": "Projects and work execution",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/03/04/35",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04",
+        "WP-35"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "Project, ProjectAssignment, ProjectRole, customers, project timesheets exist; no task/phase/milestone/dependency models.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-07",
+      "title": "ATS and candidate experience",
+      "wave": "Wave 3",
+      "planDeps": "WP-03/04, relevant WP-19 action slices, WP-02 as needed",
+      "hardDeps": [
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "JobOpening, Candidate, Application, RecruitmentPipeline(+Stage), CandidateEvaluation (interview fields only), ApplicationStageHistory exist; no Interview, Offer or requisition model.",
+      "targetRelease": "R3",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-08",
+      "title": "Employee lifecycle",
+      "wave": "Wave 3",
+      "planDeps": "WP-07 handoff, WP-03/04/36; final exit WP-06/14, payroll interfaces WP-10",
+      "hardDeps": [
+        "WP-07",
+        "WP-03",
+        "WP-04",
+        "WP-36",
+        "WP-06"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "OnboardingTemplate/Task exist; no offboarding. employees.service.ts:2416-2466 terminate sets TERMINATED + date + audit only: no user disable, session revocation, approval cancellation or notification (SECURITY finding, see register).",
+      "targetRelease": "R3 (security fix early)",
+      "status": "IN_PROGRESS",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-09",
+      "title": "Workforce scheduling and coverage",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/03/04/35, existing time domain",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04",
+        "WP-35"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "WorkSchedule, WorkScheduleDay, ShiftTemplate exist; no roster/swap/coverage model.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-10",
+      "title": "Payroll localization and financial controls",
+      "wave": "Wave 5",
+      "planDeps": "WP-01, existing payroll/compensation; WP-09/15/33 approved-input interfaces",
+      "hardDeps": [
+        "WP-01"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "payroll, payslips, pay-components, tax-rules, loans, claims modules exist; statutory validation unverified.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 18
+      }
+    },
+    {
+      "id": "WP-11",
+      "title": "Continuous performance management",
+      "wave": "Wave 5",
+      "planDeps": "WP-31/30/04",
+      "hardDeps": [
+        "WP-31",
+        "WP-30",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No goal/KPI/OKR/feedback model by synonym scan.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-12",
+      "title": "Skills, learning and certifications",
+      "wave": "Wave 5",
+      "planDeps": "WP-04/08, WP-11 interfaces",
+      "hardDeps": [
+        "WP-04",
+        "WP-08"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No skill/course/certification model by synonym scan.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-13",
+      "title": "Employee experience and service management",
+      "wave": "Wave 3",
+      "planDeps": "WP-02/03/04; WP-08 integration",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "policies, approvals, inbox, documents exist; SupportCase* is platform support (keep separate); no tenant HR case/catalogue/announcement/survey.",
+      "targetRelease": "R3",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-14",
+      "title": "Workforce assets and access lifecycle",
+      "wave": "Wave 3",
+      "planDeps": "WP-02/03/04; interface WP-08, WP-17/23 adapters",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No workforce Asset model.",
+      "targetRelease": "R3",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-15",
+      "title": "Capacity, utilization, labor cost and profitability",
+      "wave": "Wave 4",
+      "planDeps": "WP-09/30/35/38, WP-06 and existing payroll/time",
+      "hardDeps": [
+        "WP-09",
+        "WP-30",
+        "WP-35",
+        "WP-38",
+        "WP-06"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "WorkforceSnapshotDaily, timesheets, project capacity validation exist; no reconciled capacity/utilization model.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-16",
+      "title": "Existing Windows desktop agent",
+      "wave": "Wave 6",
+      "planDeps": "WP-04/30 evidence contract, WP-03; reliability fixes early",
+      "hardDeps": [
+        "WP-04",
+        "WP-30",
+        "WP-03"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "ActivityEvent.dedupeKey (tenant:session:occurredAt) exists, agent.service.ts:1130; no client-generated event id so same-timestamp samples collapse; historical duplicates remain (ITEM-0032).",
+      "targetRelease": "R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-17",
+      "title": "Workforce security/privacy and compliance",
+      "wave": "Wave 6",
+      "planDeps": "WP-04/14/16; security fixes early",
+      "hardDeps": [
+        "WP-04",
+        "WP-14",
+        "WP-16"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "DLP capture is rule-triggered, tenant-gated default off, content access needs dlp.review and is audited, retention enforced (dlp.service.ts); no keylogger. Gaps vs D16: captureActiveApp/captureWindowTitle default true, dlpConsentRequired default false, no employee-visible disclosure found in agent UI. Remediation of defaults is a material privacy policy change -> owner decision.",
+      "targetRelease": "R1 (S1 assessment) / R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-18",
+      "title": "Workforce/organizational intelligence",
+      "wave": "Wave 4",
+      "planDeps": "WP-15/27–30/37/38, WP-29 digests",
+      "hardDeps": [
+        "WP-15",
+        "WP-27",
+        "WP-28",
+        "WP-29",
+        "WP-30",
+        "WP-37",
+        "WP-38"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "dashboard, reports and reporting (semantic layer, schedules) modules exist.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-19",
+      "title": "Advanced automation",
+      "wave": "Wave 7",
+      "planDeps": "WP-03/04, relevant domain services; early action slices for recruitment/lifecycle/digests",
+      "hardDeps": [
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "PROBED",
+      "evidence": "Only SEND_EMAIL action; no control flow, waits or branches.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 18
+      }
+    },
+    {
+      "id": "WP-20",
+      "title": "Workflow and BPF designers",
+      "wave": "Wave 7",
+      "planDeps": "WP-03/04, WP-19 incremental action registry, WP-21 identity contracts",
+      "hardDeps": [
+        "WP-03",
+        "WP-04",
+        "WP-19",
+        "WP-21"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Event-condition-action builder UI exists; no graph view/BPF.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 10,
+        "high": 16
+      }
+    },
+    {
+      "id": "WP-21",
+      "title": "Customization, ALM and packages",
+      "wave": "Wave 7",
+      "planDeps": "existing package engine, stable keys/version contracts WP-03/35/04; incrementally with each component owner",
+      "hardDeps": [
+        "WP-03",
+        "WP-35",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "package-artifact.ts PORTABLE_COMPONENT_TYPES = environmentVariable, table, column, optionSet, lookup, form, view, widget, actionBar; workflows/templates/navigation not portable; Workflow has no logical key.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-22",
+      "title": "Web/desktop experience and future mobile readiness",
+      "wave": "Wave 6",
+      "planDeps": "WP-04/05, shared domain APIs; UI quality throughout",
+      "hardDeps": [
+        "WP-04",
+        "WP-05"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Responsive web exists; shared-browser/kiosk and offline contracts not audited.",
+      "targetRelease": "R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-23",
+      "title": "Integration and data management center",
+      "wave": "Wave 6",
+      "planDeps": "WP-03/04/05, WP-21 connection contracts",
+      "hardDeps": [
+        "WP-03",
+        "WP-04",
+        "WP-05",
+        "WP-21"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "data-management, data, attendance-integrations, outbox exist; generic connector/mapping center not audited.",
+      "targetRelease": "R6",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-24",
+      "title": "AI and process intelligence",
+      "wave": "Wave 7",
+      "planDeps": "WP-18/20/23/31, trusted source contracts",
+      "hardDeps": [
+        "WP-18",
+        "WP-20",
+        "WP-23",
+        "WP-31"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Not audited.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 14
+      }
+    },
+    {
+      "id": "WP-25",
+      "title": "Industry packages and commercial alignment",
+      "wave": "Wave 7",
+      "planDeps": "WP-21/20 + relevant functional WPs",
+      "hardDeps": [
+        "WP-21",
+        "WP-20"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "Not audited.",
+      "targetRelease": "R7",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-26",
+      "title": "Continuous QA/release and documentation",
+      "wave": "Wave 7",
+      "planDeps": "release-scoped WP gates; continuous from day 1",
+      "hardDeps": [],
+      "classification": "PARTIAL",
+      "auditDepth": "PROBED",
+      "evidence": "docs/qa scenarios/plans/regressions/runs, qa:select, exact-SHA CI (17-21 min) exist.",
+      "targetRelease": "continuous",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 0,
+        "high": 0
+      }
+    },
+    {
+      "id": "WP-27",
+      "title": "Daily updates and asynchronous collaboration",
+      "wave": "Wave 4",
+      "planDeps": "WP-30/06/36/03/04",
+      "hardDeps": [
+        "WP-30",
+        "WP-06",
+        "WP-36",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No daily-update model found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    },
+    {
+      "id": "WP-28",
+      "title": "Meetings, discussions and decision register",
+      "wave": "Wave 4",
+      "planDeps": "WP-02/03/04/38; WP-27 integration",
+      "hardDeps": [
+        "WP-02",
+        "WP-03",
+        "WP-04",
+        "WP-38"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No meeting/decision model found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    },
+    {
+      "id": "WP-29",
+      "title": "Stakeholder updates and digests",
+      "wave": "Wave 4",
+      "planDeps": "WP-03/04/27/28/38",
+      "hardDeps": [
+        "WP-03",
+        "WP-04",
+        "WP-27",
+        "WP-28",
+        "WP-38"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "KEYWORD_ONLY",
+      "evidence": "reporting schedules/exports exist; audience subscriptions/digests not found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-30",
+      "title": "Universal contribution/evidence ledger",
+      "wave": "Wave 4",
+      "planDeps": "WP-02/35, evidence contracts with WP-06/09/36/37/38",
+      "hardDeps": [
+        "WP-02",
+        "WP-35"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No contribution ledger found.",
+      "targetRelease": "R4",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 12
+      }
+    },
+    {
+      "id": "WP-31",
+      "title": "KPI definitions and scorecards",
+      "wave": "Wave 5",
+      "planDeps": "WP-35/30/15/37/04",
+      "hardDeps": [
+        "WP-35",
+        "WP-30",
+        "WP-15",
+        "WP-37",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No KPI definition model found.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-32",
+      "title": "Review and appraisal cycles",
+      "wave": "Wave 5",
+      "planDeps": "WP-11/31/03/04",
+      "hardDeps": [
+        "WP-11",
+        "WP-31",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No appraisal/review cycle model found.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 12
+      }
+    },
+    {
+      "id": "WP-33",
+      "title": "Compensation, bonus/increment and promotion cycles",
+      "wave": "Wave 5",
+      "planDeps": "WP-32/10/03/04, existing compensation service",
+      "hardDeps": [
+        "WP-32",
+        "WP-10",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "EmployeeCompensation(+History/Component), SalaryPackageRule exist; no bonus/increment cycle model.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-34",
+      "title": "Benefits, rewards and total compensation",
+      "wave": "Wave 5",
+      "planDeps": "WP-10/33 interfaces, existing benefits/eligibility/claims",
+      "hardDeps": [
+        "WP-10",
+        "WP-33"
+      ],
+      "classification": "PARTIAL",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "BenefitPolicy, EmployeeBenefitAssignment, BenefitConsumption exist.",
+      "targetRelease": "R5",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 8,
+        "high": 12
+      }
+    },
+    {
+      "id": "WP-35",
+      "title": "Work definitions/profiles",
+      "wave": "Wave 1",
+      "planDeps": "WP-01, WP-04 contracts",
+      "hardDeps": [
+        "WP-01",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No work profile/type/unit model found.",
+      "targetRelease": "R1 contract / R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 4,
+        "high": 7
+      }
+    },
+    {
+      "id": "WP-36",
+      "title": "Duties, checklists and handovers",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/09/35/03/04",
+      "hardDeps": [
+        "WP-02",
+        "WP-09",
+        "WP-35",
+        "WP-03",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No duty/checklist/handover model found.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 9
+      }
+    },
+    {
+      "id": "WP-37",
+      "title": "Quality, safety and corrective actions",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/35/36/04; can start quality contracts early",
+      "hardDeps": [
+        "WP-02",
+        "WP-35",
+        "WP-36",
+        "WP-04"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No quality/incident/CAPA model found.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 6,
+        "high": 10
+      }
+    },
+    {
+      "id": "WP-38",
+      "title": "Operational dependencies and accountability",
+      "wave": "Wave 2",
+      "planDeps": "WP-02/06/09/35, WP-36/37 links",
+      "hardDeps": [
+        "WP-02",
+        "WP-06",
+        "WP-09",
+        "WP-35"
+      ],
+      "classification": "MISSING",
+      "auditDepth": "SCHEMA_SCAN",
+      "evidence": "No blocker/downtime model found.",
+      "targetRelease": "R2",
+      "status": "NOT_STARTED",
+      "estimateSessions": {
+        "low": 5,
+        "high": 8
+      }
+    }
+  ],
+  "slices": [
+    {
+      "id": "WP-01.S1",
+      "wp": "WP-01",
+      "title": "Baseline, traceability register, DAG, state, R1 scope",
+      "release": "R1",
+      "deps": [],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "gate": "G0",
+      "evidence": "program-state.json, traceability.json, assessments.md; check passes; G0 PASS_WITH_NOTES",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-01.S2",
+      "wp": "WP-01",
+      "title": "Dated official competitor benchmark + gap matrix; R1 performance budgets",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "note": "Needs web evidence; non-blocking for G0",
+      "evidence": "competitor-benchmark.md (advertised, summarizer-read, dated 2026-11-25), performance-budgets.md (measured), traceability.json 53/53 classified",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-03.S1",
+      "wp": "WP-03",
+      "title": "Workflow conditions fail closed; run status reports partial failure honestly",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "migration": "additive enum value WorkflowRunStatus.PARTIALLY_FAILED",
+      "evidence": "workflow-conditions.spec, workflow-runtime.service.spec (12 tests); migration 20261124120000 additive enum; CANDIDATE recipient + PARTIALLY_FAILED UI added after first integration",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-04.S1",
+      "wp": "WP-04",
+      "title": "Register + emit recruitment stage-transition/hire events through the notification catalogue",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "note": "Category reuses EMPLOYEE (no enum change); RECRUITMENT category and candidate-recipient resolution are WP-07/WP-04 follow-ups",
+      "evidence": "recruitment-stage-event.spec; notification-event-delivery.spec green; only stage-change event emitted - interview/offer/hire-specific events need WP-07 models; CANDIDATE workflow recipient mode (tenant-scoped application->candidate)",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-08.S0",
+      "wp": "WP-08",
+      "title": "Terminate must revoke user access (security fix; BUG record)",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "note": "Immediate/past-dated exits only",
+      "decision": "OD-TERMINATE-ACCESS",
+      "evidence": "employee-terminate-access.spec (5 tests); BUG-4774 stays OPEN until S0b",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-05.S1",
+      "wp": "WP-05",
+      "title": "Inert-settings register (NOT_IMPLEMENTED recruitment settings) + projects module key decision",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "docs/programs/dp-master/assessments.md; ITEM-0245",
+      "integratedSha": "48ee90f0"
+    },
+    {
+      "id": "WP-17.S1",
+      "wp": "WP-17",
+      "title": "D16 assessment of default-on window-title capture, consent default, disclosure",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "decisionRequired": "OD-DLP-DEFAULTS",
+      "evidence": "docs/programs/dp-master/assessments.md",
+      "integratedSha": "48ee90f0"
+    },
+    {
+      "id": "WP-35.S0",
+      "wp": "WP-35",
+      "title": "Work-profile/unit contract ADR (stable keys, versioning)",
+      "release": "R1",
+      "deps": [
+        "WP-01.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "type": "design-only",
+      "evidence": "docs/decisions/ADR-0030 (PROPOSED)",
+      "note": "ADR-0030 is PROPOSED; acceptance with the WP-35.S1 ExecPlan",
+      "integratedSha": "48ee90f0"
+    },
+    {
+      "id": "WP-02.S0",
+      "wp": "WP-02",
+      "title": "Work identity contract ADR (typed domain records + common reference, no giant table)",
+      "release": "R1",
+      "deps": [
+        "WP-35.S0"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "type": "design-only",
+      "evidence": "docs/decisions/ADR-0030 (PROPOSED)",
+      "integratedSha": "48ee90f0"
+    },
+    {
+      "id": "WP-26.S1",
+      "wp": "WP-26",
+      "title": "R1 regression selection (qa:select) + plan entitlement regression run",
+      "release": "R1",
+      "deps": [
+        "WP-03.S1",
+        "WP-04.S1",
+        "WP-08.S0",
+        "WP-08.S0b",
+        "WP-17.S2"
+      ],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "evidence": "Node 22; API 528 suites/9,169 tests; agent 146; real-DB e2e 14 suites incl. auth query budget (25 held); isolated-DB migrations incl. legacy backfills and rollback; opt-in T-SCALE smoke; CI run 45564555615 green on bb5ad61d",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-26.S2",
+      "wp": "WP-26",
+      "title": "R1 readiness assessment (G3/G4 evidence, release manifest)",
+      "release": "R1",
+      "deps": [
+        "WP-26.S1"
+      ],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "window": "2026-12-06..07",
+      "evidence": "r1-release-manifest.md: gate table, independent review disposition, runbook, explicit NOT-proven list; verdict R1 CANDIDATE",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-03.S2",
+      "wp": "WP-03",
+      "title": "Stable workflowKey + immutable published versions + legacy migration",
+      "release": "R2",
+      "deps": [
+        "WP-03.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "migration 20261125120000 verified on isolated DB (keys de-duplicated per tenant, version 1 backfilled for ACTIVE workflows, legacy runs untouched); workflowKey immutable on rename; version minted only when behaviour changes; runs record workflowVersionId; 11 new unit tests; G4: pinned-snapshot execution, authoring validation, row lock on save, backfill collision fix verified on colliding names",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-03.S3",
+      "wp": "WP-03",
+      "title": "Durable async action execution on the outbox with step ledger",
+      "release": "R2",
+      "deps": [
+        "WP-03.S2"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "migration 20261126090000 (additive); durable path opt-in, inline default; workflow-durable-execution.e2e-spec 8 tests (retry then success sends once; retry re-runs only the failed step; permanent failure never retried; malformed payload manual action; outbox failure falls back inline); mutation: disabling the step skip fails the retry test | Contract completed 2026-11-25 (8ce8b3af): stable transition ids, transactional enqueue, version pinned on retry, atomic step claims, truthful e-mail outcomes, explicit ENQUEUE_FAILED instead of inline fallback; 17 real-DB tests.",
+      "integratedSha": "3eb94a8a"
+    },
+    {
+      "id": "WP-35.S1",
+      "wp": "WP-35",
+      "title": "Work profile/type/unit schema + API (S1 backend); settings UI and ALM component are WP-35.S2",
+      "release": "R2",
+      "deps": [
+        "WP-35.S0"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "migration 20261125150000 (additive); work-profiles module: units, profiles, immutable versions, time-effective assignments; work-profile-definition.spec (14), work-profiles.e2e-spec (7, real DB + guard: nurse/BPO/developer configured with no code, incompatible units and invalid standards rejected, published version immutable, window closes on replacement, assignment overlap refused, no cross-tenant access, unknown fields 400); permissions work-profiles.read/manage; API contract classified",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-02.S1",
+      "wp": "WP-02",
+      "title": "Work item model, lifecycle, contributors, dependencies",
+      "release": "R2",
+      "deps": [
+        "WP-02.S0",
+        "WP-35.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "migration 20261126120000 (additive); work-items module; work-items.e2e-spec 11 tests (cycle race x12 fails without the advisory lock, contributors not double counted, transition table, archive-only, cross-tenant 404, unknown-field 400)",
+      "integratedSha": "3eb94a8a"
+    },
+    {
+      "id": "WP-17.S2",
+      "wp": "WP-17",
+      "title": "Apply approved agent privacy defaults to all tenants (window-title off, DLP consent required) + employee-visible status",
+      "release": "R1",
+      "deps": [
+        "WP-17.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "decision": "OD-DLP-DEFAULTS",
+      "evidence": "G4 hardening: consent mandatory for the CURRENT policy version, agent purge on server refusal, acknowledgement endpoints, atomic ack+audit; dlp-monitoring-consent.e2e-spec.ts real DB; agent suite 146 tests; real-Electron run NOT performed",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-08.S0b",
+      "wp": "WP-08",
+      "title": "Scheduled access revocation at the effective date for future-dated exits (closes BUG-4774)",
+      "release": "R1",
+      "deps": [
+        "WP-08.S0"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "decision": "OD-TERMINATE-ACCESS",
+      "design": "Sweeper worker following billing/services/subscription-change-sweeper.worker.ts (off by default, interval, never throws); selects TERMINATED employees with terminationDate<=now whose user is still ACTIVE; same transaction as WP-08.S0; new env var must be registered in packages/config, render.yaml, docs/environment-variables.md (enabling it is a deployment decision, not made here). Rejected: enforcing in JwtAuthGuard (single-writer auth hot path).",
+      "evidence": "G4 hardening: single transaction under row lock, effective-date check on login/refresh/me, sweeper recovery + keyset cursor + 60 s interval; employee-access-revocation.e2e-spec.ts 11 real-DB tests (3 fail when the lock re-check / auth check are removed); runbook; review findings dispositioned in r1-release-manifest.md",
+      "integratedSha": "bb5ad61d"
+    },
+    {
+      "id": "WP-26.S3",
+      "wp": "WP-26",
+      "title": "Close G4: browser run of the web tweaks, real-Electron smoke, human review of the G4 diff",
+      "release": "R1",
+      "deps": [
+        "WP-08.S0b",
+        "WP-17.S2",
+        "WP-03.S2"
+      ],
+      "workstream": "C",
+      "status": "IN_PROGRESS",
+      "evidence": "Technical evidence executed 2026-11-25 (isolated API :4099 + web :3011 + real Electron 39 agent, throwaway DB dp_master_gui): BROWSER: workflow Run History PARTIALLY FAILED badge renders (after fixing BUG-4775, a server/client boundary crash found by this very pass), workflow builder offers the CANDIDATE recipient, /work and /work/queues create, claim, SLA and owner-history flows work for manager and HR, sidebar highlight bug found and fixed. ELECTRON: real agent logs in, loads config, registers device, starts a work session and heartbeats; tray shows \"Content monitoring: off\" until config loads, \"off until you acknowledge the policy\" before acknowledgement and \"ON (clipboard/screenshots)\" only after the acknowledgement is recorded; the full 6,833-character policy opens in a script-less window BEFORE the acknowledgement dialog (no truncation, JavaScript execution blocked). NOT executed: offline suspension after the 30-minute freshness window (unit-tested, not driven live), a live second sign-in on one device for buffer isolation (unit-tested), the OS-native message box itself (stubbed to answer; its text was recorded). HUMAN APPROVAL (separate, not given): review of the G4 diff by a person, and OD-DLP-POLICY-TEXT. | 2026-11-26 addendum: persisted real-Electron privacy journey e2e/electron/agent-dlp-privacy.cjs (9/9 after fixing BUG-4776: tray stale after acknowledgement); persisted browser suite flow-r (29/29). Still NOT done: offline suspension after the 30-minute window and cross-sign-in buffer isolation live; native OS message box (answered by the harness); axe audits; other browsers; drag and drop. Human G4 review and OD-DLP-POLICY-TEXT remain separate and pending. | 2026-11-26 round 2: Electron journey 13/13 incl. offline pause and resume (synthetic proxy takes the server away; tray says paused, never ON, then resumes from a fresh config without a second acknowledgement); Flow S 20/20 on two consecutive runs (blockers, hours and net capacity, entitlement toggling incl. CUSTOM override and report-only enforcement, cross-tenant isolation in the browser, axe, work-profile settings incl. .djpkg re-import no-op, two-tab concurrency, repeatable fixtures); Flow R 29/29 (one assertion updated to the net-capacity wording). | 2026-11-28: ENFORCE entitlement tested in isolation (entitlement-enforce.e2e 11 tests; mode injected, no platform setting written, env and setting row verified unchanged at the end; mutation: ENFORCE no longer refusing fails 6). Finding: work routes have NO plan gate and no feature key exists (ITEM-0250, owner decision). | 2026-11-29 ITEM-0250 implemented (ADR-0032): work-management on Growth+Enterprise gates the work-items, daily-updates, work-profiles and contributions controllers; work-intelligence on Enterprise gates work-component ALM packaging; entitlement-enforce.e2e 16 tests (Starter-like refused 403 on 7 work paths, Growth allowed, CUSTOM grants, MANUAL capped, REPORT_ONLY logs); web nav and /work layout plan gate.",
+      "humanApprovalPending": [
+        "G4 diff review by a human",
+        "OD-DLP-POLICY-TEXT (legal text)"
+      ]
+    },
+    {
+      "id": "WP-35.S2",
+      "wp": "WP-35",
+      "title": "Work profile settings UI (runtime/settings adapter) and portable .djpkg component (ALM contract)",
+      "release": "R2",
+      "deps": [
+        "WP-35.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "/settings/work-profiles dedicated page, portable workUnit/workProfile components (work-profile-portable.spec 15, work-profiles.e2e-spec 8 incl. export/dry-run/import/idempotent re-import); NOT browser-verified",
+      "integratedSha": "3eb94a8a"
+    },
+    {
+      "id": "WP-35.S3",
+      "wp": "WP-35",
+      "title": "Re-audit inherited requirements U01, U03, M04 against the shipped profile model (G1)",
+      "release": "R2",
+      "deps": [
+        "WP-35.S1"
+      ],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "evidence": "traceability.json U01, U03, M04, A02, A07 re-audited against shipped code with test references",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-30.S1",
+      "wp": "WP-30",
+      "title": "Contribution/evidence ledger core: entry model, provenance, verification state, dedupe, correction history (seven work types; quantity never silently converted to time)",
+      "release": "R4",
+      "deps": [
+        "WP-02.S1",
+        "WP-35.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "migration 20261127090000 (additive); contributions module; contribution-math.spec 16 unit tests; work-scope.e2e-spec ledger block (seven work types, provenance from the caller, overlap counted once, quantity never time, offline retry deduplicated incl. racing, retrospective reason, revisions kept, self-review refused, scope by access level, cross-tenant 404); mutation: removing the self-review check and the read filter each fail tests | UI: see WP-30.S2.",
+      "integratedSha": "d260bdb3"
+    },
+    {
+      "id": "WP-06.S1",
+      "wp": "WP-06",
+      "title": "Work queue over work items: non-project service queue, assignment/reassignment views, SLA fields; Project optional",
+      "release": "R2",
+      "deps": [
+        "WP-02.S1",
+        "WP-03.S3"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "API: migration 20261127100000 (additive); work queues with SLA stamped per item, claim, queue summary, owner history, owner names; work items scoped by the access level on EMPLOYEES (employee own / manager business unit / HR tenant); work-scope.e2e-spec (19 tests with work-items.e2e-spec 12). UI: /work and /work/queues built on shared components, web suite 146 suites; driven in a real browser as manager and HR (create task, create queue, claim, SLA Met, history, single sidebar highlight). Not done in this slice: projects extension (templates, phases, milestones, timesheet integration) and employee-facing comments/attachments are later WP-06 slices.",
+      "integratedSha": "d260bdb3"
+    },
+    {
+      "id": "WP-03.S4",
+      "wp": "WP-03",
+      "title": "Workflow step ledger per recipient (multi-recipient rules) and e-mail template version pinning on retry",
+      "release": "R2",
+      "deps": [
+        "WP-03.S3",
+        "WP-04.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "note": "Tracked here per the owner: the S3 ledger is per action, so a single action addressed to several recipients is still one step; template pinning needs the notification template version id on the step.",
+      "evidence": "migration 20261128090000 (additive); recipients list (SUBJECT/ACTOR/FIXED/CANDIDATE/ROLE) expanded once and pinned on the run, one step per recipient with its own claim and retry, duplicate address = one message, unresolvable recipient = recorded permanent failure; template pinned by the first send with drift flagged; delivery log read back by WorkflowDeliveryReconciler (a message that failed after hand-off turns its step and run into failures); transitionId adopted by leave (2), loans (1) and claims (1) producers; workflow-durable-execution.e2e-spec 24 tests; mutation: removing the recipient pin fails the role test. NOT covered: template pin in templateKey mode against a second same-key template (the pin test uses the template id); an automatic scheduler for reconciliation (it is an endpoint, POST /workflows/reconcile-deliveries).",
+      "integratedSha": "c2f8dc2b"
+    },
+    {
+      "id": "WP-21.S1",
+      "wp": "WP-21",
+      "title": "Work profile, work unit, work queue and work-type components in the one existing .djpkg package engine (ALM): export, dependency order, atomic import, idempotent upgrade, dependency-safe uninstall",
+      "release": "R7",
+      "deps": [
+        "WP-35.S2",
+        "WP-06.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "note": "Registered per the owner. WP-35.S2 shipped a separate work-profile importer behind the same logical-key rules; this slice folds it into the module package engine (needs a package component enum change, so a schema lease) and must not create a competing engine.",
+      "evidence": "Work units, profiles and queues travel through the one package engine (release/export/analyze/execute/uninstall); portable logical keys only; atomic import in the engine transaction; idempotent re-import (checksum-equal = no-op); upgrade = one new version; dependency-safe uninstall that deactivates and retains history; old endpoints are thin callers of the shared service. work-components-package.e2e-spec 12 tests; mutations: writing outside the transaction fails the atomic test, defeating the checksum comparison fails the idempotence/upgrade/uninstall tests. KNOWN: customization-package-alm.e2e-spec \"rolls the whole import back when the database refuses one component\" fails here with HTTP_ERROR instead of PACKAGE_IMPORT_FAILED because the private Postgres cluster is WIN1252 and cannot store a UTF-8 arrow in the test data (environment; not re-run on an untouched tree). DECISIONS TAKEN (owner may reverse): an identical unowned local component is adopted, not reported as a conflict; uninstall deactivates rather than deletes. NO UI for addWorkComponents yet. | UTF-8 ALM rollback test: the earlier failure was the private cluster being WIN1252; on a UTF-8 database (CREATE DATABASE … ENCODING UTF8 TEMPLATE template0) customization-package-alm.e2e-spec passes 19/19. Decisions recorded in ADR-0031. | 2026-11-28 ALM permissions and success path: work-alm-success.e2e 8 tests (throwaway role with exactly both permission sets, export/import into a second tenant on UTF-8 with Arabic/CJK names, idempotent re-import, uninstall deactivates, adoption of an identical unowned queue, single-permission users refused with a clear error); customization-package-alm 19/19 and work-components-package on dp_master_utf8. ITEM-0248 (which seeded role holds both sets) remains an owner decision. | 2026-11-29 ITEM-0248 (ADR-0032 + owner decision): System Customizer holds the package and work-profile/queue permissions through customization privileges and NO employees privilege (configuration routes accept the old employees privilege OR a customization one; roleCanReach identical for 9 roles x 19 routes before/after; system-customizer-isolation.e2e: reaches /work-profiles and /work-queues, 403 on GET /employees).",
+      "integratedSha": "c2f8dc2b"
+    },
+    {
+      "id": "WP-06.S2",
+      "wp": "WP-06",
+      "title": "Projects on universal work items: milestones, progress, workload, Kanban and project work journeys (no parallel task model)",
+      "release": "R2",
+      "deps": [
+        "WP-06.S1",
+        "WP-02.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "API: migration 20261128100000; MILESTONE kind, milestone roll-up with project inheritance, milestone cannot finish while tasks are open, progress (counts, each person once, null not 0%, approved timesheet hours by task id), workload on a named STANDARD_WEEK basis with unestimated work counted apart; project-work-and-daily-updates.e2e-spec (milestones/progress/workload block). NOT yet: timesheet entries selecting a work item (WP-06.S3), project templates/phases/WBS, sprints, retainers. | UI: project Work area on /projects/:id (Kanban by transition buttons, list, milestones with progress, workload with standard-week caveat, item detail with subtasks, dependencies and per-person contributors). BUG-4777 (creator could not read own project) fixed. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone.",
+      "integratedSha": "c2f8dc2b"
+    },
+    {
+      "id": "WP-06.S3",
+      "wp": "WP-06",
+      "title": "Timesheet entries select a work item (taskId = work item id), approved hours feed progress; project templates, phases/WBS, review and closure (narrowed 2026-11-28: API reconciliation and net capacity; remainder in WP-06.S4)",
+      "release": "R2",
+      "deps": [
+        "WP-06.S2"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "API: an entry taskId that IS a work item of the tenant is a link (free text stays free text); the employee must own or share it, it must not be archived and must agree with the entry project (6 unit tests incl. free text not queried); GET /work-items/:id/hours puts self-reported actual beside approved and pending timesheet minutes and names the gap (MATCHES / REPORTED_NOT_YET_APPROVED / APPROVED_EXCEEDS_REPORTED / NO_ACTUAL_REPORTED / NOTHING_BOOKED), scoped like the item; workload capacity is net of approved leave and holidays, each day removed once, limits named, no capacity = unavailable (work-capacity-and-hours.e2e-spec 4 tests + 5 pure tests). Shared calendar facts also drive the daily-update missing list. NOT yet: shifts, part-time and half days (WP-09.S1); the timesheet entry UI choosing a work item; project templates/phases/WBS; review and closure. | BROWSER: hours section shows reported vs approved with the gap in words (\"Not reported\", never 0); workload shows leave days, holiday days, net capacity and \"No capacity\". Remaining in this slice: the timesheet entry UI choosing a work item, project templates/phases/WBS, review and closure.",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-30.S2",
+      "wp": "WP-30",
+      "title": "Contribution employee/manager UI: record, correct, withdraw, dispute, verify",
+      "release": "R4",
+      "deps": [
+        "WP-30.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "My evidence (record all three measures, correct, withdraw, dispute, history), Evidence review (verify, reject and dispute with required notes); jest specs mirror the API constants; seven work kinds, a quantity is shown under its own unit and never as minutes. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone.",
+      "integratedSha": "c2f8dc2b"
+    },
+    {
+      "id": "WP-27.S1",
+      "wp": "WP-27",
+      "title": "Daily updates: policy, evidence-backed drafts, unplanned work/achievements/blockers, submit, correct, acknowledge, missing-update list, employee/manager UI",
+      "release": "R4",
+      "deps": [
+        "WP-30.S1",
+        "WP-06.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "lease": "schema",
+      "evidence": "API: migration 20261128110000; one update per employee and day (unique), draft proposed from recorded contributions and work items with every line naming its source, a count stays a count, a past day uses only what was finished that day, lateness against the policy deadline in the policy zone (DST-tested), edit after submission bumps the version and is audited, acknowledgement by someone else only, missing list only after the deadline on working days and only for people in reach, off by default; 10 unit tests + the daily-updates block of project-work-and-daily-updates.e2e-spec. NOT yet: missed-update escalation notification (list only), per-shift cadence beyond weekdays, optional AI-free summary beyond line drafts. | UI: Daily update (draft from records, sections, unplanned, blockers, achievements, submit, correct), Team updates (scoped list, acknowledge, missing), Settings > Daily updates. | BROWSER (Flow R, e2e/tests/flow-r-work-journeys.spec.ts, 29 journeys on the isolated stack, employee/manager/HR/admin, three viewports): all pass; defects found and fixed in the new screens: select menus hidden behind dialog overlay, blank Occurrences/Entries tiles, employee saw management nav entries, 768px horizontal overflow, project items query over the API cap, daily-update default date judged in the wrong zone. | Hardening 2026-11-26: save/submit/acknowledge are guarded by the version the person or reviewer read (two saves racing: one wins, the other is told to reload; an acknowledgement is of the text read and is refused if it was corrected first); a person on approved leave or a holiday is not owed an update (missing list shows excludedOnLeaveOrHoliday). Scoped policies and per-shift cadence -> WP-27.S2.",
+      "integratedSha": "c2f8dc2b"
+    },
+    {
+      "id": "WP-38.S1",
+      "wp": "WP-38",
+      "title": "Operational dependencies and accountability on work items: blocker reason/category/cause, owner and due date, affected work, escalation, worker-controllable vs external causes (no automatic blame)",
+      "release": "R2",
+      "deps": [
+        "WP-06.S2",
+        "WP-02.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "API: blockers with category, cause (UNDETERMINED by default, never inferred; set only by a reviewer who is not a party to the delay), owner, due date, escalation (bounded at 3, race-safe), resolve/cancel (concurrent closers collapse to one; the last close frees the item), visibility for the person a blocker waits on, blocked-time summary by cause and category beside effort; work-blockers.e2e-spec 7 tests; mutation: removing the party check fails the cause test. NOT yet: downtime tied to schedules/WP-30 intervals, cross-team routing, root-cause analysis and corrective actions (WP-37 links). | UI: /work/blockers (filters, summary by cause with undetermined and worker-controllable rows distinct, paging), blocker section and hours section in the work item panel, project blockers strip. BROWSER (Flow S 20/20 twice): raise moves the item to Blocked with cause shown as text (never pre-filled), the employee cannot set the cause, escalation stops at 3, resolve frees the item, the person a blocker waits on sees only that item; axe: no serious/critical violations on 9 screens plus dialogs.",
+      "integratedSha": "34899bfa"
+    },
+    {
+      "id": "WP-28.S1",
+      "wp": "WP-28",
+      "title": "Meetings and decision register: API (meetings, immutable decision chain, linked actions). UI, discussions/threads and authorized context are WP-28.S2/S3",
+      "release": "R4",
+      "deps": [
+        "WP-27.S1",
+        "WP-38.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "work-meetings and work-decisions API: meeting lifecycle with agenda lock once held, decisions never edited or deleted (changing one supersedes it in one compare-and-set transaction: 4 concurrent supersedes -> one 201, three 409, exactly one successor; mutation: dropping the status condition gives 2 successors), reverse requires a reason (stored in the audit row, not on the decision), actions are work items linked through DecisionAction with no orphan on failure, scope rules by reach (SELF sees only own/attended), cross-tenant on every route; work-decisions.e2e-spec 8 tests; mutations: race guard and tenant/scope filter. NOT done: UI; action owners do not see the originating decision unless they attend/own it; reverse reason is not readable from the decision; scheduled digests (WP-29).",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-29.S1",
+      "wp": "WP-29",
+      "title": "Stakeholder updates and digests: audience subscriptions, schedules, relevance, suppression/dedup, redacted customer reports",
+      "release": "R4",
+      "deps": [
+        "WP-28.S1",
+        "WP-27.S1",
+        "WP-03.S4"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-03.S5",
+      "wp": "WP-03",
+      "title": "Workflow delivery hardening: claim fencing, recipient eligibility on every attempt, uncertain-delivery recovery from the delivery log, bounded fan-out, scheduled reconciliation",
+      "release": "R2",
+      "deps": [
+        "WP-03.S4"
+      ],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "evidence": "workflow-durable-execution.e2e-spec 29 tests: a leaver is skipped on first attempt and on retry; a late worker that lost its claim cannot settle the step (mutation: removing the attempt fence fails the test); an expired claim whose delivery log shows the provider took it is not re-sent (and is re-sent when there is no evidence); 27 workflows -> 25 run + 2 refused visibly, 5x50 recipients -> 200 steps and the rest refused; WorkflowReconciliationScheduler (off unless WORKFLOW_RECONCILE_ENABLED=true, env registered in render.yaml and docs). NOT done: immutable template rendering (templates are edited in place; drift is flagged, not prevented) -> WP-04.S2; transactional enqueue adopted by producers that run inside a transaction (WorkflowDispatchService.enqueue exists and is tested, four producers pass transition ids but post-commit).",
+      "integratedSha": "34899bfa"
+    },
+    {
+      "id": "WP-04.S2",
+      "wp": "WP-04",
+      "title": "Immutable e-mail template revisions: pinned before the first send and recorded on the step (API/runtime). Authoring UI listing revisions: WP-04.S3",
+      "release": "R2",
+      "deps": [
+        "WP-03.S5"
+      ],
+      "workstream": "C",
+      "status": "INTEGRATED",
+      "evidence": "EmailTemplateRevision (content-addressed, immutable, created lazily the first time a workflow action sends); the first send of an action records the revision it rendered on the step, every retry and later recipient renders THAT revision whatever the row says now (email-template-revisions.e2e-spec 3 tests with the real renderer: row edited v1->v2, retry still renders v1, a send without a revision follows the row; another tenant cannot render the revision; a revision cannot be applied to a different template; mutation: rendering the row instead of the revision fails the test). workflow-durable-execution.e2e-spec 29/29 incl. retry handed the pinned revision and asking for no new one. NOT done: the authoring UI listing revisions / restoring one; system-template revisions are recorded when first sent, not at seed time. | 2026-11-28: revision is now pinned BEFORE the first send (EmailExecutionService.pinTemplate resolves the template by id or key+scope, records the content-addressed revision, and the step row carries templateId/version/revisionId before anything is sent; every attempt and recipient is handed the revision id). email-template-revisions.e2e 4 tests; workflow-durable-execution.e2e 29 asserts every send input carried the same revision.",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-09.S1",
+      "wp": "WP-09",
+      "title": "Workforce scheduling foundation: effective-schedule net capacity (API). Rotation weeks, half-day holidays, shared resolver: WP-09.S2; roster UI: WP-09.S3",
+      "release": "R2",
+      "deps": [
+        "WP-06.S3"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "work-schedule-capacity.ts reuses attendance work-configuration-hierarchy (dated assignment > employee > team > department > business unit > organisation > tenant default) and the attendance engine day rule (shift expected hours, else schedule-day hours; retired shift = no shift; Sunday-to-Thursday weeks honoured; overnight spans), loading all schedules in 3 queries; workload() capacity is now per person from their own schedule, net of leave and holidays (each day once, at that day's own minutes; leave on a day not worked costs nothing) with capacityBasis SCHEDULE / PARTLY_ASSUMED / NO_SCHEDULE so an assumed figure is never passed off as measured. work-schedule-capacity.spec 8 + work-item-capacity.spec; work-capacity-and-hours.e2e-spec incl. a Sun-Thu 6h shift week assigned to one person (5x360 scheduled, Wednesday holiday removed, Friday holiday on a non-working day ignored) while a person without a schedule reports NO_SCHEDULE. NOT done: roster calendar view and rotation weeks (rotationWeek rows are ignored), half-day holidays, shift swaps -> WP-09.S2.",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-36.S1",
+      "wp": "WP-36",
+      "title": "Duties, checklists and handovers: API (templates, idempotent generation, checklist, handovers). UI and automatic generation are WP-36.S2/S3",
+      "release": "R2",
+      "deps": [
+        "WP-09.S1",
+        "WP-02.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "work-duties API: templates (deactivate, never delete), idempotent generation (5 concurrent generates -> 1 occurrence + 1 work item; mutation: removing the unique-conflict handling fails it), weekday read in the template zone (Karachi/LA/New York edge cases, pure spec 10), occurrence left UNASSIGNED with the reason when the assignee is on leave or the day is not worked (never assigned to someone off), checklist copied per occurrence so later template edits never rewrite it, required checks block completion on both the duty route and the generic transition route (mutation: removing the guard fails), handovers acknowledged only by the receiver (team handovers by someone with reach over a member), idempotent, cross-tenant 404s; work-duties.e2e-spec 9 tests. NOT done: UI; occurrence list caps at 5000 candidates then filters in memory; unassigned occurrences are visible to the generating user and via queues only (route to a queue if managers need them); a scheduled generator job (generation is an explicit call today).",
+      "integratedSha": "07d866e0"
+    },
+    {
+      "id": "WP-27.S2",
+      "wp": "WP-27",
+      "title": "Daily updates: policies scoped by team/business unit, shift-aware cadence, idempotent missed-update escalation notification (API)",
+      "release": "R4",
+      "deps": [
+        "WP-27.S1",
+        "WP-09.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: DailyUpdateScopePolicy CRUD, resolution team > business unit > tenant (a disabled team policy stays disabled), PER_SHIFT cadence from the effective schedule (overnight, DST, Auckland specs), escalation inserts DailyUpdateEscalation first so run-twice and 4 concurrent runs notify once, failed notify rolls back, off-duty skipped, in-app to the reporting manager through the orchestrator; daily-update-scopes.e2e 9 tests; mutations: wrong precedence, removed unique claim. NOT done: no scheduler hook for escalation (route only); escalation UI -> WP-27.S3.",
+      "integratedSha": "c37c6600"
+    },
+    {
+      "id": "WP-15.S1",
+      "wp": "WP-15",
+      "title": "Capacity, utilization and labor cost foundation on reconciled net capacity and recognised time",
+      "release": "R5",
+      "deps": [
+        "WP-09.S1",
+        "WP-30.S1",
+        "WP-38.S1",
+        "WP-06.S3"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-18.S1",
+      "wp": "WP-18",
+      "title": "Workforce/organizational intelligence: role dashboards drilling through to source",
+      "release": "R5",
+      "deps": [
+        "WP-15.S1",
+        "WP-29.S1"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-06.S4",
+      "wp": "WP-06",
+      "title": "Project completion: timesheet-entry UI choosing a work item, project templates/phases/WBS, review and closure",
+      "release": "R3",
+      "deps": [
+        "WP-06.S3"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-09.S2",
+      "wp": "WP-09",
+      "title": "Rotation weeks, half-day holidays and one shared schedule resolver for attendance and capacity",
+      "release": "R3",
+      "deps": [
+        "WP-09.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: rotation weeks (cycle = max rotationWeek, anchor = schedule start / assignment start / fixed epoch), half-day holidays (half the day removed, 0.5 holiday day; full leave/holiday wins), one pure selectWorkSchedule shared by attendance.repository bulk resolution and capacity (parity spec feeds identical fixtures); limits now NO_SHIFT_SWAPS; mutation: ignoring rotationWeek fails 4 specs. NOT done: shift swaps, roster UI -> WP-09.S3; single-employee attendance resolver still queries per candidate (deliberate).",
+      "integratedSha": "c37c6600"
+    },
+    {
+      "id": "WP-36.S2",
+      "wp": "WP-36",
+      "title": "Duties: DB-level pagination of occurrence and handover lists, automatic (scheduled, idempotent, per-tenant isolated) generation",
+      "release": "R2",
+      "deps": [
+        "WP-36.S1",
+        "WP-09.S1"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: occurrence list is ONE database query (DutyOccurrence->WorkItem relation, visibility as a where, skip/take and exact count in SQL; query count constant across pages 0/500/700; 2300-row fixture, mixed visibility, ties, cross-tenant; mutation: dropping the visibility where fails). Automatic generation: scheduler off unless WORK_DUTY_GENERATION_ENABLED=true (render.yaml, env docs), per-tenant advisory lock, per-tenant failure isolation, idempotent (two runs -> one occurrence), null system actor, daysAhead bounded 1..14; mutation: removing idempotency fails 3 tests. NOT done: scheduler uses the UTC date, not each tenant timezone; handover/duty UI -> WP-36.S3. | 2026-11-29: generation is per template TIMEZONE (the local today of that template, daysAhead from there; Auckland/Los Angeles unit + e2e; mutations: UTC date, unforwarded zone). The earlier UTC-date limit is closed.",
+      "integratedSha": "16b844a1"
+    },
+    {
+      "id": "WP-36.S3",
+      "wp": "WP-36",
+      "title": "Duties UI: templates, today's occurrences, checklist completion, handovers; mandatory Playwright journeys for employee/manager/admin, entitlement toggling, responsive, accessibility",
+      "release": "R2",
+      "deps": [
+        "WP-36.S2"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: /work/duties UI (my duties paged by the server, occurrence dialog with checklist/notes/complete, manager template CRUD + generate, handover board), searchable template lookup (server search, no 100 cap), GET /work-duties/handover-recipients (id/name/code only, tenant-scoped, 5 e2e tests, mutation: leaking email fails). Browser Flow T (e2e/tests/flow-t-duties-and-timesheets.spec.ts) 15/15 green TWICE in a row on a fresh UTF-8 throwaway DB (dp_master_utf8_gui, identity verified by scripts/work-gui-stack.mjs): employee/manager/admin journeys, blocked completion, handover create/ack (sender 403), Starter vs Growth entitlement toggling, cross-tenant 404 (8 routes x 3 roles, real second tenant), 390/768/1280, axe, keyboard focus trap with a 10x tick/untick focus guard. Defects found and fixed: focus lost to body when a control unmounts/disables while focused, timesheet editor never sent taskId (wiped links), self-reach employee could not name a handover receiver, template filter capped at 100. Untested: runtime Starter-vs-Growth call to handover-recipients (metadata only).",
+      "integratedSha": "16b844a1"
+    },
+    {
+      "id": "WP-09.S3",
+      "wp": "WP-09",
+      "title": "Roster calendar UI and shift swaps",
+      "release": "R3",
+      "deps": [
+        "WP-09.S2"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-06.S5",
+      "wp": "WP-06",
+      "title": "Timesheet entry work-item picker UI",
+      "release": "R3",
+      "deps": [
+        "WP-06.S3"
+      ],
+      "workstream": "A",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: timesheet entry has a Work item picker of the person's own open items (free text stays as Other task); server refusals surface as field errors by catalog code TIMESHEET_WORK_ITEM_NOT_YOURS / TIMESHEET_WORK_ITEM_PROJECT (added to error-catalog; spec). Covered by Flow T. Known: reading a timesheet moves its optimistic-lock version (a second open editor goes stale) - recorded as a follow-up, not fixed.",
+      "integratedSha": "16b844a1"
+    },
+    {
+      "id": "WP-28.S2",
+      "wp": "WP-28",
+      "title": "Decision context authorization (action owners, hidden links), readable reversal reason",
+      "release": "R4",
+      "deps": [
+        "WP-28.S1"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-28: reversal reason/at/by stored on the decision and returned; an action owner can read the originating decision (writes stay 403); links the caller cannot see come back null, hidden chain steps surface as HIDDEN_LINK; work-decisions.e2e 11 tests; mutation: dropping the owner filter fails. NOT done: openActions does not list a decision for its action owner; UI -> WP-28.S3. | 2026-11-29: openActions now lists a decision for the owner of one of its open actions (read-only, only actions they may see) - the WP-28.S2 gap is closed.",
+      "integratedSha": "16b844a1"
+    },
+    {
+      "id": "WP-28.S3",
+      "wp": "WP-28",
+      "title": "Meetings, discussions and decisions UI; threads and child questions; search",
+      "release": "R4",
+      "deps": [
+        "WP-28.S2"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: /work/meetings and /work/decisions UI (create/edit/hold/cancel/attendance, decisions create/decide/supersede with chain and Not visible steps, reverse with stored reason, linked actions, open-actions report), authorized context renders as nothing, never an error. Browser Flow U (e2e/tests/flow-u-meetings-decisions-policies.spec.ts) 27/27 green: employee/manager/HR, real second tenant, Starter/Growth toggling, 3 viewports, keyboard/axe. Defects fixed: proxy had no DELETE, openActions ignored action owners, 390px overflow, own name shown as Employee xxxx. NOT done: linked discussion threads/child questions (schema has no thread entity) -> WP-28.S4; meeting links to work item/blocker only through URL params.",
+      "integratedSha": "16b844a1"
+    },
+    {
+      "id": "WP-27.S3",
+      "wp": "WP-27",
+      "title": "Daily updates: scoped-policy and shift cadence settings UI, escalation visibility",
+      "release": "R4",
+      "deps": [
+        "WP-27.S2"
+      ],
+      "workstream": "B",
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: scoped daily-update policy settings UI (team/BU CRUD, cadence, effective policy for a chosen employee, run escalation with counts) and a scheduled escalation (off unless WORK_DAILY_UPDATE_ESCALATION_ENABLED=true; per-tenant advisory lock and isolation, each person judged in their own policy timezone, idempotent through DailyUpdateEscalation; e2e 6 tests, 3 mutations). Covered by Flow U.",
+      "integratedSha": "16b844a1"
+    },
+    {
+      "id": "WP-04.S3",
+      "wp": "WP-04",
+      "title": "Template revision history and restore: every authoring save records a revision, list/view/restore API and editor UI (not started this round: agent interrupted by the usage limit before writing code)",
+      "release": "R2",
+      "deps": [
+        "WP-04.S2"
+      ],
+      "workstream": "C",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-28.S4",
+      "wp": "WP-28",
+      "title": "Linked discussion threads and child questions on decisions and meetings (needs a thread/comment entity: schema slice), meeting links to work items/blockers in the UI",
+      "release": "R4",
+      "deps": [
+        "WP-28.S3"
+      ],
+      "workstream": "B",
+      "status": "NOT_STARTED"
+    },
+    {
+      "id": "WP-06.S6",
+      "wp": "WP-06",
+      "title": "Timesheet read must not move the optimistic-lock version of an open editor",
+      "release": "R3",
+      "deps": [
+        "WP-06.S5"
+      ],
+      "workstream": "A",
+      "status": "NOT_STARTED"
+    }
+  ],
+  "nextExecutable": [
+    "WP-26.S3",
+    "WP-03.S3",
+    "WP-35.S2",
+    "WP-02.S1"
+  ],
+  "gates": {
+    "G0": {
+      "status": "PASS",
+      "sha": "48ee90f0",
+      "note": "WP-01.S1 + S2 accepted. 42 of 53 cross-cutting requirements are classified by inheritance from the owning WP audit, not individually code-read; each owning slice re-audits at its G1."
+    },
+    "G3": {
+      "status": "PASS_SLICE_SCOPE",
+      "sha": "bb5ad61d",
+      "note": "CI run 45564555615 green on bb5ad61d (all required jobs). Earlier failure at 5277db3e was a skipped opt-in suite in the database job, fixed by moving it out of the e2e glob."
+    },
+    "G4": {
+      "status": "NOT_MET",
+      "note": "Evidence-backed except two items: no real-Electron run and no browser run of the PARTIALLY_FAILED badge / CANDIDATE option; review was by a separate agent, not a human. See r1-release-manifest.md."
+    }
+  },
+  "records": {
+    "bug": "BUG-4774",
+    "backlogItem": "ITEM-0245"
+  },
+  "integratedSha": "16b844a1"
+}

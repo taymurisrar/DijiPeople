@@ -1,6 +1,6 @@
+import { formatDateTime } from "@/lib/formatting-context";
 import type { WorkflowRun } from "@/lib/workflows-api";
 import {
-  formatDateTime,
   SettingsPanel,
   StatusBadge,
 } from "../../notifications/_components/notification-ui";
@@ -30,13 +30,17 @@ export function WorkflowRunHistory({ runs }: { runs: WorkflowRun[] }) {
               {runs.map((run) => (
                 <tr className="border-b border-border/60" key={run.id}>
                   <td className="py-2 pr-4 whitespace-nowrap text-muted">
-                    {formatDateTime(run.startedAt)}
+                    {formatDateTime(run.startedAt) || run.startedAt}
                   </td>
                   <td className="py-2 pr-4">
                     <StatusBadge status={run.status} />
                   </td>
                   <td className="py-2 pr-4">{run.actionsRun}</td>
-                  <td className="py-2 text-muted">{run.error ?? "-"}</td>
+                  <td className="py-2 text-muted">
+                    {run.status === "PARTIALLY_FAILED"
+                      ? `Some actions did not run. ${run.error ?? ""}`.trim()
+                      : (run.error ?? "-")}
+                  </td>
                 </tr>
               ))}
             </tbody>

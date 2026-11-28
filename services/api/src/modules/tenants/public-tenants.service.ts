@@ -303,12 +303,26 @@ export class PublicTenantsService {
     };
   }
 
+  /**
+   * BUG-3162. The result of a resolution is a function of EVERY selector the
+   * caller supplied, in the resolver's own precedence (domain or host first,
+   * then slug, then code). Keying on only the first selector present let
+   * `?slug=victim&host=attacker.example` resolve to the attacker's tenant and
+   * then cache that answer under `slug:victim`, which every later caller asking
+   * for `slug=victim` was served. The key now carries all four, so a cached
+   * answer can only be returned to a request that supplied exactly the same
+   * selectors.
+   */
   private buildCacheKey(input: ResolveInput) {
-    if (input.domain) return `tenant:resolve:domain:${input.domain}`;
-    if (input.slug) return `tenant:resolve:slug:${input.slug}`;
-    if (input.host) return `tenant:resolve:host:${input.host}`;
-    if (input.tenantCode) return `tenant:resolve:code:${input.tenantCode}`;
-    return 'tenant:resolve:generic';
+    const part = (label: string, value: string | null | undefined) =>
+      `${label}=${value ?? ''}`;
+    // Keeps the `tenant:resolve:` prefix: invalidation deletes by that prefix.
+    return `tenant:resolve:${[
+      part('domain', input.domain),
+      part('host', input.host),
+      part('slug', input.slug),
+      part('code', input.tenantCode),
+    ].join('|')}`;
   }
 
   private assertTenantCanUseLogin(tenant: NonNullable<ResolvedTenant>) {

@@ -2,7 +2,7 @@
 ID: BUG-4133
 aliases: [BUG-4133]
 Title: Agreement template editor corrupts placeholders, ignores signer roles and cannot edit drafts or print
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-12
 DetectedInSha: eacb525e
 AffectedModules: [contracts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-681
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/agreement-templates-hotfix
 CreatedAt: 2026-10-12
-UpdatedAt: 2026-10-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-12
 ---
 
@@ -126,6 +126,8 @@ its fill-in notes are for the owner to resolve in a new draft.
 QA-CONTRACTS-001 (automated), plus a read-only render of the production HTML of
 template 55b74891 v1 and v2 against the fixed code: no token left unresolved.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): agreement-template-lifecycle.spec.ts asserts link-wrapped placeholders are unwrapped/resolved, lifecycle gates and signer roles are validated from catalog keys, and the template lifecycle edits drafts; contracts.workflow.spec also passes (all 42 contracts-related suites pass).
+
 ## History
 
 - 2026-10-12 — created from qa run at `eacb525e`.
@@ -140,3 +142,4 @@ template 55b74891 v1 and v2 against the fixed code: no token left unresolved.
 - Regression — REG-681 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

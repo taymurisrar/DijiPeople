@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -10,6 +11,8 @@ import { FeatureAccessService } from './feature-access.service';
 import { ActiveOrganizationService } from './active-organization.service';
 import { ConfigurationResolverService } from './configuration-resolver.service';
 import { EnterpriseConfigurationController } from './enterprise-configuration.controller';
+import { FieldAccessInterceptor } from './field-access.interceptor';
+import { FieldAccessService } from './field-access.service';
 import { FieldSecurityController } from './field-security.controller';
 import { EnterpriseConfigurationService } from './enterprise-configuration.service';
 import { SettingsContextController } from './settings-context.controller';
@@ -47,6 +50,9 @@ import { TenantSettingsService } from './tenant-settings.service';
     TenantSettingsResolverService,
     PublicTenantCacheService,
     FeatureAccessService,
+    FieldAccessService,
+    // BUG-3155: global, inert on a route without @FieldAccess(...).
+    { provide: APP_INTERCEPTOR, useClass: FieldAccessInterceptor },
     JwtAuthGuard,
     PermissionsGuard,
   ],
@@ -59,6 +65,7 @@ import { TenantSettingsService } from './tenant-settings.service';
     ConfigurationResolverService,
     EnterpriseConfigurationService,
     FeatureAccessService,
+    FieldAccessService,
   ],
 })
 export class TenantSettingsModule {}

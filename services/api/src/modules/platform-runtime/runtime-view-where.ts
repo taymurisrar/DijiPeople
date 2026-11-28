@@ -19,7 +19,17 @@ export function runtimeViewWhere(
 ): Record<string, unknown> {
   const rule = resolveRuntimeViewRule(moduleKey, viewKey);
   if (!rule) return {};
-  if (rule.values) return { [rule.field]: { in: rule.values } };
+  if (rule.values) {
+    /*
+     * Prisma has no `in` for a Boolean column, so a rule such as
+     * `isActive: [true]` (plans, contract templates) is a plain equality.
+     */
+    if (rule.values.every((value) => typeof value === 'boolean')) {
+      const distinct = [...new Set(rule.values)];
+      return distinct.length === 1 ? { [rule.field]: distinct[0] } : {};
+    }
+    return { [rule.field]: { in: rule.values } };
+  }
   /*
    * A personal view for someone with no platform identity must match nothing.
    * Returning {} here would quietly widen the tab to every record.

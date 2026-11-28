@@ -2,7 +2,7 @@
 ID: BUG-1965
 aliases: [BUG-1965]
 Title: The leave request form sends ownerId and status, which the API rejects as forbidden properties
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -290,6 +290,8 @@ read in the network panel rather than inferred from the request succeeding. Add
 one step for the sibling: a runtime-driven attendance create, if one is ever
 routed through `StandardModuleRecordPage`, must not carry `ownerId` either.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): leave-create-payload.spec asserts the POST body to /api/leave-requests has no ownerId/status even when the draft carries both, and record-status sweep spec covers every standard spec; 2 suites pass. standard-module-specs.ts marks leave owner and status isReadOnly.
+
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
@@ -306,3 +308,4 @@ routed through `StandardModuleRecordPage`, must not carry `ownerId` either.
 - Regression — REG-332 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

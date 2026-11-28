@@ -54,7 +54,30 @@ describeWithDatabase()('Subscription orders (DB-backed)', () => {
 
   beforeAll(async () => {
     await prisma.$connect();
+    // `openOrder` enforces the public-purchase policy itself (BUG-4652), so the
+    // fixture must be a price an anonymous buyer may actually buy: active and
+    // published, self-service, market-scoped, in its validity window, on a plan
+    // that is not reserved for a customer. "Any price" is no longer enough.
+    const now = new Date();
     const planPrice = await prisma.planPrice.findFirstOrThrow({
+      where: {
+        isActive: true,
+        publicationStatus: 'PUBLISHED',
+        salesModel: 'SELF_SERVICE',
+        marketId: { not: null },
+        effectiveFrom: { lte: now },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: now } }],
+        plan: {
+          isActive: true,
+          publicationStatus: 'PUBLISHED',
+          salesModel: 'SELF_SERVICE',
+          eligibleCustomerAccountId: null,
+          AND: [
+            { OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: now } }] },
+            { OR: [{ effectiveUntil: null }, { effectiveUntil: { gt: now } }] },
+          ],
+        },
+      },
       select: { id: true },
     });
     planPriceId = planPrice.id;

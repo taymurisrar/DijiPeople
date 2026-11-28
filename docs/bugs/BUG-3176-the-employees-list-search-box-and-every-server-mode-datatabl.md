@@ -2,7 +2,7 @@
 ID: BUG-3176
 aliases: [BUG-3176]
 Title: The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-715
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3176 — The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page
@@ -59,7 +59,7 @@ Full finding text: FE-06 in `docs/engineering/audits/2026-09-10-full-technical-a
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+In server mode the search box only filtered the rows already on the current page, so a record on another page could never be found and the search appeared to work.
 
 ## Impact
 
@@ -81,7 +81,7 @@ In `apps/web/app/components/data-table/data-table.tsx`, when `mode === "server"`
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: FE-06=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+apps/web/app/components/data-table/data-table-server-search.spec.ts. REG-715, QA-RUNTIME-049. The helper is unit-tested for no navigation on initial render or unchanged text, page reset, parameter preservation and encoding.
 
 ## Dependencies
 
@@ -93,11 +93,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+In server mode the typed text is sent as the search URL parameter after a 300 ms pause (reset to page 1, restored from the URL on reload, cleared by Clear). The local current-page filter stays as instant feedback and as the fallback for a list whose API takes no search parameter. The URL logic is a pure helper with its own tests; the component itself has no rendering test because apps/web has no jsdom setup, so the debounce wiring is verified by typecheck and review, not by a rendered test. A browser check against the Employees list is still owed (WP5).
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-RUNTIME-049 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): data-table-server-search.spec asserts serverSearchHref puts typed text in the URL, resets to page 1, preserves sort/filters, and clears on empty; passes. data-table.tsx has a 300ms debounced router.push in server mode. The debounce effect itself has no rendered test.
 
 ## History
 
@@ -108,5 +112,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[tenant-application]], [[platform-admin]]
+- Regression — REG-715 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

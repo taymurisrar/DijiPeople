@@ -4,6 +4,7 @@ import { PrismaModule } from '../../common/prisma/prisma.module';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
+import { WorkProfilesModule } from '../work-profiles/work-profiles.module';
 import { CustomizationController } from './customization.controller';
 import { CustomizationRuntimeController } from './customization-runtime.controller';
 import { CustomizationAccessGuard } from './customization-access.guard';
@@ -14,7 +15,7 @@ import { PackageAlmService } from './package-alm.service';
 import { PackagePortableReader } from './package-portable.reader';
 
 @Module({
-  imports: [PrismaModule, AuthModule, AuditModule],
+  imports: [PrismaModule, AuthModule, AuditModule, WorkProfilesModule],
   controllers: [
     CustomizationController,
     CustomizationRuntimeController,

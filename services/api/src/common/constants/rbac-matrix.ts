@@ -674,6 +674,12 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'customization:CONFIGURE': SecurityAccessLevel.TENANT,
     'customization:CUSTOMIZE': SecurityAccessLevel.TENANT,
     'customization:EXPORT': SecurityAccessLevel.TENANT,
+    // ITEM-0248 (ADR-0032): package import routes require this privilege, which the
+    // role did not hold, so it could add components to a package but not import one.
+    // Deliberately NO employees privilege: the work profile and queue configuration
+    // routes accept customization:READ/CONFIGURE (ADR-0032), so this role has no
+    // access to employee data.
+    'customization:IMPORT': SecurityAccessLevel.TENANT,
     'settings:CUSTOMIZE': SecurityAccessLevel.TENANT,
     'documents:READ': SecurityAccessLevel.TENANT,
     'documents:CONFIGURE': SecurityAccessLevel.TENANT,
@@ -1094,6 +1100,12 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_RELEASE,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_IMPORT,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_UNINSTALL,
+    // ITEM-0248 (ADR-0032): the role that owns ALM packaging also owns the work
+    // components a package carries, so one seeded role can add them to a package.
+    'work-profiles.read',
+    'work-profiles.manage',
+    'work-queues.read',
+    'work-queues.manage',
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH_CENTER_READ,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_IMPORT_PREVIEW,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_EXPORT,
@@ -1116,6 +1128,10 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.CEO]: [
+    'work-items.read',
+    'work-queues.read',
+    'contributions.read',
+    'daily-updates.read',
     // `dashboard.view` gates GET /employees/me/context and /dashboard/summary, so every
     // role that signs in to the tenant app needs it (DP-QA-002). It is listed in
     // BASE_ROLE_PERMISSION_KEYS, but nothing in production reads that map, so
@@ -1132,6 +1148,15 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.MANAGER]: [
     'dashboard.view',
+    'work-items.read',
+    'work-items.write',
+    'work-queues.read',
+    'contributions.read',
+    'contributions.write',
+    'contributions.verify',
+    'daily-updates.read',
+    'daily-updates.write',
+    'daily-updates.acknowledge',
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     'approvals.readAssigned',
     'attendance.correction.create',
@@ -1232,6 +1257,19 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'locations.update',
     'employment-types.read',
     'employment-types.manage',
+    'work-profiles.read',
+    'work-profiles.manage',
+    'work-items.read',
+    'work-items.write',
+    'work-queues.read',
+    'work-queues.manage',
+    'contributions.read',
+    'contributions.write',
+    'contributions.verify',
+    'daily-updates.read',
+    'daily-updates.write',
+    'daily-updates.acknowledge',
+    'daily-updates.manage',
     'documents.categories.manage',
     'documents.types.manage',
     'hierarchy.read',
@@ -1293,6 +1331,15 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.EMPLOYEE]: [
     'dashboard.view',
+    // Your own work and your own evidence. What else you reach is decided in the
+    // service by your access level on employees (SELF for an employee).
+    'work-items.read',
+    'work-items.write',
+    'work-queues.read',
+    'contributions.read',
+    'contributions.write',
+    'daily-updates.read',
+    'daily-updates.write',
     // Routes demand these and BASE_ROLE_PERMISSION_KEYS said employees hold them,
     // but nothing granted them, so no employee could submit a timesheet (found
     // when the wiring invariant stopped trusting that map).
@@ -1981,6 +2028,23 @@ export function legacyPermissionToMatrixPrivileges(
       ENTITY_KEYS.EMPLOYEES,
       SecurityPrivilege.MANAGE,
     ],
+    [['work-profiles.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['work-profiles.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
+    [['work-items.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['work-items.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
+    [['work-queues.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['work-queues.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
+    [['contributions.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['contributions.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
+    [['contributions.verify'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['daily-updates.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [['daily-updates.write'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.WRITE],
+    [
+      ['daily-updates.acknowledge'],
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+    ],
+    [['daily-updates.manage'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.MANAGE],
     [
       [
         'leave-types.read',

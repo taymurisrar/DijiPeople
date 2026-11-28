@@ -2,7 +2,7 @@
 ID: BUG-4054
 aliases: [BUG-4054]
 Title: Subscription success page waits on the Stripe webhook alone
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-11
 DetectedInSha: 4489a3c6
 AffectedModules: [billing, outbox, apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-669
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-10-11
-UpdatedAt: 2026-10-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-11
 ---
 
@@ -86,6 +86,8 @@ Commit 51c80beb: payment-recheck.service reconciles the Stripe checkout session 
 
 Scenario: Subscription success page reconciles without waiting for the webhook (see the QA scenario linked from REG-669).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): payment-recheck.service.spec.ts asserts a paid session confirms once via confirmPayment and a foreign session id is refused; payment-confirmed.handler.spec asserts the payment email is sent once with a stable key; webhook.service.ts handles async_payment_succeeded; billing, outbox and landing provisioning-view suites pass.
+
 ## History
 
 - 2026-10-11 — created from user report at `51c80beb`.
@@ -99,3 +101,4 @@ Scenario: Subscription success page reconciles without waiting for the webhook (
 - Regression — REG-669 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

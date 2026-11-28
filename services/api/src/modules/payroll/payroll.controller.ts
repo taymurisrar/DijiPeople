@@ -13,6 +13,7 @@ import {
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { FieldAccess } from '../tenant-settings/field-access.interceptor';
 import {
   Permissions,
   RequireAnyPermission,
@@ -178,6 +179,7 @@ export class PayrollController {
   }
 
   @Get('compensations')
+  @FieldAccess({ tableKey: 'employeeCompensations' })
   @Permissions('payroll.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   listCompensations(@CurrentUser() user: AuthenticatedUser) {
@@ -185,6 +187,7 @@ export class PayrollController {
   }
 
   @Get('compensations/:compensationId')
+  @FieldAccess({ tableKey: 'employeeCompensations' })
   @Permissions('payroll.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   getCompensation(

@@ -7650,3 +7650,507 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the save was refused with "Owner user was not found for this tenant", and once that was removed GO-8 failed with "Employee has already been created". |
 | **Fixed** | 2026-11-20, branch `agent/growth-closure-records` |
 | **Active** | yes |
+
+### REG-698 — A custom module could not be deleted: its own forms blocked the module, and the last default form could not be deleted
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-4509 |
+| **Root cause** | The module delete counted the module's own fields, forms and views as external dependencies, while the form delete refused the last default form. |
+| **Regression test** | `services/api/src/modules/customization/delete-module.spec.ts` |
+| **Scenario** | QA-RUNTIME-047 |
+| **Fails without the fix** | Yes — deleting a module with a form was refused. |
+| **Fixed** | 2026-11-21, branch `agent/module-delete-impact` |
+| **Active** | yes |
+
+### REG-699 — A timesheet restriction produced a 401 INVALID_TOKEN instead of a 403, and its allow-list never matched the /api prefix
+
+| | |
+|---|---|
+| **Bug class** | `error-mapping` |
+| **Module** | `services/api/src/common/guards` |
+| **Bug record** | BUG-4518, BUG-3164 |
+| **Root cause** | The guard's catch rewrote the restriction's 403 into a 401, the exception filter did not know the code, and the allow-list was matched without the global /api prefix. |
+| **Regression test** | `services/api/test/timesheet-restriction.e2e-spec.ts`; `services/api/src/common/guards/timesheet-restriction-routes.spec.ts`; `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | QA-AUTH-023 |
+| **Fails without the fix** | Yes — the e2e received 401 where it expects 403, and /api/timesheets was refused. |
+| **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
+| **Active** | yes |
+
+### REG-700 — The lookups usage endpoints counted employees across every tenant
+
+| | |
+|---|---|
+| **Bug class** | `tenant-isolation` |
+| **Module** | `services/api/src/modules/lookups` |
+| **Bug record** | BUG-3157 |
+| **Root cause** | The Employee counts carried no tenantId filter. |
+| **Regression test** | `services/api/test/lookups-usage-isolation.e2e-spec.ts` |
+| **Scenario** | QA-TENANT-069 |
+| **Fails without the fix** | Yes — received 5 (both tenants) where the caller's tenant has 2. |
+| **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
+| **Active** | yes |
+
+### REG-701 — A data job left PROCESSING by a dead worker was never recovered
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/data-management` |
+| **Bug record** | BUG-4547 |
+| **Root cause** | Job ownership was implicit in the status column, with no lease and no per-row checkpoint. |
+| **Regression test** | `services/api/test/data-job-recovery.e2e-spec.ts` |
+| **Scenario** | QA-RUNTIME-048 |
+| **Fails without the fix** | Yes — without the parking step four tests fail; without the conditional claim the race test fails. |
+| **Fixed** | 2026-11-21, branch `agent/security-timesheet-datajob-followup` |
+| **Active** | yes |
+
+### REG-702 — A tenant Global Administrator could publish, promote and disable the global desktop agent releases
+
+| | |
+|---|---|
+| **Bug class** | `tenant-isolation` |
+| **Module** | `services/api/src/modules/app-releases` |
+| **Bug record** | BUG-4624 |
+| **Root cause** | The release mutation routes were guarded only by a permission key, which a tenant Global Administrator holds through the elevated-role bypass; nothing required a platform subject. |
+| **Regression test** | `services/api/test/app-release-authority.e2e-spec.ts` |
+| **Scenario** | QA-AUTHZ-020 |
+| **Fails without the fix** | Yes — 4 of 6 tests fail: disable, promote and publish returned 201 and the management catalogue returned 200 to a tenant administrator. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-703 — A tenant user's request to a platform-only log route ended the API process
+
+| | |
+|---|---|
+| **Bug class** | `unhandled-promise` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | BUG-4625 |
+| **Root cause** | The denial audit wrote a tenant user id into a platform foreign key; the call was fire-and-forget with no catch; Node ends the process on an unhandled rejection and nothing caught it. |
+| **Regression test** | `services/api/test/platform-tenant-boundary.e2e-spec.ts`; `services/api/src/common/process/unhandled-rejection.spec.ts` |
+| **Scenario** | QA-AUTHZ-021 |
+| **Fails without the fix** | Yes — a foreign-key violation is raised and no audit row exists. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-704 — A tenant could quote another customer's reserved plan price
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-4638 |
+| **Root cause** | The seat-quote read path never applied the plan-eligibility rule that every plan move applies. |
+| **Regression test** | `services/api/test/billing-cross-tenant.e2e-spec.ts`; `services/api/src/modules/billing/services/billing-seat-quote.spec.ts` |
+| **Scenario** | QA-BILLING-050 |
+| **Fails without the fix** | Yes — the route answers 200 with the other customer's unit price. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-705 — A reserved or out-of-window plan price could be quoted, checked out or ordered by a caller not entitled to it
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-4652 |
+| **Root cause** | Plan eligibility was applied to plan moves and the public listing only; every path that takes a price id (quote, checkout, public order) had to remember it, and the anonymous guard checked the sales model alone. |
+| **Regression test** | `services/api/test/public-purchase-eligibility.e2e-spec.ts`; `services/api/src/modules/billing/public-purchase-eligibility.spec.ts`; `services/api/test/billing-cross-tenant.e2e-spec.ts` |
+| **Scenario** | QA-BILLING-051 |
+| **Fails without the fix** | Yes — with the guard removed the request is not refused with the 404 (mutation-verified). |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-706 — Reversing a posted payroll journal failed because two unique indexes survived a DROP CONSTRAINT
+
+| | |
+|---|---|
+| **Bug class** | `migration-no-op` |
+| **Module** | `services/api/prisma/migrations` |
+| **Bug record** | BUG-4639 |
+| **Root cause** | Unique indexes were removed with `DROP CONSTRAINT IF EXISTS`, which matches nothing for an index. |
+| **Regression test** | `services/api/test/payroll-cross-tenant.e2e-spec.ts` |
+| **Scenario** | QA-PAYROLL-002 |
+| **Fails without the fix** | Yes — with a run-pair unique index re-added, five tests fail (mutation-verified). |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation`, migration 20261122100000 |
+| **Active** | yes |
+
+### REG-707 — The forgot-password flow never stores the reset link in the delivery log
+
+| | |
+|---|---|
+| **Bug class** | `secret-exposure` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3137 |
+| **Root cause** | requestPasswordReset passed the live reset URL in email metadata, which the tenant-readable delivery-log API returns. |
+| **Regression test** | `services/api/test/auth-session-hardening.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-024 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-708 — A password reset never reactivates a disabled account
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3138 |
+| **Root cause** | resetPassword wrote status ACTIVE unconditionally and never checked the account or tenant status. |
+| **Regression test** | `services/api/test/auth-session-hardening.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-025 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-709 — The agent refresh flag cannot extend the absolute session lifetime
+
+| | |
+|---|---|
+| **Bug class** | `session-lifetime` |
+| **Module** | `services/api/src/modules/agent` |
+| **Bug record** | BUG-3140 |
+| **Root cause** | The client-supplied startNewSession flag skipped both the idle and the absolute expiry checks and minted a fresh 30-day lifetime, on a public route. |
+| **Regression test** | `services/api/test/auth-session-hardening.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-026 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-710 — The tenant-resolve cache key carries every selector
+
+| | |
+|---|---|
+| **Bug class** | `cache-poisoning` |
+| **Module** | `services/api/src/modules/tenants` |
+| **Bug record** | BUG-3162 |
+| **Root cause** | The cache was keyed on the first selector present while the resolver reads several, so slug=victim with host=<attacker domain> cached the attacker tenant under the victim slug. |
+| **Regression test** | `services/api/src/modules/tenants/public-tenants-cache-key.spec.ts` |
+| **Scenario** | QA-AUTH-027 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-711 — Terminating an employee writes an audit row
+
+| | |
+|---|---|
+| **Bug class** | `audit-gap` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-3184 |
+| **Root cause** | terminate() updated the status and wrote no audit row, and the coverage spec pattern could not see a method named terminate. |
+| **Regression test** | `services/api/test/audit-trail-reads.e2e-spec.ts` |
+| **Scenario** | QA-AUDIT-001 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-712 — Viewing or downloading a document is recorded
+
+| | |
+|---|---|
+| **Bug class** | `audit-gap` |
+| **Module** | `services/api/src/modules/documents` |
+| **Bug record** | BUG-3185 |
+| **Root cause** | openForView and openForDownload audited nothing. |
+| **Regression test** | `services/api/test/audit-trail-reads.e2e-spec.ts` |
+| **Scenario** | QA-AUDIT-002 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-713 — Payroll calculation is claimed atomically
+
+| | |
+|---|---|
+| **Bug class** | `race-condition` |
+| **Module** | `services/api/src/modules/payroll` |
+| **Bug record** | BUG-3196 |
+| **Root cause** | The run status guard was a plain read, so concurrent requests both calculated and the second clearRunDraftData deleted rows the first was writing; a crashed process left the run CALCULATING forever. |
+| **Regression test** | `services/api/test/payroll-cross-tenant.e2e-spec.ts` |
+| **Scenario** | QA-PAYROLL-003 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-714 — Every outbound fetch carries a deadline and Stripe has a bounded timeout
+
+| | |
+|---|---|
+| **Bug class** | `missing-timeout` |
+| **Module** | `services/api/src/modules/lookups` |
+| **Bug record** | BUG-3199 |
+| **Root cause** | The exchange-rate fetch had no signal, and the Stripe client used the SDK default 80-second timeout. |
+| **Regression test** | `services/api/src/common/http/outbound-fetch-has-deadline.spec.ts` |
+| **Scenario** | QA-PLATFORM-066 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-715 — A server-mode table search reaches the backend
+
+| | |
+|---|---|
+| **Bug class** | `ui-contract` |
+| **Module** | `services/api/src/modules/web` |
+| **Bug record** | BUG-3176 |
+| **Root cause** | In server mode the search box only filtered the rows already on the current page, so a record on another page could never be found and the search appeared to work. |
+| **Regression test** | `apps/web/app/components/data-table/data-table-server-search.spec.ts` |
+| **Scenario** | QA-RUNTIME-049 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-716 — Every upload endpoint declares a multipart size limit
+
+| | |
+|---|---|
+| **Bug class** | `missing-limit` |
+| **Module** | `services/api/src/modules/common` |
+| **Bug record** | BUG-3179 |
+| **Root cause** | Nine of ten upload endpoints had no multipart limit, so a whole file was buffered in memory before the service-level size check ran. |
+| **Regression test** | `services/api/src/common/storage/upload-endpoints-have-limits.spec.ts` |
+| **Scenario** | QA-PLATFORM-067 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-717 — Password-reset links are single-use
+
+| | |
+|---|---|
+| **Bug class** | `token-replay` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3139 |
+| **Root cause** | Tenant reset tokens were stateless and replayable for 24 hours. |
+| **Regression test** | `services/api/src/modules/auth/password-reset-single-use.spec.ts` |
+| **Scenario** | QA-AUTH-028 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-718 — Identical GETs within one render are one API call
+
+| | |
+|---|---|
+| **Bug class** | `duplicate-fetch` |
+| **Module** | `services/api/src/modules/web` |
+| **Bug record** | BUG-3173 |
+| **Root cause** | About 20 pages re-fetched business-unit access and current-employee context that the shell layout had already fetched. |
+| **Regression test** | `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | QA-RUNTIME-050 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-719 — Payroll eligibility excludes soft-deleted employees
+
+| | |
+|---|---|
+| **Bug class** | `eligibility` |
+| **Module** | `services/api/src/modules/payroll` |
+| **Bug record** | BUG-3202 |
+| **Root cause** | Payroll run eligibility never checked Employee.isDeleted. |
+| **Regression test** | `services/api/src/modules/payroll/payroll-eligibility-soft-delete.spec.ts` |
+| **Scenario** | QA-PAYROLL-004 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-720 — Storage reads refuse a key outside the caller scope
+
+| | |
+|---|---|
+| **Bug class** | `idor` |
+| **Module** | `services/api/src/modules/common` |
+| **Bug record** | BUG-3177 |
+| **Root cause** | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check. |
+| **Regression test** | `services/api/src/common/storage/storage.service.spec.ts` |
+| **Scenario** | QA-PLATFORM-068 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-22, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-721 — Anonymous reads are rate limited and the invariant covers them
+
+| | |
+|---|---|
+| **Bug class** | `missing-rate-limit` |
+| **Module** | `services/api/src/common/guards` |
+| **Bug record** | BUG-3187 |
+| **Root cause** | The rate-limit invariant was written for public writes and looked only at Post, Put, Patch and Delete, so every unprotected public surface that was left turned out to be a read. Five public GET handlers had no guard. |
+| **Regression test** | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts`; `services/api/test/public-read-rate-limit.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-029 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-722 — A rate-limited request does not cost a database write per rejection
+
+| | |
+|---|---|
+| **Bug class** | `write-amplification` |
+| **Module** | `services/api/src/common/filters` |
+| **Bug record** | BUG-3188 |
+| **Root cause** | The exception filter persisted an error-log row (a transaction with a find, an update or insert and an occurrence upsert) for every 429 on the request path, so a flood made refusing a request cost more than serving it and filled the error log with identical rows. |
+| **Regression test** | `services/api/src/common/filters/http-exception-filter-persistence.spec.ts` |
+| **Scenario** | QA-AUTH-030 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-723 — Unique-violation recovery works inside interactive transactions
+
+| | |
+|---|---|
+| **Bug class** | `transaction-abort` |
+| **Module** | `services/api/src/modules/users` |
+| **Bug record** | BUG-3201 |
+| **Root cause** | Three call sites inserted, caught a unique violation, and recovered by reading on the same client. Inside an interactive transaction Postgres aborts the whole transaction at the failed statement, so the recovery failed with "current transaction is aborted". Two of them also relied on error.meta.target, which Prisma 7 does not populate. |
+| **Regression test** | `services/api/test/identity-concurrent-create.e2e-spec.ts` |
+| **Scenario** | QA-PLATFORM-069 |
+| **Fails without the fix** | Yes — mutation-verified. |
+| **Fixed** | 2026-11-23, branch `agent/dependency-alert-remediation` |
+| **Active** | yes |
+
+### REG-724 — The public branding route trusted the stored document; SVG could execute script on the API origin.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-trust` |
+| **Module** | `services/api/src/modules/tenants` |
+| **Bug record** | BUG-3141 |
+| **Root cause** | The public branding route trusted the stored document; SVG could execute script on the API origin. |
+| **Regression test** | `services/api/src/modules/tenants/public-branding-asset-raster.spec.ts` |
+| **Scenario** | QA-AUTHZ-022 |
+| **Fails without the fix** | Yes - with image/svg+xml added to the raster allow-list the SVG case fails. |
+| **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
+| **Active** | yes |
+
+### REG-725 — Filter metadata used findMany distinct, which reads every matching audit row into Node.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/modules/audit` |
+| **Bug record** | BUG-3171 |
+| **Root cause** | Filter metadata used findMany distinct, which reads every matching audit row into Node. |
+| **Regression test** | `services/api/src/modules/audit/audit-filter-metadata.spec.ts` |
+| **Scenario** | QA-AUDIT-003 |
+| **Fails without the fix** | Yes - the spec asserts groupBy and no findMany. |
+| **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
+| **Active** | yes |
+
+### REG-726 — GET /payslips returned every payslip of the tenant in one response.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/modules/payslips` |
+| **Bug record** | BUG-3172 |
+| **Root cause** | GET /payslips returned every payslip of the tenant in one response. |
+| **Regression test** | `services/api/src/modules/payslips/payslips.list-bounds.spec.ts` |
+| **Scenario** | QA-PAYROLL-005 |
+| **Fails without the fix** | Yes - take/skip were absent. |
+| **Fixed** | 2026-11-23, branch agent/dependency-alert-remediation |
+| **Active** | yes |
+
+### REG-727 — The pg pool ran on defaults, so a saturated pool made every request wait forever for a connection.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/common/prisma` |
+| **Bug record** | BUG-3195 |
+| **Root cause** | The pg pool ran on defaults, so a saturated pool made every request wait forever for a connection. |
+| **Regression test** | `services/api/src/common/prisma/pool-config.spec.ts` |
+| **Scenario** | QA-PLATFORM-070 |
+| **Fails without the fix** | Yes - mutated 2026-11-24: defaulting the connect timeout to 0 fails 7 of 10 pool-config tests. Residual: statement_timeout is opt-in and not set (ITEM-0242). |
+| **Fixed** | 2026-11-24, commit b7ddb808 |
+| **Active** | yes |
+
+### REG-728 — The health endpoint was a static ok payload, so a dead database still reported healthy.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/common/health` |
+| **Bug record** | BUG-3198 |
+| **Root cause** | The health endpoint was a static ok payload, so a dead database still reported healthy. |
+| **Regression test** | `services/api/src/common/health/readiness.spec.ts` |
+| **Scenario** | QA-PLATFORM-071 |
+| **Fails without the fix** | Yes - mutated 2026-11-24: forcing ready to true fails 2 of 9 health tests. Residuals: render.yaml healthCheckPath stays /api by design; no per-worker lastTickAt (ITEM-0242). |
+| **Fixed** | 2026-11-24, commit b7ddb808 |
+| **Active** | yes |
+
+### REG-729 — Nine platform-admin runtime lists fetched whole tables and paged, searched and sorted them in Node.
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-query` |
+| **Module** | `services/api/src/modules/platform-runtime` |
+| **Bug record** | BUG-3175 |
+| **Root cause** | Each list read its entire table with nested includes, then searched, filtered, sorted and sliced it in memory through paginateRuntimeRecords. |
+| **Regression test** | `services/api/src/modules/platform-runtime/runtime-db-query.spec.ts` |
+| **Scenario** | QA-PLATFORM-072 |
+| **Fails without the fix** | Yes - mutated 2026-11-24: an oversized take fails 2 of 12 runtime-db-query tests. The specs assert Prisma where/orderBy/skip/take arguments, not SQL results. Residuals: no DB e2e; ILIKE not index-assisted; search covers documented columns only; unsupported filters fall back to the whole-table path; my-records uses createdById (ITEM-0243). |
+| **Fixed** | 2026-11-24, commit 2088ec4f |
+| **Active** | yes |
+
+### REG-730 — Terminating an employee left the linked user able to sign in
+
+| | |
+|---|---|
+| **Bug class** | `state-not-recorded` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-4774 |
+| **Root cause** | `EmployeesService.terminate` only wrote employment status, date and an audit row; nothing touched the user or its refresh tokens. |
+| **Regression test** | `services/api/test/employee-access-revocation.e2e-spec.ts` |
+| **Scenario** | QA-AUTH-031 |
+| **Fails without the fix** | Yes - mutated 2026-11-25 against a real database: removing the under-lock re-check in revokeAccessIfDue and the auth-time effective-date check fails 3 of 11 tests (concurrent rehire, concurrent reschedule, future-dated exit). Residuals: access tokens already issued work on ordinary endpoints for up to one 60 s sweep after a future-dated exit; terminate does not yet cancel approvals or hand off work. |
+| **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |
+
+### REG-731 — The workflow Run History page crashed as soon as a workflow had one run
+
+| | |
+|---|---|
+| **Bug class** | `server-client-boundary` |
+| **Module** | `apps/web/app/(authenticated)/settings/approvals` |
+| **Bug record** | BUG-4775 |
+| **Root cause** | A server component called a date formatter exported from a "use client" module, which React Server Components refuse at render time; with no runs the table never rendered, so the page looked fine. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/approvals/_components/workflow-run-history.spec.ts` |
+| **Scenario** | QA-WORKFLOW-001 |
+| **Fails without the fix** | Yes - mutated 2026-11-25: importing the formatter from the client module again fails 1 of 2 tests. The render itself is verified only in a real browser (QA-WORKFLOW-001). |
+| **Fixed** | 2026-11-25, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |
+
+### REG-732 - The agent tray kept saying monitoring was off after the policy was acknowledged
+
+| | |
+|---|---|
+| **Bug class** | `state-not-redrawn` |
+| **Module** | `apps/agent-desktop` |
+| **Bug record** | BUG-4776 |
+| **Root cause** | The acknowledgement path refreshed the config but never announced a change, and the tray redraws only on session events. |
+| **Regression test** | `apps/agent-desktop/src/main/policy-ack-tray.spec.ts` |
+| **Scenario** | QA-AGENT-010 |
+| **Fails without the fix** | Yes - the real-Electron journey failed its last check (8 of 9) before the fix; the spec pins the source ordering. The render is verified only in real Electron. |
+| **Fixed** | 2026-11-26, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |
+
+### REG-733 - A business-unit reader could not read a project they created
+
+| | |
+|---|---|
+| **Bug class** | `scope-excludes-creator` |
+| **Module** | `services/api/src/modules/projects` |
+| **Bug record** | BUG-4777 |
+| **Root cause** | The business-unit, subtree and organisation branches of the project read filter used placement alone. |
+| **Regression test** | `services/api/src/modules/projects/projects.service.spec.ts` |
+| **Scenario** | QA-PROJECTS-001 |
+| **Fails without the fix** | Yes - without the creator clause the scope has one entry and the new test fails. |
+| **Fixed** | 2026-11-26, branch `agent/dp-master-wp01-baseline` |
+| **Active** | yes |

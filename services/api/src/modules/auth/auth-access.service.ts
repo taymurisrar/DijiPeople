@@ -7,6 +7,27 @@ import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-rol
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { buildDirectPermissionPrivileges } from './direct-permission-privileges';
 
+/*
+ * A terminated employee whose termination date has arrived has no access, whether
+ * or not the sweeper has disabled the user yet. The tenant owner is exempt for the
+ * same reason the sweeper skips them: ownership must be transferred first.
+ */
+export function isPastEffectiveTermination(user: {
+  id: string;
+  tenant?: { ownerUserId?: string | null } | null;
+  employee?: { employmentStatus: unknown; terminationDate: Date | null } | null;
+}) {
+  const employee = user.employee;
+  if (!employee || employee.employmentStatus !== 'TERMINATED') return false;
+  if (
+    !employee.terminationDate ||
+    employee.terminationDate.getTime() > Date.now()
+  ) {
+    return false;
+  }
+  return user.tenant?.ownerUserId !== user.id;
+}
+
 @Injectable()
 export class AuthAccessService {
   constructor(private readonly prisma: PrismaService) {}
@@ -68,7 +89,21 @@ export class AuthAccessService {
     };
   }
 
-  async loadAccessContext(userId: string, expectedTenantId?: string) {
+  async loadAccessContext(
+    userId: string,
+    expectedTenantId?: string,
+    options: { includeEmployee?: boolean } = {},
+  ) {
+    // The request guard reads only `authUser`; the employee row feeds the
+    // `response` object that /auth/me and login return. Skipping it there saves
+    // a statement on every authenticated request (BUG-3165), and the query budget
+    // test (auth-query-budget.e2e-spec.ts, ceiling 25) holds that line.
+    //
+    // The same read carries employmentStatus and terminationDate, so login, token
+    // refresh and /auth/me refuse a terminated employee on the effective date. The
+    // per-request guard path does NOT read it; it relies on the sweeper having
+    // disabled the user (AccessRevocationSweeperWorker, every minute by default).
+    const includeEmployee = options.includeEmployee ?? true;
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -81,24 +116,29 @@ export class AuthAccessService {
             ownerUserId: true,
           },
         },
-        businessUnit: {
-          include: {
-            organization: {
-              select: { id: true, name: true },
-            },
-          },
-        },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            middleName: true,
-            lastName: true,
-            managerEmployeeId: true,
-            businessUnitId: true,
-          },
-        },
+        // Only the organization id is read (BUG-3165): loading the organization
+        // relation cost a second statement for nothing.
+        businessUnit: { select: { organizationId: true } },
+        // employmentStatus/terminationDate are read on every request so a
+        // terminated employee loses access ON the effective date even if the
+        // revocation sweeper has not run yet.
+        ...(includeEmployee
+          ? {
+              employee: {
+                select: {
+                  employmentStatus: true,
+                  terminationDate: true,
+                  id: true,
+                  employeeCode: true,
+                  firstName: true,
+                  middleName: true,
+                  lastName: true,
+                  managerEmployeeId: true,
+                  businessUnitId: true,
+                },
+              },
+            }
+          : {}),
         userPermissions: {
           include: { permission: true },
         },
@@ -147,7 +187,8 @@ export class AuthAccessService {
       !user ||
       (expectedTenantId && user.tenantId !== expectedTenantId) ||
       user.status !== 'ACTIVE' ||
-      tenantStatus !== 'ACTIVE'
+      tenantStatus !== 'ACTIVE' ||
+      isPastEffectiveTermination(user)
     ) {
       throw new UnauthorizedException(
         'Your session expired. Please sign in again to continue.',

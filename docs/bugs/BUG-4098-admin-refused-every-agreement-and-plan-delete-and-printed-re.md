@@ -2,7 +2,7 @@
 ID: BUG-4098
 aliases: [BUG-4098]
 Title: Admin refused every agreement and plan delete and printed reference ids as values
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-12
 DetectedInSha: a46d6bbb
 AffectedModules: [contracts, super-admin, platform-runtime]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-678
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/admin-delete-and-labels
 CreatedAt: 2026-10-12
-UpdatedAt: 2026-10-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-12
 ---
 
@@ -139,6 +139,8 @@ Branch `agent/admin-delete-and-labels`.
 QA-PLATFORM-063. API end-to-end (18/18) and browser pass (10/10) against a
 throwaway database on 2026-10-12.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): contract-deletion.spec.ts deletes an unsent draft and refuses sent/signed ones, plan-lifecycle.spec.ts 'Plan deletion' deletes never-sold inactive plans and refuses ones with subscriptions/orders, generic-delete.spec.ts runs one rule across single/bulk; admin reference-display and subgrid-selection specs pass.
+
 ## History
 
 - 2026-10-12 — created from qa run at `a46d6bbb`.
@@ -153,3 +155,4 @@ throwaway database on 2026-10-12.
 - Regression — REG-678 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

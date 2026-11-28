@@ -2,7 +2,7 @@
 ID: BUG-3138
 aliases: [BUG-3138]
 Title: Password reset unconditionally reactivates a disabled account
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-708
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3138 — Password reset unconditionally reactivates a disabled account
@@ -80,7 +80,7 @@ Full finding text: AUTH-02 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+resetPassword wrote status ACTIVE unconditionally and never checked the account or tenant status.
 
 ## Impact
 
@@ -102,7 +102,7 @@ In `AuthService.resetPassword`, load the user with its tenant inside the transac
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: AUTH-02=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/auth-session-hardening.e2e-spec.ts. REG-708, QA-AUTH-025. Removing the check and the write condition fails 3 tests.
 
 ## Dependencies
 
@@ -114,11 +114,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+resetPassword now refuses a DISABLED account or a non-active tenant with the same generic answer as an invalid link, and the compare-and-set write carries status not DISABLED so a disable landing between the read and the write also loses. INVITED users still activate by reset (existing behaviour, kept).
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-AUTH-025 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-session-hardening e2e: a DISABLED user's valid reset link is refused and the user stays DISABLED with password unchanged, plus suspended-tenant refusal; suite passes 8/8.
 
 ## History
 
@@ -129,5 +133,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[auth]]
+- Regression — REG-708 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

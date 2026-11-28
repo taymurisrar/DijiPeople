@@ -114,16 +114,19 @@ export class AuditRepository {
 
   async getFilterMetadata(tenantId: string, db: PrismaDb = this.prisma) {
     const [actions, entityTypes, actors] = await Promise.all([
-      db.auditLog.findMany({
+      // BUG-3171 — Prisma's `distinct` on findMany reads EVERY matching row
+      // into Node and de-duplicates there; on a busy tenant that is the whole
+      // audit table. groupBy is a database-side GROUP BY that the
+      // (tenantId, action, createdAt) / (tenantId, entityType, createdAt)
+      // indexes can serve, and returns only the distinct values.
+      db.auditLog.groupBy({
+        by: ['action'],
         where: { tenantId },
-        distinct: ['action'],
-        select: { action: true },
         orderBy: { action: 'asc' },
       }),
-      db.auditLog.findMany({
+      db.auditLog.groupBy({
+        by: ['entityType'],
         where: { tenantId },
-        distinct: ['entityType'],
-        select: { entityType: true },
         orderBy: { entityType: 'asc' },
       }),
       db.user.findMany({

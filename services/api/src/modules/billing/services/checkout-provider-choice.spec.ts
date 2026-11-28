@@ -42,6 +42,10 @@ const PLAN = {
   isActive: true,
   publicationStatus: CommercialPublicationStatus.PUBLISHED,
   salesModel: CommercialSalesModel.SELF_SERVICE,
+  // Public-purchase eligibility (BUG-4652) needs these to be explicit.
+  eligibleCustomerAccountId: null,
+  effectiveFrom: null,
+  effectiveUntil: null,
 };
 
 function planPrice(overrides: Record<string, unknown> = {}) {
@@ -107,7 +111,18 @@ function buildService(options: {
   });
 
   const prisma = {
-    plan: { findMany: jest.fn() },
+    // Plan eligibility is checked at checkout (BUG-4652): an unreserved plan.
+    plan: {
+      findMany: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue({
+        name: 'Catalogue',
+        kind: 'CATALOGUE',
+        salesModel: 'SELF_SERVICE',
+        eligibleCustomerAccountId: null,
+        effectiveFrom: null,
+        effectiveUntil: null,
+      }),
+    },
     planPrice: {
       findUnique: jest.fn().mockResolvedValue(options.price),
       update: jest.fn().mockResolvedValue(undefined),
@@ -117,6 +132,7 @@ function buildService(options: {
       findUnique: jest.fn().mockResolvedValue({
         id: 'tenant-1',
         slug: 'tenant-1',
+        customerAccountId: 'ca-1',
         customerAccount: { id: 'ca-1', stripeCustomerId: 'cus_existing' },
       }),
     },

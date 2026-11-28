@@ -2,7 +2,7 @@
 ID: BUG-2003
 aliases: [BUG-2003]
 Title: The tenant Users screen requests an entity the data registry does not have, so it never renders
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem: ITEM-0107
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -389,23 +389,7 @@ points at the settings user-create route.
 
 ## QA Retest
 
-Not yet performed, and it cannot be performed today: the fix is not on `develop` and
-production runs `main` at `949f461c`, which does not contain it. This task did
-not touch `main`, so **nothing here is verified in production** and `/users`
-still renders the error boundary on the demo tenant.
-
-Live verification is pending a release: open `/users` as a tenant administrator
-and confirm a rendered list with no `#441` and no console error; follow all four
-dashboard links; sort and page the table with the network panel open and confirm
-no request to `/api/data/users`. Expect the three secondary defects above to be
-visible, and do not file them again.
-
-
-**Updated 2026-08-29.** The unit-level half of the retest now exists and passes:
-the contract test above fails against the defect and passes against the fix. The
-live half is unchanged - production still runs `main` at `949f461c`, this work
-is on a task branch, and `/users` has not been opened by a browser since. The
-walkthrough described above is still the thing to do on the next release.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): entity-registry-contract.spec asserts every buildEntityDataUrl call site names an entity in the API ENTITY_REGISTRY; passes. The old (authenticated)/users page is gone (next.config.ts redirects /users to settings identities), and no 'users' entity-data call site remains.
 
 ## History
 
@@ -424,3 +408,4 @@ walkthrough described above is still the thing to do on the next release.
 - Regression — REG-313 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

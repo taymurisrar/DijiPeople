@@ -129,7 +129,18 @@ function buildService(options: {
   });
 
   const prisma = {
-    plan: { findMany: jest.fn() },
+    // Plan eligibility is checked at checkout (BUG-4652): an unreserved plan.
+    plan: {
+      findMany: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue({
+        name: 'Catalogue',
+        kind: 'CATALOGUE',
+        salesModel: 'SELF_SERVICE',
+        eligibleCustomerAccountId: null,
+        effectiveFrom: null,
+        effectiveUntil: null,
+      }),
+    },
     planPrice: {
       findUnique: jest.fn().mockResolvedValue(options.planPrice),
       update: planPriceUpdate,
@@ -142,6 +153,7 @@ function buildService(options: {
         options.tenant ?? {
           id: 'tenant-1',
           slug: 'tenant-1',
+          customerAccountId: 'ca-1',
           customerAccount: { id: 'ca-1', stripeCustomerId: 'cus_existing' },
         },
       ),

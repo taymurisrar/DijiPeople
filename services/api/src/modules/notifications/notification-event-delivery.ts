@@ -73,6 +73,8 @@ export const NOTIFICATION_EVENT_DELIVERY: Readonly<
   PAYMENT_BATCH_FAILED: DIRECT_IN_APP,
   PAYROLL_PAID: DIRECT_IN_APP,
   JOURNAL_POSTED: DIRECT_IN_APP,
+  // Dispatched straight to the reporting manager by the daily-updates escalation.
+  'work.daily-update.missed': DIRECT_IN_APP,
   JOURNAL_REVERSED: DIRECT_IN_APP,
 
   'leave.request.submitted.approver': viaRule('leave'),
@@ -89,6 +91,7 @@ export const NOTIFICATION_EVENT_DELIVERY: Readonly<
   'employee.document.uploaded.hr': viaRule('employee'),
   'employee.document.expiring.employee': viaRule('employee'),
   'employee.onboarding.task.assigned': viaRule('employee'),
+  'recruitment.application.stage.changed': viaRule('recruitment'),
 
   TIMESHEET_APPROVAL_REQUEST: viaRule('timesheet'),
   TIMESHEET_SUBMISSION_REMINDER: viaRule('timesheet'),
@@ -136,7 +139,9 @@ export const EVENT_MODULES = [
   { key: 'loans', label: 'Loans' },
   { key: 'payroll', label: 'Payroll' },
   { key: 'employees', label: 'Employees' },
+  { key: 'recruitment', label: 'Recruitment' },
   { key: 'onboarding', label: 'Onboarding' },
+  { key: 'work', label: 'Work' },
   { key: 'reports', label: 'Reports' },
   { key: 'support', label: 'Support' },
   { key: 'billing', label: 'Billing' },
@@ -155,12 +160,14 @@ const MODULE_LABEL = new Map<string, string>(
 export function resolveEventModuleKey(code: string): EventModuleKey | null {
   if (code.startsWith('leave.')) return 'leave';
   if (code.startsWith('attendance.')) return 'attendance';
+  if (code.startsWith('recruitment.')) return 'recruitment';
   if (code.startsWith('employee.onboarding.')) return 'onboarding';
   if (code.startsWith('employee.')) return 'employees';
   if (code.startsWith('TIMESHEET_')) return 'timesheets';
   if (code.startsWith('CLAIM_')) return 'claims';
   if (code.startsWith('LOAN_')) return 'loans';
   if (/^(PAYROLL|PAYMENT|PAYSLIP|JOURNAL)_/.test(code)) return 'payroll';
+  if (code.startsWith('work.')) return 'work';
   if (code.startsWith('REPORT_')) return 'reports';
   if (code.startsWith('SUPPORT_')) return 'support';
   if (code.startsWith('BILLING_')) return 'billing';

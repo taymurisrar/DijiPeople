@@ -73,6 +73,9 @@ const TYPE_LABELS: Record<string, string> = {
   actionBar: "Action bar",
   widget: "Widget",
   environmentVariable: "Environment variable",
+  workUnit: "Work unit",
+  workProfile: "Work profile",
+  workQueue: "Work queue",
 };
 
 function statusTone(status: PackageComparisonStatus) {

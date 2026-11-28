@@ -61,6 +61,7 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'attendance',
       'timesheets',
       'projects',
+      'work-management',
       'recruitment',
       'onboarding',
       'documents',

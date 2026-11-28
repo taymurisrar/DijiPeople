@@ -2,7 +2,7 @@
 ID: BUG-2693
 aliases: [BUG-2693]
 Title: Historical headcount reports employee-days instead of headcount and grows with the length of the period
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-31
-UpdatedAt: 2026-08-31
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-2693 — Historical headcount reports employee-days instead of headcount and grows with the length of the period
@@ -128,6 +128,8 @@ The caveats were rewritten. The old one explained how to work around the tile; t
 
 To be confirmed in production after deploy: the same magnitude at 7 and 30 days, and a department breakdown that sums to it.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): point-in-time-count.spec.ts asserts historical_headcount is kind point_in_time_count and counts one day not every employee-day in the period; query-executor.ts implements the kind; passes.
+
 ## History
 
 - 2026-08-31 — found within minutes of the workforce backfill giving the surface data; it had been unobservable while the tile showed an empty state.
@@ -141,3 +143,4 @@ To be confirmed in production after deploy: the same magnitude at 7 and 30 days,
 - Regression — REG-389 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

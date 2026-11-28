@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 5 |
+| Active sessions | **3** |
+| Active parent tasks | 6 |
 | Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
-| Open questions | 0 |
+| Open questions | 1 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **8** |
-| Open HIGH | 126 |
-| Awaiting Architect triage | 0 |
-| Owner decisions pending | 15 |
+| Open CRITICAL | **5** |
+| Open HIGH | 50 |
+| Awaiting Architect triage | 3 |
+| Owner decisions pending | 16 |
 | QA coverage gaps | 167 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 311 |
-| No next action | 311 |
-| Aging — 7d / 30d / 90d | 297 / 295 / 12 |
+| No acceptance criteria | 245 |
+| No next action | 245 |
+| Aging — 7d / 30d / 90d | 232 / 214 / 76 |
 | Architecture and technical debt | 8 |
-| Security gaps | 50 |
-| Database gaps | 29 |
+| Security gaps | 36 |
+| Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,8 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0138-dp-master-wp-01-baseline-traceability-and-r1-foundation-slic|SESSION-0138]] | — | DP-MASTER WP-01 baseline, traceability and R1 foundation slices | ACTIVE | `agent/dp-master-wp01-baseline` | `develop` | — | NO |
+| [[SESSION-0137-dependency-alert-remediation-111-dependabot-alerts-p0-exposu|SESSION-0137]] | — | Dependency alert remediation: 111 Dependabot alerts, P0 exposure triage | ACTIVE | `agent/dependency-alert-remediation` | `develop` | — | NO |
 | [[SESSION-0130-starter-go-live-remediation-dp-qa-002-010-011-012-005-and-p2|SESSION-0130]] | — | Starter go-live remediation: DP-QA-002/010/011/012/005 and P2/P3 | ACTIVE | `agent/starter-golive-remediation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -60,6 +62,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
 | [[TASK-0038-complete-multi-payment-billing-end-to-end|TASK-0038]] | Complete multi-payment billing end-to-end | FEATURE | LARGE | 0/8 | WP-01 | — | — |
+| [[TASK-0039-dp-master-program-workforce-operating-platform-master-plan-v|TASK-0039]] | DP-MASTER program - workforce operating platform (master plan v1.0) | FEATURE | LARGE | 0/1 | — | WP-01 | — |
 
 ## Branch model
 
@@ -107,10 +110,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | PLAN_REQUIRED |
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
-| [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
-| [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
-| [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -125,6 +125,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 - [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing**
+- [[ITEM-0237-idle-back-off-for-the-outbox-and-data-job-pollers-to-let-neo|ITEM-0237]] — **Worker polling load on Neon: decide autosuspend and connection pooling, then bound the pollers**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
 - [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint**
 - [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream**
@@ -312,13 +313,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 311 |
+| Open total | 245 |
 | Blocked | 4 |
-| Deferred | 125 |
-| Awaiting a product decision | 15 |
-| Awaiting Architect triage | 0 |
+| Deferred | 128 |
+| Awaiting a product decision | 16 |
+| Awaiting Architect triage | 3 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 

@@ -2,7 +2,7 @@
 ID: BUG-3355
 aliases: [BUG-3355]
 Title: A second sign-in silently destroys the first session, and the displaced browser is never told
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-09-11
 DetectedInSha: 118d22ed
 AffectedModules: [api:auth, web:auth]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-440
 RelatedBacklogItem: ITEM-0162
 RelatedDecision: ADR-0010
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-12
 ---
 
@@ -229,9 +229,7 @@ assessment.
 
 ## QA Retest
 
-Pending — this fix has automated regression coverage (REG-440,
-[[QA-AUTH-011]]) but has not yet had a live QA pass against a deployed
-environment.
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-session-lifecycle.spec.ts 'concurrent sessions' block asserts no revocation of other sessions with no tenant security row or explicit opt-in, and revocation only when tenant opts out; passes. The 'displaced browser is told' notification half is not asserted by this spec.
 
 ## History
 
@@ -252,3 +250,4 @@ environment.
 - Regression — REG-440 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

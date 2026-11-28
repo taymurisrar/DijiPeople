@@ -2,7 +2,7 @@
 ID: BUG-3171
 aliases: [BUG-3171]
 Title: The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/audit]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-725
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-23
 ---
 
 # BUG-3171 — The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load
@@ -142,11 +142,13 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Filter metadata now uses a database-side GROUP BY on the tenant, served by the (tenantId, action/entityType, createdAt) indexes, instead of reading every audit row.
 
 ## QA Retest
 
-Not yet retested.
+QA-AUDIT-003 (automated; independent QA/security review of the batch recorded in the SESSION-0137 handoff).
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): audit-filter-metadata.spec.ts 'groups in the database instead of reading every row' passes; audit.repository.ts uses db.auditLog.groupBy (lines ~119-127). Single test, asserts the mechanism not timing.
 
 ## History
 
@@ -157,5 +159,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[audit-and-events]]
+- Regression — REG-725 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

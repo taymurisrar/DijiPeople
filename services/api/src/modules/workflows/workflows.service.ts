@@ -20,7 +20,16 @@ import {
   UpdateWorkflowDto,
   WorkflowActionDto,
 } from './dto/workflow.dto';
-import { WORKFLOW_CONDITION_OPERATORS } from './workflow-conditions';
+import {
+  validateWorkflowConditionList,
+  WORKFLOW_CONDITION_OPERATORS,
+} from './workflow-conditions';
+import {
+  buildWorkflowDefinition,
+  checksumWorkflowDefinition,
+  nextFreeWorkflowKey,
+  slugifyWorkflowKey,
+} from './workflow-versioning';
 import { WORKFLOW_RECIPIENT_MODES } from './workflow-runtime.service';
 
 const SCOPE_LABELS: Record<EmailTemplateScopeLevel, string> = {
@@ -120,13 +129,16 @@ export class WorkflowsService {
             ? 'The person the record is about'
             : mode === 'ACTOR'
               ? 'The person who triggered it'
-              : 'A fixed address',
+              : mode === 'CANDIDATE'
+                ? 'The candidate of the application (recruitment events)'
+                : 'A fixed address',
       })),
     };
   }
 
   async create(currentUser: AuthenticatedUser, dto: CreateWorkflowDto) {
     await this.assertEventExists(dto.eventCode);
+    this.assertConditionsValid(dto.conditions);
     const scopeKey = await this.resolveScopeKey(
       currentUser.tenantId,
       dto.scopeLevel,
@@ -144,24 +156,35 @@ export class WorkflowsService {
       );
     }
 
-    const workflow = await this.prisma.workflow.create({
-      data: {
-        tenantId: currentUser.tenantId,
-        scopeKey,
-        moduleKey: dto.moduleKey ?? null,
-        name: dto.name.trim(),
-        description: dto.description?.trim() || null,
-        eventCode: dto.eventCode.trim(),
-        status: dto.status ?? WorkflowStatus.DRAFT,
-        conditions: (dto.conditions ?? []) as unknown as Prisma.InputJsonValue,
-        createdBy: currentUser.userId,
-        updatedBy: currentUser.userId,
-        actions: { create: actions },
-      },
-      include: {
-        actions: { orderBy: { sortOrder: 'asc' } },
-        _count: { select: { runs: true } },
-      },
+    const workflowKey = await this.allocateWorkflowKey(
+      currentUser.tenantId,
+      dto.name,
+    );
+
+    const workflow = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.workflow.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          workflowKey,
+          scopeKey,
+          moduleKey: dto.moduleKey ?? null,
+          name: dto.name.trim(),
+          description: dto.description?.trim() || null,
+          eventCode: dto.eventCode.trim(),
+          status: dto.status ?? WorkflowStatus.DRAFT,
+          conditions: (dto.conditions ??
+            []) as unknown as Prisma.InputJsonValue,
+          createdBy: currentUser.userId,
+          updatedBy: currentUser.userId,
+          actions: { create: actions },
+        },
+        include: {
+          actions: { orderBy: { sortOrder: 'asc' } },
+          _count: { select: { runs: true } },
+        },
+      });
+      await this.publishVersionIfActive(tx, created, currentUser.userId);
+      return created;
     });
 
     return this.map(workflow);
@@ -179,6 +202,8 @@ export class WorkflowsService {
     if (!existing) throw new NotFoundException('Workflow was not found.');
 
     if (dto.eventCode) await this.assertEventExists(dto.eventCode);
+    if (dto.conditions !== undefined)
+      this.assertConditionsValid(dto.conditions);
 
     const scopeKey =
       dto.scopeLevel !== undefined || dto.scopeId !== undefined
@@ -192,13 +217,16 @@ export class WorkflowsService {
     const actions = dto.actions ? this.buildActions(dto.actions) : null;
 
     const workflow = await this.prisma.$transaction(async (tx) => {
+      // Concurrent saves of one workflow queue here instead of both minting the
+      // same next version number (a unique-violation 500).
+      await tx.$queryRaw`SELECT "id" FROM "Workflow" WHERE "id" = ${workflowId} AND "tenantId" = ${currentUser.tenantId} FOR UPDATE`;
       if (actions) {
         // Actions are authored as a list, so replacing wholesale is what the
         // builder means by "save" and avoids orphaned rows.
         await tx.workflowAction.deleteMany({ where: { workflowId } });
       }
 
-      return tx.workflow.update({
+      const updated = await tx.workflow.update({
         where: { id: workflowId },
         data: {
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -226,6 +254,8 @@ export class WorkflowsService {
           _count: { select: { runs: true } },
         },
       });
+      await this.publishVersionIfActive(tx, updated, currentUser.userId);
+      return updated;
     });
 
     return this.map(workflow);
@@ -274,10 +304,26 @@ export class WorkflowsService {
           );
         }
         const mode = action.recipientMode ?? 'SUBJECT';
-        if (mode === 'FIXED' && !action.recipientAddress?.trim()) {
+        if (
+          !action.recipients?.length &&
+          mode === 'FIXED' &&
+          !action.recipientAddress?.trim()
+        ) {
           throw new BadRequestException(
             'Enter the address to send to when using a fixed recipient.',
           );
+        }
+        for (const entry of action.recipients ?? []) {
+          if (entry.mode === 'FIXED' && !entry.address?.trim()) {
+            throw new BadRequestException(
+              'Enter the address for every fixed recipient.',
+            );
+          }
+          if (entry.mode === 'ROLE' && !entry.roleKey?.trim()) {
+            throw new BadRequestException(
+              'Choose the role for every role recipient.',
+            );
+          }
         }
       }
 
@@ -290,6 +336,13 @@ export class WorkflowsService {
           templateKey: action.templateKey?.trim() || undefined,
           recipientMode: action.recipientMode ?? 'SUBJECT',
           recipientAddress: action.recipientAddress?.trim() || undefined,
+          recipients: action.recipients?.length
+            ? action.recipients.map((entry) => ({
+                mode: entry.mode,
+                address: entry.address?.trim() || undefined,
+                roleKey: entry.roleKey?.trim() || undefined,
+              }))
+            : undefined,
         } as Prisma.InputJsonValue,
       };
     });
@@ -335,9 +388,93 @@ export class WorkflowsService {
     return buildNotificationScopeKey(level, scopeId);
   }
 
+  private assertConditionsValid(conditions: unknown) {
+    const problems = validateWorkflowConditionList(conditions ?? []);
+    if (problems.length) {
+      throw new BadRequestException({
+        code: 'WORKFLOW_CONDITIONS_INVALID',
+        message: problems.join(' '),
+      });
+    }
+  }
+
+  /*
+   * The key is derived once, at creation, and never rewritten: renaming a
+   * workflow must not break a package, a report or a run history that refers to it.
+   */
+  private async allocateWorkflowKey(tenantId: string, name: string) {
+    const base = slugifyWorkflowKey(name);
+    const rows = await this.prisma.workflow.findMany({
+      where: { tenantId, workflowKey: { startsWith: base.slice(0, 40) } },
+      select: { workflowKey: true },
+    });
+    return nextFreeWorkflowKey(
+      base,
+      new Set(rows.map((row) => row.workflowKey ?? '')),
+    );
+  }
+
+  /*
+   * Every save of an ACTIVE workflow that changes what it does mints the next
+   * immutable version, so the live definition is always the latest published one
+   * and an edit can never change behaviour without leaving a version behind. A
+   * save that changes nothing (same checksum) mints nothing. The previous version
+   * is compared by recomputing its checksum from the stored definition, so rows
+   * backfilled by the migration do not mint a spurious version 2.
+   */
+  private async publishVersionIfActive(
+    tx: Prisma.TransactionClient,
+    workflow: {
+      id: string;
+      tenantId: string;
+      status: WorkflowStatus;
+      eventCode: string;
+      moduleKey: string | null;
+      scopeKey: string;
+      conditions: unknown;
+      actions: {
+        type: WorkflowActionType;
+        sortOrder: number;
+        isActive: boolean;
+        configuration: unknown;
+      }[];
+    },
+    actorUserId: string,
+  ) {
+    if (workflow.status !== WorkflowStatus.ACTIVE) return null;
+
+    const definition = buildWorkflowDefinition(workflow);
+    const checksum = checksumWorkflowDefinition(definition);
+    const latest = await tx.workflowVersion.findFirst({
+      where: { workflowId: workflow.id, tenantId: workflow.tenantId },
+      orderBy: { version: 'desc' },
+      select: { version: true, definition: true },
+    });
+    if (
+      latest &&
+      checksumWorkflowDefinition(
+        latest.definition as ReturnType<typeof buildWorkflowDefinition>,
+      ) === checksum
+    ) {
+      return null;
+    }
+
+    return tx.workflowVersion.create({
+      data: {
+        tenantId: workflow.tenantId,
+        workflowId: workflow.id,
+        version: (latest?.version ?? 0) + 1,
+        definition: definition as unknown as Prisma.InputJsonValue,
+        checksum,
+        publishedBy: actorUserId,
+      },
+    });
+  }
+
   private map(workflow: {
     id: string;
     tenantId: string;
+    workflowKey?: string | null;
     scopeKey: string;
     moduleKey: string | null;
     name: string;
@@ -361,6 +498,7 @@ export class WorkflowsService {
     return {
       id: workflow.id,
       tenantId: workflow.tenantId,
+      workflowKey: workflow.workflowKey ?? null,
       name: workflow.name,
       description: workflow.description,
       eventCode: workflow.eventCode,
@@ -385,6 +523,9 @@ export class WorkflowsService {
           templateKey: (configuration.templateKey as string) ?? null,
           recipientMode: (configuration.recipientMode as string) ?? 'SUBJECT',
           recipientAddress: (configuration.recipientAddress as string) ?? null,
+          recipients: Array.isArray(configuration.recipients)
+            ? (configuration.recipients as unknown[])
+            : [],
         };
       }),
       createdAt: workflow.createdAt,

@@ -1,5 +1,9 @@
 import { StandardModuleRecordPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { loadEmployeeOptions } from "../../work/_lib/employee-options";
+import { ProjectWorkArea } from "./_components/project-work-area";
 import {
   buildPublishedStandardRouteRuntime,
   resolveStandardActiveForm,
@@ -34,6 +38,15 @@ export default async function ProjectDetailPage({
     resolvedSearchParams.formId ?? "",
   );
 
+  // The Work area is part of the project, but only for people who may read work
+  // items; the API enforces the same keys on every call it makes.
+  const permissionKeys = sessionUser?.permissionKeys ?? [];
+  const canReadWork = hasPermission(
+    permissionKeys,
+    PERMISSION_KEYS.WORK_ITEMS_READ,
+  );
+  const people = canReadWork ? await loadEmployeeOptions() : [];
+
   return (
     <div className="dp-theme-scope dp-projects-scope grid gap-6">
       <StandardModuleRecordPage
@@ -45,6 +58,16 @@ export default async function ProjectDetailPage({
         spec={projectRuntimeSpec}
         title={project.name}
       />
+      {canReadWork ? (
+        <ProjectWorkArea
+          canWrite={hasPermission(
+            permissionKeys,
+            PERMISSION_KEYS.WORK_ITEMS_WRITE,
+          )}
+          people={people}
+          projectId={project.id}
+        />
+      ) : null}
     </div>
   );
 }

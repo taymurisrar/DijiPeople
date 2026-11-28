@@ -25,6 +25,11 @@
  * version it does not know, by name.
  */
 import { createHash } from 'crypto';
+import {
+  WORK_KEY_PATTERN,
+  WORK_UNIT_KINDS,
+  validateWorkProfileDefinition,
+} from '../work-profiles/work-profile-definition';
 
 export const PACKAGE_ARTIFACT_FORMAT_VERSION = 1;
 export const SUPPORTED_ARTIFACT_FORMAT_VERSIONS: readonly number[] = [1];
@@ -74,7 +79,33 @@ export const PORTABLE_COMPONENT_TYPES = [
   'widget',
   'actionBar',
 ] as const;
-export type PortableComponentType = (typeof PORTABLE_COMPONENT_TYPES)[number];
+export type ModuleComponentType = (typeof PORTABLE_COMPONENT_TYPES)[number];
+
+/*
+ * WP-35.S2 / WP-21.S1 (ADR-0030). Work units, profiles and queues are portable
+ * too, but they carry their own logical keys (WORK_KEY_PATTERN, which allows
+ * "-" and a leading digit) and have no parent module. The ONE package engine
+ * carries them: the reader serializes them, comparison classifies them, and
+ * applying them goes through the work services (WorkComponentsService), so
+ * validation, immutability and audit stay where they already live.
+ * PORTABLE_COMPONENT_TYPES is the module metadata the engine writes itself and
+ * stays as it was; work types are added AFTER it so an artifact that holds none
+ * is byte-identical to what it always was.
+ */
+export const WORK_COMPONENT_TYPES = [
+  'workUnit',
+  'workProfile',
+  'workQueue',
+] as const;
+export type WorkComponentType = (typeof WORK_COMPONENT_TYPES)[number];
+export const ARTIFACT_COMPONENT_TYPES = [
+  ...PORTABLE_COMPONENT_TYPES,
+  ...WORK_COMPONENT_TYPES,
+] as const;
+export type PortableComponentType = ModuleComponentType | WorkComponentType;
+export function isWorkComponentType(type: string): boolean {
+  return (WORK_COMPONENT_TYPES as readonly string[]).includes(type);
+}
 
 export const PORTABLE_LAYER_ACTIONS = [
   'create',
@@ -330,8 +361,8 @@ export function orderComponents<
 }
 
 function typeRank(type: string) {
-  const index = (PORTABLE_COMPONENT_TYPES as readonly string[]).indexOf(type);
-  return index === -1 ? PORTABLE_COMPONENT_TYPES.length : index;
+  const index = (ARTIFACT_COMPONENT_TYPES as readonly string[]).indexOf(type);
+  return index === -1 ? ARTIFACT_COMPONENT_TYPES.length : index;
 }
 
 export function buildPackageArtifact(input: {
@@ -837,7 +868,7 @@ function readComponents(
     const type = entry.type;
     if (
       typeof type !== 'string' ||
-      !(PORTABLE_COMPONENT_TYPES as readonly string[]).includes(type)
+      !(ARTIFACT_COMPONENT_TYPES as readonly string[]).includes(type)
     ) {
       problems.push({
         path: `${path}.type`,
@@ -846,7 +877,12 @@ function readComponents(
       return;
     }
     const objectKey = entry.objectKey;
-    if (typeof objectKey !== 'string' || !OBJECT_KEY_PATTERN.test(objectKey)) {
+    if (
+      typeof objectKey !== 'string' ||
+      !(isWorkComponentType(type) ? WORK_KEY_PATTERN : OBJECT_KEY_PATTERN).test(
+        objectKey,
+      )
+    ) {
       problems.push({
         path: `${path}.objectKey`,
         message: 'Component logical name is invalid.',
@@ -872,7 +908,9 @@ function readComponents(
 
     const parentKey = entry.parentKey;
     const expectedParent =
-      type === 'table' || type === 'environmentVariable'
+      type === 'table' ||
+      type === 'environmentVariable' ||
+      isWorkComponentType(type)
         ? null
         : objectKey.split('.')[0];
     if ((parentKey ?? null) !== expectedParent) {
@@ -1121,6 +1159,47 @@ function definitionProblem(
       text('name'),
       oneOf('type', DEFINITION_ENUMS.viewType),
       oneOf('visibilityScope', DEFINITION_ENUMS.visibilityScope),
+    );
+  }
+  if (type === 'workUnit') {
+    if (definition.key !== objectKey) {
+      return 'the unit key does not match the component.';
+    }
+    return first(text('name', 120), oneOf('kind', WORK_UNIT_KINDS));
+  }
+  if (type === 'workQueue') {
+    if (definition.key !== objectKey) {
+      return 'the queue key does not match the component.';
+    }
+    const minutes = (field: string) => {
+      const value = definition[field];
+      if (value === null || value === undefined) return null;
+      return typeof value === 'number' &&
+        Number.isInteger(value) &&
+        value >= 1 &&
+        value <= 525_600
+        ? null
+        : `${field} must be a whole number of minutes between 1 and 525600.`;
+    };
+    return first(
+      text('name', 120),
+      text('description', 1000, false),
+      minutes('responseSlaMinutes'),
+      minutes('resolutionSlaMinutes'),
+      typeof definition.isActive === 'boolean'
+        ? null
+        : 'isActive must be true or false.',
+    );
+  }
+  if (type === 'workProfile') {
+    if (definition.key !== objectKey) {
+      return 'the profile key does not match the component.';
+    }
+    const structural = validateWorkProfileDefinition(definition.definition);
+    return first(
+      text('name', 120),
+      text('description', 500, false),
+      structural[0] ?? null,
     );
   }
   if (type === 'environmentVariable') {

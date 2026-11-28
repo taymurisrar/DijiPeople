@@ -2,7 +2,7 @@
 ID: BUG-1974
 aliases: [BUG-1974]
 Title: 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-08-29
 ---
 
@@ -391,11 +391,7 @@ fixes is that the product no longer *claims* they are configured.
 
 ## QA Retest
 
-Awaiting a QA run. The record's own reproduction is the retest, and should now
-fail to reproduce: Settings > Timesheets > Approval Workflow no longer offers
-"Approval SLA hours" or "Enable approval escalation", because nothing reads
-them. On the attendance settings page the original symptom still reproduces, by
-design — see "What is NOT done".
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): tenant-settings-reader-coverage.spec.ts asserts every catalog key is read or declared inert and no inert key is an editable control (reads catalog, dispositions, UI config files); passes, guard is structural not vacuous.
 
 ## History
 
@@ -411,3 +407,4 @@ design — see "What is NOT done".
 - Regression — REG-325 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

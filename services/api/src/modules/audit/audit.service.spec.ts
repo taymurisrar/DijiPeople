@@ -140,6 +140,57 @@ describe('AuditService tenant actors', () => {
  * `input.requestId`/`input.traceId` and had no `TraceContextService` to fall
  * back to.
  */
+describe('AuditService platform actor resolution (BUG-4625, structural)', () => {
+  const build = (actor: { id: string } | null) => {
+    const createPlatform = jest.fn().mockResolvedValue({ id: 'row-1' });
+    const findPlatformActor = jest.fn().mockResolvedValue(actor);
+    const repository = {
+      createPlatform,
+      findPlatformActor,
+    } as unknown as AuditRepository;
+    const service = new AuditService(repository, {
+      getContext: () => null,
+    } as never);
+    return { service, createPlatform, findPlatformActor };
+  };
+  const entry = (actorUserId: string) => ({
+    tenantId: 'platform',
+    actorUserId,
+    action: 'X',
+    entityType: 'T',
+    entityId: '1',
+    scope: { note: 'kept' },
+  });
+
+  it('keeps a real platform actor on the foreign key', async () => {
+    const { service, createPlatform } = build({ id: 'p-1' });
+    await service.log(entry('p-1'));
+    expect(createPlatform).toHaveBeenCalledWith(
+      expect.objectContaining({ platformActorUserId: 'p-1' }),
+    );
+  });
+
+  it('writes a tenant user id as null actor and preserves it in scope, never as an FK value', async () => {
+    const { service, createPlatform } = build(null);
+    await service.log(entry('tenant-user-9'));
+    const calls = createPlatform.mock.calls as Array<
+      [{ platformActorUserId: unknown; scope: Record<string, unknown> }]
+    >;
+    const data = calls[0][0];
+    expect(data.platformActorUserId).toBeNull();
+    expect(data.scope).toEqual({
+      note: 'kept',
+      unresolvedActorUserId: 'tenant-user-9',
+    });
+  });
+
+  it('does not look anything up when there is no actor', async () => {
+    const { service, findPlatformActor } = build(null);
+    await service.log({ ...entry('x'), actorUserId: undefined });
+    expect(findPlatformActor).not.toHaveBeenCalled();
+  });
+});
+
 describe('AuditService trace context propagation', () => {
   it('fills traceId/requestId from the ambient trace context for a tenant audit row', async () => {
     const create = jest.fn().mockResolvedValue({ id: 'audit-1' });

@@ -803,6 +803,44 @@ export const TENANT_FEATURE_DEFINITIONS = [
     icon: 'folder-kanban',
     isVisible: true,
   },
+  /*
+   * Work management, sold on Growth and Enterprise (owner decision, ADR-0032):
+   * work items, queues, blockers, contributions and evidence, duties, meetings
+   * and decisions, daily updates, work profiles, stakeholder digests and basic
+   * utilization. Starter keeps basic HR tasks only.
+   */
+  {
+    key: 'work-management',
+    label: 'Work Management',
+    description:
+      'Work items, queues, duties, meetings, decisions, daily updates, and work profiles.',
+    defaultEnabled: true,
+    categoryKey: 'work-management',
+    categoryLabel: 'Work Management',
+    categoryOrder: 30,
+    sortOrder: 20,
+    icon: 'list-todo',
+    isVisible: true,
+  },
+  /*
+   * Advanced work intelligence and automation, and ALM packaging of work
+   * components. Enterprise only. Enforced in the service layer
+   * (TenantEntitlementService.assertEntitled), not by a route gate, because the
+   * routes it protects live in controllers every work-management tenant uses.
+   */
+  {
+    key: 'work-intelligence',
+    label: 'Work Intelligence',
+    description:
+      'Advanced work intelligence, automation, and packaging of work components.',
+    defaultEnabled: true,
+    categoryKey: 'work-management',
+    categoryLabel: 'Work Management',
+    categoryOrder: 30,
+    sortOrder: 30,
+    icon: 'brain-circuit',
+    isVisible: true,
+  },
   {
     key: 'recruitment',
     label: 'Recruitment',

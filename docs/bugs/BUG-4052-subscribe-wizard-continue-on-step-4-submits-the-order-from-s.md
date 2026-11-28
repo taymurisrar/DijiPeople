@@ -2,7 +2,7 @@
 ID: BUG-4052
 aliases: [BUG-4052]
 Title: Subscribe wizard: Continue on step 4 submits the order from step 5
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-11
 DetectedInSha: 4489a3c6
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-667
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-10-11
-UpdatedAt: 2026-10-11
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-11
 ---
 
@@ -86,6 +86,8 @@ Commit 51c80beb: Continue and Confirm now have distinct keys so React never muta
 
 Scenario: Landing subscribe wizard: Continue never submits (see the QA scenario linked from REG-667).
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): onboarding-submit-guard.spec.ts and onboarding-wizard.spec.ts pass (landing jest, 62 tests across 3 suites); onboarding-wizard.ts holds the submit guard deciding whether Continue/Enter may submit. Real browser behaviour not exercised.
+
 ## History
 
 - 2026-10-11 — created from user report at `51c80beb`.
@@ -99,3 +101,4 @@ Scenario: Landing subscribe wizard: Continue never submits (see the QA scenario 
 - Regression — REG-667 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

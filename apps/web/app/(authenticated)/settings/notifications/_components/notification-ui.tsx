@@ -71,7 +71,9 @@ export function StatusBadge({ status }: { status: string }) {
         ? "danger"
         : status === "ARCHIVED" || status === "SKIPPED" || status === "DRY_RUN"
           ? "muted"
-          : status === "PROCESSING" || status === "PENDING"
+          : status === "PROCESSING" ||
+            status === "PENDING" ||
+            status === "PARTIALLY_FAILED"
             ? "warning"
             : "neutral";
 

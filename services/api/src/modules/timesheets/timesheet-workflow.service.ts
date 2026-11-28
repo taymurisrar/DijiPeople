@@ -271,6 +271,12 @@ export class TimesheetWorkflowService {
           where: { tenantId: user.tenantId, timesheetDayId: day.id },
         });
         if (inputDay.entries.length) {
+          await assertWorkItemLinks(
+            tx,
+            user.tenantId,
+            week.timesheet.employeeId,
+            inputDay.entries,
+          );
           await tx.timesheetEntry.createMany({
             data: inputDay.entries.map((entry) => ({
               tenantId: user.tenantId,
@@ -2025,4 +2031,66 @@ function daysBetween(start: Date, end: Date) {
   return Math.floor(
     (startOfDay(end).getTime() - startOfDay(start).getTime()) / 86_400_000,
   );
+}
+
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/*
+ * DP-MASTER WP-06.S3. An entry's `taskId` may name a work item (ADR-0030). It
+ * stays a free-text task label for every tenant that already uses it that way:
+ * only a value that IS the id of a work item of this tenant is treated as a link.
+ * A link must be to work the employee actually owns or shares, and must agree with
+ * the entry's project when both name one, so time is never booked to work nobody
+ * assigned to the person.
+ */
+export async function assertWorkItemLinks(
+  tx: Prisma.TransactionClient,
+  tenantId: string,
+  employeeId: string,
+  entries: Array<{ taskId?: string | null; projectId?: string | null }>,
+) {
+  const candidates = [
+    ...new Set(
+      entries
+        .map((entry) => entry.taskId?.trim())
+        .filter((value): value is string => !!value && UUID.test(value)),
+    ),
+  ];
+  if (!candidates.length) return;
+  const items = await tx.workItem.findMany({
+    where: { tenantId, id: { in: candidates } },
+    select: {
+      id: true,
+      projectId: true,
+      ownerEmployeeId: true,
+      archivedAt: true,
+      contributors: { where: { employeeId }, select: { employeeId: true } },
+    },
+  });
+  const byId = new Map(items.map((item) => [item.id, item]));
+  for (const entry of entries) {
+    const id = entry.taskId?.trim();
+    const item = id ? byId.get(id) : undefined;
+    if (!id || !item) continue; // free text, or an id that is not a work item
+    const mine =
+      item.ownerEmployeeId === employeeId || item.contributors.length > 0;
+    if (!mine || item.archivedAt) {
+      throw new BadRequestException({
+        code: 'TIMESHEET_WORK_ITEM_NOT_YOURS',
+        message:
+          'Time can only be booked to a work item you own or share, and that is not archived.',
+      });
+    }
+    if (
+      entry.projectId &&
+      item.projectId &&
+      entry.projectId !== item.projectId
+    ) {
+      throw new BadRequestException({
+        code: 'TIMESHEET_WORK_ITEM_PROJECT',
+        message: 'The work item belongs to a different project than the entry.',
+      });
+    }
+  }
 }

@@ -2,7 +2,7 @@
 ID: BUG-4174
 aliases: [BUG-4174]
 Title: Submit for approval reports the derived agreement version as a missing required field
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-10-12
 DetectedInSha: 57f0ac0a
 AffectedModules: [contracts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-682
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/agreement-version-approval
 CreatedAt: 2026-10-12
-UpdatedAt: 2026-10-12
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-10-13
 ---
 
@@ -100,6 +100,8 @@ version and ignores any stored copy. No production data was changed.
 QA-CONTRACTS-002 (automated) and a read-only replay of the affected
 agreement's values against the fixed check: passes.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): agreement-template-lifecycle.spec.ts 'agreement version and pilot terms' asserts the version is derived by issue number and approval no longer reports it missing; passes.
+
 ## History
 
 - 2026-10-12 — created from production error admin_9d964ede at `57f0ac0a`.
@@ -113,3 +115,4 @@ agreement's values against the fixed check: passes.
 - Regression — REG-682 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

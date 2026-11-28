@@ -2,7 +2,7 @@
 ID: BUG-3137
 aliases: [BUG-3137]
 Title: Live password-reset links and invite tokens sit in the tenant-readable email delivery log
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/notifications]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-707
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3137 — Live password-reset links and invite tokens sit in the tenant-readable email delivery log
@@ -89,7 +89,7 @@ Full finding text: AUTH-01 in `docs/engineering/audits/2026-09-10-full-technical
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+requestPasswordReset passed the live reset URL in email metadata, which the tenant-readable delivery-log API returns.
 
 ## Impact
 
@@ -111,7 +111,7 @@ Remove `resetUrl` from both metadata blocks in `AuthService.requestPasswordReset
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: AUTH-01=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+services/api/test/auth-session-hardening.e2e-spec.ts. REG-707, QA-AUTH-024. Re-adding the URL and removing the scrub fails the test.
 
 ## Dependencies
 
@@ -123,11 +123,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+Dropped resetUrl from the metadata and added a defensive scrub in buildMetadata: for auth events any key containing url, link or token is removed, so the next caller cannot reintroduce it. Historical rows hold expired links (24h reset, 48h invite); scrubbing them is a data change left for an owner decision.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-AUTH-024 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): auth-session-hardening e2e (8 passed) asserts the forgot-password EmailDeliveryLog row has no resetUrl/reset-password?token=/JWT and that the row exists as a control; code removes resetUrl from auth.service and invitation metadata and email-execution buildMetadata scrubs url/link/token keys for auth events.
 
 ## History
 
@@ -138,5 +142,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[notifications]]
+- Regression — REG-707 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

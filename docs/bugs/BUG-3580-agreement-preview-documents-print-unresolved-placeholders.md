@@ -2,7 +2,7 @@
 ID: BUG-3580
 aliases: [BUG-3580]
 Title: Agreement preview documents print unresolved placeholders
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -148,6 +148,8 @@ Verified by TASK-0032 WP-09 live QA re-run against the throwaway stack after
 the fix — see `docs/tasks/TASK-0032-streams/QA-summary.md` ("Agreements …"
 rows: Pass) and the passing `contracts.agreement-rendering.spec.ts`.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): contracts.agreement-rendering.spec.ts 'prints resolved values in the preview PDF, never {{platform.*}}' and the DOCX equivalent assert resolved output; suite passes.
+
 ## History
 
 - 2026-09-25 — created by the TASK-0032 records clerk pass, from WP-09 live
@@ -163,3 +165,4 @@ rows: Pass) and the passing `contracts.agreement-rendering.spec.ts`.
 - Regression — REG-610 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 
@@ -50,30 +51,33 @@ export async function ensureIdentityForEmail(
   });
   if (existing) return existing.id;
 
-  try {
-    const created = await db.identity.create({
-      data: { email, passwordHash: passwordHashForNewIdentity },
-      select: { id: true },
-    });
-    return created.id;
-  } catch (error) {
-    /*
-     * Two requests creating the first account for one email at the same moment.
-     * The unique index refuses the second, which is the correct outcome — the
-     * read above is an optimisation, not the guarantee.
-     *
-     * Recovered by re-reading rather than by matching the error's shape, for
-     * the same reason the workspace-slug reservation does: Prisma 7 does not
-     * populate `meta.target` on P2002, so shape-matching is matching on a
-     * driver internal. The row is the contract.
-     */
-    const holder = await db.identity.findUnique({
-      where: { email },
-      select: { id: true },
-    });
-    if (holder) return holder.id;
-    throw error;
+  /*
+   * BUG-3201. Two requests creating the first account for one email at the same
+   * moment: the unique index must pick one winner, and the loser must take the
+   * winner's row. The read above is an optimisation, not the guarantee.
+   *
+   * This used to be `identity.create` inside a try/catch that re-read on the same
+   * client. In an interactive transaction (two of the three callers) a unique
+   * violation aborts the transaction in Postgres, so the recovery read itself
+   * failed with "current transaction is aborted" and the caller's whole
+   * provisioning rolled back. `ON CONFLICT DO NOTHING` raises no error, so the
+   * transaction stays usable and the follow-up read finds the winner. It is raw
+   * SQL because Prisma's `create` cannot express it; `updatedAt` has no database
+   * default (Prisma sets it client-side), so it is supplied, and every other
+   * column has one.
+   */
+  await db.$executeRaw`INSERT INTO "Identity" ("id", "email", "passwordHash", "updatedAt")
+    VALUES (${randomUUID()}, ${email}, ${passwordHashForNewIdentity}, ${new Date()})
+    ON CONFLICT ("email") DO NOTHING`;
+
+  const holder = await db.identity.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (!holder) {
+    throw new Error('Identity could not be created or found.');
   }
+  return holder.id;
 }
 
 /**

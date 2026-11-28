@@ -2,7 +2,7 @@
 ID: BUG-3493
 aliases: [BUG-3493]
 Title: Publishing customizations dead-ends because new drafts land in a package that cannot be published
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-13
 DetectedInSha: df0f84f1
 AffectedModules: [apps/web, customization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-483
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: [docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md, services/api/src/modules/customization/customization.service.ts, apps/web/app/(authenticated)/settings/customization/_components/publish-center.tsx]
 CreatedAt: 2026-09-13
-UpdatedAt: 2026-09-13
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-24
 ---
 
 # BUG-3493 — Publishing customizations dead-ends because new drafts land in a package that cannot be published
@@ -252,6 +252,8 @@ merged tree). Scenario QA-SETTINGS-023:
 3. Validation of an administrator-created view shows no default-component
    warning.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): customization-publish-and-metadata.spec.ts asserts validation reports the legacy unassigned package as blocking, publish refuses exactly what validation blocks, a tenant writable Custom Package is created once, and a user-created view is not called a default component; passes.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
@@ -267,3 +269,4 @@ merged tree). Scenario QA-SETTINGS-023:
 - Regression — REG-483 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

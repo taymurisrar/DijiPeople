@@ -352,6 +352,9 @@ export class StripeBillingService {
  * Kept separate from the provider factory so the same validation runs whether
  * it is triggered at boot (production) or on first use (everywhere else).
  */
+/** Bounded request deadline for every Stripe API call (BUG-3199). */
+export const STRIPE_REQUEST_TIMEOUT_MS = 20_000;
+
 function buildStripeClient(configService: ConfigService): StripeClient {
   const secretKey = requireStripeEnv(configService, 'STRIPE_SECRET_KEY');
   const apiVersion = requireStripeEnv(configService, 'STRIPE_API_VERSION');
@@ -361,8 +364,13 @@ function buildStripeClient(configService: ConfigService): StripeClient {
 
   assertSecretMatchesMode(secretKey, mode);
 
+  // BUG-3199. The SDK default is an 80-second timeout, long enough to hold a
+  // request thread and a database connection through a Stripe outage. A bounded
+  // deadline and a single retry fail fast and visibly instead.
   const stripeConfig: Record<string, unknown> = {
     apiVersion,
+    timeout: STRIPE_REQUEST_TIMEOUT_MS,
+    maxNetworkRetries: 1,
   };
 
   return new Stripe(secretKey, stripeConfig);

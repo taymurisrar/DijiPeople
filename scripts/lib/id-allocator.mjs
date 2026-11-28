@@ -87,6 +87,11 @@ export const ID_KINDS = {
     prefix: 'REG',
     dir: 'docs/qa/regressions',
     width: 3,
+    // The register is three digits wide and every downstream reader (QA
+    // validation, the index) treats REG-4276 as REG-427. A wider id in the
+    // ledger is a stray reservation, not a number the register will ever hold,
+    // so it must not raise the ceiling (ITEM-0246).
+    maxDigits: 3,
     contentOf: 'docs/qa/regressions/index.md',
   },
 };
@@ -302,6 +307,7 @@ export function highestAllocated(root, kind, { scope = '' } = {}) {
   let highest = 0;
   const consider = (text) => {
     for (const match of String(text).matchAll(pattern)) {
+      if (spec.maxDigits && match[1].length > spec.maxDigits) continue;
       highest = Math.max(highest, Number(match[1]));
     }
     pattern.lastIndex = 0;
@@ -401,6 +407,29 @@ export function allocateId(root, kind, { scope = '', sessionId = '', note = '' }
     },
     { sessionId },
   );
+}
+
+/**
+ * Release the reservations a self-test made, identified by the exact note it
+ * stamped on them (ITEM-0246).
+ *
+ * validate-framework allocates ids to prove successive allocations are distinct.
+ * Those ids never become records, so leaving them in the ledger raised the
+ * ceiling on every run: the regression register is at REG-7nn while the ledger
+ * handed out REG-4276, an id the three-digit register cannot hold. Releasing a
+ * reservation lowers the ceiling, which is only safe because nothing was ever
+ * written under these ids; a real allocation carries a session or a different
+ * note and is never touched.
+ */
+export function releaseReservationsByNote(root, note) {
+  if (!note) throw new Error('releaseReservationsByNote needs a note');
+  return withLock(root, 'id-allocation', () => {
+    const entries = readReservations(root);
+    const kept = entries.filter((entry) => entry.note !== note);
+    const released = entries.length - kept.length;
+    if (released > 0) writeJson(root, LEDGER, kept);
+    return released;
+  });
 }
 
 /**

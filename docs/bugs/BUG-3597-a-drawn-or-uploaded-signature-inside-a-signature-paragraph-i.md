@@ -2,7 +2,7 @@
 ID: BUG-3597
 aliases: [BUG-3597]
 Title: A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0032
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-11-24
 ResolvedAt: 2026-09-25
 ---
 
@@ -118,6 +118,8 @@ including "signed copy draws the drawn signature image" for a partner agreement
 (drawn only) and a customer agreement (typed platform + drawn customer).
 Scenario QA-CONTRACT-012.
 
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): contracts.domain.spec.ts 'draws an embedded signature image into the generated PDF' and 'keeps a signature image that sits inside a paragraph' assert the image is emitted; passes.
+
 ## History
 
 - 2026-09-25 — created from qa run at `8ad6edc6`.
@@ -131,3 +133,4 @@ Scenario QA-CONTRACT-012.
 - Regression — REG-627 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

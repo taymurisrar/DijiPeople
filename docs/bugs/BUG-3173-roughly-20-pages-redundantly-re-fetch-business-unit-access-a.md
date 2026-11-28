@@ -2,7 +2,7 @@
 ID: BUG-3173
 aliases: [BUG-3173]
 Title: Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-718
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-11-24
+ResolvedAt: 2026-11-22
 ---
 
 # BUG-3173 — Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded
@@ -62,7 +62,7 @@ Full finding text: FE-02 in `docs/engineering/audits/2026-09-10-full-technical-a
 
 ## Root Cause
 
-Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+About 20 pages re-fetched business-unit access and current-employee context that the shell layout had already fetched.
 
 ## Impact
 
@@ -84,7 +84,7 @@ Wrap `getBusinessUnitAccessSummary` (`apps/web/app/(authenticated)/_lib/business
 
 ## Regression Coverage
 
-No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: FE-02=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+apps/web/lib/server-api.spec.ts. REG-718, QA-RUNTIME-050. server-api.spec.ts asserts one API call for many identical concurrent GETs, separate calls for different paths, and that failures are not retained.
 
 ## Dependencies
 
@@ -96,11 +96,15 @@ None identified beyond the fix itself.
 
 ## Resolution
 
-Not yet resolved.
+STALE: Already fixed before this session. Verified by an independent read of the current code (develop 23335bdc, 2026-11-22); closed with its existing regression test rather than a new one. The dedupe is at the transport level (request-scoped cache of option-less GETs, DP-QA-025), so the 20 page call sites are free. Per-click fan-out (BUG-3174) is separate and stays planned.
+
+Fixed on branch agent/dependency-alert-remediation (SESSION-0137). Premise re-verified against the code before changing it (2026-11-22).
 
 ## QA Retest
 
-Not yet retested.
+QA-RUNTIME-050 on the isolated database, 2026-11-22: passing with the fix and failing with it removed. Independent review pending.
+
+Independent QA retest 2026-11-24 (SESSION-0137 reconciliation): server-api.spec 'request-scoped sharing' asserts 20 identical concurrent GETs produce one fetch and a write clears sharing; passes. server-api.ts apiRequestJson uses cache(), and getBusinessUnitAccessSummary/getCurrentEmployee call it option-less so they dedupe. Closed as STALE (already fixed) and that holds.
 
 ## History
 
@@ -111,5 +115,7 @@ Not yet retested.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-718 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-11-24 — FIXED → VERIFIED by independent QA (SESSION-0137 reconciliation).

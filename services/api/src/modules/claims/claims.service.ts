@@ -624,6 +624,7 @@ export class ClaimsService {
       actorUserId: user.userId,
       relatedEntityType: 'claimRequest',
       relatedEntityId: claimId,
+      transitionId: `rejected:${new Date(updated.updatedAt).getTime()}`,
       metadata: {
         recipientUserIds: updated.employee.userId
           ? [updated.employee.userId]

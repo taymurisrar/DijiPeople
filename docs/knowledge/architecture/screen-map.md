@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**370 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**382 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-262 screens, 35 runtime-driven.
+274 screens, 35 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -207,6 +207,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/customization/tables/[tableKey]/forms/[formId]/designer` | `apps/web/app/(authenticated)/settings/customization/tables/[tableKey]/forms/[formId]/designer/page.tsx` | _bespoke_ | — |
 | `/settings/customization/tables/[tableKey]/views` | `apps/web/app/(authenticated)/settings/customization/tables/[tableKey]/views/page.tsx` | _bespoke_ | — |
 | `/settings/customization/tables/[tableKey]/views/[viewId]/designer` | `apps/web/app/(authenticated)/settings/customization/tables/[tableKey]/views/[viewId]/designer/page.tsx` | _bespoke_ | — |
+| `/settings/daily-updates` | `apps/web/app/(authenticated)/settings/daily-updates/page.tsx` | _bespoke_ | — |
 | `/settings/data-management` | `apps/web/app/(authenticated)/settings/data-management/page.tsx` | _bespoke_ | — |
 | `/settings/desktop-agent` | `apps/web/app/(authenticated)/settings/desktop-agent/page.tsx` | _bespoke_ | — |
 | `/settings/features` | `apps/web/app/(authenticated)/settings/features/page.tsx` | _bespoke_ | — |
@@ -273,6 +274,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/tax-rules` | `apps/web/app/(authenticated)/settings/tax-rules/page.tsx` | _bespoke_ | — |
 | `/settings/time-payroll-policies` | `apps/web/app/(authenticated)/settings/time-payroll-policies/page.tsx` | _bespoke_ | — |
 | `/settings/travel-allowance-policies` | `apps/web/app/(authenticated)/settings/travel-allowance-policies/page.tsx` | _bespoke_ | — |
+| `/settings/work-profiles` | `apps/web/app/(authenticated)/settings/work-profiles/page.tsx` | _bespoke_ | — |
 | `/settings/work-sites` | `apps/web/app/(authenticated)/settings/work-sites/page.tsx` | _bespoke_ | — |
 | `/t/[tenantSlug]/login` | `apps/web/app/t/[tenantSlug]/login/page.tsx` | _bespoke_ | — |
 | `/timesheets` | `apps/web/app/(authenticated)/timesheets/page.tsx` | `/api/timesheets` | `timesheet` |
@@ -280,6 +282,16 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/timesheets/[timesheetId]/edit` | `apps/web/app/(authenticated)/timesheets/[timesheetId]/edit/page.tsx` | `/api/timesheets` | `timesheet` |
 | `/timesheets/approvals` | `apps/web/app/(authenticated)/timesheets/approvals/page.tsx` | `/api/timesheets` | `timesheet` |
 | `/timesheets/new` | `apps/web/app/(authenticated)/timesheets/new/page.tsx` | `/api/timesheets` | `timesheet` |
+| `/work` | `apps/web/app/(authenticated)/work/page.tsx` | _bespoke_ | — |
+| `/work/blockers` | `apps/web/app/(authenticated)/work/blockers/page.tsx` | _bespoke_ | — |
+| `/work/contributions` | `apps/web/app/(authenticated)/work/contributions/page.tsx` | _bespoke_ | — |
+| `/work/contributions/review` | `apps/web/app/(authenticated)/work/contributions/review/page.tsx` | _bespoke_ | — |
+| `/work/daily-update` | `apps/web/app/(authenticated)/work/daily-update/page.tsx` | _bespoke_ | — |
+| `/work/daily-updates` | `apps/web/app/(authenticated)/work/daily-updates/page.tsx` | _bespoke_ | — |
+| `/work/decisions` | `apps/web/app/(authenticated)/work/decisions/page.tsx` | _bespoke_ | — |
+| `/work/duties` | `apps/web/app/(authenticated)/work/duties/page.tsx` | _bespoke_ | — |
+| `/work/meetings` | `apps/web/app/(authenticated)/work/meetings/page.tsx` | _bespoke_ | — |
+| `/work/queues` | `apps/web/app/(authenticated)/work/queues/page.tsx` | _bespoke_ | — |
 | `/workspace/choose` | `apps/web/app/workspace/choose/page.tsx` | _bespoke_ | — |
 | `/workspace/not-found` | `apps/web/app/workspace/not-found/page.tsx` | _bespoke_ | — |
 | `/workspace/preparing` | `apps/web/app/workspace/preparing/page.tsx` | _bespoke_ | — |

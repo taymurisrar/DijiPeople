@@ -17,6 +17,10 @@ import {
 } from 'express';
 import { AppModule } from './app.module';
 import { resolveLogLevels } from './log-level';
+import { PrismaService } from './common/prisma/prisma.service';
+import { livenessReport } from './common/health/liveness';
+import { installUnhandledRejectionHandler } from './common/process/unhandled-rejection';
+import { probeReadiness } from './common/health/readiness';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
 import { TenantEntitlementService } from './common/security/tenant-entitlement.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -37,6 +41,8 @@ async function bootstrap() {
     logger: resolveLogLevels(),
   });
   const logger = new Logger('Bootstrap');
+  // A forgotten .catch must not take every tenant down (BUG-4625).
+  installUnhandledRejectionHandler(new Logger('UnhandledRejection'));
   const configService = app.get(ConfigService);
 
   assertAuthEnvironment(configService);
@@ -102,6 +108,32 @@ async function bootstrap() {
   expressApp.get('/', serveHealth);
   expressApp.get('/api', serveHealth);
   expressApp.get('/api/health', serveHealth);
+
+  // Liveness: process-up only, no database and no imports (common/health/
+  // liveness.ts). This is the route a restart decision may use. `/api` and
+  // `/api/health` above read the entitlement mode from the database whenever
+  // their cache has expired, so they are not safe for that (ITEM-0236).
+  expressApp.get('/api/health/live', (_req: Request, res: Response) => {
+    res.json(livenessReport());
+  });
+
+  // Readiness is NOT liveness: it probes the database and answers 503 when it is
+  // unreachable, so it is for monitors and operators. Do not point Render's
+  // healthCheckPath at it - that would turn a Neon blip into a restart loop.
+  // Concurrent probes share one in-flight SELECT 1 so an unauthenticated caller
+  // cannot multiply database work.
+  const prisma = app.get(PrismaService, { strict: false });
+  let inflightReadiness: ReturnType<typeof probeReadiness> | null = null;
+  expressApp.get('/api/health/ready', (_req: Request, res: Response) => {
+    inflightReadiness ??= probeReadiness(
+      () => prisma.$queryRaw`SELECT 1`,
+    ).finally(() => {
+      inflightReadiness = null;
+    });
+    void inflightReadiness.then((report) =>
+      res.status(report.ready ? 200 : 503).json(report),
+    );
+  });
 
   // ✅ Enable cookie parsing (CRITICAL for auth to work)
   app.use(cookieParser());
