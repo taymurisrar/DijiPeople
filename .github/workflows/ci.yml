@@ -340,6 +340,10 @@ jobs:
       # including a .filter(Boolean) that never narrowed.
       - name: ESLint — services/api
         working-directory: services/api
+        # The type-aware rules load the whole program; the default heap ran out
+        # (exit 134) once the work modules landed, as the Build job did.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: npx eslint "{src,test}/**/*.ts" --max-warnings=787
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
