@@ -138,10 +138,7 @@ describeWithDatabase()('System Customizer isolation (e2e, HTTP)', () => {
   });
 
   it('cannot list or read employees', async () => {
-    for (const path of [
-      '/employees',
-      `/employees/${randomUUID()}`,
-    ]) {
+    for (const path of ['/employees', `/employees/${randomUUID()}`]) {
       const res = await get(path);
       expect({ path, status: res.status }).toEqual({ path, status: 403 });
     }
