@@ -1557,9 +1557,9 @@
         "WP-09.S1"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
+      "status": "INTEGRATED",
       "evidence": "2026-11-28: occurrence list is ONE database query (DutyOccurrence->WorkItem relation, visibility as a where, skip/take and exact count in SQL; query count constant across pages 0/500/700; 2300-row fixture, mixed visibility, ties, cross-tenant; mutation: dropping the visibility where fails). Automatic generation: scheduler off unless WORK_DUTY_GENERATION_ENABLED=true (render.yaml, env docs), per-tenant advisory lock, per-tenant failure isolation, idempotent (two runs -> one occurrence), null system actor, daysAhead bounded 1..14; mutation: removing idempotency fails 3 tests. NOT done: scheduler uses the UTC date, not each tenant timezone; handover/duty UI -> WP-36.S3. | 2026-11-29: generation is per template TIMEZONE (the local today of that template, daysAhead from there; Auckland/Los Angeles unit + e2e; mutations: UTC date, unforwarded zone). The earlier UTC-date limit is closed.",
-      "integratedSha": "c37c6600"
+      "integratedSha": "16b844a1"
     },
     {
       "id": "WP-36.S3",
@@ -1570,8 +1570,9 @@
         "WP-36.S2"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-29: /work/duties UI (my duties paged by the server, occurrence dialog with checklist/notes/complete, manager template CRUD + generate, handover board), searchable template lookup (server search, no 100 cap), GET /work-duties/handover-recipients (id/name/code only, tenant-scoped, 5 e2e tests, mutation: leaking email fails). Browser Flow T (e2e/tests/flow-t-duties-and-timesheets.spec.ts) 15/15 green TWICE in a row on a fresh UTF-8 throwaway DB (dp_master_utf8_gui, identity verified by scripts/work-gui-stack.mjs): employee/manager/admin journeys, blocked completion, handover create/ack (sender 403), Starter vs Growth entitlement toggling, cross-tenant 404 (8 routes x 3 roles, real second tenant), 390/768/1280, axe, keyboard focus trap with a 10x tick/untick focus guard. Defects found and fixed: focus lost to body when a control unmounts/disables while focused, timesheet editor never sent taskId (wiped links), self-reach employee could not name a handover receiver, template filter capped at 100. Untested: runtime Starter-vs-Growth call to handover-recipients (metadata only)."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: /work/duties UI (my duties paged by the server, occurrence dialog with checklist/notes/complete, manager template CRUD + generate, handover board), searchable template lookup (server search, no 100 cap), GET /work-duties/handover-recipients (id/name/code only, tenant-scoped, 5 e2e tests, mutation: leaking email fails). Browser Flow T (e2e/tests/flow-t-duties-and-timesheets.spec.ts) 15/15 green TWICE in a row on a fresh UTF-8 throwaway DB (dp_master_utf8_gui, identity verified by scripts/work-gui-stack.mjs): employee/manager/admin journeys, blocked completion, handover create/ack (sender 403), Starter vs Growth entitlement toggling, cross-tenant 404 (8 routes x 3 roles, real second tenant), 390/768/1280, axe, keyboard focus trap with a 10x tick/untick focus guard. Defects found and fixed: focus lost to body when a control unmounts/disables while focused, timesheet editor never sent taskId (wiped links), self-reach employee could not name a handover receiver, template filter capped at 100. Untested: runtime Starter-vs-Growth call to handover-recipients (metadata only).",
+      "integratedSha": "16b844a1"
     },
     {
       "id": "WP-09.S3",
@@ -1593,8 +1594,9 @@
         "WP-06.S3"
       ],
       "workstream": "A",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-29: timesheet entry has a Work item picker of the person's own open items (free text stays as Other task); server refusals surface as field errors by catalog code TIMESHEET_WORK_ITEM_NOT_YOURS / TIMESHEET_WORK_ITEM_PROJECT (added to error-catalog; spec). Covered by Flow T. Known: reading a timesheet moves its optimistic-lock version (a second open editor goes stale) - recorded as a follow-up, not fixed."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: timesheet entry has a Work item picker of the person's own open items (free text stays as Other task); server refusals surface as field errors by catalog code TIMESHEET_WORK_ITEM_NOT_YOURS / TIMESHEET_WORK_ITEM_PROJECT (added to error-catalog; spec). Covered by Flow T. Known: reading a timesheet moves its optimistic-lock version (a second open editor goes stale) - recorded as a follow-up, not fixed.",
+      "integratedSha": "16b844a1"
     },
     {
       "id": "WP-28.S2",
@@ -1605,9 +1607,9 @@
         "WP-28.S1"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
+      "status": "INTEGRATED",
       "evidence": "2026-11-28: reversal reason/at/by stored on the decision and returned; an action owner can read the originating decision (writes stay 403); links the caller cannot see come back null, hidden chain steps surface as HIDDEN_LINK; work-decisions.e2e 11 tests; mutation: dropping the owner filter fails. NOT done: openActions does not list a decision for its action owner; UI -> WP-28.S3. | 2026-11-29: openActions now lists a decision for the owner of one of its open actions (read-only, only actions they may see) - the WP-28.S2 gap is closed.",
-      "integratedSha": "c37c6600"
+      "integratedSha": "16b844a1"
     },
     {
       "id": "WP-28.S3",
@@ -1618,8 +1620,9 @@
         "WP-28.S2"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-29: /work/meetings and /work/decisions UI (create/edit/hold/cancel/attendance, decisions create/decide/supersede with chain and Not visible steps, reverse with stored reason, linked actions, open-actions report), authorized context renders as nothing, never an error. Browser Flow U (e2e/tests/flow-u-meetings-decisions-policies.spec.ts) 27/27 green: employee/manager/HR, real second tenant, Starter/Growth toggling, 3 viewports, keyboard/axe. Defects fixed: proxy had no DELETE, openActions ignored action owners, 390px overflow, own name shown as Employee xxxx. NOT done: linked discussion threads/child questions (schema has no thread entity) -> WP-28.S4; meeting links to work item/blocker only through URL params."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: /work/meetings and /work/decisions UI (create/edit/hold/cancel/attendance, decisions create/decide/supersede with chain and Not visible steps, reverse with stored reason, linked actions, open-actions report), authorized context renders as nothing, never an error. Browser Flow U (e2e/tests/flow-u-meetings-decisions-policies.spec.ts) 27/27 green: employee/manager/HR, real second tenant, Starter/Growth toggling, 3 viewports, keyboard/axe. Defects fixed: proxy had no DELETE, openActions ignored action owners, 390px overflow, own name shown as Employee xxxx. NOT done: linked discussion threads/child questions (schema has no thread entity) -> WP-28.S4; meeting links to work item/blocker only through URL params.",
+      "integratedSha": "16b844a1"
     },
     {
       "id": "WP-27.S3",
@@ -1630,8 +1633,9 @@
         "WP-27.S2"
       ],
       "workstream": "B",
-      "status": "ACCEPTED",
-      "evidence": "2026-11-29: scoped daily-update policy settings UI (team/BU CRUD, cadence, effective policy for a chosen employee, run escalation with counts) and a scheduled escalation (off unless WORK_DAILY_UPDATE_ESCALATION_ENABLED=true; per-tenant advisory lock and isolation, each person judged in their own policy timezone, idempotent through DailyUpdateEscalation; e2e 6 tests, 3 mutations). Covered by Flow U."
+      "status": "INTEGRATED",
+      "evidence": "2026-11-29: scoped daily-update policy settings UI (team/BU CRUD, cadence, effective policy for a chosen employee, run escalation with counts) and a scheduled escalation (off unless WORK_DAILY_UPDATE_ESCALATION_ENABLED=true; per-tenant advisory lock and isolation, each person judged in their own policy timezone, idempotent through DailyUpdateEscalation; e2e 6 tests, 3 mutations). Covered by Flow U.",
+      "integratedSha": "16b844a1"
     },
     {
       "id": "WP-04.S3",
@@ -1693,5 +1697,5 @@
     "bug": "BUG-4774",
     "backlogItem": "ITEM-0245"
   },
-  "integratedSha": "c37c6600"
+  "integratedSha": "16b844a1"
 }
